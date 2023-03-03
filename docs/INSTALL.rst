@@ -1,67 +1,172 @@
+***************
+Getting started
+***************
+
 Installation
-============
+===============
 
-AppDaemon runs on Python versions 3.8, 3.9, 3.10 and 3.11. Installation is either by pip3 or Docker. There is also an official
-hass.io build.
+The following installation methods are supported:
 
-Note: Windows and Raspbian users should check the environment-specific section at the end of this doc for additional information.
+- :ref:`docker-install`
+- :ref:`pip-install`
+- :ref:`Home-Assistant-add-on`
 
-Install and Run using Docker
-----------------------------
+Note: *Windows* and *Raspbian* users should check the environment-specific section at the end of this doc for additional information.
 
-Follow the instructions in the `Docker Tutorial <DOCKER_TUTORIAL.html>`__
-
-Install Using pip3
-------------------
-
-Before running ``AppDaemon`` you will need to install the package:
-
-.. code:: bash
-
-    $ sudo pip3 install appdaemon
-
-
-**Do not** install this in the same Python virtual environment as Home Assistant. If you do that, then Home Assistant will stop working.
-
-Install Using hass.io
----------------------
-
-The official hass.io addon for AppDaemon is maintained by:
-
-- `frenck <https://github.com/hassio-addons/repository>`__.
-
-Running
--------
+.. _docker-install:
 
 Docker
-~~~~~~
+------
 
-Assuming you have set the config up as described in `the tutorial <DOCKER_TUTORIAL.html>`_ for
-Docker, you should see the logs output as follows:
+Supported architectures
+^^^^^^^^^^^^^^^^^^^^^^^
+Starting with AppDaemon 4.1.0, multi-arch images are published on the official `Docker Hub <https://hub.docker.com/r/acockburn/appdaemon>`_ repository.
 
-.. code:: bash
+Currently supported architectures:
 
-    $ docker logs appdaemon
-    2016-08-22 10:08:16,575 INFO Got initial state
-    2016-08-22 10:08:16,576 INFO Loading Module: /export/hass/appdaemon_test/conf/apps/hello.py
-    2016-08-22 10:08:16,578 INFO Loading Object hello_world using class HelloWorld from module hello
-    2016-08-22 10:08:16,580 INFO Hello from AppDaemon
-    2016-08-22 10:08:16,584 INFO You are now ready to run Apps!
+- linux/arm/v6
+- linux/arm/v7
+- linux/arm64/v8
+- linux/amd64
 
-Note that for Docker, the error and regular logs are combined.
+To start a container named ``appdaemon``, exposing the *HADashboard* on port 5050, use the following command:
 
-PIP3
-~~~~
+.. code:: console
+
+    $ docker run --name appdaemon \
+        --detach \
+        --restart=always \
+        --network=host \
+        -p 5050:5050 \
+        -v <conf_folder>:/conf \
+        -e HA_URL="http://homeassistant.local:8123" \
+        -e TOKEN="my_long_liven_token" \
+        acockburn/appdaemon
+
+Environment variables
+^^^^^^^^^^^^^^^^^^^^^
+
+When you start the AppDaemon image, you can adjust the some configuration variables of AppDaemon by passing one or more environment variables on the ``docker run`` command:
+
+======  ========================================================
+Name    Description
+======  ========================================================
+HA_URL  The URL of your running Home Assistant instance
+TOKEN   Long-Lived token to authenticates against Home Assistant
+======  ========================================================
+
+Accessing configuration
+^^^^^^^^^^^^^^^^^^^^^^^
+
+AppDaemon uses the ``/conf`` directory to store its configuration data.
+To access this folder from the host system, you need to create a data directory outside the container and `mount this to the directory used inside the container <https://docs.docker.com/engine/tutorials/dockervolumes/#mount-a-host-directory-as-a-data-volume>`_.
+This places the configuration files in a known location on the host system, and makes it easy for tools and applications on the host system to access the files.
+
+The following steps illustrate the procedure;
+
+1. Create a configuration directory on a suitable volume on your host system, e.g. ``/my/own/datadir``.
+2. Start you ``AppDaemon`` container like this:
+
+.. code:: console
+
+    $ docker run --name appdaemon \
+        --detach \
+        --restart=always \
+        --network=host \
+        -p 5050:5050 \
+        -v <conf_folder>:/conf \
+        -e HA_URL="http://homeassistant.local:8123" \
+        -e TOKEN="my_long_liven_token" \
+        acockburn/appdaemon
+
+The ``-v /my/own/datadir:/conf`` part of the command mounts the ``/my/own/datadir`` directory from the underlying host system as ``/conf`` inside the container, where AppDaemon by default will write its data files.
+
+The first you start the container, AppDaemon will write its own sample configuration files in this directory.
+
+For a more in-depth guide to Docker, see the :ref:`Docker tutorial`.
+
+.. _pip-install:
+
+Pip
+---
+
+Linux
+^^^^^
+
+**Requirements**: Python version `3.8`, `3.9`, `3.10` or `3.11`.
+
+**NOTE:** Do not install this in the same Python virtual environment as Home Assistant.
+If you do that, then Home Assistant will stop working due to conflicting dependencies.
+
+
+- Create a dedicated `Python virtual environment <https://docs.python.org/3/tutorial/venv.html>`_ for AppDaemon and activate it
+
+- To install the latest version of AppDaemon:
+
+.. code:: console
+
+    $ pip install appdaemon
+
+
+Raspbian
+^^^^^^^^
+
+Some users have reported the following additional requirements:
+
+.. code:: console
+
+    $ sudo apt install python-dev
+    $ sudo apt install libffi-dev
+
+Windows
+^^^^^^^
+
+AppDaemon under Windows has been tested with the official 3.8.1
+release of Python.
+There are a couple of caveats:
+
+-  The ``-d`` or ``--daemonize`` option is not supported owing to
+   limitations in the Windows implementation of Python.
+-  Some internal diagnostics are disabled. This is not user-visible but
+   may hamper troubleshooting of internal issues, if any crop up
+
+AppDaemon can be installed exactly as per the instructions using pip.
+
+WSL (Windows subsystem for Linux)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Windows 10+ now supports a full Linux Bash environment that is capable of
+running Python. It allows to run a multitude of Linux distributions, virtualizing a full Linux OS.
+
+It is possible to run AppDaemon in the same way
+as in a standard Linux distributions, and none of the above Windows caveats apply
+to this version.
+This is the recommended way to run AppDaemon in a Windows 10 and later environment.
+
+
+.. _Home-Assistant-add-on:
+
+Home Assistant add-on
+---------------------
+
+The official AppDaemon add-on is available in the `Home Assistant Community Add-ons Repository <https://github.com/hassio-addons/repository>`_, maintained by `frenck <https://github.com/frenck>`_.
+Please see their official documentation for installation and configuration instructions.
+
+Running
+=======
+
+Pip
+---
 
 You can run AppDaemon from the command line as follows:
 
-.. code:: bash
+.. code:: console
 
     $ appdaemon -c /home/homeassistant/conf
 
 If all is well, you should see something like the following:
 
-::
+.. code:: console
 
     $ appdaemon -c /home/homeassistant/conf
     2016-08-22 10:08:16,575 INFO Got initial state
@@ -70,10 +175,10 @@ If all is well, you should see something like the following:
     2016-08-22 10:08:16,580 INFO Hello from AppDaemon
     2016-08-22 10:08:16,584 INFO You are now ready to run Apps!
 
-AppDaemon arguments
--------------------
+CLI arguments
+-------------
 
-::
+.. code:: console
 
     usage: appdaemon [-h] [-c CONFIG] [-p PIDFILE] [-t TIMEWARP] [-s STARTTIME]
                        [-e ENDTIME] [-C CONFIGFILE]
@@ -167,68 +272,32 @@ Activate Systemd Service
 
 Now AppDaemon should be up and running and good to go.
 
-Updating AppDaemon
-------------------
+Upgrading
+=========
 
-To update AppDaemon after new code has been released, just run the
+To update AppDaemon after a new release has been published, run the
 following command to update your copy:
 
-.. code:: bash
+.. code:: console
 
-    $ sudo pip3 install --upgrade appdaemon
+    $ pip install --upgrade appdaemon
 
-If you are using docker, refer to the steps in the tutorial.
+If you are using Docker, refer to the steps in the tutorial.
 
-AppDaemon Versioning Strategy
------------------------------
+Versioning Strategy
+-------------------
 
-AppDaemon uses a simple 3 point versioning strategy of the form x.y.z
+AppDaemon follows a simple 3 point versioning strategy in the format ``x.y.z``:
 
-- x = Major Version Number
-- y = Minor Version Number
-- z = Point Version Number
-
-Major versions will be released when very significant changes have been made to the platform, or
+x: major version number
+    Incremented when very significant changes have been made to the platform, or
 sizeable new functionality has been added.
 
-Minor versions will be released when incremental new features have been added, or breaking changes have occured
+y: minor version number
+    Incremented when incremental new features have been added, or breaking changes have occurred
 
-Point releases will typically contain bugfixes, and package upgrades
+z: point version number
+    Point releases will typically contain bugfixes, and package upgrades
 
 Users should be able to expect point release upgrades to be seamless, but should check release notes for breaking changes and
 new functionality for minor or major releases.
-
-Windows Support
----------------
-
-AppDaemon runs under windows and has been tested with the official 3.8.1
-release of python. However, there are a couple of caveats:
-
--  The ``-d`` or ``--daemonize`` option is not supported owing to
-   limitations in the Windows implementation of Python.
--  Some internal diagnostics are disabled. This is not user-visible but
-   may hamper troubleshooting of internal issues if any crop up
-
-AppDaemon can be installed exactly as per the instructions for every
-other version using pip3.
-
-Windows Under the Linux Subsystem
----------------------------------
-
-Windows 10+ now supports a full Linux bash environment that is capable of
-running Python. This is essentially an Ubuntu distribution and works
-extremely well. It is possible to run AppDaemon in the same way
-as for Linux distributions, and none of the above Windows Caveats apply
-to this version. This is the recommended way to run AppDaemon in a
-Windows 10 and later environment.
-
-Raspbian
---------
-
-Some users have reported a requirement to install a couple of packages
-prior to installing AppDaemon with the pip3 method:
-
-.. code:: bash
-
-    $ sudo apt-get install python-dev
-    $ sudo apt-get install libffi-dev
