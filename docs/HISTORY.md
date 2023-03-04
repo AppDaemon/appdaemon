@@ -6,10 +6,11 @@ Change Log
 
 **Features**
 
--   AUI Now shows performance stats for plugin network access
--   New CI pipeline designed and configured by [Carlo
+- AUI Now shows performance stats for plugin network access
+- New CI pipeline designed and configured by [Carlo
     Mion](https://github.com/mion00)
--   Add support for python 3.11
+- Add support for python 3.11
+- run_at() support for times that have already passed #1684
 
 **Fixes**
 

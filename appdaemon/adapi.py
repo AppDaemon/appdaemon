@@ -2583,7 +2583,7 @@ class ADAPI:
 
         now = await self.get_now()
         if aware_when < now:
-            raise ValueError("{}: run_at() Start time must be " "in the future".format(self.name))
+            aware_when += timedelta(days=1)
         handle = await self.AD.sched.insert_schedule(name, aware_when, callback, False, None, **kwargs)
         return handle
 
