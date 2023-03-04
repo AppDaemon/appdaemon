@@ -2844,9 +2844,9 @@ class ADAPI:
     @utils.sync_wrapper
     async def _schedule_sun(self, name, type_, callback, **kwargs):
         if type_ == "next_rising":
-            event = self.AD.sched.next_sunrise()
+            event = await self.AD.sched.next_sunrise()
         else:
-            event = self.AD.sched.next_sunset()
+            event = await self.AD.sched.next_sunset()
 
         handle = await self.AD.sched.insert_schedule(name, event, callback, True, type_, **kwargs)
         return handle
