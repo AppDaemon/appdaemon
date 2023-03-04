@@ -190,7 +190,7 @@ class Scheduler:
 
         if args["type"] == "next_rising" or args["type"] == "next_setting":
             c_offset = self.get_offset(args)
-            args["timestamp"] = self.sun(args["type"], c_offset)
+            args["timestamp"] = await self.sun(args["type"], c_offset)
             args["offset"] = c_offset
 
         else:
@@ -379,14 +379,14 @@ class Scheduler:
 
         self.location = Location(LocationInfo("", "", self.AD.tz.zone, latitude, longitude))
 
-    def sun(self, type: str, secs_offset: int):
-        return self.get_next_sun_event(type, secs_offset) + datetime.timedelta(seconds=secs_offset)
+    async def sun(self, type: str, secs_offset: int):
+        return await self.get_next_sun_event(type, secs_offset) + datetime.timedelta(seconds=secs_offset)
 
-    def get_next_sun_event(self, type: str, day_offset: int):
+    async def get_next_sun_event(self, type: str, day_offset: int):
         if type == "next_rising":
-            return self.next_sunrise(day_offset)
+            return await self.next_sunrise(day_offset)
         else:
-            return self.next_sunset(day_offset)
+            return await self.next_sunset(day_offset)
 
     def todays_sunrise(self, days_offset):
         candidate_date = (self.now + datetime.timedelta(days=days_offset)).astimezone(self.AD.tz).date()
@@ -394,7 +394,10 @@ class Scheduler:
 
         return next_rising_dt
 
-    def next_sunrise(self, offset: int = 0):
+    async def next_sunrise(self, offset: int = 0):
+        # Kick the scheduler to force an update of self.now
+        await self.kick()
+
         day_offset = 0
         while True:
             try:
@@ -410,7 +413,10 @@ class Scheduler:
 
         return next_rising_dt
 
-    def next_sunset(self, offset: int = 0):
+    async def next_sunset(self, offset: int = 0):
+        # Kick the scheduler to force an update of self.now
+        await self.kick()
+
         day_offset = 0
         while True:
             try:
@@ -690,10 +696,10 @@ class Scheduler:
     #
 
     async def sun_up(self):
-        return self.next_sunrise() > self.next_sunset()
+        return await self.next_sunrise() > await self.next_sunset()
 
     async def sun_down(self):
-        return self.next_sunrise() < self.next_sunset()
+        return await self.next_sunrise() < await self.next_sunset()
 
     async def info_timer(self, handle, name):
         if self.timer_running(name, handle):
@@ -819,24 +825,24 @@ class Scheduler:
             if today is True:
                 return self.todays_sunset(days_offset).astimezone(self.AD.tz)
             else:
-                return self.next_sunset().astimezone(self.AD.tz)
+                return (await self.next_sunset()).astimezone(self.AD.tz)
         else:
             if today is True:
                 return self.make_naive(self.todays_sunset(days_offset).astimezone(self.AD.tz))
             else:
-                return self.make_naive(self.next_sunset().astimezone(self.AD.tz))
+                return self.make_naive((await self.next_sunset()).astimezone(self.AD.tz))
 
     async def sunrise(self, aware, today=False, days_offset=0):
         if aware is True:
             if today is True:
                 return self.todays_sunrise(days_offset).astimezone(self.AD.tz)
             else:
-                return self.next_sunrise().astimezone(self.AD.tz)
+                return (await self.next_sunrise()).astimezone(self.AD.tz)
         else:
             if today is True:
                 return self.make_naive(self.todays_sunrise(days_offset).astimezone(self.AD.tz))
             else:
-                return self.make_naive(self.next_sunrise().astimezone(self.AD.tz))
+                return self.make_naive((await self.next_sunrise()).astimezone(self.AD.tz))
 
     async def parse_time(self, time_str, name=False, aware=False, today=False, days_offset=0):
         if aware is True:
@@ -965,9 +971,9 @@ class Scheduler:
         self.diag.info("--------------------------------------------------")
         self.diag.info("Sun")
         self.diag.info("--------------------------------------------------")
-        self.diag.info("Next Sunrise: %s", self.next_sunrise())
+        self.diag.info("Next Sunrise: %s", await self.next_sunrise())
         self.diag.info("Today's Sunrise: %s", self.todays_sunrise(days_offset=0))
-        self.diag.info("Next Sunset: %s", self.next_sunset())
+        self.diag.info("Next Sunset: %s", await self.next_sunset())
         self.diag.info("Today's Sunset: %s", self.todays_sunset(days_offset=0))
         self.diag.info("--------------------------------------------------")
 

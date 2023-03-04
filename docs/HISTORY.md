@@ -18,6 +18,7 @@ Change Log
 - parse_time("sunset") and impact of "aware" #1645
 - constrain_person not working #1437
 - last_changed_seconds wrong due to timezone #1571
+- sun_up/down never changes its value #1576
 
 **Breaking Changes**
 
