@@ -7,7 +7,6 @@ from logging import Logger
 import asyncio
 import uuid
 import iso8601
-from datetime import datetime
 from collections.abc import Iterable
 
 
@@ -590,7 +589,7 @@ class Entity:
         """Get the entity's last changed time in seconds"""
 
         utc = iso8601.parse_date(self.states_attrs.last_changed)
-        now = self.AD.sched.convert_naive(datetime.now())
+        now = self.AD.sched.get_now_sync()
         return (now - utc).total_seconds()
 
     def __repr__(self) -> str:

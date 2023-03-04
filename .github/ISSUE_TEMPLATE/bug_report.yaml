@@ -1,0 +1,56 @@
+name: Bug Report
+description: Report an issue with AppDaemon.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Also tell us, what did you expect to happen?
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: What version of AppDaemon are you running? (If you are running the homeassistant addon please give the version number AppDaemon reports in its logs, not the addon version)
+      placeholder: 4.2.3
+    validations:
+      required: true
+  - type: dropdown
+    id: installation
+    attributes:
+      label: Installation type
+      description: How are you running AppDaemon?
+      options:
+        - Home Assistant add-on
+        - Python virtual environment
+        - Docker container
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log output
+      description: Please copy and paste any relevant log output. This will be automatically formatted into code, so no need for backticks.
+      render: sh
+  - type: textarea
+    id: app
+    attributes:
+      label: Relevant code in the app or config file that caused the issue
+      description: Please copy and paste any relevant app code, if your error is related to a specific app or piece of code, and/or any relevant config information. If not related to an app, leave blank. This will be automatically formatted into code, so no need for backticks.
+      render: sh
+
+  - type: textarea
+    attributes:
+      label: Anything else?
+      description: |
+        Links? References? Anything that will give us more context about the issue you are encountering!
+
+        Tip: You can attach images or by clicking this area to highlight it and then dragging files in.
+    validations:
+      required: false

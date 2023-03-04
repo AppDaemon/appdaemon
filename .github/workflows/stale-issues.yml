@@ -1,0 +1,49 @@
+# First mark the issue as `stale` according to `days-before-stale`, then close it if no activity for `days-before-close`
+name: 'Close stale issues and PRs'
+on:
+  schedule:
+    # run at 00:30 on Sunday UTC
+    - cron: '30 0 * * 0'
+  # To manually trigger from Github UI and debug this workflow
+  workflow_dispatch:
+
+permissions:
+  # To label and close issues
+  issues: write
+  # To label and close PR
+  pull-requests: write
+
+# For debug purposes
+env:
+  DRY_RUN: "false"
+
+jobs:
+  # Consider ONLY issue with label `question` OR `wait-response`
+  stale_labeled:
+    name: question, wait-response
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/stale@v7
+        with:
+          stale-issue-message: 'This issue is stale because it has been open for 45 days with no activity. Remove stale label or comment or this will be closed in 15 days.'
+          close-issue-message: 'Please feel free re-open this issue if you have new information available'
+          days-before-stale: 45
+          days-before-close: 15
+          any-of-labels: "question,docs_needed"
+          stale-issue-label: "stale"
+          debug-only: "${{ env.DRY_RUN }}"
+
+  # Consider ONLY issues that DO NOT have any of the labels defined below
+  stale_unlabeled:
+    name: without label
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/stale@v7
+        with:
+          stale-issue-message: 'This issue is stale because it has been open for 6 months with no activity. Remove stale label or comment or this will be closed in 15 days.'
+          close-issue-message: 'Please feel free re-open this issue if you have new information available'
+          days-before-stale: 180
+          days-before-close: 15
+          exempt-issue-labels: "bug,enhancement,documentation,question,docs_needed,work_in_progress"
+          stale-issue-label: "stale"
+          debug-only: "${{ env.DRY_RUN }}"

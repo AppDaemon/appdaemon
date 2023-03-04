@@ -7,32 +7,32 @@ Change Log
 **Features**
 
 - AUI Now shows performance stats for plugin network access
-- New CI pipeline designed and configured by [Carlo Mion](https://github.com/mion00)
+- New CI pipeline designed and configured by [Carlo
+    Mion](https://github.com/mion00)
 - Add support for python 3.11
-- Add support for TOML configuration files
-
+- run_at() support for times that have already passed #1684
 
 **Fixes**
 
-None
+- Trailing slash on hass url breaks connectivity #999
+- parse_time("sunset") and impact of "aware" #1645
+- constrain_person not working #1437
+- last_changed_seconds wrong due to timezone #1571
+- sun_up/down never changes its value #1576
 
 **Breaking Changes**
 
-- Remove Python 3.7 test coverage prior to deprecation at EOL in 6/23
-- `invalid_yaml_warnings` directive in appdaemon config file has been renamed to `invalid_config_warnings`
-- Removed support for `apps.yaml` in the config directory - this was deprecated in 2018
-
+-   Remove Python 3.7 test coverage prior to deprecation at EOL in 6/23
 
 4.2.3 (2023-02-27)
 ======================
 
 **Features**
 
-None
-
 **Fixes**
 
-- Revert docker changes and remove arm images from CI due to memory exhaustion issues
+-   Revert docker changes and remove arm images from CI due to memory
+    exhaustion issues
 
 **Breaking Changes**
 

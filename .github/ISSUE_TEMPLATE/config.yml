@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: I have a question or need support
+    url: https://appdaemon.readthedocs.io/en/latest/index.html#assistance
+    about: We use GitHub for tracking bugs and discuss new features, check our website for resources on getting help.
