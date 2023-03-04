@@ -15,7 +15,7 @@ permissions:
 
 # For debug purposes
 env:
-  DRY_RUN: "true"
+  DRY_RUN: "false"
 
 jobs:
   # Consider ONLY issue with label `question` OR `wait-response`
