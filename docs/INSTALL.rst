@@ -232,35 +232,3 @@ prior to installing AppDaemon with the pip3 method:
 
     $ sudo apt-get install python-dev
     $ sudo apt-get install libffi-dev
-
-Raspberry Pi Docker
--------------------
-
-Since the official Docker image isn't compatible with Raspberry Pi, you will need to build your own docker image
-from the downloaded repository.
-
-.. code:: bash
-
-    $ git clone https://github.com/home-assistant/appdaemon.git
-    $ cd appdaemon
-
-You can then build and run the docker image locally as follows:
-
-.. code:: bash
-
-    $ docker build -t appdaemon --build-arg IMAGE=python:3.8-alpine3.12 --network=host .
-    $ docker run --name=appdaemon -d -p 5050:5050 \
-      --restart=always \
-      -e HA_URL="<Your HA_URL value>" \
-      -e TOKEN="<your TOKEN value>" \
-      -e DASH_URL="http://$HOSTNAME:5050" \
-      -v <your_conf_folder>:/conf \
-      appdaemon:latest
-
-For more information on running AppDaemon under Docker, see the Docker Tutorial. The key difference is that
-you will be running a locally built instance of AppDaemon rather than one from Docker Hub, so for run commands,
-make sure to specify "appdaemon:latest" as the image, as above, rather than "acockburn/appdaemon:latest" as the tutorial states.
-
-At the time of writing, @torkildr is maintaining a linked Raspberry Pi image here:
-
-https://hub.docker.com/r/torkildr/rpi-appdaemon/
