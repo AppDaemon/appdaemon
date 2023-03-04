@@ -799,6 +799,33 @@ Style Arguments:
 -  ``widget_style``
 -  ``title_style``
 
+heater
+~~~~~~
+
+A widget to control a heater or fan
+
+Mandatory arguments:
+^^^^^^^^^^^^^^^^^^^^
+
+- ``icon_entity`` - the entity_id of the switch function
+- ``slider_entity`` - the entity_id of the input_number
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+title - the title displayed on the tile
+title2 - a second line of title text
+
+Style Arguments:
+^^^^^^^^^^^^^^^^
+
+- ``title_style``
+- ``title2_style``
+- ``slider_style``
+- ``widget_style``
+- ``icon_style_active``
+- ``icon_style_inactive``
+
 climate
 ~~~~~~~
 .. figure:: images/climate.png
