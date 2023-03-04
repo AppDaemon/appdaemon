@@ -11,6 +11,7 @@ Change Log
     Mion](https://github.com/mion00)
 - Add support for python 3.11
 - run_at() support for times that have already passed #1684
+- Add TOML Support
 
 **Fixes**
 
