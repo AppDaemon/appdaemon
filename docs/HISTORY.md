@@ -14,6 +14,7 @@ Change Log
 **Fixes**
 
 - Trailing slash on hass url breaks connectivity #999
+- parse_time("sunset") and impact of "aware" #1645
 
 **Breaking Changes**
 

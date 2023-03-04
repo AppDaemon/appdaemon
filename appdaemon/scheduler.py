@@ -843,7 +843,7 @@ class Scheduler:
             return (
                 (await self._parse_time(time_str, name, today=today, days_offset=days_offset))["datetime"]
                 .astimezone(self.AD.tz)
-                .time()
+                .timetz()
             )
         else:
             return self.make_naive(
