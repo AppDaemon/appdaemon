@@ -13,6 +13,8 @@ Change Log
 
 **Fixes**
 
+- Trailing slash on hass url breaks connectivity #999
+
 **Breaking Changes**
 
 -   Remove Python 3.7 test coverage prior to deprecation at EOL in 6/23

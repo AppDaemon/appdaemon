@@ -56,7 +56,9 @@ class HassPlugin(PluginBase):
         self.cert_verify = args.get("cert_verify")
         self.commtype = args.get("commtype", "WS")
         self.ha_key = args.get("ha_key")
-        self.ha_url = args.get("ha_url", "")
+
+        # Remove trailing slash if present
+        self.ha_url = args.get("ha_url", "").rstrip("/")
         self.namespace = args.get("namespace", "default")
         self.plugin_startup_conditions = args.get("plugin_startup_conditions", {})
         self.retry_secs = int(args.get("retry_secs", 5))
