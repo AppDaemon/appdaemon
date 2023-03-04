@@ -1091,11 +1091,26 @@ Style Arguments:
 
 gauge
 ~~~~~
-.. figure:: images/guage.png
-   :alt: guage
+.. figure:: images/gauge.png
+   :alt: gauge
 
 A widget to report on numeric values for sensors in Home Assistant in a
 gauge format.
+
+The gauge can optionally accept 3 style colors. These must be in hex RGB format, and the graph will interpolate the color of the level bar in between them. For example:
+
+.. code-block::
+
+    gauge:
+      widget_type: gauge
+      entity: sensor.processor_use
+      title: gauge
+      max: 400
+      min: 0
+      low_color: "#ff0000"
+      medium_color: "#00ff00"
+      high_color: "#0000ff"
+      units: "%"
 
 Mandatory Arguments:
 ^^^^^^^^^^^^^^^^^^^^
