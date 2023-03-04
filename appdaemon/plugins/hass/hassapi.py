@@ -53,6 +53,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         # Register specific constraints
         #
         self.register_constraint("constrain_presence")
+        self.register_constraint("constrain_person")
         self.register_constraint("constrain_input_boolean")
         self.register_constraint("constrain_input_select")
 
