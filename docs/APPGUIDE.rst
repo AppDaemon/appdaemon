@@ -737,6 +737,8 @@ the constraints as a yaml list
         - input_boolean.enable_motion_detection
         - binary_sensor.weekend,off
 
+Note that the default behavior if the input_boolean doesn't exist so to not constrain.
+
 input\_select
 ^^^^^^^^^^^^^
 
