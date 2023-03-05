@@ -20,6 +20,10 @@ from functools import wraps
 from appdaemon.version import __version__  # noqa: F401
 from collections.abc import Iterable
 import concurrent.futures
+import tomli
+import re
+
+# Comment
 
 if platform.system() != "Windows":
     import pwd
@@ -272,37 +276,6 @@ def get_kwargs(kwargs):
         if kwarg[:2] != "__":
             result += "{}={} ".format(kwarg, kwargs[kwarg])
     return result
-
-
-def _dummy_secret(loader, node):
-    pass
-
-
-def _secret_yaml(loader, node):
-    if secrets is None:
-        raise ValueError("!secret used but no secrets file found")
-
-    if node.value not in secrets:
-        raise ValueError("{} not found in secrets file".format(node.value))
-
-    return secrets[node.value]
-
-
-def _env_var_yaml(loader, node):
-    env_var = node.value
-    if env_var not in os.environ:
-        raise ValueError("{} not found in as environment varibale".format(env_var))
-
-    return os.environ[env_var]
-
-
-def _include_yaml(loader, node):
-    filename = node.value
-    if not os.path.isfile(filename) or filename.split(".")[-1] != "yaml":
-        raise ValueError("{} is not a valid yaml file".format(filename))
-
-    with open(filename, "r") as f:
-        return yaml.load(f, Loader=yaml.SafeLoader)
 
 
 def write_to_file(yaml_file, **kwargs):
@@ -590,3 +563,181 @@ def get_object_size(obj, seen=None):
     elif hasattr(obj, "__iter__") and not isinstance(obj, (str, bytes, bytearray)):
         size += sum([get_object_size(i, seen) for i in obj])
     return size
+
+
+def read_config_file(path):
+    extension = os.path.splitext(path)[1]
+    if extension == ".yaml":
+        return read_yaml_config(path)
+    elif extension == ".toml":
+        return read_toml_config(path)
+    else:
+        raise ValueError(f"ERROR: unknown file extension: {extension}")
+
+
+def read_toml_config(path):
+    with open(path, "rb") as f:
+        config = tomli.load(f)
+
+    # now figure out secrets file
+
+    if "secrets" in config:
+        secrets_file = config["secrets"]
+    else:
+        secrets_file = os.path.join(os.path.dirname(path), "secrets.toml")
+
+    try:
+        with open(secrets_file, "rb") as f:
+            secrets = tomli.load(f)
+    except FileNotFoundError:
+        # We have no secrets
+        secrets = None
+
+    # traverse config looking for !secret and !env
+
+    final_config = toml_sub(config, secrets, os.environ)
+
+    return final_config
+
+
+def toml_sub(data, secrets, env):
+    result = None
+
+    if isinstance(data, dict):
+        result = {}
+        for key, value in data.items():
+            result[key] = toml_sub(value, secrets, env)
+
+        assert id(result) != id(data)
+
+    elif isinstance(data, list):
+        result = []
+        for item in data:
+            result.append(toml_sub(item, secrets, env))
+
+        assert id(result) != id(data)
+
+    elif isinstance(data, tuple):
+        aux = []
+        for item in data:
+            aux.append(toml_sub(item, secrets, env))
+        result = tuple(aux)
+
+        assert id(result) != id(data)
+
+    else:
+        result = data
+        if isinstance(data, str):
+            r = re.match(r"^!secret\s+(\w+)$", data)
+            if r is not None:
+                key = r.group(1)
+                if secrets is None:
+                    print(f"ERROR: !secret used and no secrets file: '{data}'")
+                elif key in secrets:
+                    result = secrets[key]
+                else:
+                    print(f"ERROR: !secret ({key}) not found in secrets file")
+
+            r = re.search(r"^!env\s+(\w+)$", data)
+            if r is not None:
+                key = r.group(1)
+                if key in env:
+                    result = env[key]
+                else:
+                    print(f"ERROR: !env ({key}) not found in environment")
+
+    return result
+
+
+def _dummy_secret(loader, node):
+    pass
+
+
+def _secret_yaml(loader, node):
+    if secrets is None:
+        raise ValueError("!secret used but no secrets file found")
+
+    if node.value not in secrets:
+        raise ValueError("{} not found in secrets file".format(node.value))
+
+    return secrets[node.value]
+
+
+def _env_var_yaml(loader, node):
+    env_var = node.value
+    if env_var not in os.environ:
+        raise ValueError("{} not found in as environment varibale".format(env_var))
+
+    return os.environ[env_var]
+
+
+def _include_yaml(loader, node):
+    filename = node.value
+    if not os.path.isfile(filename) or filename.split(".")[-1] != "yaml":
+        raise ValueError("{} is not a valid yaml file".format(filename))
+
+    with open(filename, "r") as f:
+        return yaml.load(f, Loader=yaml.SafeLoader)
+
+
+def read_yaml_config(config_file_yaml):
+    #
+    # First locate secrets file
+    #
+    #    try:
+    #
+    # Read config file using include directory
+    #
+
+    yaml.add_constructor("!include", _include_yaml, Loader=yaml.SafeLoader)
+
+    #
+    # Read config file using environment variables
+    #
+
+    yaml.add_constructor("!env_var", _env_var_yaml, Loader=yaml.SafeLoader)
+
+    #
+    # Initially load file to see if secret directive is present
+    #
+    yaml.add_constructor("!secret", _dummy_secret, Loader=yaml.SafeLoader)
+    with open(config_file_yaml, "r") as yamlfd:
+        config_file_contents = yamlfd.read()
+
+    config = yaml.load(config_file_contents, Loader=yaml.SafeLoader)
+
+    if "secrets" in config:
+        secrets_file = config["secrets"]
+    else:
+        secrets_file = os.path.join(os.path.dirname(config_file_yaml), "secrets.yaml")
+
+    #
+    # Read Secrets
+    #
+    if os.path.isfile(secrets_file):
+        with open(secrets_file, "r") as yamlfd:
+            secrets_file_contents = yamlfd.read()
+
+        global secrets
+        secrets = yaml.load(secrets_file_contents, Loader=yaml.SafeLoader)
+
+    else:
+        if "secrets" in config:
+            print(
+                "ERROR",
+                "Error loading secrets file: {}".format(config["secrets"]),
+            )
+            return None
+
+    #
+    # Read config file again, this time with secrets
+    #
+
+    yaml.add_constructor("!secret", _secret_yaml, Loader=yaml.SafeLoader)
+
+    with open(config_file_yaml, "r") as yamlfd:
+        config_file_contents = yamlfd.read()
+
+    config = yaml.load(config_file_contents, Loader=yaml.SafeLoader)
+
+    return config

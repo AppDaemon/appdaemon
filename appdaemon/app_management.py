@@ -3,7 +3,6 @@ import traceback
 import uuid
 import os
 import importlib
-import yaml
 import subprocess
 import cProfile
 import io
@@ -18,8 +17,10 @@ from appdaemon.appdaemon import AppDaemon
 
 
 class AppManagement:
-    def __init__(self, ad: AppDaemon, config):
+    def __init__(self, ad: AppDaemon, use_toml):
         self.AD = ad
+        self.use_toml = use_toml
+        self.ext = ".toml" if use_toml is True else ".yaml"
         self.logger = ad.logging.get_child("_app_management")
         self.error = ad.logging.get_error()
         self.diag = ad.logging.get_diag()
@@ -36,11 +37,8 @@ class AppManagement:
         self.app_config_files = {}
         self.module_dirs = []
 
-        self.app_config_file_modified = 0
         self.app_config = {}
         self.global_module_dependencies = {}
-
-        self.app_config_file = config
 
         self.apps_initialized = False
 
@@ -399,113 +397,105 @@ class AppManagement:
     async def read_config(self):  # noqa: C901
         new_config = None
 
-        if await utils.run_in_executor(self, os.path.isfile, self.app_config_file):
-            self.logger.warning(
-                "apps.yaml in the Config directory is deprecated. Please move apps.yaml to the apps directory."
-            )
-            new_config = utils.run_in_executor(self.read_config_file, self.app_config_file)
-        else:
-            for root, subdirs, files in await utils.run_in_executor(self, os.walk, self.AD.app_dir):
-                subdirs[:] = [d for d in subdirs if d not in self.AD.exclude_dirs and "." not in d]
-                if root[-11:] != "__pycache__" and root[0] != ".":
-                    for file in files:
-                        if file[-5:] == ".yaml" and file[0] != ".":
-                            path = os.path.join(root, file)
-                            self.logger.debug("Reading %s", path)
-                            config = await utils.run_in_executor(self, self.read_config_file, path)
-                            valid_apps = {}
-                            if type(config).__name__ == "dict":
-                                for app in config:
-                                    if config[app] is not None:
-                                        app_valid = True
-                                        if app == "global_modules":
-                                            self.logger.warning(
-                                                "global_modules directive has been deprecated and will be removed in a future release"
-                                            )
-                                            #
-                                            # Check the parameter format for string or list
-                                            #
-                                            if isinstance(config[app], str):
-                                                valid_apps[app] = [config[app]]
-                                            elif isinstance(config[app], list):
-                                                valid_apps[app] = config[app]
-                                            else:
-                                                if self.AD.invalid_yaml_warnings:
-                                                    self.logger.warning(
-                                                        "global_modules should be a list or a string in File '%s' - ignoring",
-                                                        file,
-                                                    )
-                                        elif app == "sequence":
-                                            #
-                                            # We don't care what it looks like just pass it through
-                                            #
+        for root, subdirs, files in await utils.run_in_executor(self, os.walk, self.AD.app_dir):
+            subdirs[:] = [d for d in subdirs if d not in self.AD.exclude_dirs and "." not in d]
+            if root[-11:] != "__pycache__" and root[0] != ".":
+                for file in files:
+                    if file[-5:] == self.ext and file[0] != ".":
+                        path = os.path.join(root, file)
+                        self.logger.debug("Reading %s", path)
+                        config = await utils.run_in_executor(self, self.read_config_file, path)
+                        valid_apps = {}
+                        if type(config).__name__ == "dict":
+                            for app in config:
+                                if config[app] is not None:
+                                    app_valid = True
+                                    if app == "global_modules":
+                                        self.logger.warning(
+                                            "global_modules directive has been deprecated and will be removed in a future release"
+                                        )
+                                        #
+                                        # Check the parameter format for string or list
+                                        #
+                                        if isinstance(config[app], str):
+                                            valid_apps[app] = [config[app]]
+                                        elif isinstance(config[app], list):
                                             valid_apps[app] = config[app]
-                                        elif "." in app:
-                                            #
-                                            # We ignore any app containing a dot.
-                                            # This could be useful to not comment everything
-                                            # and ignore common code when using YAML anchors.
-                                            #
-                                            pass
-                                        elif (
-                                            isinstance(config[app], dict)
-                                            and "class" in config[app]
-                                            and "module" in config[app]
-                                        ):
-                                            valid_apps[app] = config[app]
-                                            valid_apps[app]["yaml_path"] = path
-                                        elif (
-                                            isinstance(config[app], dict)
-                                            and "module" in config[app]
-                                            and "global" in config[app]
-                                            and config[app]["global"] is True
-                                        ):
-                                            valid_apps[app] = config[app]
-                                            valid_apps[app]["yaml_path"] = path
                                         else:
-                                            app_valid = False
-                                            if self.AD.invalid_yaml_warnings:
+                                            if self.AD.invalid_config_warnings:
                                                 self.logger.warning(
-                                                    "App '%s' missing 'class' or 'module' entry - ignoring",
-                                                    app,
+                                                    "global_modules should be a list or a string in File '%s' - ignoring",
+                                                    file,
                                                 )
+                                    elif app == "sequence":
+                                        #
+                                        # We don't care what it looks like just pass it through
+                                        #
+                                        valid_apps[app] = config[app]
+                                    elif "." in app:
+                                        #
+                                        # We ignore any app containing a dot.
+                                        #
+                                        pass
+                                    elif (
+                                        isinstance(config[app], dict)
+                                        and "class" in config[app]
+                                        and "module" in config[app]
+                                    ):
+                                        valid_apps[app] = config[app]
+                                        valid_apps[app]["config_path"] = path
+                                    elif (
+                                        isinstance(config[app], dict)
+                                        and "module" in config[app]
+                                        and "global" in config[app]
+                                        and config[app]["global"] is True
+                                    ):
+                                        valid_apps[app] = config[app]
+                                        valid_apps[app]["config_path"] = path
+                                    else:
+                                        app_valid = False
+                                        if self.AD.invalid_config_warnings:
+                                            self.logger.warning(
+                                                "App '%s' missing 'class' or 'module' entry - ignoring",
+                                                app,
+                                            )
 
-                                        if app_valid is True:
-                                            # now add app to the path
-                                            if path not in self.app_config_files:
-                                                self.app_config_files[path] = []
+                                    if app_valid is True:
+                                        # now add app to the path
+                                        if path not in self.app_config_files:
+                                            self.app_config_files[path] = []
 
-                                            self.app_config_files[path].append(app)
-                            else:
-                                if self.AD.invalid_yaml_warnings:
-                                    self.logger.warning(
-                                        "File '%s' invalid structure - ignoring",
-                                        os.path.join(root, file),
-                                    )
+                                        self.app_config_files[path].append(app)
+                        else:
+                            if self.AD.invalid_config_warnings:
+                                self.logger.warning(
+                                    "File '%s' invalid structure - ignoring",
+                                    os.path.join(root, file),
+                                )
 
-                            if new_config is None:
-                                new_config = {}
-                            for app in valid_apps:
-                                if app == "global_modules":
-                                    if app in new_config:
-                                        new_config[app].extend(valid_apps[app])
-                                        continue
-                                if app == "sequence":
-                                    if app in new_config:
-                                        new_config[app] = {
-                                            **new_config[app],
-                                            **valid_apps[app],
-                                        }
-                                        continue
-
+                        if new_config is None:
+                            new_config = {}
+                        for app in valid_apps:
+                            if app == "global_modules":
                                 if app in new_config:
-                                    self.logger.warning(
-                                        "File '%s' duplicate app: %s - ignoring",
-                                        os.path.join(root, file),
-                                        app,
-                                    )
-                                else:
-                                    new_config[app] = valid_apps[app]
+                                    new_config[app].extend(valid_apps[app])
+                                    continue
+                            if app == "sequence":
+                                if app in new_config:
+                                    new_config[app] = {
+                                        **new_config[app],
+                                        **valid_apps[app],
+                                    }
+                                    continue
+
+                            if app in new_config:
+                                self.logger.warning(
+                                    "File '%s' duplicate app: %s - ignoring",
+                                    os.path.join(root, file),
+                                    app,
+                                )
+                            else:
+                                new_config[app] = valid_apps[app]
 
         await self.check_sequence_update(new_config.get("sequence", {}))
 
@@ -541,72 +531,45 @@ class AppManagement:
 
     # Run in executor
     def check_later_app_configs(self, last_latest):
-        if os.path.isfile(self.app_config_file):
-            ts = os.path.getmtime(self.app_config_file)
-            return {
-                "latest": ts,
-                "files": [{"name": self.app_config_file, "ts": os.path.getmtime(self.app_config_file)}],
-            }
-        else:
-            later_files = {}
-            app_config_files = []
-            later_files["files"] = []
-            later_files["latest"] = last_latest
-            later_files["deleted"] = []
-            for root, subdirs, files in os.walk(self.AD.app_dir):
-                subdirs[:] = [d for d in subdirs if d not in self.AD.exclude_dirs and "." not in d]
-                if root[-11:] != "__pycache__" and root[0] != ".":
-                    for file in files:
-                        if file[-5:] == ".yaml" and file[0] != ".":
-                            path = os.path.join(root, file)
-                            app_config_files.append(path)
-                            ts = os.path.getmtime(path)
-                            if ts > last_latest:
-                                later_files["files"].append(path)
-                            if ts > later_files["latest"]:
-                                later_files["latest"] = ts
+        later_files = {}
+        app_config_files = []
+        later_files["files"] = []
+        later_files["latest"] = last_latest
+        later_files["deleted"] = []
+        for root, subdirs, files in os.walk(self.AD.app_dir):
+            subdirs[:] = [d for d in subdirs if d not in self.AD.exclude_dirs and "." not in d]
+            if root[-11:] != "__pycache__" and root[0] != ".":
+                for file in files:
+                    if file[-5:] == self.ext and file[0] != ".":
+                        path = os.path.join(root, file)
+                        app_config_files.append(path)
+                        ts = os.path.getmtime(path)
+                        if ts > last_latest:
+                            later_files["files"].append(path)
+                        if ts > later_files["latest"]:
+                            later_files["latest"] = ts
 
-            for file in self.app_config_files:
-                if file not in app_config_files:
-                    later_files["deleted"].append(file)
+        for file in self.app_config_files:
+            if file not in app_config_files:
+                later_files["deleted"].append(file)
 
-            if self.app_config_files != {}:
-                for file in app_config_files:
-                    if file not in self.app_config_files:
-                        later_files["files"].append(file)
+        if self.app_config_files != {}:
+            for file in app_config_files:
+                if file not in self.app_config_files:
+                    later_files["files"].append(file)
 
-                        self.app_config_files[file] = []
+                    self.app_config_files[file] = []
 
-            # now remove the unused files from the files
-            for file in later_files["deleted"]:
-                del self.app_config_files[file]
+        # now remove the unused files from the files
+        for file in later_files["deleted"]:
+            del self.app_config_files[file]
 
-            return later_files
+        return later_files
 
     # Run in executor
     def read_config_file(self, file):
-        new_config = None
         try:
-            with open(file, "r") as yamlfd:
-                config_file_contents = yamlfd.read()
-
-            try:
-                new_config = yaml.load(config_file_contents, Loader=yaml.SafeLoader)
-
-            except yaml.YAMLError as exc:
-                self.logger.warning("Error loading configuration")
-                if hasattr(exc, "problem_mark"):
-                    if exc.context is not None:
-                        self.logger.warning("parser says")
-                        self.logger.warning(str(exc.problem_mark))
-                        self.logger.warning(str(exc.problem) + " " + str(exc.context))
-                    else:
-                        self.logger.warning("parser says")
-                        self.logger.warning(str(exc.problem_mark))
-                        self.logger.warning(str(exc.problem))
-
-            return new_config
-
+            return utils.read_config_file(file)
         except Exception:
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error loading config file: %s", file)
@@ -648,8 +611,8 @@ class AppManagement:
                         continue
 
                     if name in new_config:
-                        # first we need to remove thhe yaml path if it exists
-                        yaml_path = new_config[name].pop("yaml_path", None)
+                        # first we need to remove thhe config path if it exists
+                        config_path = new_config[name].pop("config_path", None)
 
                         if self.app_config[name] != new_config[name]:
                             # Something changed, clear and reload
@@ -659,11 +622,11 @@ class AppManagement:
                             terminate_apps[name] = 1
                             initialize_apps[name] = 1
 
-                        if yaml_path:
-                            yaml_path = await utils.run_in_executor(self, os.path.abspath, yaml_path)
+                        if config_path:
+                            config_path = await utils.run_in_executor(self, os.path.abspath, config_path)
 
                             # now we update the entity
-                            await self.set_state(name, yaml_path=yaml_path)
+                            await self.set_state(name, config_path=config_path)
                     else:
                         # Section has been deleted, clear it out
 
@@ -686,9 +649,9 @@ class AppManagement:
                         #
 
                         if "class" in new_config[name] and "module" in new_config[name]:
-                            # first we need to remove thhe yaml path if it exists
-                            yaml_path = await utils.run_in_executor(
-                                self, os.path.abspath, new_config[name].pop("yaml_path")
+                            # first we need to remove thhe config path if it exists
+                            config_path = await utils.run_in_executor(
+                                self, os.path.abspath, new_config[name].pop("config_path")
                             )
 
                             self.logger.info("App '%s' added", name)
@@ -700,13 +663,13 @@ class AppManagement:
                                     "totalcallbacks": 0,
                                     "instancecallbacks": 0,
                                     "args": new_config[name],
-                                    "yaml_path": yaml_path,
+                                    "config_path": config_path,
                                 },
                             )
                         elif name in self.non_apps:
                             pass
                         else:
-                            if self.AD.invalid_yaml_warnings:
+                            if self.AD.invalid_config_warnings:
                                 if silent is False:
                                     self.logger.warning(
                                         "App '%s' missing 'class' or 'module' entry - ignoring",
@@ -1417,7 +1380,7 @@ class AppManagement:
     def get_app_file(self, app):
         """Used to get the file an app is located"""
 
-        app_file = utils.run_coroutine_threadsafe(self, self.get_state(app, attribute="yaml_path"))
+        app_file = utils.run_coroutine_threadsafe(self, self.get_state(app, attribute="config_path"))
         return app_file
 
     async def register_module_dependency(self, name, *modules):
