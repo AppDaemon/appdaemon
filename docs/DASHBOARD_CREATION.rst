@@ -799,6 +799,33 @@ Style Arguments:
 -  ``widget_style``
 -  ``title_style``
 
+heater
+~~~~~~
+
+A widget to control a heater or fan
+
+Mandatory arguments:
+^^^^^^^^^^^^^^^^^^^^
+
+- ``icon_entity`` - the entity_id of the switch function
+- ``slider_entity`` - the entity_id of the input_number
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+title - the title displayed on the tile
+title2 - a second line of title text
+
+Style Arguments:
+^^^^^^^^^^^^^^^^
+
+- ``title_style``
+- ``title2_style``
+- ``slider_style``
+- ``widget_style``
+- ``icon_style_active``
+- ``icon_style_inactive``
+
 climate
 ~~~~~~~
 .. figure:: images/climate.png
@@ -1064,11 +1091,26 @@ Style Arguments:
 
 gauge
 ~~~~~
-.. figure:: images/guage.png
-   :alt: guage
+.. figure:: images/gauge.png
+   :alt: gauge
 
 A widget to report on numeric values for sensors in Home Assistant in a
 gauge format.
+
+The gauge can optionally accept 3 style colors. These must be in hex RGB format, and the graph will interpolate the color of the level bar in between them. For example:
+
+.. code-block::
+
+    gauge:
+      widget_type: gauge
+      entity: sensor.processor_use
+      title: gauge
+      max: 400
+      min: 0
+      low_color: "#ff0000"
+      medium_color: "#00ff00"
+      high_color: "#0000ff"
+      units: "%"
 
 Mandatory Arguments:
 ^^^^^^^^^^^^^^^^^^^^

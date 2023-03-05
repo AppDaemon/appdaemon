@@ -61,6 +61,8 @@ need a TOKEN, you can omit the entire -e TOKEN line)
       -e DASH_URL="http://$HOSTNAME:5050" \
       acockburn/appdaemon:latest
 
+You may also need to add ``--network="host`` if you are running AppDaemon on the same host as HomeAssistant.
+
 You should see some download activity the first time you run this as it
 downloads the latest AppDaemon image. After that is downloaded, Docker
 will create a container based on that image and run it. It will
