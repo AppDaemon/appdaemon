@@ -482,6 +482,14 @@ class Scheduler:
 
     async def process_dst(self, old, new):
         #
+        # This hasn't been working right, but I just had a thought. I have been assuming this is necessary
+        # because it was necessary before I rewrote the scheduler to use TZ aware times throughout. Perhaps TZ aware
+        # times are already correct and I am just messing them up :)
+        # Anyway, doing nothing can't be worse than what is already happening. If this works for the upcoming DST change
+        # I'll rip all the code out. Thanks for listening.
+        #
+        return
+        #
         # Rewrite timestamps to new local time
         #
         offset = old - new
