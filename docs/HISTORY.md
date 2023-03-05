@@ -12,6 +12,7 @@ Change Log
 - Add support for python 3.11
 - run_at() support for times that have already passed #1684
 - Add TOML Support
+- Many changes to docker image including update to Alpine py3 packages - contributed by [Nigel Rook](https://github.com/NigelRook)
 
 **Fixes**
 
