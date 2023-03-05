@@ -1,4 +1,7 @@
-ARG BASE_IMAGE=python:3.10-alpine
+# When changing this, make sure that the python major and minor version matches that provided by alpine's python3
+# package (see https://pkgs.alpinelinux.org/packages), otherwise alpine py3-* packages won't work
+ARG PYTHON_RELEASE=3.10 ALPINE_VERSION=3.17
+ARG BASE_IMAGE=python:${PYTHON_RELEASE}-alpine${ALPINE_VERSION}
 # Image for building dependencies (on architectures that don't provide a ready-made Python wheel)
 FROM ${BASE_IMAGE} as builder
 
@@ -33,14 +36,14 @@ RUN --mount=type=cache,id=pip-${TARGETARCH}-${TARGETVARIANT},sharing=locked,targ
 
 ###################################
 # Runtime image
-ARG BASE_IMAGE=python:3.10-alpine
 FROM ${BASE_IMAGE}
 
 ARG TARGETARCH
 ARG TARGETVARIANT
+ARG PYTHON_RELEASE
 
 # Copy the python dependencies built and installed in the previous stage
-COPY --from=builder /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
+COPY --from=builder /usr/local/lib/python${PYTHON_RELEASE}/site-packages /usr/local/lib/python${PYTHON_RELEASE}/site-packages
 
 WORKDIR /usr/src/app
 
@@ -61,6 +64,9 @@ EXPOSE 5050
 # Mountpoints for configuration & certificates
 VOLUME /conf
 VOLUME /certs
+
+# Add paths used by alpine python packages to python search path
+ENV PYTHONPATH=/usr/lib/python${PYTHON_RELEASE}:/usr/lib/python${PYTHON_RELEASE}/site-packages
 
 # Define entrypoint script
 ENTRYPOINT ["./dockerStart.sh"]
