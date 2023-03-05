@@ -396,7 +396,8 @@ class Scheduler:
 
     async def next_sunrise(self, offset: int = 0):
         # Kick the scheduler to force an update of self.now
-        await self.kick()
+        if self.active is True:
+            await self.kick()
 
         day_offset = 0
         while True:
@@ -415,7 +416,8 @@ class Scheduler:
 
     async def next_sunset(self, offset: int = 0):
         # Kick the scheduler to force an update of self.now
-        await self.kick()
+        if self.active is True:
+            await self.kick()
 
         day_offset = 0
         while True:
