@@ -100,7 +100,7 @@ pid==3.0.4
     # via appdaemon (pyproject.toml)
 pip-tools==6.12.3
     # via appdaemon (pyproject.toml)
-platformdirs==3.0.0
+platformdirs==3.1.0
     # via
     #   black
     #   virtualenv
