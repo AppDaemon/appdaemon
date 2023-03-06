@@ -25,7 +25,7 @@ bidict==0.22.1
     # via python-socketio
 certifi==2022.12.7
     # via requests
-charset-normalizer==3.0.1
+charset-normalizer==3.1.0
     # via
     #   aiohttp
     #   requests
