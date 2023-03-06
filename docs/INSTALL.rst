@@ -11,8 +11,6 @@ The following installation methods are supported:
 - :ref:`pip-install`
 - :ref:`Home-Assistant-add-on`
 
-Note: *Windows* and *Raspbian* users should check the environment-specific section at the end of this doc for additional information.
-
 .. _docker-install:
 
 Docker
@@ -29,7 +27,7 @@ Currently supported architectures:
 - linux/arm64/v8
 - linux/amd64
 
-To start a container named ``appdaemon``, exposing the *HADashboard* on port 5050, use the following command:
+To start a container named ``appdaemon``, exposing the *HADashboard* on port ``5050``, use the following command:
 
 .. code:: console
 
@@ -43,20 +41,8 @@ To start a container named ``appdaemon``, exposing the *HADashboard* on port 505
         -e TOKEN="my_long_liven_token" \
         acockburn/appdaemon
 
-Environment variables
-^^^^^^^^^^^^^^^^^^^^^
-
-When you start the AppDaemon image, you can adjust the some configuration variables of AppDaemon by passing one or more environment variables on the ``docker run`` command:
-
-======  ========================================================
-Name    Description
-======  ========================================================
-HA_URL  The URL of your running Home Assistant instance
-TOKEN   Long-Lived token to authenticates against Home Assistant
-======  ========================================================
-
-Accessing configuration
-^^^^^^^^^^^^^^^^^^^^^^^
+Configuration folder
+^^^^^^^^^^^^^^^^^^^^
 
 AppDaemon uses the ``/conf`` directory to store its configuration data.
 To access this folder from the host system, you need to create a data directory outside the container and `mount this to the directory used inside the container <https://docs.docker.com/engine/tutorials/dockervolumes/#mount-a-host-directory-as-a-data-volume>`_.
@@ -74,7 +60,7 @@ The following steps illustrate the procedure;
         --restart=always \
         --network=host \
         -p 5050:5050 \
-        -v <conf_folder>:/conf \
+        -v /my/own/datadir:/conf \
         -e HA_URL="http://homeassistant.local:8123" \
         -e TOKEN="my_long_liven_token" \
         acockburn/appdaemon
@@ -82,6 +68,18 @@ The following steps illustrate the procedure;
 The ``-v /my/own/datadir:/conf`` part of the command mounts the ``/my/own/datadir`` directory from the underlying host system as ``/conf`` inside the container, where AppDaemon by default will write its data files.
 
 The first you start the container, AppDaemon will write its own sample configuration files in this directory.
+
+Environment variables
+^^^^^^^^^^^^^^^^^^^^^
+
+When you start the AppDaemon image, you can adjust some of its configuration variables by passing one or more environment variables on the ``docker run`` command:
+
+======  ========================================================
+Name    Description
+======  ========================================================
+HA_URL  The URL of your running Home Assistant instance
+TOKEN   Long-Lived token to authenticates against Home Assistant
+======  ========================================================
 
 For a more in-depth guide to Docker, see the :ref:`Docker tutorial`.
 
@@ -107,16 +105,21 @@ If you do that, then Home Assistant will stop working due to conflicting depende
 
     $ pip install appdaemon
 
+Note: There are some OS-specific instructions for :ref:`Windows` and :ref:`Raspberry Pi OS` users.
 
-Raspbian
-^^^^^^^^
+.. _Raspberry Pi OS:
 
-Some users have reported the following additional requirements:
+Raspberry Pi OS
+^^^^^^^^^^^^^^^
+
+Some users have reported the need to install these additional requirements:
 
 .. code:: console
 
     $ sudo apt install python-dev
     $ sudo apt install libffi-dev
+
+.. _Windows:
 
 Windows
 ^^^^^^^
@@ -158,17 +161,18 @@ Running
 Pip
 ---
 
-You can run AppDaemon from the command line as follows:
+You can run AppDaemon from the command line as follows.
+Note: make sure first to create a directory to contain all AppDaemon configuration files!
 
 .. code:: console
 
-    $ appdaemon -c /home/homeassistant/conf
+    $ appdaemon -c <patch_to_config_folder>
 
-If all is well, you should see something like the following:
+You should see something like the following:
 
 .. code:: console
 
-    $ appdaemon -c /home/homeassistant/conf
+    $ appdaemon -c <patch_to_config_folder>
     2016-08-22 10:08:16,575 INFO Got initial state
     2016-08-22 10:08:16,576 INFO Loading Module: /home/homeassistant/conf/apps/hello.py
     2016-08-22 10:08:16,578 INFO Loading Object hello_world using class HelloWorld from module hello
@@ -177,76 +181,65 @@ If all is well, you should see something like the following:
 
 CLI arguments
 -------------
+The following CLI arguments are available:
 
 .. code:: console
 
-    usage: appdaemon [-h] [-c CONFIG] [-p PIDFILE] [-t TIMEWARP] [-s STARTTIME]
-                       [-e ENDTIME] [-C CONFIGFILE]
-                       [-D {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
-                       [-m MODULEDEBUG MODULEDEBUG] [-v]
+    $ usage: appdaemon [-h] [-c CONFIG] [-p PIDFILE] [-t TIMEWARP] [-s STARTTIME] [-e ENDTIME] [-C CONFIGFILE] [-D {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [-m MODULEDEBUG MODULEDEBUG] [-v]
 
     options:
-      -h, --help            show this help message and exit
-      -c CONFIG, --config CONFIG
+    -h, --help            show this help message and exit
+    -c CONFIG, --config CONFIG
                             full path to config directory
-      -p PIDFILE, --pidfile PIDFILE
+    -p PIDFILE, --pidfile PIDFILE
                             full path to PID File
-      -t TIMEWARP, --timewarp TIMEWARP
+    -t TIMEWARP, --timewarp TIMEWARP
                             speed that the scheduler will work at for time travel
-      -s STARTTIME, --starttime STARTTIME
-                            start time for scheduler <YYYY-MM-DD HH:MM:SS|YYYY-MM-
-                            DD#HH:MM:SS>
-      -e ENDTIME, --endtime ENDTIME
-                            end time for scheduler <YYYY-MM-DD HH:MM:SS|YYYY-MM-
-                            DD#HH:MM:SS>
-      -C CONFIGFILE, --configfile CONFIGFILE
+    -s STARTTIME, --starttime STARTTIME
+                            start time for scheduler <YYYY-MM-DD HH:MM:SS|YYYY-MM-DD#HH:MM:SS>
+    -e ENDTIME, --endtime ENDTIME
+                            end time for scheduler <YYYY-MM-DD HH:MM:SS|YYYY-MM-DD#HH:MM:SS>
+    -C CONFIGFILE, --configfile CONFIGFILE
                             name for config file
-      -D {DEBUG,INFO,WARNING,ERROR,CRITICAL}, --debug {DEBUG,INFO,WARNING,ERROR,CRITICAL}
+    -D {DEBUG,INFO,WARNING,ERROR,CRITICAL}, --debug {DEBUG,INFO,WARNING,ERROR,CRITICAL}
                             global debug level
-      -m MODULEDEBUG MODULEDEBUG, --moduledebug MODULEDEBUG MODULEDEBUG
-      -v, --version         show program's version number and exit
+    -m MODULEDEBUG MODULEDEBUG, --moduledebug MODULEDEBUG MODULEDEBUG
+    -v, --version         show program's version number and exit
 
--c is the path to the configuration directory. If not specified,
-AppDaemon will look for a file named ``appdaemon.yaml`` first in
-``~/.homeassistant`` then in ``/etc/appdaemon``. If the directory is not
-specified and it is not found in either location, AppDaemon will raise
-an exception. In addition, AppDaemon expects to find a dir named
-``apps`` immediately subordinate to the config directory.
+A brief description of them follows:
 
--C allows the user to override the name of the appdaemon config file and set it to soemthing other than
-``appdaemon.yaml``
+``-c`` path to the configuration directory
+    If not specified, AppDaemon will look for a file named ``appdaemon.yaml`` under the following default locations:
 
--d and -p are used by the init file to start the process as a daemon and
-are not required if running from the command line.
+    - ``~/.homeassistant/``
+    - ``/etc/appdaemon``
 
--D can be used to increase the debug level for internal AppDaemon
-operations as well as apps using the logging function.
+    If no file is found in either location, AppDaemon will raise an exception. In addition, AppDaemon expects to find a dir named ``apps`` immediately subordinate to the config directory.
 
-The -s, -i, -t and -e options are for the Time Travel feature and should
-only be used for testing. They are described in more detail in the API
-documentation.
+``-C`` name of the configuration file (default: ``appdaemon.yaml``)
 
-Starting At Reboot
-------------------
+.. TODO: document -d in appdaemon help text
 
-To run ``AppDaemon`` at reboot, you can set it up to run as a ``systemd
-service`` as follows.
+``-d``, ``-p`` used by the init file to start the process as a daemon
+    Not required if running from the command line.
 
-Add Systemd Service (appdaemon@appdaemon.service)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+``-D`` increase the debug level for internal AppDaemon operations, and configure debug logs for the apps.
 
-First, create a new file using vi:
+``-s``, ``-i``, ``-t``, ``-e`` time travel options
+    Useful only for testing. Described in more detail in the API documentation.
 
-.. code:: bash
+Automatically starting on boot
+------------------------------
 
-    $ sudo vi /etc/systemd/system/appdaemon@appdaemon.service
+To run ``AppDaemon`` every time you restart your machine, you can set it up to run as a ``systemd service`` as follows.
 
-Add the following, making sure to use the correct full path for your
-config directory. Also, make sure you edit the ``User`` to a valid user
-to run AppDaemon, usually the same user as you are running Home
-Assistant with is a good choice.
+Systemd service file
+^^^^^^^^^^^^^^^^^^^^
 
-::
+Create a Systemd service file ``/etc/systemd/system/appdaemon@appdaemon.service`` and add the following content.
+Make sure to use the correct full path for your configuration directory and that you edit the ``User`` field to a valid user that can run AppDaemon, usually the same user that is running the Home Assistant process is a good choice.
+
+.. code:: console
 
     [Unit]
     Description=AppDaemon
@@ -258,14 +251,14 @@ Assistant with is a good choice.
     [Install]
     WantedBy=multi-user.target
 
-The above should work for hasbian, but if your ``homeassistant`` service is
+The above should work for Raspberry Pi OS, but if your ``homeassistant`` service is
 named something different you may need to change the ``After=`` lines to
 reflect the actual name.
 
-Activate Systemd Service
-~~~~~~~~~~~~~~~~~~~~~~~~
+Activate the service
+~~~~~~~~~~~~~~~~~~~~
 
-.. code:: bash
+.. code:: console
 
     $ sudo systemctl daemon-reload
     $ sudo systemctl enable appdaemon@appdaemon.service --now
@@ -276,13 +269,13 @@ Upgrading
 =========
 
 To update AppDaemon after a new release has been published, run the
-following command to update your copy:
+following command to update your local installation:
 
 .. code:: console
 
     $ pip install --upgrade appdaemon
 
-If you are using Docker, refer to the steps in the tutorial.
+If you are using Docker, refer to the steps in the `tutorial <Docker-Upgrading>`_.
 
 Versioning Strategy
 -------------------
