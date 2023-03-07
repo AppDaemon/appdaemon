@@ -148,7 +148,7 @@ The following items provide a high level of control over AppDaemon's internal fu
 -  ``qsize_warning_step`` - when total qsize is over ````qsize_warning_threshold`` a warning will be issued every time the ``qsize_warning_step`` times the utility loop executes (normally once every second), default is 60 meaning the warning will be issued once every 60 seconds.
 -  ``qsize_warning_iterations`` - if set to a value greater than 0, when total qsize is over ````qsize_warning_threshold`` a warning will be issued every time the ``qsize_warning_step`` times the utility loop executes but not until the qsize has been excessive for a minimum of ``qsize_warning_iterations``. This allows you to tune out brief expected spikes in Q size. Default is 5, usually meaning 5 seconds.
 -  ``uvloop`` (optional) - When ``True``, AD will switch from using default python asyncio loop, to utilizing the uvloop. This is said to improve the speed of the loop. More can be read `here <https://magic.io/blog/uvloop-blazing-fast-python-networking>`__ about uvloop.
-- namespaces (optional) - configure one or more User Defined Namespaces and set their writeback strategy
+- ``namespaces`` (optional) - configure one or more User Defined Namespaces and set their writeback strategy
 
 .. code:: yaml
 
@@ -160,6 +160,8 @@ The following items provide a high level of control over AppDaemon's internal fu
           writeback: performance
         fred:
           writeback: hybrid
+
+- ``use_dictionary_unpacking`` (optional) - when this option is set to true, AppDaemon will supply individual keyword arguments to your callback rather than a dictionary, suitable for use with the python dictionary unpack operator (**)
 
 Secrets
 ~~~~~~~

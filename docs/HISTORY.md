@@ -13,6 +13,8 @@ Change Log
 - run_at() support for times that have already passed #1684
 - Add TOML Support
 - Many changes to docker image including update to Alpine py3 packages - contributed by [Nigel Rook](https://github.com/NigelRook)
+- Apps can now accept additional arguments using pythons native dictionary unpacking (** operator) instead of a dictionary
+- Rename parameters for the old kwargs mechanism to cb_args to make the distinction
 
 **Fixes**
 

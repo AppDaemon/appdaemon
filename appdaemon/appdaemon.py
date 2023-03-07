@@ -154,6 +154,10 @@ class AppDaemon:
         self.internal_function_timeout = 10
         utils.process_arg(self, "internal_function_timeout", kwargs, int=True)
 
+        self.use_dictionary_unpacking = False
+        utils.process_arg(self, "use_dicitonary_unpacking", kwargs)
+
+
         self.namespaces = {}
         utils.process_arg(self, "namespaces", kwargs)
 
