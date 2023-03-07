@@ -964,6 +964,7 @@ class Threading:
             if not self.AD.stopping:
                 self.logger.warning("Found stale callback for %s - discarding", name)
 
+
     # noinspection PyBroadException
     def worker(self):  # noqa: C901
         thread_id = threading.current_thread().name
