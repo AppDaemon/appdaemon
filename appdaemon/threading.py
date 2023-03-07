@@ -870,13 +870,19 @@ class Threading:
         if "__silent" in args["kwargs"]:
             silent = args["kwargs"]["__silent"]
 
+        app_args = self.AD.app_management.app_config[args["name"]]
+        if "use_dictionary_unpacking" in app_args:
+            use_dictionary_unpacking = app_args["use_dictionary_unpacking"]
+        else:
+            use_dictionary_unpacking = self.AD.use_dictionary_unpacking
+
         app = await self.AD.app_management.get_app_instance(name, objectid)
         if app is not None:
             try:
                 if _type == "scheduler":
                     try:
                         await self.update_thread_info("async", callback, name, _type, _id, silent)
-                        if self.AD.use_dictionary_unpacking is True:
+                        if use_dictionary_unpacking is True:
                             await funcref(**self.AD.sched.sanitize_timer_kwargs(app, args["kwargs"]))
                         else:
                             await funcref(self.AD.sched.sanitize_timer_kwargs(app, args["kwargs"]))
@@ -890,7 +896,7 @@ class Threading:
                         old_state = args["old_state"]
                         new_state = args["new_state"]
                         await self.update_thread_info("async", callback, name, _type, _id, silent)
-                        if self.AD.use_dictionary_unpacking is True:
+                        if use_dictionary_unpacking is True:
                             await funcref(
                                 entity,
                                 attr,
@@ -913,7 +919,7 @@ class Threading:
                     data = args["data"]
                     try:
                         await self.update_thread_info("async", callback, name, _type, _id, silent)
-                        if self.AD.use_dictionary_unpacking is True:
+                        if use_dictionary_unpacking is True:
                             await funcref(
                                 data["app_name"],
                                 data["ts"],
@@ -938,7 +944,7 @@ class Threading:
                     data = args["data"]
                     try:
                         await self.update_thread_info("async", callback, name, _type, _id, silent)
-                        if self.AD.use_dictionary_unpacking is True:
+                        if use_dictionary_unpacking is True:
                             await funcref(
                                 args["event"], data, **self.AD.events.sanitize_event_kwargs(app, args["kwargs"])
                             )
@@ -987,6 +993,12 @@ class Threading:
             if "__silent" in args["kwargs"]:
                 silent = args["kwargs"]["__silent"]
 
+            app_args = self.AD.app_management.app_config[args["name"]]
+            if "use_dictionary_unpacking" in app_args:
+                use_dictionary_unpacking = app_args["use_dictionary_unpacking"]
+            else:
+                use_dictionary_unpacking = self.AD.use_dictionary_unpacking
+
             app = utils.run_coroutine_threadsafe(self, self.AD.app_management.get_app_instance(name, objectid))
             if app is not None:
                 try:
@@ -996,7 +1008,7 @@ class Threading:
                                 self,
                                 self.update_thread_info(thread_id, callback, name, _type, _id, silent),
                             )
-                            if self.AD.use_dictionary_unpacking is True:
+                            if use_dictionary_unpacking is True:
                                 funcref(**self.AD.sched.sanitize_timer_kwargs(app, args["kwargs"]))
                             else:
                                 funcref(self.AD.sched.sanitize_timer_kwargs(app, args["kwargs"]))
@@ -1013,7 +1025,7 @@ class Threading:
                                 self,
                                 self.update_thread_info(thread_id, callback, name, _type, _id, silent),
                             )
-                            if self.AD.use_dictionary_unpacking is True:
+                            if use_dictionary_unpacking is True:
                                 funcref(
                                     entity,
                                     attr,
@@ -1039,7 +1051,7 @@ class Threading:
                                 self,
                                 self.update_thread_info(thread_id, callback, name, _type, _id, silent),
                             )
-                            if self.AD.use_dictionary_unpacking is True:
+                            if use_dictionary_unpacking is True:
                                 funcref(
                                     data["app_name"],
                                     data["ts"],
@@ -1067,7 +1079,7 @@ class Threading:
                                 self,
                                 self.update_thread_info(thread_id, callback, name, _type, _id, silent),
                             )
-                            if self.AD.use_dictionary_unpacking is True:
+                            if use_dictionary_unpacking is True:
                                 funcref(
                                     args["event"], data, **self.AD.events.sanitize_event_kwargs(app, args["kwargs"])
                                 )
