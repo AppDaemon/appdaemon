@@ -913,7 +913,8 @@ class Threading:
                     data = args["data"]
                     try:
                         await self.update_thread_info("async", callback, name, _type, _id, silent)
-                        if self.AD.use_dictionary_unpacking is True:                            await funcref(
+                        if self.AD.use_dictionary_unpacking is True:
+                            await funcref(
                                 data["app_name"],
                                 data["ts"],
                                 data["level"],
@@ -938,9 +939,13 @@ class Threading:
                     try:
                         await self.update_thread_info("async", callback, name, _type, _id, silent)
                         if self.AD.use_dictionary_unpacking is True:
-                            await funcref(args["event"], data, **self.AD.events.sanitize_event_kwargs(app, args["kwargs"]))
+                            await funcref(
+                                args["event"], data, **self.AD.events.sanitize_event_kwargs(app, args["kwargs"])
+                            )
                         else:
-                            await funcref(args["event"], data, self.AD.events.sanitize_event_kwargs(app, args["kwargs"]))
+                            await funcref(
+                                args["event"], data, self.AD.events.sanitize_event_kwargs(app, args["kwargs"])
+                            )
                     except TypeError:
                         self.report_callback_sig(name, "event", funcref, args)
 
@@ -963,7 +968,6 @@ class Threading:
         else:
             if not self.AD.stopping:
                 self.logger.warning("Found stale callback for %s - discarding", name)
-
 
     # noinspection PyBroadException
     def worker(self):  # noqa: C901
@@ -1064,7 +1068,9 @@ class Threading:
                                 self.update_thread_info(thread_id, callback, name, _type, _id, silent),
                             )
                             if self.AD.use_dictionary_unpacking is True:
-                                funcref(args["event"], data, **self.AD.events.sanitize_event_kwargs(app, args["kwargs"]))
+                                funcref(
+                                    args["event"], data, **self.AD.events.sanitize_event_kwargs(app, args["kwargs"])
+                                )
                             else:
                                 funcref(args["event"], data, self.AD.events.sanitize_event_kwargs(app, args["kwargs"]))
                         except TypeError:
