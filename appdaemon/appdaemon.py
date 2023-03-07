@@ -157,7 +157,6 @@ class AppDaemon:
         self.use_dictionary_unpacking = False
         utils.process_arg(self, "use_dicitonary_unpacking", kwargs)
 
-
         self.namespaces = {}
         utils.process_arg(self, "namespaces", kwargs)
 
