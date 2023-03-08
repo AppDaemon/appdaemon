@@ -294,3 +294,8 @@ z: point version number
 
 Users should be able to expect point release upgrades to be seamless, but should check release notes for breaking changes and
 new functionality for minor or major releases.
+
+Next steps
+==========
+
+Now that you have a working setup for AppDaemon, learn how to configure it in the next section: :doc:`CONFIGURE`.

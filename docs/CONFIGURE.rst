@@ -1,41 +1,325 @@
+*************
 Configuration
--------------
+*************
 
-When you have AppDaemon (AD) installed by either method you are ready to
-start working on the ``appdaemon.yaml`` file. For docker users, you will
-already have a skeleton to work with. For pip users, you need to create
-a configuration directory somewhere (e.g., ``/home/homeassistant/conf``)
-and create a file in there called ``appdaemon.yaml``.
+When you have AppDaemon installed using either Docker or ``pip``, you are ready to
+start working on the ``appdaemon.yaml`` file, its main configuration file.
+If you are using Docker, you should already have a skeleton configuration generated the first-time the container is run, under the bind-mounted configuration directory.
+For ``pip`` users, create a configuration directory somewhere where all the AppDaemon data will be stored (e.g., ``/home/homeassistant/conf``) and create a file in there called ``appdaemon.yaml``.
 
-Initial Setup
-~~~~~~~~~~~~~
+The top level configuration is divided in various sub-sections:
 
-Your initial ``appdaemon.yaml`` file should look something like this if you are using the HASS plugin:
+:ref:`appdaemon`
+  Main configuration options for AppDaemon.
+:ref:`logs` (optional)
+  Configure logging-related options.
+:ref:`secrets` (optional)
+  Define a custom secret file to store sensitive information separately from the main configuration file.
+
+Minimal example
+===============
+
+A minimal ``appdaemon.yaml`` file should look something like this.
+The ``plugins`` section configures the communication with Home Assistant.
 
 .. code:: yaml
 
-     appdaemon:
-       time_zone: CET
-       latitude: 51.725
-       longitude: 14.3434
-       elevation: 0
-       plugins:
-         HASS:
-           type: hass
-           ha_url: <some_url>
-           token: <some_long_lived_access_token>
+    # appdaemon.yml
+    appdaemon:
+      time_zone: CET
+      latitude: 51.725
+      longitude: 14.3434
+      elevation: 0
+      plugins:
+        HASS:
+          type: hass
+          ha_url: <home_assistant_base_url>
+          token: <some_long_lived_access_token>
 
-The top level consists of a number of sections:
+Plugins
+-------
 
-Log Configuration
-~~~~~~~~~~~~~~~~~
+In the example above, you will see the inclusion of a plugin called ``HASS``.
+This is used to configure the communication with a Home Assistant instance.
+For most applications there is little significance to this - just configure a single plugin for HASS exactly as above. However, for power users, this is a way to allow AppDaemon to work with more than one installation of Home Assistant and/or other plugins such as MQTT.
 
-The ``logs:`` section is optional. It consists of a number of log entries that describe the various system and user-defined logs. The logs named ``main_log``, ``error_log``, ``diag_log`` and ``access_log`` have special significance and are used to describe AppDaemons 4 main logs. Any other named log sections will result in the creation of a user-defined log, which can be written to by your apps. The 4 built-in logfiles are used as follows:
+The plugin architecture also allows the creation of plugins for other purposes, e.g.,
+different home automation systems.
+
+To configure more than one plugin, simply add a new section to the ``plugins`` section and configure it appropriately. See the :ref:`plugins <plugins>` section for more details.
+
+Before you do this, make sure to review the section on namespaces to fully understand what this entails, and if you are using more than one plugin, make sure you use the namespace directive to create a unique namespace for each plugin.
+(One of the plugins may be safely allowed to use the default value, however, any more than that will require the namespace directive. There is also no harm in giving them all namespaces, since the default namespace is literally ``default``
+and has no particular significance, it's just a different name, but if you use namespaces other than default you will need to change your Apps to understand which namespaces are in use.).
+
+.. _appdaemon:
+
+appdaemon
+=========
+
+The following options are available under the ``appdaemon`` section:
+
+.. list-table::
+  :widths:  10 70 10
+  :header-rows: 1
+
+  * - Name
+    - Description
+    - Required
+
+  * - time_zone
+    - Used by AppDaemon for its internal time-related operations (e.g. America/New_York).
+    - **Yes**
+
+  * - latitude
+    - Used by AppDaemon for its internal location-related operations (decimal format).
+    - **Yes**
+
+  * - longitude
+    - Used by AppDaemon for its internal location-related operations (decimal format).
+    - **Yes**
+
+  * - elevation
+    - Meters above sea level. Used by AppDaemon for its internal location-related operations.
+    - **Yes**
+
+  * - plugins
+    - Configure the plugins used by AppDaemon to communicate with third-party systems (e.f. Home Assistant, MQTT broker).
+
+      See the :ref:`plugins` section for more details.
+    - **Yes**
+
+  * - filters
+    - See the :ref:`filters` section for more details.
+    - No
+
+  * - app_dir
+    - Load *AppDaemon apps* from a different directory than the default configuration directory.
+    - No
+
+  * - exclude_dirs
+    - When loading *AppDaemon apps* in the ``apps`` directory, ignore these subdirectories.
+      By default AppDaemon ignores all directories with a ``.`` in their name (hidden folders).
+
+      Example:
+
+      .. code:: yaml
+
+        exclude_dirs:
+          - dir1
+          - dir2
+          - dir3
+
+      AppDaemon will traverse the folder hierarchy starting from the ``apps`` folder, and will exclude any directory whose name matches the configured exclude rule, as well as all its sub-folders.
+
+      .. TODO: This part is not clear. Don't we want to exclude the parent directory `somedir`?
+
+      **Note**: It is not possible to match multiple level directory names e.g., ``somedir/dir1``.
+      In that case, the match should be on ``dir1``, with the caveat that if you have ``dir1`` anywhere else in the hierarchy, it will also be excluded.
+    - No
+
+
+  * - missing_app_warnings
+
+      .. TODO: reference to ``apps.yaml` without having introduced it before
+    - AppDaemon by default outputs a warning if it finds a Python file that has no associated configuration in an ``apps.yaml`` file.
+
+      Set this parameter to ``0`` to suppress the warning. This is useful for instance to distribute Python files not strictly related to AppDaemon along with AppDaemon apps.
+    - No
+
+  * - invalid_config_warnings
+    - AppDaemon by default outputs a warning if it finds an ``apps.yaml`` or ``apps.toml`` file that doesn’t include ``class`` and ``module`` for an app.
+
+      Set this parameter to ``0`` to suppress the warning.
+      This is intended to ease the distribution of additional files along with apps.
+    - No
+
+  * - production_mode
+    - - ``false``: AppDaemon checks for changes in Apps and ``apps.yaml`` files every second. This can save some processing power on busy systems.
+      - ``true``: AppDaemon checks for changes in Apps and ``apps.yaml`` files only on restart
+
+      Defaults to ``false``.
+
+      This option can also be changed from within apps, using the ``set_production_mode`` API call.
+    - No
+
+  * - thread_duration_warning_threshold
+    - AppDaemon monitors the time that each tread spends in an App.
+      If a thread is taking too long to finish a callback, it may impact other apps.
+      AppDaemon will log a warning if any thread is over the duration specified in seconds. The default is ``10`` seconds, setting this value to ``00`` will disable this check.
+    - No
+
+  * - log_thread_actions
+    - If set to ``1``, AppDaemon will log all callbacks on entry and exit for the scheduler, events, and state changes.
+      This can be useful for troubleshooting thread starvation issues.
+    - No
+
+
+.. _filters:
+
+filters
+-------
+
+The use of filters allows you to run an arbitrary command against a file with a specific extension to generate a new ``.py`` file. The use-cases for this are varied, but this can be used to run a preprocessor on an app, or perhaps some kind of global substitute or any of a number of other commands.
+When a filter is defined, AppDaemon looks for files in the ``appdir`` directory with the specified extension, and runs the specified command on them, writing the output to a new file with the specified extension.
+The output extension would usually be a ``.py`` file which would then be picked up by normal app processing, meaning that if you edit the original input file, the result will be a new ``.py`` file that is part of an AppDaemon app which will then be restarted.
+
+In addition, it is possible to chain multiple filters, as the filter list is processed in order - just ensure you end with a ``.py`` file.
+
+**NOTE**: The following are toy examples, in a real-world scenario the ``command_line`` would be different.
+
+Simple filter
+^^^^^^^^^^^^^
+A simple filter would look like this:
+
+.. code:: yaml
+
+  filters:
+    - command_line: /bin/cat $1 > $2
+      input_ext: cat
+      output_ext: py
+
+This would result in AppDaemon looking for any files with the extension ``.cat`` , invoking ``/bin/cat`` command on them and creating a file with an extension of ``.py``.
+In the ``command_line``, ``$1`` and ``$2`` are replaced by the correctly named input and output files. In this sample filter, the output file is just a copy of the input, but this technique could be used with more advanced commands such as ``sed`` and ``awk``, or even ``m4`` if more complex manipulations are needed.
+
+Chaining filters
+^^^^^^^^^^^^^^^^
+A chained set of filters might look like this:
+
+.. code:: yaml
+
+  filters:
+    - command_line: /bin/cat $1 > $2
+      input_ext: mat
+      output_ext: cat
+    - command_line: /bin/cat $1 > $2
+      input_ext: cat
+      output_ext: py
+
+These filters will run in the defined order: starting from a ``.mat`` file, the first filter outputs a ``.cat`` file, then the second filter picks it up, outputting a final ``.py`` file, which can be used as a AppDaemon app in the usual way.
+
+Distinct filters
+^^^^^^^^^^^^^^^^
+Finally, it is possible to have multiple unconnected filters like so:
+
+.. code:: yaml
+
+  filters:
+    - command_line: /bin/cat $1 > $2
+      input_ext: mat
+      output_ext: .py
+    - command_line: /bin/cat $1 > $2
+      input_ext: cat
+      output_ext: py
+
+Here we have defined ``.mat`` and ``.cat`` files as both creating new ``.py`` files, unrelated to each other.
+
+
+Advanced options
+----------------
+
+The following settings provide a high level of control over AppDaemon's internal functioning, but for most users they should be left at their default settings.
+
+.. list-table::
+  :widths:  10 70 10
+  :header-rows: 1
+
+  * - Name
+    - Description
+    - Default
+
+  * - total_threads
+    - The number of dedicated worker threads to create for running the apps.
+      Normally, AppDaemon will create enough threads to provide one per app, or default to ``10`` if app pinning is turned off.
+
+      Setting this to a specific value will turn off automatic thread management.
+    -
+
+  * - pin_apps
+    - If ``true``, AppDaemon apps will be pinned to a particular thread.
+      This should avoids complications around re-entrant code and locking of instance variables.
+    - ``true``
+
+  * - pin_threads
+    - Number of threads to use for pinned apps, allowing the user to section off a sub-pool just for pinned apps.
+
+      By default all threads are used for pinned apps.
+    -
+
+  * - threadpool_workers
+    - Maximum number of worker threads to be internally used by AppDaemon to execute the calls asynchronously.
+    - ``10``
+
+  * - load_distribution
+    - Algorithm to use for load balancing between unpinned apps.
+
+      Possible values: ``round-robin``, ``random``, ``load``
+    - ``round-robin``
+
+  * - timewarp
+    - Equivalent to the command line flag ``-t``, but this option takes precedence over the CLI flag.
+    -
+
+  * - qsize_warning_threshold
+    - Total number of items on thread queues before a warning is issued.
+    - ``50``
+
+  * - qsize_warning_step
+    - If total queue size is over ``qsize_warning_threshold``, issue a warning every ``<qsize_warning_step>`` times the utility loop executes (normally this is once every second).
+    - ``60``
+
+  * - qsize_warning_iterations
+    - If set to a value greater than ``0``, when total queue size is over ``qsize_warning_threshold``, issue a warning every ``<qsize_warning_step>`` times the utility loop executes,
+      but not until the queue size has been exceeded for a minimum of ``<qsize_warning_iterations>`` iterations.
+
+      This allows you to tune out brief expected spikes in queue size.
+
+    - ``5``
+
+  * - uvloop
+    - If ``true``, AppDaemon will use `uvloop <https://github.com/MagicStack/uvloop>`_ instead of the default Python ``asyncio`` loop.
+      It is said to improve the speed of the loop.
+      For more information about ``uvloop`` see `here <https://magic.io/blog/uvloop-blazing-fast-python-networking>`_.
+    - ``false``
+
+  * - namespaces
+    - Configure one or more User Defined Namespaces and set their writeback strategy.
+
+      Example:
+
+      .. code:: yaml
+
+        namespaces:
+          andrew:
+            # writeback is one of
+            # `safe`, `performance` or `hybrid`
+            writeback: safe
+          jim:
+            writeback: performance
+          fred:
+            writeback: hybrid
+
+    -
+
+
+
+
+.. _logs:
+
+logs
+====
+
+This section is entirely optional. It consists of a number of log entries that describe both *system* and *user* logs.
+The logs named ``main_log``, ``error_log``, ``diag_log`` and ``access_log`` have special significance and are used to describe AppDaemons *system* logs.
+Any other named log under this section will result in the creation of a *user* log, which can be written to by your apps.
+
+The 4 built-in *system* logs are the following:
 
 -  ``main_log`` is the path to where you want ``AppDaemon`` to
    keep its main log.
 -  ``error_log`` is the name of the logfile for errors - this
    will usually be errors during compilation and execution of the apps.
+
    If ``errorfile = STDERR`` errors are sent to stderr instead of a
    file, if not specified, the output will be sent to STDERR.
 -  ``diag_log`` is the name of the log file for diagnostic information. This will contain information form the ``log_thread_actions`` parameter, as well as information dumped from AppDaemon's internal state when the AppDaemon process is sent a ``SIGUSR1`` signal.
@@ -96,77 +380,22 @@ In the above example, a user-defined log called ``test_log`` has also been creat
 
 Note that the AppDaemon logs use an enhanced formatter that allows interpolation of the App Name in the logger output as well as all the other standard fields. In addition, the ``{asctime}`` token will give the right results if time travel is in use. For example, the default logfile format for AppDaemon's main log is:
 
-.. code::
+.. code:: python
 
-    {asctime} {levelname} {appname:<20}: {message}
+  {asctime} {levelname} {appname:<20}: {message}
 
 AppDaemon's default time format is ``%Y-%m-%d %H:%M:%S.%f%z``.
 
-AppDaemon Configuration
-~~~~~~~~~~~~~~~~~~~~~~~
+.. _secrets:
 
-The ``appdaemon:`` section has a number of directives:
+secrets
+=======
 
--  ``filters`` (optional) - see below.
--  ``plugins`` (required) - see below.
--  ``latitude`` (required) - latitude for AppDaemon to use (decimal format).
--  ``longitude`` (required) - longitude for AppDaemon to use (decimal format).
--  ``elevation`` (required) - elevation for AppDaemon to use in meters above sea level.
--  ``time_zone`` (required) - timezone for AppDaemon to use (e.g. America/New_York).
--  ``app_dir`` (Optional) - This can be used to place one's apps in a directory, other than under the config directory.
--  ``exclude_dirs`` (optional) - a list of subdirectories to ignore under the apps directory when looking for apps. It should be noted AD will by default ignore all directories with a "." in its path (hidden folder).
-- ``missing_app_warnings`` (optional) - by default, AppDaemon will log a warning if it finds a python file that has no associated configuration in an apps.yaml file. If this parameter is set to ``0`` the warning will be suppressed. This allows non-appdaemon python files to be distributed along with apps.
-- ``invalid_config_warnings`` (optional) - by default, AppDaemon will log a warning if it finds an apps.yaml or apps.toml file that doesn't include "class" and "module" for an app. If this parameter is set to ``0`` the warning will be suppressed. This is intended to ease the distribution of additional files along with apps.
-- ``production_mode`` (optional) - If set to true, AppDaemon will only check for changes in Apps and apps.yaml files when AppDaemon is restarted, as opposed to every second. This can save some processing power on busy systems. Defaults to ``False``. This can also be changed from within apps, using the ``set_production_mode`` API call.
-- ``thread_duration_warning_threshold`` (optional) - AppDaemon monitors the time that each tread spends in an App. If a thread is taking too long to finish a callback, it may impact other apps. AppDaemon will log a warning if any thread is over the duration specified in seconds. The default is 10 seconds, setting this value to ``00`` will disable the check.
-- ``log_thread_actions`` (optional) - if set to 1, AppDaemon will log all callbacks on entry and exit for the scheduler, events, and state changes - this can be useful for troubleshooting thread starvation issues
+AppDaemon supports the use of `secrets` in the configuration file, to allow separate storage of sensitive information such as passwords.
+By default AppDaemon looks for a file called ``secrets.yaml`` in the configuration directory.
+You can configure AppDaemon to load a different secrets file by defining its path by defining a top-level ``secrets:`` configuration.
 
-When using the ``exclude_dirs`` directive, you should supply a list of directory names that should be ignored. For example:
-
-.. code:: yaml
-
-    exclude_dirs:
-        - dir1
-        - dir2
-        - dir3
-
-AppDaemon will search for matching directory names at any level of the folder hierarchy under appdir and will exclude that directory and any beneath it. It is not possible to match multiple level directory names e.g., ``somedir/dir1``. In that case, the match should be on ``dir1``, with the caveat that if you have dir1 anywhere else in the hierarchy, it will also be excluded.
-
-Advanced Appdaemon Configuration
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The following items provide a high level of control over AppDaemon's internal functions but for most users should be left at the default settings.
-
--  ``total_threads`` (optional) - the number of dedicated worker threads to create for
-   running the apps. Normally, AppDaemon will create enough threads to provide one per app, or default to 10 if app pinning is turned off. Setting this to a value will turn off automatic thread management.
--  ``pin_apps`` (optional) - When true (the default) Apps will be pinned to a particular thread which avoids complications around re-entrant code and locking of instance variables
--  ``pin_threads`` (optional) - Number of threads to use for pinned apps, allowing the user to section off a sub-pool just for pinned apps. Default is to use all threads for pinned apps.
-- ``threadpool_workers`` (optional) - the number of max_workers threads to be used by AD internally to execute calls asynchronously. This defaults to ``10``.
-- ``load_distribution`` - Algorithm to use for load balancing between unpinned apps. Can be ``round-robin`` (the default), ``random`` or ``load``
--  ``timewarp`` (optional) - equivalent to the command line flag ``-t`` but will take precedence
--  ``qsize_warning_threshold`` - total number of items on thread queues before a warning is issued, defaults to 50
--  ``qsize_warning_step`` - when total qsize is over ````qsize_warning_threshold`` a warning will be issued every time the ``qsize_warning_step`` times the utility loop executes (normally once every second), default is 60 meaning the warning will be issued once every 60 seconds.
--  ``qsize_warning_iterations`` - if set to a value greater than 0, when total qsize is over ````qsize_warning_threshold`` a warning will be issued every time the ``qsize_warning_step`` times the utility loop executes but not until the qsize has been excessive for a minimum of ``qsize_warning_iterations``. This allows you to tune out brief expected spikes in Q size. Default is 5, usually meaning 5 seconds.
--  ``uvloop`` (optional) - When ``True``, AD will switch from using default python asyncio loop, to utilizing the uvloop. This is said to improve the speed of the loop. More can be read `here <https://magic.io/blog/uvloop-blazing-fast-python-networking>`__ about uvloop.
-- namespaces (optional) - configure one or more User Defined Namespaces and set their writeback strategy
-
-.. code:: yaml
-
-    namespaces:
-        andrew:
-          # writeback is safe, performance or hybrid
-          writeback: safe
-        jim:
-          writeback: performance
-        fred:
-          writeback: hybrid
-
-Secrets
-~~~~~~~
-
-AppDaemon supports the use of `secrets` in the configuration file, to allow separate storage of sensitive information such as passwords. For this to work, AppDaemon expects to find a file called ``secrets.yaml`` in the configuration directory, or a named file introduced by the top level ``secrets:`` section. The file should be a simple list of all the secrets. The secrets can be referred to using a !secret value in the configuration file.
-
-The ``secret:`` section is optional. If it doesn't exist, AppDaemon looks for a file called ``secrets.yaml`` in the config directory.
+The file should be a simple list of all the secrets. The secrets can be later referred to using the ``!secret`` YAML directive in the configuration file.
 
 An example ``secrets.yaml`` might look like this:
 
@@ -188,68 +417,10 @@ The secrets can then be referred to as follows:
           token: !secret token
           ha_url: http://192.168.1.20:8123
 
-Filters
-~~~~~~~
+.. _plugins:
 
-The use of filters allows you to run an arbitrary command against a file with a specific extension to generate a new .py file. The use-cases for this are varied, but this can be used to run a preprocessor on an app, or perhaps some kind of global substitute or any of a number of other commands. AppDaemon, when made aware of the filter via configuration, will look for files in the appdir with the specified extension, and run the specified command on them, writing the output to a new file with the specified extension. The output extension would usually be a .py file which would then be picked up by normal app processing, meaning that if you edit the original input file, the result will be a new .py file that is part of an app which will then be restarted.
-
-In addition, it is possible to chain multiple filters, as the filter list is processed in order - just ensure you end with a .py file.
-
-A simple filter would look like this:
-
-    .. code:: yaml
-
-        filters:
-          - command_line: /bin/cat $1 > $2
-            input_ext: cat
-            output_ext: py
-
-This would result in AppDaemon looking for any files with the extension ``.cat`` and running the ``/bin/cat`` command and creating a file with an extension of ``.py``. In the ``command_line``, ``$1`` and ``$2`` are replaced by the correctly named input and output files. In this example, the output is just a copy of the input, but this technique could be used with commands such as sed and awk, or even m4 for more complex manipulations.
-
-A chained set of filters might look like this:
-
-    .. code:: yaml
-
-        filters:
-          - command_line: /bin/cat $1 > $2
-            input_ext: mat
-            output_ext: cat
-          - command_line: /bin/cat $1 > $2
-            input_ext: cat
-            output_ext: py
-
-These will run in order resulting in edits to a ``.mat`` file running through the 2 filters and resulting in a new .py file which will run as the app in the usual way.
-
-Finally, it is possible to have multiple unconnected filters like so:
-
-    .. code:: yaml
-
-        filters:
-          - command_line: /bin/cat $1 > $2
-            input_ext: mat
-            output_ext: .py
-          - command_line: /bin/cat $1 > $2
-            input_ext: cat
-            output_ext: py
-
-Here we have defined ``.mat`` and ``.cat`` files as both creating new apps. In a real-world example the ``command_line`` would be different.
-
-Plugins
-~~~~~~~
-
-In the example above, you will see that home assistant is configured as a plugin (called HASS).
-For most applications there is little significance to this - just configure a single plugin for HASS exactly as above. However, for power users, this is a way to allow AppDaemon to work with more than one installation of Home Assistant and/or other plugins such as MQTT.
-
-The plugin architecture also allows the creation of plugins for other purposes, e.g.,
-different home automation systems.
-
-To configure more than one plugin, simply add a new section to the plugins list and configure it appropriately.
-Before you do this, make sure to review the section on namespaces to fully understand what this entails, and if you are using more than one plugin, make sure you use the namespace directive to create a unique namespace for each plugin.
-(One of the plugins may be safely allowed to use the default value, however, any more than that will require the namespace directive. There is also no harm in giving them all namespaces, since the default namespace is literally ``default``
-and has no particular significance, it's just a different name, but if you use namespaces other than default you will need to change your Apps to understand which namespaces are in use.).
-
-Plugin Configuration
-====================
+plugins
+=======
 
 In the required ``plugins:`` sub-section, there will usually be one or more plugins with a number of directives introduced by a top level name. Some of these are common to all plugins:
 
@@ -265,8 +436,8 @@ Plugins also support some optional parameters:
 
 The rest will vary depending upon which plugin type is in use.
 
-Configuration of the HASS Plugin
-================================
+HASS
+----
 
 To configure the HASS plugin, in addition to the required parameters above, you will need to add the following:
 
@@ -318,8 +489,8 @@ An example of the HASS plugin could look like the following:
           namespace: default
 
 
-HASS Authentication
-+++++++++++++++++++
+Authentication
+^^^^^^^^^^^^^^
 
 HASS has recently moved to a new authentication model. For programs such as ``AppDaemon`` it is necessary to create a Long-Lived Access Token, then provide that token to AppDaemon with the ``token`` directive in the HASS plugin parameters. To create a Long-Lived Access Token for AppDaemon, do the following:
 
@@ -359,8 +530,8 @@ A real token will be a lot longer than this and will consist of a string of rand
 .. figure:: images/list.png
    :alt: List
 
-HASS Plugin Startup Conditions
-++++++++++++++++++++++++++++++
+Startup conditions
+^^^^^^^^^^^^^^^^^^
 
 The HASS plugin has the ability to pause startup until various criteria have been met. This can be useful to avoid running apps that require certain entities to exist or to wait for an event to happen before the apps are started. There are 2 types of startup criteria, and they are added :
 
@@ -427,8 +598,8 @@ Wait for a specific input boolean to be triggered when AppDaemon restarts:
         event: {event_type: call_service, data:{domain: homeassistant, service_data:{entity_id: input_boolean.heating}, service: turn_on}}
 
 
-Configuration of the MQTT Plugin
-================================
+MQTT
+----
 
 To configure the MQTT plugin, in addition to the required parameters above, you will need to add the following:
 
@@ -482,8 +653,8 @@ An example of the MQTT plugin could look like the following:
            - hermes/intent/#
            - hermes/hotword/#
 
-Configuring a Test App
-~~~~~~~~~~~~~~~~~~~~~~
+Creating a test app
+===================
 
 `This test app assumes the use of the HASS plugin, changes will be required to the app if another plugin is in use`.
 
@@ -650,7 +821,7 @@ are available:
 
 
 Example Apps
-------------
+============
 
 There are a number of example apps under ``conf/examples`` in the `git
 repository <https://github.com/home-assistant/appdaemon>`__ , and the ``conf/examples.yaml`` file gives sample parameters
