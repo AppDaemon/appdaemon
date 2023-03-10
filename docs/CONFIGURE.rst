@@ -693,7 +693,7 @@ With this app in place we will be able to test the App part of AppDaemon
 when we first run it.
 
 Configuring the HTTP Component
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------------
 
 The HTTP component provides a unified front end to `AppDaemon's Admin Interface`, `HADashboard`, and the `AppDaemon API`. It requires some initial configuration, but the dashboard and admin interface can be separately enabled or disabled. This component also creates a folder in the configuration directory called ``www``, if it doesn't exist. To serve custom static content like images, videos or html pages, simply drop the content into the www folder and it becomes available via the browser or dashboard. Content stored in this folder can be accessed using ``http://AD_IP:Port/local/<content to be accessed>``. Where `AD_IP:Port` is the url as defined below using the http component.
 
@@ -771,14 +771,14 @@ The above configuration assumes that the user has a folder, that has stored with
 the videos stored in the video_clip folder via a browser or Dashboard, the url can be used ``http://AD_IP:Port/local/videos/<video to be accessed>``. Like wise, the pictures can be accessed using ``http://AD_IP:Port/local/pictures/<picture to be accessed>``. Using this directive does support the use of relative paths.
 
 Configuring the Dashboard
-~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------
 
 Configuration of the dashboard component (HADashboard) is described
 separately in the `Dashboard <DASHBOARD_INSTALL.html>`__ documentation.
 Note that the dashboard depends on the HTTP section being configured to correctly function.
 
 Configuring the API
-~~~~~~~~~~~~~~~~~~~
+-------------------
 
 The AppDaemon App API is configured by adding a top-level directive to appdaemon.yaml:
 
@@ -789,7 +789,7 @@ The AppDaemon App API is configured by adding a top-level directive to appdaemon
 It takes no arguments.
 
 Configuring the Admin Interface
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------------
 
 The updated admin Interface, new in 4.2.0 is a front end to AppDaemon that allows you to monitor it's inner workings such as
 thread activity, registered callbacks and entities. Over time it is expected to evolve into a full management tool
@@ -810,7 +810,7 @@ Note: the old admin interface can still be used by specifying the ``old_admin`` 
     old_admin:
 
 Accessing Directories via Apps
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------------
 
 Directories used by AD internally either declared by the user or not, can be accessed by the user via apps. The following directories
 are available:

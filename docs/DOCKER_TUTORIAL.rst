@@ -166,6 +166,7 @@ If you'd like to ``tail`` the latest output, try this:
     $ docker logs -f --tail 20 appdaemon
 
 .. _Docker-Upgrading:
+
 Upgrading
 ---------
 

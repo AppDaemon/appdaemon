@@ -283,8 +283,7 @@ Versioning Strategy
 AppDaemon follows a simple 3 point versioning strategy in the format ``x.y.z``:
 
 x: major version number
-    Incremented when very significant changes have been made to the platform, or
-sizeable new functionality has been added.
+    Incremented when very significant changes have been made to the platform, or sizeable new functionality has been added.
 
 y: minor version number
     Incremented when incremental new features have been added, or breaking changes have occurred
