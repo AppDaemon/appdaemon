@@ -25,11 +25,13 @@ AppDaemon has reached a very stable point, works reliably and is fairly feature 
 in its development. For that reason, releases have been slow in recent months. This does not mean that AppDaemon has been abandoned - it is used every day by
 the core developers, and has an active community on Discord (see below).
 
-Assistance
-==========
+Support
+=======
 
-- AppDaemon has a dedicated sub-forum over at `Home Assistant <https://community.home-assistant.io/c/third-party/appdaemon/21>`__
-- We also have an active discord server `here <https://discord.gg/qN7c7JcFjk>`__ - please join us for tips and tricks, AppDaemon discussions and general home automation!
+If you have a question or need support, the following resources can help you:
+
+- The dedicated `Home Assistant Community forum <https://community.home-assistant.io/c/third-party/appdaemon/21>`__
+- Our `Discord server <https://discord.gg/qN7c7JcFjk>`_, where you are invited to join us for tips and tricks, AppDaemon discussions and general home automation!
 
 Developers
 ==========
@@ -39,7 +41,10 @@ AppDaemon is developed and maintained by a small team of hard working folks:
 - `Andrew Cockburn <https://github.com/acockburn>`__ - AppDaemon founder, Chief Architect and Benevolent Dictator For Life.
 - `Odianosen Ejale <https://github.com/Odianosen25>`__ - Core & MQTT Development and maintenance, fixer and tester.
 
-Special thanks to `Carlo Mien <https://github.com/mion00>`__ for design and configuration of our CI Pipeline and project packaging
+Contributors
+^^^^^^^^^^^^
+
+Special thanks to `Carlo Mion <https://github.com/mion00>`__ for the design and configuration of our CI pipeline and project packaging.
 
 With thanks to previous members of the team:
 
@@ -49,14 +54,15 @@ With thanks to previous members of the team:
 - Daniel Lashua
 
 Contents:
+=========
 
 .. toctree::
    :maxdepth: 1
 
    INSTALL
    CONFIGURE
-   HASS_TUTORIAL
    DOCKER_TUTORIAL
+   HASS_TUTORIAL
    APPGUIDE
    COMMUNITY_TUTORIALS
    AD_API_REFERENCE
