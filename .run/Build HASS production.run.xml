@@ -1,0 +1,24 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Build HASS production" type="docker-deploy" factoryName="dockerfile" server-name="Hass">
+    <deployment type="dockerfile">
+      <settings>
+        <option name="imageTag" value="appdaemon-production" />
+        <option name="buildKitEnabled" value="true" />
+        <option name="buildOnly" value="true" />
+        <option name="containerName" value="" />
+        <option name="sourceFilePath" value="Dockerfile" />
+        <option name="volumeBindings">
+          <list>
+            <DockerVolumeBindingImpl>
+              <option name="containerPath" value="/conf" />
+              <option name="hostPath" value="$USER_HOME$/Library/CloudStorage/OneDrive-Personal/Data/export/air/test/appdaemon_config/default" />
+            </DockerVolumeBindingImpl>
+          </list>
+        </option>
+      </settings>
+    </deployment>
+    <method v="2">
+      <option name="RunConfigurationTask" enabled="true" run_configuration_name="Build Package" run_configuration_type="PythonConfigurationType" />
+    </method>
+  </configuration>
+</component>
