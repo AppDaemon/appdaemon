@@ -6,14 +6,14 @@
     <envs>
       <env name="PYTHONUNBUFFERED" value="1" />
     </envs>
-    <option name="SDK_HOME" value="$PROJECT_DIR$/../venv/appdaemon-python3.11/bin/python" />
-    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/../ad_docs_build" />
-    <option name="IS_MODULE_SDK" value="false" />
+    <option name="SDK_HOME" value="" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/venv/bin" />
+    <option name="IS_MODULE_SDK" value="true" />
     <option name="ADD_CONTENT_ROOTS" value="false" />
     <option name="ADD_SOURCE_ROOTS" value="false" />
     <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-    <option name="SCRIPT_NAME" value="$PROJECT_DIR$/../venv/appdaemon-python3.11/bin/sphinx-build" />
-    <option name="PARAMETERS" value="-T -E $PROJECT_DIR$/docs $PROJECT_DIR$/../ad_docs_build" />
+    <option name="SCRIPT_NAME" value="$PROJECT_DIR$/venv/bin/sphinx-build" />
+    <option name="PARAMETERS" value="-T -E $PROJECT_DIR$/docs $PROJECT_DIR$/../docs_build" />
     <option name="SHOW_COMMAND_LINE" value="false" />
     <option name="EMULATE_TERMINAL" value="false" />
     <option name="MODULE_MODE" value="false" />
