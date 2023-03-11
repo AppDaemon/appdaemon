@@ -1413,6 +1413,13 @@ should look like this:
       def my_callback(self, entity, attribute, old, new, cb_args):
         <do some useful work here>
 
+Or if you are using dictionary unpacking (see `here <APPGUIDE.html#kwargs>`__):
+
+.. code:: python
+
+      def my_callback(self, entity, attribute, old, new, **kwargs):
+        <do some useful work here>
+
 You can call the function whatever you like - you will reference it in
 the ``listen_state()`` call, and you can create as many callback
 functions as you need.
@@ -1447,8 +1454,8 @@ The value of the state after the state change.
 ``old`` and ``new`` will have varying types depending on the type of
 callback.
 
-cb_args
-^^^^^^^^^^
+cb_args/**kwargs
+^^^^^^^^^^^^^^^^
 
 A dictionary containing any constraints and/or additional user specific
 keyword arguments supplied to the ``listen_state()`` call.
@@ -1486,6 +1493,15 @@ Scheduler callback function should look like this:
       def my_callback(self, cb_args):
         <do some useful work here>
 
+Or if you are using dictionary unpacking (see `here <APPGUIDE.html#kwargs>`__):
+
+.. code:: python
+
+      def my_callback(self, **kwargs):
+        <do some useful work here>
+
+
+
 You can call the function whatever you like; you will reference it in
 the Scheduler call, and you can create as many callback functions as you
 need.
@@ -1497,8 +1513,8 @@ self
 
 A standard Python object reference
 
-cb_args
-^^^^^^^^^^
+cb_args/**kwargs
+^^^^^^^^^^^^^^^^
 
 A dictionary containing Zero or more keyword arguments to be supplied to
 the callback.
@@ -1624,6 +1640,13 @@ defined Scheduler callback function should look like this:
 .. code:: python
 
       def my_callback(self, event_name, data, cb_args):
+        <do some useful work here>
+
+Or if you are using dictionary unpacking (see `here <APPGUIDE.html#kwargs>`__):
+
+.. code:: python
+
+      def my_callback(self, entity, attribute, old, new, **kwargs):
         <do some useful work here>
 
 You can call the function whatever you like - you will reference it in
