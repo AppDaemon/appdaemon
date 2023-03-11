@@ -202,11 +202,14 @@ class Services:
                     isasync = self.services[namespace][domain][service]["__async"]
 
             callee_name = self.services[namespace][domain][service]["__name"]
-            app_args = self.AD.app_management.app_config[callee_name]
-            if "use_dictionary_unpacking" in app_args:
-                use_dictionary_unpacking = app_args["use_dictionary_unpacking"]
+            if callee_name is not None:
+                app_args = self.AD.app_management.app_config[callee_name]
+                if "use_dictionary_unpacking" in app_args:
+                    use_dictionary_unpacking = app_args["use_dictionary_unpacking"]
+                else:
+                    use_dictionary_unpacking = self.AD.use_dictionary_unpacking
             else:
-                use_dictionary_unpacking = self.AD.use_dictionary_unpacking
+                use_dictionary_unpacking = False
 
             if isasync is True:
                 # it's a coroutine just await it.
