@@ -1116,13 +1116,34 @@ class Threading:
         error_logger = logging.getLogger("Error.{}".format(name))
 
         callback_args = {
-            "scheduler": {"count": 1, "signature": "f(self, kwargs)"},
-            "state": {"count": 5, "signature": "f(self, entity, attribute, old, new, kwargs)"},
-            "event": {"count": 3, "signature": "f(self, event, data, kwargs)"},
-            "log_event": {"count": 6, "signature": "f(self, name, ts, level, type, message, kwargs)"},
-            "initialize": {"count": 0, "signature": "initialize()"},
-            "terminate": {"count": 0, "signature": "terminate()"},
+            "scheduler": {"count": 1, "signature": {True: "f(self, **kwargs)", False: "f(self, kwargs)"}},
+            "state": {
+                "count": 5,
+                "signature": {
+                    True: "f(self, entity, attribute, old, new, **kwargs)",
+                    False: "f(self, entity, attribute, old, new, kwargs)",
+                },
+            },
+            "event": {
+                "count": 3,
+                "signature": {True: "f(self, event, data, **kwargs)", False: "f(self, event, data, kwargs)"},
+            },
+            "log_event": {
+                "count": 6,
+                "signature": {
+                    True: "f(self, name, ts, level, type, message, kwargs)",
+                    False: "f(self, name, ts, level, type, message, kwargs)",
+                },
+            },
+            "initialize": {"count": 0, "signature": {True: "initialize()", False: "initialize()"}},
+            "terminate": {"count": 0, "signature": {True: "terminate()", False: "terminate()"}},
         }
+
+        app_args = self.AD.app_management.app_config[args["name"]]
+        if "use_dictionary_unpacking" in app_args:
+            use_dictionary_unpacking = app_args["use_dictionary_unpacking"]
+        else:
+            use_dictionary_unpacking = self.AD.use_dictionary_unpacking
 
         try:
             sig = inspect.signature(funcref)
@@ -1133,7 +1154,7 @@ class Threading:
                         "Suspect incorrect signature type for callback %s() in %s, should be %s - discarding",
                         funcref.__name__,
                         name,
-                        callback_args[type]["signature"],
+                        callback_args[type]["signature"][use_dictionary_unpacking],
                     )
                 error_logger = logging.getLogger("Error.{}".format(name))
                 error_logger.warning("-" * 60)
