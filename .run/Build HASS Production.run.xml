@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Build HASS" type="docker-deploy" factoryName="dockerfile" server-name="Docker">
+  <configuration default="false" name="Build HASS Production" type="docker-deploy" factoryName="dockerfile" server-name="Docker">
     <deployment type="dockerfile">
       <settings>
         <option name="imageTag" value="appdaemon-production" />
