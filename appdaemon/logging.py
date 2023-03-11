@@ -632,3 +632,8 @@ class Logging:
             )
 
         return executed
+
+    @staticmethod
+    def sanitize_log_kwargs(app, kwargs):
+        kwargs_copy = kwargs.copy()
+        return utils._sanitize_kwargs(kwargs_copy, ["__silent", "level"])

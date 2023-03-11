@@ -926,7 +926,7 @@ class Threading:
                                 data["level"],
                                 data["log_type"],
                                 data["message"],
-                                **self.AD.events.sanitize_event_kwargs(app, args["kwargs"]),
+                                **self.AD.logging.sanitize_log_kwargs(app, args["kwargs"]),
                             )
                         else:
                             await funcref(
@@ -935,7 +935,7 @@ class Threading:
                                 data["level"],
                                 data["log_type"],
                                 data["message"],
-                                self.AD.events.sanitize_event_kwargs(app, args["kwargs"]),
+                                self.AD.logging.sanitize_log_kwargs(app, args["kwargs"]),
                             )
                     except TypeError:
                         self.report_callback_sig(name, "log_event", funcref, args)
@@ -1058,7 +1058,7 @@ class Threading:
                                     data["level"],
                                     data["log_type"],
                                     data["message"],
-                                    **self.AD.events.sanitize_event_kwargs(app, args["kwargs"]),
+                                    **self.AD.logging.sanitize_log_kwargs(app, args["kwargs"]),
                                 )
                             else:
                                 funcref(
@@ -1067,7 +1067,7 @@ class Threading:
                                     data["level"],
                                     data["log_type"],
                                     data["message"],
-                                    self.AD.events.sanitize_event_kwargs(app, args["kwargs"]),
+                                    self.AD.logging.sanitize_log_kwargs(app, args["kwargs"]),
                                 )
                         except TypeError:
                             self.report_callback_sig(name, "log_event", funcref, args)
