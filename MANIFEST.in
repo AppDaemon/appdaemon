@@ -1,11 +1,8 @@
-include HISTORY.md
 include LICENSE.md
 include README.md
-include TUTORIAL.md
 
 recursive-include appdaemon/assets *
 recursive-include appdaemon/widgets *
-
 
 recursive-exclude * __pycache__
 recursive-exclude * *.py[co]
