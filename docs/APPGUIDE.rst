@@ -1454,8 +1454,8 @@ The value of the state after the state change.
 ``old`` and ``new`` will have varying types depending on the type of
 callback.
 
-cb_args/**kwargs
-^^^^^^^^^^^^^^^^
+cb_args/\*\*kwargs
+^^^^^^^^^^^^^^^^^^
 
 A dictionary containing any constraints and/or additional user specific
 keyword arguments supplied to the ``listen_state()`` call.
@@ -1513,8 +1513,8 @@ self
 
 A standard Python object reference
 
-cb_args/**kwargs
-^^^^^^^^^^^^^^^^
+cb_args/\*\*kwargs
+^^^^^^^^^^^^^^^^^^
 
 A dictionary containing Zero or more keyword arguments to be supplied to
 the callback.
