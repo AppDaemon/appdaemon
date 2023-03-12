@@ -1139,11 +1139,14 @@ class Threading:
             "terminate": {"count": 0, "signature": {True: "terminate()", False: "terminate()"}},
         }
 
-        app_args = self.AD.app_management.app_config[args["name"]]
-        if "use_dictionary_unpacking" in app_args:
-            use_dictionary_unpacking = app_args["use_dictionary_unpacking"]
+        if "name" in args:
+            app_args = self.AD.app_management.app_config[args["name"]]
+            if "use_dictionary_unpacking" in app_args:
+                use_dictionary_unpacking = app_args["use_dictionary_unpacking"]
+            else:
+                use_dictionary_unpacking = self.AD.use_dictionary_unpacking
         else:
-            use_dictionary_unpacking = self.AD.use_dictionary_unpacking
+            use_dictionary_unpacking = False
 
         try:
             sig = inspect.signature(funcref)
