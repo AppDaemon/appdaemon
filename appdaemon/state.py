@@ -717,6 +717,7 @@ class State:
                 "pin_thread",
                 "__delay",
                 "__silent",
+                "attribute",
             ]
             + app.list_constraints(),
         )
