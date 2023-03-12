@@ -55,7 +55,7 @@ class Services:
                     )
                     return
 
-            self.services[namespace][domain][service] = {"callback": callback, **kwargs}
+            self.services[namespace][domain][service] = {"callback": callback, "__name": name, **kwargs}
 
             if __silent is False:
                 data = {
@@ -201,12 +201,28 @@ class Services:
                     # We do what the kwarg tells us
                     isasync = self.services[namespace][domain][service]["__async"]
 
+            callee_name = self.services[namespace][domain][service]["__name"]
+            if callee_name is not None:
+                app_args = self.AD.app_management.app_config[callee_name]
+                if "use_dictionary_unpacking" in app_args:
+                    use_dictionary_unpacking = app_args["use_dictionary_unpacking"]
+                else:
+                    use_dictionary_unpacking = self.AD.use_dictionary_unpacking
+            else:
+                use_dictionary_unpacking = False
+
             if isasync is True:
                 # it's a coroutine just await it.
-                coro = funcref(ns, domain, service, data)
+                if use_dictionary_unpacking is True:
+                    coro = funcref(ns, domain, service, **data)
+                else:
+                    coro = funcref(ns, domain, service, data)
             else:
-                # It's not a coroutine, , run it in an executor
-                coro = utils.run_in_executor(self, funcref, ns, domain, service, data)
+                # It's not a coroutine, run it in an executor
+                if use_dictionary_unpacking is True:
+                    coro = utils.run_in_executor(self, funcref, ns, domain, service, **data)
+                else:
+                    coro = utils.run_in_executor(self, funcref, ns, domain, service, data)
 
             if return_result is True:
                 return await self.run_service(coro)

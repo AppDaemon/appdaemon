@@ -1,9 +1,11 @@
-AppDaemon with Docker
-=====================
+.. _Docker tutorial:
 
-A quick tutorial to AppDaemon with Docker
+Docker tutorial
+===============
 
-About Docker
+A quick tutorial to using AppDaemon with Docker
+
+Introduction
 ------------
 
 `Docker <https://www.docker.com>`_ is a popular application container technology. Application
@@ -19,15 +21,8 @@ multiple ways of doing some of these steps which are removed for the
 sake of keeping it simple. As your needs change, just remember there's
 probably a way to do what you want!
 
-Available Images
-----------------
-
-Starting with AppDaemon 4.1.0, we suport multi-arch images on Docker Hub.
-
-Currently supported architectures: linux/arm64/v8,linux/amd64,linux/arm/v6,linux/arm/v7
-
-Prereqs
--------
+Requirements
+------------
 
 This guide assumes:
 
@@ -35,8 +30,8 @@ This guide assumes:
 * You have Home Assistant up and running
 * You are comfortable with some tinkering. This is a pre-req for AppDaemon too!
 
-Testing your System
--------------------
+First steps
+-----------
 
 Our first step will be to verify that we can get AppDaemon running on
 our machine, which tests that we can successfully *pull* (download)
@@ -53,9 +48,9 @@ Now, on your Docker host, for Linux users, run the following command,
 substituting the values above in the quotes below. (Note: to create a long-lived token, click your user icon in the HA front end and look for the Long-Lived Access Tokens card. If you do not
 need a TOKEN, you can omit the entire -e TOKEN line)
 
-::
+.. code:: console
 
-    docker run --rm -it -p 5050:5050 \
+    $ docker run --rm -it -p 5050:5050 \
       -e HA_URL="<your HA_URL value>" \
       -e TOKEN="<your TOKEN value>" \
       -e DASH_URL="http://$HOSTNAME:5050" \
@@ -74,21 +69,21 @@ look for lines like these being outputs:
 
 HASS: Connected to Home Assistant 0.80.0
 
-::
+.. code:: console
 
     2017-04-01 14:26:48.361140 INFO Connected to Home Assistant 0.80.0
 
 The `apps` capability of AppDaemon is working, running the example Hello
 World app
 
-::
+.. code:: console
 
     2017-04-01 14:26:48.330084 INFO hello_world: Hello from AppDaemon
     2017-04-01 14:26:48.333040 INFO hello_world: You are now ready to run Apps!
 
 The `dashboard` capability of AppDaemon has started.
 
-::
+.. code:: console
 
     2018-10-25 16:53:09.105214 INFO Starting Dashboards
 
@@ -116,9 +111,9 @@ store it in the same location as Home Assistant. I like to keep a folder
 structure under ``/docker`` on my systems, so we can do something
 like:
 
-::
+.. code:: console
 
-    mkdir -p /docker/appdaemon/conf
+    $ mkdir -p /docker/appdaemon/conf
 
 Next, we will run a container again, omitting the ``--rm -it`` parameters
 and adding ``-d`` so that it stays background and doesn't disappear when
@@ -127,9 +122,9 @@ will auto-start on system boot and restart on failures, and lastly
 specify our ``conf`` folder location. Note that the folder path must be
 fully qualified and not relative.
 
-::
+.. code:: console
 
-    docker run --name=appdaemon -d -p 5050:5050 \
+    $ docker run --name=appdaemon -d -p 5050:5050 \
       --restart=always \
       -e HA_URL="<your HA_URL value>" \
       -e TOKEN="<your TOKEN value>" \
@@ -155,23 +150,25 @@ folder and AppDaemon will load them see the `AppDaemon Installation
 page <INSTALL.html>`__ for full instructions on AppDaemon configuration.
 Have fun!
 
-Viewing AppDaemon Log Output
-----------------------------
+Logs
+----
 
-You can view the output of your AppDaemon with this command:
+You can view the AppDaemon loda with this command:
 
-::
+.. code:: console
 
-    docker logs appdaemon
+    $ docker logs appdaemon
 
-If you'd like to tail the latest output, try this:
+If you'd like to ``tail`` the latest output, try this:
 
-::
+.. code:: console
 
-    docker logs -f --tail 20 appdaemon
+    $ docker logs -f --tail 20 appdaemon
 
-Upgrading AppDaemon
--------------------
+.. _Docker-Upgrading:
+
+Upgrading
+---------
 
 Upgrading with Docker really doesn't exist in the same way as with
 non-containerized apps. Containers are considered ephemeral and are an
@@ -186,12 +183,12 @@ this guide we are keeping it simple!)
 
 Run the following commands:
 
-::
+.. code:: console
 
-    docker stop appdaemon
-    docker rm appdaemon
-    docker pull acockburn/appdaemon:latest
-    docker run --name=appdaemon -d -p 5050:5050 \
+    $ docker stop appdaemon
+    $ docker rm appdaemon
+    $ docker pull acockburn/appdaemon:latest
+    $ docker run --name=appdaemon -d -p 5050:5050 \
       --restart=always \
       -e HA_URL="<your HA_URL value>" \
       -e TOKEN="<your TOKEN value>" \
@@ -199,69 +196,71 @@ Run the following commands:
       -v <your_conf_folder>:/conf \
       acockburn/appdaemon:latest
 
-Controlling the AppDaemon Container
------------------------------------
-
-To restart AppDaemon:
-
-::
-
-    docker restart appdaemon
-
-To stop AppDaemon:
-
-::
-
-    docker stop appdaemon
-
-To start AppDaemon back up after stopping:
-
-::
-
-    docker start appdaemon
-
-To check the running state, run the following and look at the 'STATUS'
+Managing the container
+----------------------
+Check status
+^^^^^^^^^^^^
+To check the running state, run the following and look at the ``STATUS``
 column:
 
-::
+.. code:: console
 
-    docker ps -a
+    $ docker ps -a
 
-Running with AppDaemon Debug
-----------------------------
+Start
+^^^^^
+.. code:: console
 
-If you need to run AppDaemon with Debug, it may be easiest to stop your
-normal AppDaemon and run a temporary container with the debug flag set.
-This presumes you already have a configured ``conf`` folder you are
-debugging, so we don't need to pass the HA/DASH variables into the
+    $ docker start appdaemon
+
+Stop
+^^^^
+.. code:: console
+
+    $ docker stop appdaemon
+
+Restart
+^^^^^^^
+.. code:: console
+
+    $ docker restart appdaemon
+
+
+Troubleshooting
+---------------
+If you need to run AppDaemon with the ``debug`` flag, it may be easier to stop your
+normal AppDaemon and run a temporary container with the ``debug`` flag set.
+This assumes you already have a configured ``conf`` folder you are
+debugging, so you don't need to pass the HA/DASH variables into the
 container.
 
 Run the following commands:
 
-::
+.. code:: console
 
-    docker stop appdaemon
-    docker run --rm -it -p 5050:5050 \
+    $ docker stop appdaemon
+    $ docker run --rm -it -p 5050:5050 \
       -v <your_conf_folder>:/conf \
       acockburn/appdaemon:latest -D DEBUG
 
-Once you are done with the debugging, start the non-debug container back up:
+Once you are done with the debugging, ``CTRL-C`` to stop the container and
+restart the normal container:
 
-::
+.. code:: console
 
-    docker start appdaemon
+    $ docker start appdaemon
 
 You can also append any other AppDaemon flags to the end of the command line if desired, e.g. to use time travel.
 
 Timezones
----------
+^^^^^^^^^
 
 Some users have reported issues with the Docker container running in different timezones to the host OS - this is obviously problematic for any of the scheduler functions.
 Adding the following to the Docker command line has helped some users:
 
-::
+.. code:: console
 
-     -v /etc/localtime:/etc/localtime:ro
+    -v /etc/localtime:/etc/localtime:ro
 
 Home Assistant SSL
 ------------------
@@ -271,23 +270,49 @@ will want to point to the location of the certificate files as part of
 the container creation process. Add ``-v <your_cert_path>:/certs`` to
 the ``docker run`` command line
 
-Removing AppDaemon
-------------------
+Uninstalling
+------------
 
-If you no longer want to use AppDaemon ``confused``, use the following commands:
+If you no longer want to use AppDaemon, use the following commands:
 
-::
+.. code:: console
 
-    docker kill appdaemon
-    docker rm appdaemon
-    docker rmi acockburn/appdaemon:latest
+    $ docker kill appdaemon
+    $ docker rm appdaemon
+    $ docker rmi acockburn/appdaemon:latest
 
 You can delete the ``conf`` folder if you wish at this time too.
 AppDaemon is now completely removed.
 
-Adding Dependencies
--------------------
+Runtime dependencies
+--------------------
 
-Sometimes it can be helpful to install additional Python dependencies into the Docker container before AppDaemon starts, to allow additional libraries to be used from Apps. The Docker script will recursively search the CONF directory for any files named ``requirements.txt``. All the found requirements will be used as input to pip3 to install any packages that they describe.
+Python packages
+^^^^^^^^^^^^^^^
+If your AppDaemon apps require additional Python dependencies, it is possible to install them on container startup.
+The Docker *entrypoint* script recursively searches inside the CONF directory for any files named ``requirements.txt``.
 
-It's also often helpful to add system packages to the Docker container before AppDaemon starts, to allow any custom python packages that depend on other `system packages <https://pkgs.alpinelinux.org/packages>`_ to install without issue. The Docker script will recursively search the CONF directory for any files named ``system_packages.txt``. Packages should be listed either space delimited or newline delimited. These packages will be used as input to ``apk add`` to install any packages that they describe.
+See the following example displaying the content of a sample ``requirements.txt``:
+
+.. code-block:: text
+
+    # requirements.txt
+    requests==2.28.2
+
+All the ``requirements.txt`` found will be used as input to ``pip install -r requirements.txt``, installing all the Python package requested.
+
+OS dependencies
+^^^^^^^^^^^^^^^
+You can add system packages provided by the `Alpine repository <https://pkgs.alpinelinux.org/packages>`_.
+This might be useful if your additional Python packages depend on them (for instance they may need ``gcc`` or the Python library headers for compiling ``wheels``).
+The packages are installed using ``apk``.
+
+The Docker *entrypoint* script recursively searches inside the CONF directory for any files named ``system_packages.txt``.
+The file should contain the name of all the packages, either space delimited or newline delimited.
+These packages will be used as input to ``apk add``.
+
+See the following example displaying the content of a sample ``system_packages.txt``:
+
+.. code-block:: text
+
+    build-base gcc curl

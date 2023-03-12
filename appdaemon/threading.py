@@ -870,13 +870,22 @@ class Threading:
         if "__silent" in args["kwargs"]:
             silent = args["kwargs"]["__silent"]
 
+        app_args = self.AD.app_management.app_config[args["name"]]
+        if "use_dictionary_unpacking" in app_args:
+            use_dictionary_unpacking = app_args["use_dictionary_unpacking"]
+        else:
+            use_dictionary_unpacking = self.AD.use_dictionary_unpacking
+
         app = await self.AD.app_management.get_app_instance(name, objectid)
         if app is not None:
             try:
                 if _type == "scheduler":
                     try:
                         await self.update_thread_info("async", callback, name, _type, _id, silent)
-                        await funcref(self.AD.sched.sanitize_timer_kwargs(app, args["kwargs"]))
+                        if use_dictionary_unpacking is True:
+                            await funcref(**self.AD.sched.sanitize_timer_kwargs(app, args["kwargs"]))
+                        else:
+                            await funcref(self.AD.sched.sanitize_timer_kwargs(app, args["kwargs"]))
                     except TypeError:
                         self.report_callback_sig(name, "scheduler", funcref, args)
 
@@ -887,13 +896,22 @@ class Threading:
                         old_state = args["old_state"]
                         new_state = args["new_state"]
                         await self.update_thread_info("async", callback, name, _type, _id, silent)
-                        await funcref(
-                            entity,
-                            attr,
-                            old_state,
-                            new_state,
-                            self.AD.state.sanitize_state_kwargs(app, args["kwargs"]),
-                        )
+                        if use_dictionary_unpacking is True:
+                            await funcref(
+                                entity,
+                                attr,
+                                old_state,
+                                new_state,
+                                **self.AD.state.sanitize_state_kwargs(app, args["kwargs"]),
+                            )
+                        else:
+                            await funcref(
+                                entity,
+                                attr,
+                                old_state,
+                                new_state,
+                                self.AD.state.sanitize_state_kwargs(app, args["kwargs"]),
+                            )
                     except TypeError:
                         self.report_callback_sig(name, "state", funcref, args)
 
@@ -901,14 +919,24 @@ class Threading:
                     data = args["data"]
                     try:
                         await self.update_thread_info("async", callback, name, _type, _id, silent)
-                        await funcref(
-                            data["app_name"],
-                            data["ts"],
-                            data["level"],
-                            data["log_type"],
-                            data["message"],
-                            self.AD.events.sanitize_event_kwargs(app, args["kwargs"]),
-                        )
+                        if use_dictionary_unpacking is True:
+                            await funcref(
+                                data["app_name"],
+                                data["ts"],
+                                data["level"],
+                                data["log_type"],
+                                data["message"],
+                                **self.AD.logging.sanitize_log_kwargs(app, args["kwargs"]),
+                            )
+                        else:
+                            await funcref(
+                                data["app_name"],
+                                data["ts"],
+                                data["level"],
+                                data["log_type"],
+                                data["message"],
+                                self.AD.logging.sanitize_log_kwargs(app, args["kwargs"]),
+                            )
                     except TypeError:
                         self.report_callback_sig(name, "log_event", funcref, args)
 
@@ -916,7 +944,14 @@ class Threading:
                     data = args["data"]
                     try:
                         await self.update_thread_info("async", callback, name, _type, _id, silent)
-                        await funcref(args["event"], data, self.AD.events.sanitize_event_kwargs(app, args["kwargs"]))
+                        if use_dictionary_unpacking is True:
+                            await funcref(
+                                args["event"], data, **self.AD.events.sanitize_event_kwargs(app, args["kwargs"])
+                            )
+                        else:
+                            await funcref(
+                                args["event"], data, self.AD.events.sanitize_event_kwargs(app, args["kwargs"])
+                            )
                     except TypeError:
                         self.report_callback_sig(name, "event", funcref, args)
 
@@ -958,6 +993,12 @@ class Threading:
             if "__silent" in args["kwargs"]:
                 silent = args["kwargs"]["__silent"]
 
+            app_args = self.AD.app_management.app_config[args["name"]]
+            if "use_dictionary_unpacking" in app_args:
+                use_dictionary_unpacking = app_args["use_dictionary_unpacking"]
+            else:
+                use_dictionary_unpacking = self.AD.use_dictionary_unpacking
+
             app = utils.run_coroutine_threadsafe(self, self.AD.app_management.get_app_instance(name, objectid))
             if app is not None:
                 try:
@@ -967,7 +1008,10 @@ class Threading:
                                 self,
                                 self.update_thread_info(thread_id, callback, name, _type, _id, silent),
                             )
-                            funcref(self.AD.sched.sanitize_timer_kwargs(app, args["kwargs"]))
+                            if use_dictionary_unpacking is True:
+                                funcref(**self.AD.sched.sanitize_timer_kwargs(app, args["kwargs"]))
+                            else:
+                                funcref(self.AD.sched.sanitize_timer_kwargs(app, args["kwargs"]))
                         except TypeError:
                             self.report_callback_sig(name, "scheduler", funcref, args)
 
@@ -981,13 +1025,22 @@ class Threading:
                                 self,
                                 self.update_thread_info(thread_id, callback, name, _type, _id, silent),
                             )
-                            funcref(
-                                entity,
-                                attr,
-                                old_state,
-                                new_state,
-                                self.AD.state.sanitize_state_kwargs(app, args["kwargs"]),
-                            )
+                            if use_dictionary_unpacking is True:
+                                funcref(
+                                    entity,
+                                    attr,
+                                    old_state,
+                                    new_state,
+                                    **self.AD.state.sanitize_state_kwargs(app, args["kwargs"]),
+                                )
+                            else:
+                                funcref(
+                                    entity,
+                                    attr,
+                                    old_state,
+                                    new_state,
+                                    self.AD.state.sanitize_state_kwargs(app, args["kwargs"]),
+                                )
                         except TypeError:
                             self.report_callback_sig(name, "state", funcref, args)
 
@@ -998,14 +1051,24 @@ class Threading:
                                 self,
                                 self.update_thread_info(thread_id, callback, name, _type, _id, silent),
                             )
-                            funcref(
-                                data["app_name"],
-                                data["ts"],
-                                data["level"],
-                                data["log_type"],
-                                data["message"],
-                                self.AD.events.sanitize_event_kwargs(app, args["kwargs"]),
-                            )
+                            if use_dictionary_unpacking is True:
+                                funcref(
+                                    data["app_name"],
+                                    data["ts"],
+                                    data["level"],
+                                    data["log_type"],
+                                    data["message"],
+                                    **self.AD.logging.sanitize_log_kwargs(app, args["kwargs"]),
+                                )
+                            else:
+                                funcref(
+                                    data["app_name"],
+                                    data["ts"],
+                                    data["level"],
+                                    data["log_type"],
+                                    data["message"],
+                                    self.AD.logging.sanitize_log_kwargs(app, args["kwargs"]),
+                                )
                         except TypeError:
                             self.report_callback_sig(name, "log_event", funcref, args)
 
@@ -1016,7 +1079,12 @@ class Threading:
                                 self,
                                 self.update_thread_info(thread_id, callback, name, _type, _id, silent),
                             )
-                            funcref(args["event"], data, self.AD.events.sanitize_event_kwargs(app, args["kwargs"]))
+                            if use_dictionary_unpacking is True:
+                                funcref(
+                                    args["event"], data, **self.AD.events.sanitize_event_kwargs(app, args["kwargs"])
+                                )
+                            else:
+                                funcref(args["event"], data, self.AD.events.sanitize_event_kwargs(app, args["kwargs"]))
                         except TypeError:
                             self.report_callback_sig(name, "event", funcref, args)
 
@@ -1048,13 +1116,37 @@ class Threading:
         error_logger = logging.getLogger("Error.{}".format(name))
 
         callback_args = {
-            "scheduler": {"count": 1, "signature": "f(self, kwargs)"},
-            "state": {"count": 5, "signature": "f(self, entity, attribute, old, new, kwargs)"},
-            "event": {"count": 3, "signature": "f(self, event, data, kwargs)"},
-            "log_event": {"count": 6, "signature": "f(self, name, ts, level, type, message, kwargs)"},
-            "initialize": {"count": 0, "signature": "initialize()"},
-            "terminate": {"count": 0, "signature": "terminate()"},
+            "scheduler": {"count": 1, "signature": {True: "f(self, **kwargs)", False: "f(self, kwargs)"}},
+            "state": {
+                "count": 5,
+                "signature": {
+                    True: "f(self, entity, attribute, old, new, **kwargs)",
+                    False: "f(self, entity, attribute, old, new, kwargs)",
+                },
+            },
+            "event": {
+                "count": 3,
+                "signature": {True: "f(self, event, data, **kwargs)", False: "f(self, event, data, kwargs)"},
+            },
+            "log_event": {
+                "count": 6,
+                "signature": {
+                    True: "f(self, name, ts, level, type, message, kwargs)",
+                    False: "f(self, name, ts, level, type, message, kwargs)",
+                },
+            },
+            "initialize": {"count": 0, "signature": {True: "initialize()", False: "initialize()"}},
+            "terminate": {"count": 0, "signature": {True: "terminate()", False: "terminate()"}},
         }
+
+        if "name" in args:
+            app_args = self.AD.app_management.app_config[args["name"]]
+            if "use_dictionary_unpacking" in app_args:
+                use_dictionary_unpacking = app_args["use_dictionary_unpacking"]
+            else:
+                use_dictionary_unpacking = self.AD.use_dictionary_unpacking
+        else:
+            use_dictionary_unpacking = False
 
         try:
             sig = inspect.signature(funcref)
@@ -1065,7 +1157,7 @@ class Threading:
                         "Suspect incorrect signature type for callback %s() in %s, should be %s - discarding",
                         funcref.__name__,
                         name,
-                        callback_args[type]["signature"],
+                        callback_args[type]["signature"][use_dictionary_unpacking],
                     )
                 error_logger = logging.getLogger("Error.{}".format(name))
                 error_logger.warning("-" * 60)

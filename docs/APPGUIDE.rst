@@ -121,7 +121,7 @@ comments):
         self.run_daily(self.run_daily_callback, time)
 
        # Our callback function will be called by the scheduler every day at 7pm
-      def run_daily_callback(self, kwargs):
+      def run_daily_callback(self, cb_args):
         # Call to Home Assistant to turn the porch light on
         self.turn_on("light.porch")
 
@@ -871,7 +871,7 @@ Consider the following App which schedules 1000 callbacks all to run at the exac
             for i in range (1000):
                 self.run_at(self.hass_cb, target)
 
-        def hass_cb(self, kwargs):
+        def hass_cb(self, cb_args):
             self.important_var += 1
             self.log(self.important_var)
 
@@ -919,7 +919,7 @@ However, if we add the decorator to the callback function like so:
                 self.run_at(self.hass_cb, target)
 
         @ad.app_lock
-        def hass_cb(self, kwargs):
+        def hass_cb(self, cb_args):
             self.important_var += 1
             self.log(self.important_var)
 
@@ -1124,7 +1124,7 @@ A fully async app might look like this:
         async def my_function(self):
             # More async stuff here
 
-        async def hass_cb(self, kwargs):
+        async def hass_cb(self, cb_args):
             # do some async stuff
 
             # Sleeps are perfectly acceptable
@@ -1275,15 +1275,16 @@ and tells AppDaemon to make a call into its code in a specific place to
 be able to react to it - this is a very familiar concept to anyone
 familiar with event-based programming.
 
-There are 3 types of callbacks within AppDaemon:
+There are 4 types of callbacks within AppDaemon:
 
 -  State Callbacks - react to a change in state
 -  Scheduler Callbacks - react to a specific time or interval
 -  Event Callbacks - react to specific Home Assistant and AppDaemon
    events.
+- Log Callbacks - called whenever a log entry is made
 
 All callbacks allow users to specify additional parameters to be
-handed to the callback via the standard Python ``**kwargs`` mechanism
+handed to the callback via the standard Python ``**cb_args`` mechanism
 for greater flexibility, these additional arguments are handed to the
 callback as a standard Python dictionary,
 
@@ -1347,8 +1348,46 @@ dictionary and you could use it as follows:
 
 .. code:: python
 
-    def motion(self, entity, attribute, old, new, kwargs):
+    def motion(self, entity, attribute, old, new, cb_args):
+        self.log("Arg1 is {}".format(cb_args["arg1"]))
+
+KWARGS
+^^^^^^
+
+The above mechanism for passing arguments to callbacks was originally referred to
+as the "kwargs" mechanism. This has caused some confusion over the years and was originally
+named due to a misunderstanding of the function of the python dictionary unpack function on
+the part of the developer. It has been pointed out many times that a more natural and pythonic
+way to handle this would be via use of the ``**`` operator when handing parameters to a callback.
+As of AppDamoen 4.3.0, it is now possible to switch AppDaemon globally to the use of the ``**``
+operator for user arguments by specifying ``use_dictionary_unpacking: true`` in
+the AppDaemon config file. When this capability is enabled, AppDaemon will hand parameters to
+callbacks vis the ``**`` operator rather than passing a dictionary containing the arguments:
+
+.. code:: python
+
+    def motion(self, entity, attribute, old, new, **kwargs):
         self.log("Arg1 is {}".format(kwargs["arg1"]))
+
+It now makes more sense to rewite the callback's method signature to the following if desired:
+
+.. code:: python
+
+    def motion(self, *args, **kwargs):
+        self.log("Arg1 is {}".format(kwargs["arg1"]))
+
+This was previously possible but kwargs appeared as a dictionary in the positional parameter
+list for args, not in kwargs as might have been expected.
+
+This capability can also be enabled on a per app basis by setting the argument
+``use_dictionary_unpacking`` to ``true`` or ``false`` in the apps configuration file
+- this will override the global setting in the appdaemon config file if any.
+
+Although this is a minor change, it is important to many people and rights an ancient wrong
+in the design of AppDaemon.
+
+Please note, that in order to avoid confusion, the docs have been changed to call the old kwargs
+dictionary ``cb_args``.
 
 State Callbacks
 ~~~~~~~~~~~~~~~
@@ -1371,7 +1410,14 @@ should look like this:
 
 .. code:: python
 
-      def my_callback(self, entity, attribute, old, new, kwargs):
+      def my_callback(self, entity, attribute, old, new, cb_args):
+        <do some useful work here>
+
+Or if you are using dictionary unpacking (see `here <APPGUIDE.html#kwargs>`__):
+
+.. code:: python
+
+      def my_callback(self, entity, attribute, old, new, **kwargs):
         <do some useful work here>
 
 You can call the function whatever you like - you will reference it in
@@ -1408,13 +1454,13 @@ The value of the state after the state change.
 ``old`` and ``new`` will have varying types depending on the type of
 callback.
 
-\*\*kwargs
-^^^^^^^^^^
+cb_args/\*\*kwargs
+^^^^^^^^^^^^^^^^^^
 
 A dictionary containing any constraints and/or additional user specific
 keyword arguments supplied to the ``listen_state()`` call.
 
-The kwargs dictionary will also contain a field called ``handle`` that provides the callback with the handle that identifies the ``listen_state()`` entry that resulted in the callback.
+The cb_args dictionary will also contain a field called ``handle`` that provides the callback with the handle that identifies the ``listen_state()`` entry that resulted in the callback.
 
 Publishing State from an App
 ----------------------------
@@ -1444,8 +1490,17 @@ Scheduler callback function should look like this:
 
 .. code:: python
 
-      def my_callback(self, kwargs):
+      def my_callback(self, cb_args):
         <do some useful work here>
+
+Or if you are using dictionary unpacking (see `here <APPGUIDE.html#kwargs>`__):
+
+.. code:: python
+
+      def my_callback(self, **kwargs):
+        <do some useful work here>
+
+
 
 You can call the function whatever you like; you will reference it in
 the Scheduler call, and you can create as many callback functions as you
@@ -1458,8 +1513,8 @@ self
 
 A standard Python object reference
 
-\*\*kwargs
-^^^^^^^^^^
+cb_args/\*\*kwargs
+^^^^^^^^^^^^^^^^^^
 
 A dictionary containing Zero or more keyword arguments to be supplied to
 the callback.
@@ -1493,11 +1548,11 @@ For example:
 .. code:: python
 
     # Run a callback in 2 minutes minus a random number of seconds between 0 and 60, e.g. run between 60 and 120 seconds from now
-    self.handle = self.run_in(callback, 120, random_start = -60, **kwargs)
+    self.handle = self.run_in(callback, 120, random_start = -60)
     # Run a callback in 2 minutes plus a random number of seconds between 0 and 60, e.g. run between 120 and 180 seconds from now
     self.handle = self.run_in(callback, 120, random_end = 60, **kwargs)
     # Run a callback in 2 minutes plus or minus a random number of seconds between 0 and 60, e.g. run between 60 and 180 seconds from now
-    self.handle = self.run_in(callback, 120, random_start = -60, random_end = 60, **kwargs)
+    self.handle = self.run_in(callback, 120, random_start = -60, random_end = 60)
 
 Sunrise and Sunset
 ------------------
@@ -1584,7 +1639,14 @@ defined Scheduler callback function should look like this:
 
 .. code:: python
 
-      def my_callback(self, event_name, data, kwargs):
+      def my_callback(self, event_name, data, cb_args):
+        <do some useful work here>
+
+Or if you are using dictionary unpacking (see `here <APPGUIDE.html#kwargs>`__):
+
+.. code:: python
+
+      def my_callback(self, entity, attribute, old, new, **kwargs):
         <do some useful work here>
 
 You can call the function whatever you like - you will reference it in
@@ -1602,7 +1664,7 @@ event\_name
 data
   Any data that the system supplied with the event as a dict.
 
-kwargs
+cb_args
   A dictionary containing Zero or more user keyword arguments to be supplied to the callback.
 
 listen\_event()
@@ -1615,7 +1677,7 @@ Synopsis
 
 .. code:: python
 
-    handle = listen_event(function, event = None, **kwargs):
+    handle = listen_event(function, event = None, cb_args):
 
 Returns
 ^^^^^^^
@@ -1638,7 +1700,7 @@ event such as ``service_registered`` or in the case of HASS, an arbitrary custom
 as ``"MODE_CHANGE"``. If no event is specified, ``listen_event()`` will
 subscribe to all events.
 
-\*\*kwargs (optional)
+wargs (optional)
 '''''''''''''''''''''
 
 One or more keyword value pairs representing App specific parameters to
@@ -2036,7 +2098,7 @@ Here is an example of an App using the API:
         def initialize(self):
             self.register_endpoint(my_callback, "test_endpoint")
 
-        async def my_callback(self, request, kwargs):
+        async def my_callback(self, request, cb_args):
 
             data = await request.json()
 
