@@ -23,6 +23,7 @@ Change Log
 - parse_time("sunset") and impact of "aware" #1645
 - constrain_person not working #1437
 - last_changed_seconds wrong due to timezone #1571
+- Fixed a long standing bug that caused some callbacks to be 1 hour early or later after a DST transition
 
 **Breaking Changes**
 
