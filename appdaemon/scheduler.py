@@ -773,7 +773,7 @@ class Scheduler:
             now = (await self.get_now()).astimezone(self.AD.tz)
 
         self.logger.info(
-            "\n" + "-" * 80 + "\nInitial\nstart = {start_time}\nnow   = {now}\nend   = {end_time}\n" + "-" * 80
+            "\n" + "-" * 80 + f"\nInitial\nstart = {start_time}\nnow   = {now}\nend   = {end_time}\n" + "-" * 80
         )
 
         # Comparisons
