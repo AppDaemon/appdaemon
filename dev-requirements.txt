@@ -47,7 +47,7 @@ deepdiff==6.2.3
     # via appdaemon (pyproject.toml)
 distlib==0.3.6
     # via virtualenv
-exceptiongroup==1.1.0
+exceptiongroup==1.1.1
     # via pytest
 feedparser==6.0.10
     # via appdaemon (pyproject.toml)
