@@ -1,0 +1,155 @@
+{
+    "version": "2.0.0",
+    "tasks":
+    [
+        {
+            "label": "Run Dev",
+            "command": "${command:python.interpreterPath}",
+            "args": ["-m", "appdaemon", "-c", "/home/hass/appdaemon/dev_test", "--toml"],
+            "type": "shell",
+            "presentation":
+                {
+                    "echo": true,
+                    "reveal": "always",
+                    "focus": false,
+                    "panel": "shared",
+                    "showReuseMessage": false,
+                    "clear": true
+                },
+        },
+        {
+            "label": "Build Docs",
+            "command": "${command:python.interpreterPath}",
+            "args": ["/home/hass/src/venv/python_3.11/bin/sphinx-build", "-T", "-E", "${workspaceFolder}/docs", "${workspaceFolder}/../docs_build"],
+            "type": "shell",
+            "presentation":
+                {
+                    "echo": true,
+                    "reveal": "always",
+                    "focus": false,
+                    "panel": "shared",
+                    "showReuseMessage": false,
+                    "clear": true
+                },
+        },
+        {
+            "label": "Auto Build Docs",
+            "command": "${command:python.interpreterPath}",
+            "args": ["/home/hass/src/venv/python_3.11/bin/sphinx-autobuild", "-T", "-E", "${workspaceFolder}/docs", "${workspaceFolder}/../docs_build", "--port", "9999"],
+            "type": "shell",
+            "presentation":
+                {
+                    "echo": true,
+                    "reveal": "always",
+                    "focus": false,
+                    "panel": "shared",
+                    "showReuseMessage": false,
+                    "clear": true
+                },
+        },
+        {
+            "label": "Build Package",
+            "command": "${command:python.interpreterPath}",
+            "args": ["-m", "build"],
+            "type": "shell",
+            "presentation":
+                {
+                    "echo": true,
+                    "reveal": "always",
+                    "focus": false,
+                    "panel": "shared",
+                    "showReuseMessage": false,
+                    "clear": true
+                },
+        },
+        {
+            "label": "Docker Build Production",
+            "command": "docker",
+            "args": ["build", "--tag", "appdaemon-production", "."],
+            "type": "shell",
+            "dependsOn": ["Build Package"],
+            "presentation":
+                {
+                    "echo": true,
+                    "reveal": "always",
+                    "focus": false,
+                    "panel": "shared",
+                    "showReuseMessage": false,
+                    "clear": true
+                },
+        },
+        {
+            "label": "Docker Build Other",
+            "command": "docker",
+            "args": ["build", "--tag", "${input:tagName}", "."],
+            "type": "shell",
+            "dependsOn": ["Build Package"],
+            "presentation":
+                {
+                    "echo": true,
+                    "reveal": "always",
+                    "focus": false,
+                    "panel": "shared",
+                    "showReuseMessage": false,
+                    "clear": true
+                },
+        },
+        {
+            "label": "Build Runtime Requirements",
+            "command": "pip-compile",
+            "args": ["--resolver=backtracking", "pyproject.toml"],
+            "type": "shell",
+            "presentation":
+                {
+                    "echo": true,
+                    "reveal": "always",
+                    "focus": false,
+                    "panel": "shared",
+                    "showReuseMessage": false,
+                    "clear": true
+                },
+        },
+        {
+            "label": "Build Dev Requirements",
+            "command": "pip-compile",
+            "args": ["--extra=dev", "--output-file=dev-requirements.txt", "--resolver=backtracking", "pyproject.toml"],
+            "type": "shell",
+            "presentation":
+                {
+                    "echo": true,
+                    "reveal": "always",
+                    "focus": false,
+                    "panel": "shared",
+                    "showReuseMessage": false,
+                    "clear": true
+                },
+        },
+        {
+            "label": "Build Doc Requirements",
+            "command": "pip-compile",
+            "args": ["--extra=doc", "--output-file=doc-requirements.txt", "--resolver=backtracking", "pyproject.toml"],
+            "type": "shell",
+            "presentation":
+                {
+                    "echo": true,
+                    "reveal": "always",
+                    "focus": false,
+                    "panel": "shared",
+                    "showReuseMessage": false,
+                    "clear": true
+                },
+        },
+        {
+            "label": "Build All Requirements",
+            "dependsOn": ["Build Runtime Requirements", "Build Dev Requirements", "Build Doc Requirements"]
+          }
+    ],
+    "inputs":
+    [
+        {
+            "id": "tagName",
+            "description": "Name of the image tag",
+            "type": "promptString"
+        }
+    ]
+}

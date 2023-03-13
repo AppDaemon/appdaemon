@@ -2059,14 +2059,14 @@ RESTFul API Support
 -------------------
 
 AppDaemon supports a simple RESTFul API to enable arbitrary HTTP
-connections to pass data to Apps and trigger actions via a `POST` request.
+connections to pass data to Apps and trigger actions via `GET` or `POST` requests.
 API Calls can be anything, and the response will be JSON
 encoded. The RESTFul API is disabled by default, but is enabled by
 setting up the `http` component in the configuration file.
 The API can run http or https if desired, separately from the dashboard.
 
 To call into a specific App, construct a URL, use the regular
-HADashboard URL, and append ``/api/appdaemon``, then add the name of the
+AppDaemon URL, and append ``/api/appdaemon``, then add the name of the
 endpoint as registered by the App on the end, for example:
 
 ::
@@ -2098,7 +2098,7 @@ Here is an example of an App using the API:
         def initialize(self):
             self.register_endpoint(my_callback, "test_endpoint")
 
-        async def my_callback(self, request, cb_args):
+        def my_callback(self, args, cb_args):
 
             data = await request.json()
 
@@ -2108,10 +2108,11 @@ Here is an example of an App using the API:
 
             return response, 200
 
-If the supplied callback is not `async` as in the example above, AD will pass only the
-JSON data from the request to the callback; essentially running `data = await request.json()`.
-Since the request object needs to be parsed within an `async` callback.
-Thereby making only available a dictionary, instead of the request object.
+The callback will accept `GET` or `POST` requests. If the request is a `POST` AppDaemon
+will attempt to decode JSON arguments and supply them in the
+args parameter. If the method is `GET`, any arguments will also be
+supplied via the args parameter. cb_args (or \*\*kwargs) will be supplied with
+any parameters defined at the time of the `register_endpoint()`.
 
 The response must be a python structure that can be mapped to JSON, or
 can be blank, in which case specify ``""`` for the response. You should
