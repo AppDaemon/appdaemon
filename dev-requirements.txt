@@ -149,7 +149,7 @@ urllib3==1.26.14
     # via requests
 uvloop==0.17.0 ; sys_platform != "win32"
     # via appdaemon (pyproject.toml)
-virtualenv==20.20.0
+virtualenv==20.21.0
     # via pre-commit
 websocket-client==1.5.1
     # via appdaemon (pyproject.toml)
