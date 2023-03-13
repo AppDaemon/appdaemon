@@ -61,3 +61,6 @@ target/
 
 # Mac stuff
 .DS_Store
+
+# VSCode
+.vscode
