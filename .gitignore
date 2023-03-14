@@ -67,3 +67,7 @@ venv
 
 # Vim
 *~
+
+# Ruff
+
+.ruff_cache
