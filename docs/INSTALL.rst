@@ -180,9 +180,9 @@ First, create a new file using vi:
 
 .. code:: bash
 
-    $ sudo vi /etc/init.d/appdaemon-daemon 
+    $ sudo vi /etc/init.d/appdaemon-daemon
 
-Copy and paste the following script into the new file, making sure that the following variables 
+Copy and paste the following script into the new file, making sure that the following variables
 are set according to your setup.
 
 - APPDAEMON_INSTALL_DIR
@@ -327,7 +327,7 @@ Activate Init.d Service
 
     $ sudo service appdaemon-daemon install
 
-That's it. After a restart, AppDaemon will start automatically. 
+That's it. After a restart, AppDaemon will start automatically.
 
 If ``AppDaemon`` doesn't start, check the log file output for errors at ``/var/log/appdaemon/appdaemon.log``.
 
