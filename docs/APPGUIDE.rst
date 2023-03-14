@@ -490,23 +490,26 @@ variables or functions in it. When they change, a number of apps may need to be 
 To configure this dependency tracking, it is first necessary to define which
 modules are going to be tracked. This is done in any apps.yaml file.
 
-To do this, we create an entry for the global module as if it were an app, but instead of specifying a class, we add ``global: true`` to the description:
+To do this, we create an entry for the global module as if it were an app, but instead of specifying a class,
+we add ``global: true`` to the description:
 
 .. code:: yaml
 
     my_global_module:
-        module: globals.py
+        module: globals
         global: true
 
-This means that the file ``globals.py`` anywhere within the apps directory hierarchy is marked as a global module. Any App may simply import ``globals`` and use its variables and functions. Marking multiple modules as global can be achieved creating an entry for each module:
+This means that the file ``globals.py`` anywhere within the apps directory hierarchy is marked as a global module.
+Any App may simply import ``globals`` and use its variables and functions. Marking multiple modules
+as global can be achieved creating an entry for each module:
 
 .. code:: yaml
 
     my_global_module:
-        module: globals.py
+        module: globals
         global: true
     my_other_global_module:
-        module: other_globals.py
+        module: other_globals
         global: true
 
 Once we have marked the global modules, the next step is to configure any apps that are dependant upon them. This is done by adding them to the standard  ``dependencies`` field to the App description, e.g.:
@@ -529,15 +532,23 @@ Or for multiple dependencies:
         - my_global_module
         - my_other_global_module
 
-With this in place, whenever a global module changes that apps depend upon, all dependent apps will be reloaded. This also works well with the App level dependencies. If a change to a global module forces an App to reload that other apps are dependant upon, the dependant apps will also be reloaded in sequence.
+With this in place, whenever a global module changes that apps depend upon, all dependent apps will be reloaded.
+This also works well with the App level dependencies. If a change to a global module forces an App to reload
+that other apps are dependant upon, the dependant apps will also be reloaded in sequence.
 Using this mechanism, it is also possible to mark global modules as being dependent on other global modules.
 
-Note: the old ``global_modules`` directive used to be used for this function but has been deprecated. In addition, note that the old ``global_dependendencies`` keyword in the app description has now been retired and the existing ``dependencies`` keyword is now used for both apps and global modules.
+Note: the old ``global_modules`` directive used to be used for this function but has been deprecated.
+In addition, note that the old ``global_dependendencies`` keyword in the app description has now been
+retired and the existing ``dependencies`` keyword is now used for both apps and global modules.
 
 Plugin Reloads
 --------------
 
-When a plugin reloads e.g., due to the underlying system restarting, or a network issue, AppDaemon's default assumption is that all apps could potentially be dependant on that system, and it will force a restart of every App. It is possible to modify this behavior at the individual App level, using the ``plugin`` parameter in apps.yaml. Specifying a specific plugin or list of plugins will force the App to reload after the named plugin restarts.
+When a plugin reloads e.g., due to the underlying system restarting, or a network issue,
+AppDaemon's default assumption is that all apps could potentially be dependant on that system,
+and it will force a restart of every App. It is possible to modify this behavior at the
+individual App level, using the ``plugin`` parameter in apps.yaml.
+Specifying a specific plugin or list of plugins will force the App to reload after the named plugin restarts.
 
 For a simple AppDaemon install, the appdaemon.yaml file might look something like this:
 
