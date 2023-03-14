@@ -7,7 +7,7 @@ import appdaemon.adapi as adapi
 from appdaemon.appdaemon import AppDaemon
 
 
-class Entities:
+class Entities:  # @todo
     def __init__(self):
         pass
 

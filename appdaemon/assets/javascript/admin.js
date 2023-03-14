@@ -352,7 +352,7 @@ function update_admin(msg)
         if (item.length > 0)
         {
 
-            // TODO: This breaks if a new entity shows up
+            // @todo : This breaks if a new entity shows up
 
             item[0].values({
                 name: entity,

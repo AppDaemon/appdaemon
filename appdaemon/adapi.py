@@ -3077,7 +3077,7 @@ class ADAPI:
 
         def callback_inner(f):
             try:
-                # TODO: use our own callback type instead of borrowing
+                # @todo : use our own callback type instead of borrowing
                 # from scheduler
                 rargs = {}
                 rargs["result"] = f.result()
@@ -3128,7 +3128,7 @@ class ADAPI:
 
         def callback_inner(f):
             try:
-                # TODO: use our own callback type instead of borrowing
+                # @todo : use our own callback type instead of borrowing
                 # from scheduler
                 kwargs["result"] = f.result()
                 sched_data["kwargs"] = kwargs
