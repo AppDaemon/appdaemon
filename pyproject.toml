@@ -106,8 +106,10 @@ select = ["E", "F"]
 ignore = []
 
 # Allow autofix for all enabled rules (when `--fix`) is provided.
-fixable = ["A", "B", "C", "D", "E", "F", "UP"]
+fixable = ["E", "F", "UP"]
 unfixable = []
+
+src = ["appdaemon"]
 
 # Exclude a variety of commonly ignored directories.
 exclude = [
@@ -134,7 +136,7 @@ exclude = [
 ]
 per-file-ignores = {}
 
-line-length = 120
+line-length = 500
 
 # Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
