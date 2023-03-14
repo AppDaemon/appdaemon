@@ -192,7 +192,7 @@ The following command downloads and install the optional dependencies, as define
 
     $ pip install -r doc-requirements.txt
 
-Then `cd` to the `docs` subdirectory, where all the `rst` files are found, and run the following command:
+From the project's root directory, run the following command:
 
 .. code:: console
 
