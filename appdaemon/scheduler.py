@@ -480,33 +480,6 @@ class Scheduler:
 
         return next_entries
 
-    async def process_dst(self, old, new):
-        #
-        # This hasn't been working right, but I just had a thought. I have been assuming this is necessary
-        # because it was necessary before I rewrote the scheduler to use TZ aware times throughout. Perhaps TZ aware
-        # times are already correct and I am just messing them up :)
-        # Anyway, doing nothing can't be worse than what is already happening. If this works for the upcoming DST change
-        # I'll rip all the code out. Thanks for listening.
-        #
-        return
-        #
-        # Rewrite timestamps to new local time
-        #
-        offset = old - new
-        self.logger.debug("Process_dst()")
-        self.logger.debug("offset  %s", offset)
-        for app in self.schedule:
-            for entry in self.schedule[app]:
-                args = self.schedule[app][entry]
-                # Sunrise and sunset will already be correct. Anything else needs to be reset to a new local time
-                self.logger.debug("Before rewrite: %s", args)
-                if args["type"] != "next_rising" and args["type"] != "next_setting":
-                    # If our interval is less than the jump don't rewrite the timestamp
-                    if float(args["interval"]) > abs(offset.total_seconds()):
-                        args["timestamp"] += offset
-                        args["basetime"] += offset
-                self.logger.debug("After rewrite: %s", args)
-
     def get_next_dst_offset(self, base, limit):
         #
         # I can't believe there isn't a better way to find the next DST transition but ...
@@ -591,10 +564,8 @@ class Scheduler:
                 )
                 if old_dst_offset != dst_offset:
                     #
-                    # DST began or ended, we need to go fix any existing scheduler entries to match the new local time
-                    #
-                    self.logger.info("Daylight Savings Time transition detected - rewriting events to new local time")
-                    await self.process_dst(old_dst_offset, dst_offset)
+                    # DST began or ended, lets prove we noticed
+                    self.logger.info("Daylight Savings Time transition detected")
                     #
                     # Re calculate next entries
                     #

@@ -12,7 +12,10 @@ Change Log
 - Add support for python 3.11
 - run_at() support for times that have already passed #1684
 - Add TOML Support
+- App endpoints now support the GET method
 - Many changes to docker image including update to Alpine py3 packages - contributed by [Nigel Rook](https://github.com/NigelRook)
+- Apps can now accept additional arguments using pythons native dictionary unpacking (** operator) instead of a dictionary
+- Rename parameters for the old kwargs mechanism to cb_args to make the distinction
 
 **Fixes**
 
@@ -20,10 +23,12 @@ Change Log
 - parse_time("sunset") and impact of "aware" #1645
 - constrain_person not working #1437
 - last_changed_seconds wrong due to timezone #1571
+- Fixed a long standing bug that caused some callbacks to be 1 hour early or later after a DST transition
 
 **Breaking Changes**
 
--   Remove Python 3.7 test coverage prior to deprecation at EOL in 6/23
+- Remove Python 3.7 test coverage prior to deprecation at EOL in 6/23
+- Register endpoint for async callbacks has been harmonized with the async version and supplies just the arguments received and not the request object
 
 4.2.3 (2023-02-27)
 ======================

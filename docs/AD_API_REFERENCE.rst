@@ -57,7 +57,7 @@ for example:
             # get light entity class
             self.kitchen_light = self.adapi.get_entity("light.kitchen_ceiling_light", namespace="hass")
 
-        def callback(self, kwargs):
+        def callback(self, cb_args):
             if self.kitchen_ceiling_light.is_state("off"):
                 self.kitchen_ceiling_light.turn_on(brightness=200)
 

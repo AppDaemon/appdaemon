@@ -737,6 +737,7 @@ class HTTP:
         self.app.router.add_get("/api/appdaemon/state", self.get_state)
         self.app.router.add_get("/api/appdaemon/logs", self.get_logs)
         self.app.router.add_post("/api/appdaemon/{endpoint}", self.call_app_endpoint)
+        self.app.router.add_get("/api/appdaemon/{endpoint}", self.call_app_endpoint)
         self.app.router.add_get("/api/appdaemon", self.get_ad)
 
     def setup_http_routes(self):
@@ -912,6 +913,7 @@ class HTTP:
     async def dispatch_app_endpoint(self, endpoint, request):
         callback = None
         rargs = {}
+        appname = None
 
         for name in self.app_endpoints:
             if callback is not None:  # a callback has been collected
@@ -923,18 +925,33 @@ class HTTP:
                 if app_endpoint == endpoint:
                     callback = self.app_endpoints[name][handle]["callback"]
                     rargs.update(self.app_endpoints[name][handle]["kwargs"])
+                    appname = name
                     break
 
         if callback is not None:
-            if asyncio.iscoroutinefunction(callback):
-                return await callback(request, rargs)
+            app_args = self.AD.app_management.app_config[appname]
+            if "use_dictionary_unpacking" in app_args:
+                use_dictionary_unpacking = app_args["use_dictionary_unpacking"]
             else:
+                use_dictionary_unpacking = self.AD.use_dictionary_unpacking
+            if request.method == "POST":
                 try:
                     args = await request.json()
                 except json.decoder.JSONDecodeError:
                     return self.get_response(request, 400, "JSON Decode Error")
+            else:
+                args = request.query
 
-                return await utils.run_in_executor(self, callback, args, rargs)
+            if asyncio.iscoroutinefunction(callback):
+                if use_dictionary_unpacking is True:
+                    return await callback(args, **rargs)
+                else:
+                    return await callback(args, rargs)
+            else:
+                if use_dictionary_unpacking is True:
+                    return await utils.run_in_executor(self, callback, args, **rargs)
+                else:
+                    return await utils.run_in_executor(self, callback, args, rargs)
         else:
             return "", 404
 
