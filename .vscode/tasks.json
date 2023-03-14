@@ -20,7 +20,7 @@
         {
             "label": "Build Docs",
             "command": "${command:python.interpreterPath}",
-            "args": ["/home/hass/src/venv/python_3.11/bin/sphinx-build", "-T", "-E", "${workspaceFolder}/docs", "${workspaceFolder}/../docs_build"],
+            "args": ["/home/hass/src/venv/python3.11/bin/sphinx-build", "-T", "-E", "${workspaceFolder}/docs", "${workspaceFolder}/../docs_build"],
             "type": "shell",
             "presentation":
                 {
@@ -35,7 +35,7 @@
         {
             "label": "Auto Build Docs",
             "command": "${command:python.interpreterPath}",
-            "args": ["/home/hass/src/venv/python_3.11/bin/sphinx-autobuild", "-T", "-E", "${workspaceFolder}/docs", "${workspaceFolder}/../docs_build", "--port", "9999"],
+            "args": ["/home/hass/src/venv/python3.11/bin/sphinx-autobuild", "-T", "-E", "${workspaceFolder}/docs", "${workspaceFolder}/../docs_build", "--port", "9999"],
             "type": "shell",
             "presentation":
                 {
@@ -96,8 +96,8 @@
         },
         {
             "label": "Build Runtime Requirements",
-            "command": "pip-compile",
-            "args": ["--resolver=backtracking", "pyproject.toml"],
+            "command": "${command:python.interpreterPath}",
+            "args": ["/home/hass/src/venv/python3.11/bin/pip-compile", "--resolver=backtracking", "pyproject.toml"],
             "type": "shell",
             "presentation":
                 {
@@ -111,8 +111,8 @@
         },
         {
             "label": "Build Dev Requirements",
-            "command": "pip-compile",
-            "args": ["--extra=dev", "--output-file=dev-requirements.txt", "--resolver=backtracking", "pyproject.toml"],
+            "command": "${command:python.interpreterPath}",
+            "args": ["/home/hass/src/venv/python3.11/bin/pip-compile", "--extra=dev", "--output-file=dev-requirements.txt", "--resolver=backtracking", "pyproject.toml"],
             "type": "shell",
             "presentation":
                 {
@@ -126,8 +126,8 @@
         },
         {
             "label": "Build Doc Requirements",
-            "command": "pip-compile",
-            "args": ["--extra=doc", "--output-file=doc-requirements.txt", "--resolver=backtracking", "pyproject.toml"],
+            "command": "${command:python.interpreterPath}",
+            "args": ["/home/hass/src/venv/python3.11/bin/pip-compile", "--extra=doc", "--output-file=doc-requirements.txt", "--resolver=backtracking", "pyproject.toml"],
             "type": "shell",
             "presentation":
                 {
