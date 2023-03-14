@@ -235,10 +235,6 @@ Starting At Reboot (Systemd)
 To run ``AppDaemon`` at reboot, you can set it up to run as a ``systemd
 service``. To run it with ``init.d`` instead, see the next section.
 
-Automatically starting on boot
-------------------------------
-
-To run ``AppDaemon`` every time you restart your machine, you can set it up to run as a ``systemd service`` as follows.
 
 Systemd service file
 ^^^^^^^^^^^^^^^^^^^^
@@ -263,7 +259,7 @@ named something different you may need to change the ``After=`` lines to
 reflect the actual name.
 
 Activate the service
-~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^
 
 .. code:: console
 
@@ -279,7 +275,7 @@ To run ``AppDaemon`` at reboot, you can set it up to run as an ``init.d
 service``. To run it with ``systemd`` instead, see the previous section.
 
 Add Init.d Service
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^
 
 First, create a new file using vi:
 
