@@ -97,7 +97,7 @@
         {
             "label": "Build Runtime Requirements",
             "command": "${command:python.interpreterPath}",
-            "args": ["/home/hass/src/venv/python3.11/bin/pip-compile", "--resolver=backtracking", "pyproject.toml"],
+            "args": ["/home/hass/src/venv/python3.11/bin/pip-compile", "--resolver=backtracking",  "--upgrade", "pyproject.toml"],
             "type": "shell",
             "presentation":
                 {
@@ -112,7 +112,7 @@
         {
             "label": "Build Dev Requirements",
             "command": "${command:python.interpreterPath}",
-            "args": ["/home/hass/src/venv/python3.11/bin/pip-compile", "--extra=dev", "--output-file=dev-requirements.txt", "--resolver=backtracking", "pyproject.toml"],
+            "args": ["/home/hass/src/venv/python3.11/bin/pip-compile", "--extra=dev", "--output-file=dev-requirements.txt", "--resolver=backtracking",  "--upgrade", "pyproject.toml"],
             "type": "shell",
             "presentation":
                 {
@@ -127,7 +127,7 @@
         {
             "label": "Build Doc Requirements",
             "command": "${command:python.interpreterPath}",
-            "args": ["/home/hass/src/venv/python3.11/bin/pip-compile", "--extra=doc", "--output-file=doc-requirements.txt", "--resolver=backtracking", "pyproject.toml"],
+            "args": ["/home/hass/src/venv/python3.11/bin/pip-compile", "--extra=doc", "--output-file=doc-requirements.txt", "--resolver=backtracking", "--upgrade", "pyproject.toml"],
             "type": "shell",
             "presentation":
                 {

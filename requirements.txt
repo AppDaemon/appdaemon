@@ -25,7 +25,7 @@ bidict==0.22.1
     # via python-socketio
 certifi==2022.12.7
     # via requests
-charset-normalizer==3.0.1
+charset-normalizer==3.1.0
     # via
     #   aiohttp
     #   requests
@@ -79,7 +79,7 @@ sockjs==0.11.0
     # via appdaemon (pyproject.toml)
 tomli==2.0.1
     # via appdaemon (pyproject.toml)
-urllib3==1.26.14
+urllib3==1.26.15
     # via requests
 uvloop==0.17.0 ; sys_platform != "win32"
     # via appdaemon (pyproject.toml)
