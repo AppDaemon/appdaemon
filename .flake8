@@ -1,9 +1,0 @@
-[flake8]
-# Increase from the default 79
-max-line-length = 500
-
-extend-ignore = E203, E266
-# E203 whitespace before ‘,’, ‘;’, or ‘:’
-# E266 too many leading ‘#’ for block comment
-
-max-complexity=18

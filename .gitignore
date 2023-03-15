@@ -59,5 +59,15 @@ docs/_build/
 target/
 .idea/
 
+# Python
+venv
+
 # Mac stuff
 .DS_Store
+
+# Vim
+*~
+
+# Ruff
+
+.ruff_cache
