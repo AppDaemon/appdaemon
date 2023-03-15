@@ -388,11 +388,12 @@ class Scheduler:
         else:
             return self.next_sunset(day_offset)
 
-    def todays_sunrise(self, days_offset):
-        candidate_date = (self.now + datetime.timedelta(days=days_offset)).astimezone(self.AD.tz).date()
-        next_rising_dt = self.location.sunrise(date=candidate_date, local=False, observer_elevation=self.AD.elevation)
+    def todays_sunrise(self, days_offset):  # @here todays sunrise
+        candidate_date = (self.now.astimezone(self.AD.tz) + datetime.timedelta(days=days_offset)).date()
+        # self.logger.info(f"{self.now.astimezone(self.AD.tz)=}, {candidate_date=}")
+        sunrise = self.location.sunrise(date=candidate_date, local=True, observer_elevation=self.AD.elevation)
 
-        return next_rising_dt
+        return sunrise
 
     def next_sunrise(self, offset: int = 0):
         day_offset = 0
@@ -427,10 +428,11 @@ class Scheduler:
         return next_setting_dt
 
     def todays_sunset(self, days_offset):
-        candidate_date = (self.now + datetime.timedelta(days=days_offset)).astimezone(self.AD.tz).date()
-        next_setting_dt = self.location.sunset(date=candidate_date, local=False, observer_elevation=self.AD.elevation)
+        candidate_date = (self.now.astimezone(self.AD.tz) + datetime.timedelta(days=days_offset)).date()
+        # self.logger.info(f"{self.now.astimezone(self.AD.tz)=}, {candidate_date=}")
+        sunset = self.location.sunset(date=candidate_date, local=True, observer_elevation=self.AD.elevation)
 
-        return next_setting_dt
+        return sunset
 
     @staticmethod
     def get_offset(kwargs: dict):
