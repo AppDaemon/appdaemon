@@ -388,11 +388,12 @@ class Scheduler:
         else:
             return self.next_sunset(day_offset)
 
-    def todays_sunrise(self, days_offset):
-        candidate_date = (self.now + datetime.timedelta(days=days_offset)).astimezone(self.AD.tz).date()
-        next_rising_dt = self.location.sunrise(date=candidate_date, local=False, observer_elevation=self.AD.elevation)
+    def todays_sunrise(self, days_offset):  # @here todays sunrise
+        candidate_date = (self.now.astimezone(self.AD.tz) + datetime.timedelta(days=days_offset)).date()
+        # self.logger.info(f"{self.now.astimezone(self.AD.tz)=}, {candidate_date=}")
+        sunrise = self.location.sunrise(date=candidate_date, local=True, observer_elevation=self.AD.elevation)
 
-        return next_rising_dt
+        return sunrise
 
     def next_sunrise(self, offset: int = 0):
         day_offset = 0
@@ -427,10 +428,11 @@ class Scheduler:
         return next_setting_dt
 
     def todays_sunset(self, days_offset):
-        candidate_date = (self.now + datetime.timedelta(days=days_offset)).astimezone(self.AD.tz).date()
-        next_setting_dt = self.location.sunset(date=candidate_date, local=False, observer_elevation=self.AD.elevation)
+        candidate_date = (self.now.astimezone(self.AD.tz) + datetime.timedelta(days=days_offset)).date()
+        # self.logger.info(f"{self.now.astimezone(self.AD.tz)=}, {candidate_date=}")
+        sunset = self.location.sunset(date=candidate_date, local=True, observer_elevation=self.AD.elevation)
 
-        return next_setting_dt
+        return sunset
 
     @staticmethod
     def get_offset(kwargs: dict):
@@ -772,25 +774,31 @@ class Scheduler:
         else:
             now = (await self.get_now()).astimezone(self.AD.tz)
 
-        # self.diag.info(f"locals: {locals()}")
+        # self.logger.info(
+        #    "\n" + "-" * 80 + f"\nInitial\nstart = {start_time}\nnow   = {now}\nend   = {end_time}\n" + "-" * 80
+        # )
+
         # Comparisons
         if end_time < start_time:
-            # self.diag.info("Midnight transition")
             # Start and end time backwards.
             # Spans midnight
             # Lets start by assuming end_time is wrong and should be tomorrow
             # This will be true if we are currently after start_time
             end_time = (await self._parse_time(end_time_str, name, today=True, days_offset=1))["datetime"]
+            # self.logger.info(
+            #    f"\nMidnight transition detected\nstart = {start_time}\nnow   = {now}\nend   = {end_time}\n" + "-" * 80
+            # )
             if now < start_time and now < end_time:
-                # self.diag.info("Reverse")
                 # Well, it's complicated -
                 # We crossed into a new day and things changed.
                 # Now all times have shifted relative to the new day, so we need to look at it differently
                 # If both times are now in the future, we now actually want to set start time back a day and keep end_time as today
                 start_time = (await self._parse_time(start_time_str, name, today=True, days_offset=-1))["datetime"]
                 end_time = (await self._parse_time(end_time_str, name, today=True, days_offset=0))["datetime"]
+                # self.logger.info(f"\nReverse\nstart = {start_time}\nnow   = {now}\nend   = {end_time}\n" + "=" * 80)
 
-        # self.diag.info(f"\nstart = {start_time}\nnow   = {now}\nend   = {end_time}")
+        # self.logger.info(f"\nFinal\nstart = {start_time}\nnow   = {now}\nend   = {end_time}\n" + "-" * 80)
+        # self.logger.info(f"Final decision: {start_time <= now <= end_time}\n" + "=" * 80)
         return start_time <= now <= end_time
 
     async def sunset(self, aware, today=False, days_offset=0):
