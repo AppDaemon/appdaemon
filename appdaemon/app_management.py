@@ -155,6 +155,7 @@ class AppManagement:
 
         # Call its initialize function
         try:
+            self.logger.info(f"Calling initialize() for {name}")
             if asyncio.iscoroutinefunction(init):
                 await init()
             else:
@@ -295,7 +296,7 @@ class AppManagement:
     async def init_object(self, name):
         app_args = self.app_config[name]
         self.logger.info(
-            "Initializing app %s using class %s from module %s",
+            "Loading app %s using class %s from module %s",
             name,
             app_args["class"],
             app_args["module"],
@@ -355,7 +356,7 @@ class AppManagement:
 
         else:
             self.logger.warning(
-                "Unable to find module module %s - '%s' is not initialized",
+                "Unable to find module module %s - '%s' is not loaded",
                 app_args["module"],
                 name,
             )
