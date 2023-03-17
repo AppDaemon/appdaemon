@@ -1205,7 +1205,7 @@ class AppManagement:
 
         return deps
 
-    def create_app(self, app=None, **kwargs):
+    def create_app(self, app=None, **kwargs):  # @next-release create_app()
         """Used to create an app, which is written to a Yaml file"""
 
         executed = True
@@ -1295,7 +1295,7 @@ class AppManagement:
 
         return executed
 
-    def edit_app(self, app, **kwargs):
+    def edit_app(self, app, **kwargs):  # @next-release edit_app()
         """Used to edit an app, which is already in Yaml. It is expecting the app's name"""
 
         executed = True
@@ -1337,7 +1337,7 @@ class AppManagement:
 
         return executed
 
-    def remove_app(self, app, **kwargs):
+    def remove_app(self, app, **kwargs):  # @next-release remove_app()
         """Used to remove an app"""
 
         result = None

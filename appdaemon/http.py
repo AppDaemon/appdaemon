@@ -861,7 +861,7 @@ class HTTP:
         return web.Response(text=res, content_type="text/html")
 
     @securedata
-    async def call_app_endpoint(self, request):
+    async def call_app_endpoint(self, request):  # @next-release get requests object in somehow
         code = 200
         ret = ""
         endpoint = request.match_info.get("endpoint")
