@@ -774,9 +774,9 @@ class Scheduler:
         else:
             now = (await self.get_now()).astimezone(self.AD.tz)
 
-        self.logger.info(
-            "\n" + "-" * 80 + f"\nInitial\nstart = {start_time}\nnow   = {now}\nend   = {end_time}\n" + "-" * 80
-        )
+        # self.logger.info(
+        #    "\n" + "-" * 80 + f"\nInitial\nstart = {start_time}\nnow   = {now}\nend   = {end_time}\n" + "-" * 80
+        # )
 
         # Comparisons
         if end_time < start_time:
@@ -785,9 +785,9 @@ class Scheduler:
             # Lets start by assuming end_time is wrong and should be tomorrow
             # This will be true if we are currently after start_time
             end_time = (await self._parse_time(end_time_str, name, today=True, days_offset=1))["datetime"]
-            self.logger.info(
-                f"\nMidnight transition detected\nstart = {start_time}\nnow   = {now}\nend   = {end_time}\n" + "-" * 80
-            )
+            # self.logger.info(
+            #    f"\nMidnight transition detected\nstart = {start_time}\nnow   = {now}\nend   = {end_time}\n" + "-" * 80
+            # )
             if now < start_time and now < end_time:
                 # Well, it's complicated -
                 # We crossed into a new day and things changed.
@@ -795,10 +795,10 @@ class Scheduler:
                 # If both times are now in the future, we now actually want to set start time back a day and keep end_time as today
                 start_time = (await self._parse_time(start_time_str, name, today=True, days_offset=-1))["datetime"]
                 end_time = (await self._parse_time(end_time_str, name, today=True, days_offset=0))["datetime"]
-                self.logger.info(f"\nReverse\nstart = {start_time}\nnow   = {now}\nend   = {end_time}\n" + "=" * 80)
+                # self.logger.info(f"\nReverse\nstart = {start_time}\nnow   = {now}\nend   = {end_time}\n" + "=" * 80)
 
-        self.logger.info(f"\nFinal\nstart = {start_time}\nnow   = {now}\nend   = {end_time}\n" + "-" * 80)
-        self.logger.info(f"Final decision: {start_time <= now <= end_time}\n" + "=" * 80)
+        # self.logger.info(f"\nFinal\nstart = {start_time}\nnow   = {now}\nend   = {end_time}\n" + "-" * 80)
+        # self.logger.info(f"Final decision: {start_time <= now <= end_time}\n" + "=" * 80)
         return start_time <= now <= end_time
 
     async def sunset(self, aware, today=False, days_offset=0):
