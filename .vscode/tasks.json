@@ -63,38 +63,6 @@
                 },
         },
         {
-            "label": "Docker Build Production",
-            "command": "docker",
-            "args": ["build", "--tag", "appdaemon-production", "."],
-            "type": "shell",
-            "dependsOn": ["Build Package"],
-            "presentation":
-                {
-                    "echo": true,
-                    "reveal": "always",
-                    "focus": false,
-                    "panel": "shared",
-                    "showReuseMessage": false,
-                    "clear": true
-                },
-        },
-        {
-            "label": "Docker Build Other",
-            "command": "docker",
-            "args": ["build", "--tag", "${input:tagName}", "."],
-            "type": "shell",
-            "dependsOn": ["Build Package"],
-            "presentation":
-                {
-                    "echo": true,
-                    "reveal": "always",
-                    "focus": false,
-                    "panel": "shared",
-                    "showReuseMessage": false,
-                    "clear": true
-                },
-        },
-        {
             "label": "Build Runtime Requirements",
             "command": "${command:python.interpreterPath}",
             "args": ["/home/hass/src/venv/python3.11/bin/pip-compile", "--resolver=backtracking",  "--upgrade", "pyproject.toml"],
