@@ -388,7 +388,7 @@ class Scheduler:
         else:
             return self.next_sunset(day_offset)
 
-    def todays_sunrise(self, days_offset):  # @here todays sunrise
+    def todays_sunrise(self, days_offset):
         candidate_date = (self.now.astimezone(self.AD.tz) + datetime.timedelta(days=days_offset)).date()
         # self.logger.info(f"{self.now.astimezone(self.AD.tz)=}, {candidate_date=}")
         sunrise = self.location.sunrise(date=candidate_date, local=True, observer_elevation=self.AD.elevation)
