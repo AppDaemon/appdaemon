@@ -24,6 +24,7 @@ Change Log
 - constrain_person not working #1437
 - last_changed_seconds wrong due to timezone #1571
 - Fixed a long standing bug that caused some callbacks to be 1 hour early or later after a DST transition
+- Fixed an issue with sunet and sunrise based constraints on systems that use UTC instead of local timr that also affected `now_is_between()`
 
 **Breaking Changes**
 
