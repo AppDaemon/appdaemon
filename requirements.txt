@@ -61,7 +61,7 @@ pid==3.0.4
     # via appdaemon (pyproject.toml)
 python-dateutil==2.8.2
     # via appdaemon (pyproject.toml)
-python-engineio==4.3.4
+python-engineio==4.4.0
     # via python-socketio
 python-socketio==5.8.0
     # via appdaemon (pyproject.toml)
