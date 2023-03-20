@@ -53,8 +53,6 @@ multidict==6.0.4
     #   yarl
 ordered-set==4.1.0
     # via deepdiff
-orjson==3.8.7
-    # via deepdiff
 paho-mqtt==1.6.1
     # via appdaemon (pyproject.toml)
 pid==3.0.4

@@ -69,8 +69,6 @@ multidict==6.0.4
     #   yarl
 ordered-set==4.1.0
     # via deepdiff
-orjson==3.8.7
-    # via deepdiff
 packaging==23.0
     # via sphinx
 paho-mqtt==1.6.1

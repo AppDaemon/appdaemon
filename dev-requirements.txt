@@ -83,8 +83,6 @@ nodeenv==1.7.0
     # via pre-commit
 ordered-set==4.1.0
     # via deepdiff
-orjson==3.8.7
-    # via deepdiff
 packaging==23.0
     # via
     #   black
