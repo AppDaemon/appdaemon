@@ -1580,7 +1580,7 @@ class ADAPI:
         if service.find("/") == -1:
             raise ValueError("Invalid Service Name: %s", service)
 
-    def register_service(self, service: str, cb: Callable[[str, str, str, dict], Any], **kwargs: Optional[Any]) -> None:
+    def register_service(self, service: str, cb: Callable, **kwargs: Optional[Any]) -> None:
         """Registers a service that can be called from other apps, the REST API and the Event Stream
 
         Using this function, an App can register a function to be available in the service registry.
