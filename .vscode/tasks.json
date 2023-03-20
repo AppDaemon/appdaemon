@@ -93,7 +93,7 @@
                 },
         },
         {
-            "label": "Install Dependencies 3.11",
+            "label": "Install Dependencies",
             "command": "${command:python.interpreterPath}",
             "args": ["/home/hass/src/venv/python3.11/bin/pip", "install", "-r", "requirements.txt", "-r", "doc-requirements.txt", "-r", "dev-requirements.txt"],
             "type": "shell",
