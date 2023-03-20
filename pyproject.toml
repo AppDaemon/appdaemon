@@ -15,7 +15,7 @@ dependencies = [
     'aiohttp_jinja2 ~= 1.5.1',
     'astral ~= 3.2',
     'bcrypt ~= 4.0.1',
-    'deepdiff >= 6.2.3,< 6.4.0',
+    'deepdiff == 6.3.0',
     'feedparser ~= 6.0.10',
     'iso8601 ~= 1.1.0',
     'paho-mqtt ~= 1.6.1',

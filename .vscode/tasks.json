@@ -93,6 +93,21 @@
                 },
         },
         {
+            "label": "Install Dependencies 3.11",
+            "command": "${command:python.interpreterPath}",
+            "args": ["/home/hass/src/venv/python3.11/bin/pip", "install", "-r", "requirements.txt", "-r", "doc-requirements.txt", "-r", "dev-requirements.txt"],
+            "type": "shell",
+            "presentation":
+                {
+                    "echo": true,
+                    "reveal": "always",
+                    "focus": false,
+                    "panel": "shared",
+                    "showReuseMessage": false,
+                    "clear": true
+                },
+        },
+        {
             "label": "Build Doc Requirements",
             "command": "${command:python.interpreterPath}",
             "args": ["/home/hass/src/venv/python3.11/bin/pip-compile", "--extra=doc", "--output-file=doc-requirements.txt", "--resolver=backtracking", "--upgrade", "pyproject.toml"],
