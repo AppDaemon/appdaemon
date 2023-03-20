@@ -6,6 +6,8 @@ import appdaemon.utils as utils
 import appdaemon.adapi as adapi
 from appdaemon.appdaemon import AppDaemon
 
+from typing import Callable
+
 
 class Entities:  # @todo
     def __init__(self):
@@ -95,7 +97,7 @@ class ADBase:
     # API/Plugin
     #
 
-    def get_ad_api(self):
+    def get_ad_api(self) -> Callable:
         api = adapi.ADAPI(
             self.AD,
             self.name,
@@ -109,7 +111,7 @@ class ADBase:
         return api
 
     @utils.sync_wrapper
-    async def get_plugin_api(self, plugin_name):
+    async def get_plugin_api(self, plugin_name: str) -> Callable:
         return await self.AD.plugins.get_plugin_api(
             plugin_name,
             self.name,
@@ -124,11 +126,11 @@ class ADBase:
     # Constraints
     #
 
-    def register_constraint(self, name):
+    def register_constraint(self, name: str) -> None:
         self.constraints.append(name)
 
-    def deregister_constraint(self, name):
+    def deregister_constraint(self, name: str) -> None:
         self.constraints.remove(name)
 
-    def list_constraints(self):
+    def list_constraints(self) -> list:
         return self.constraints

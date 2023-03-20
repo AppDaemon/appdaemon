@@ -2906,3 +2906,61 @@ Sequences can be run without the need to predefine them by specifying the steps 
             {'sleep': 1},
             {'light/turn_off': {'entity_id': 'light.office_1'}},
             ])
+
+Keeping Your IDE Happy
+----------------------
+
+Although it is possible to develop AppDaemon apps using a straight forward text editor, most users prefer to use some flavor of IDE.
+In order to simplify App development however, AppDaemon hides some of the complexity of import paths which makes for simpler coding
+but does have the side effect of confusing modern IDEs that are much stricter with import paths, and will show errors for modules
+that don't conform to these rules, and will not unserstand enough about the import paths to supply helpful information about AppDaemon's
+API. Fortunately however, with a few simple steps, the IDE can be persuaded to work as desired. In addition, AppDaemon's APIs now
+have full type hints to make use of a modern IDE a lot easier and more helpful. This capability has been tested in Microsoft's VS Code but these
+steps should apply equally to other IDEs such as PyCharm.
+
+To set your IDE up properly there are a few initial steps, and a couple of rules to follow.
+
+Initial Setup
+~~~~~~~~~~~~~
+
+In order for your IDE to properly understand AppDaemon's API, we need to give the IDE access to AppDaemon's code, although this is not normally
+necessary for developing apps. The way to do this is to simply use `pip` to install AppDaemon in the virtual environment that your IDE is using.
+How this works varies between IDEs, but once you have worked out which virtual environment to target, simply activate it then use `pip`` to install
+AppDaemon:
+
+.. code::
+
+    $ source <path to virtual environment>/bin/activate
+    $ pip install appdaemon
+
+After this step, your IDE will have access to the code for AppDaemon's APIs and will understand how to assist with error checking and completions etc.
+
+Import Statements
+~~~~~~~~~~~~~~~~~
+
+With AppDameon installed, if we want to use the IDE's error checking for import statements, we need to follow a couple of simple rules to keep things working.
+In particular, rather than using AppDaemon's shortcuts for module imports we need to use their full paths. For instance:
+
+.. code:: python
+
+    import import hassapi as hass
+
+becomes:
+
+.. code:: python
+
+    import appdaemon.plugins.hass.hassapi as hass
+
+Similarly, for the adbase, adapi and mqtt plugins we would use:
+
+.. code:: python
+
+    import appdaemon.adapi
+    import appdaemon.adbase
+    import appdaemon.plugins.mqtt.mqttapi
+
+Finally, if you are using subdirectories for your apps and perhaps importing global modules, although it is not necessary to specify the full path
+relative to the app as far as AppDaemon is concerned as it automatically adds all directories in ``appdir`` to the import path, the IDE does
+not know this, so always specify the full path to your global modules relative to ``appdir``.
+
+With these preparations in place your IDE should give you correct error reporting and completion of API functions along with type hints and help text.

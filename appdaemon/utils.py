@@ -22,6 +22,7 @@ from collections.abc import Iterable
 import concurrent.futures
 import tomli
 import re
+from typing import Callable
 
 # Comment
 
@@ -209,7 +210,7 @@ def check_state(logger, new_state, callback_state, name) -> bool:
     return passed
 
 
-def sync_wrapper(coro):
+def sync_wrapper(coro) -> Callable:
     @wraps(coro)
     def inner_sync_wrapper(self, *args, **kwargs):
         is_async = None
