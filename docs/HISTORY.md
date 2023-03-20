@@ -16,6 +16,7 @@ Change Log
 - Many changes to docker image including update to Alpine py3 packages - contributed by [Nigel Rook](https://github.com/NigelRook)
 - Apps can now accept additional arguments using pythons native dictionary unpacking (** operator) instead of a dictionary
 - Rename parameters for the old kwargs mechanism to cb_args to make the distinction
+- Added type hints and a section on how to use with your IDE
 
 **Fixes**
 

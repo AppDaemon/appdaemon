@@ -9,7 +9,7 @@ import appdaemon.utils as utils
 
 from appdaemon.appdaemon import AppDaemon
 
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
+from urllib3.exceptions import InsecureRequestWarning
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
@@ -61,7 +61,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
     # Device Trackers
     #
 
-    def get_trackers(self, **kwargs):
+    def get_trackers(self, **kwargs) -> list:
         """Returns a list of all device tracker names.
 
         Args:
@@ -91,7 +91,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
         return (key for key, value in self.get_state(device, **kwargs).items())
 
-    def get_tracker_details(self, **kwargs):
+    def get_tracker_details(self, **kwargs) -> list:
         """Returns a list of all device trackers and their associated state.
 
         Args:
@@ -118,7 +118,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
         return self.get_state(device, **kwargs)
 
-    def get_tracker_state(self, entity_id, **kwargs):
+    def get_tracker_state(self, entity_id, **kwargs) -> str:
         """Gets the state of a tracker.
 
         Args:
@@ -154,7 +154,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         return self.get_state(entity_id, **kwargs)
 
     @utils.sync_wrapper
-    async def anyone_home(self, **kwargs):
+    async def anyone_home(self, **kwargs) -> bool:
         """Determines if the house/apartment is occupied.
 
         A convenience function to determine if one or more person is home. Use
@@ -197,7 +197,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         return False
 
     @utils.sync_wrapper
-    async def everyone_home(self, **kwargs):
+    async def everyone_home(self, **kwargs) -> bool:
         """Determine if all family's members at home.
 
         A convenience function to determine if everyone is home. Use this in
@@ -239,7 +239,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         return True
 
     @utils.sync_wrapper
-    async def noone_home(self, **kwargs):
+    async def noone_home(self, **kwargs) -> bool:
         """Determines if the house/apartment is empty.
 
         A convenience function to determine if no people are at home. Use this
@@ -284,7 +284,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
     # Built in constraints
     #
 
-    def constrain_presence(self, value):
+    def constrain_presence(self, value: str) -> bool:
         unconstrained = True
         if value == "everyone" and not self.everyone_home():
             unconstrained = False
@@ -295,7 +295,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
         return unconstrained
 
-    def constrain_person(self, value):
+    def constrain_person(self, value: str) -> bool:
         unconstrained = True
         if value == "everyone" and not self.everyone_home(person=True):
             unconstrained = False
@@ -306,7 +306,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
         return unconstrained
 
-    def constrain_input_boolean(self, value):
+    def constrain_input_boolean(self, value: str | list) -> bool:
         unconstrained = True
         state = self.get_state()
 
@@ -324,7 +324,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
         return unconstrained
 
-    def constrain_input_select(self, value):
+    def constrain_input_select(self, value: str | list) -> bool:
         unconstrained = True
         state = self.get_state()
 
@@ -343,7 +343,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
     @utils.sync_wrapper
     @hass_check
-    async def turn_on(self, entity_id, **kwargs):
+    async def turn_on(self, entity_id: str, **kwargs) -> None:
         """Turns `on` a Home Assistant entity.
 
         This is a convenience function for the ``homeassistant.turn_on``
@@ -386,7 +386,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
     @utils.sync_wrapper
     @hass_check
-    async def turn_off(self, entity_id, **kwargs):
+    async def turn_off(self, entity_id: str, **kwargs) -> None:
         """Turns `off` a Home Assistant entity.
 
         This is a convenience function for the ``homeassistant.turn_off``
@@ -426,7 +426,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
     @utils.sync_wrapper
     @hass_check
-    async def toggle(self, entity_id, **kwargs):
+    async def toggle(self, entity_id: str, **kwargs) -> None:
         """Toggles between ``on`` and ``off`` for the selected entity.
 
         This is a convenience function for the ``homeassistant.toggle`` function.
@@ -459,7 +459,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
     @utils.sync_wrapper
     @hass_check
-    async def set_value(self, entity_id, value, **kwargs):
+    async def set_value(self, entity_id: str, value: int | float, **kwargs) -> None:
         """Sets the value of an `input_number`.
 
         This is a convenience function for the ``input_number.set_value``
@@ -491,7 +491,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
     @utils.sync_wrapper
     @hass_check
-    async def set_textvalue(self, entity_id, value, **kwargs):
+    async def set_textvalue(self, entity_id: str, value: str, **kwargs) -> None:
         """Sets the value of an `input_text`.
 
         This is a convenience function for the ``input_text.set_value``
@@ -523,7 +523,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
     @utils.sync_wrapper
     @hass_check
-    async def select_option(self, entity_id, option, **kwargs):
+    async def select_option(self, entity_id: str, option: str, **kwargs) -> None:
         """Sets the value of an `input_option`.
 
         This is a convenience function for the ``input_select.select_option``
@@ -555,7 +555,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
     @utils.sync_wrapper
     @hass_check
-    async def notify(self, message, **kwargs):
+    async def notify(self, message: str, **kwargs) -> None:
         """Sends a notification.
 
         This is a convenience function for the ``notify.notify`` service. It
@@ -594,7 +594,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
     @utils.sync_wrapper
     @hass_check
-    async def persistent_notification(self, message, title=None, id=None):
+    async def persistent_notification(self, message: str, title=None, id=None) -> None:
         """
 
         Args:
@@ -617,7 +617,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
     @utils.sync_wrapper
     @hass_check
-    async def get_history(self, **kwargs):
+    async def get_history(self, **kwargs) -> list:
         """Gets access to the HA Database.
         This is a convenience function that allows accessing the HA Database, so the
         history state of a device can be retrieved. It allows for a level of flexibility

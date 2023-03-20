@@ -3,6 +3,8 @@ import appdaemon.adapi as adapi
 from appdaemon.appdaemon import AppDaemon
 import appdaemon.utils as utils
 
+from typing import Callable
+
 
 class Mqtt(adbase.ADBase, adapi.ADAPI):
     """
@@ -77,7 +79,7 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
     #
 
     @utils.sync_wrapper
-    async def listen_event(self, callback, event=None, **kwargs):
+    async def listen_event(self, callback: Callable, event=None, **kwargs) -> str:
         """Listens for changes within the MQTT plugin.
 
         Unlike other plugins, MQTT does not keep state. All MQTT messages will have an event
@@ -175,7 +177,7 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
     #
     # service calls
     #
-    def mqtt_publish(self, topic, payload=None, **kwargs):
+    def mqtt_publish(self, topic: str, payload=None, **kwargs) -> None:
         """Publishes a message to a MQTT broker.
 
         This helper function used for publishing a MQTT message to a broker, from within
@@ -222,7 +224,7 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
         result = self.call_service(service, **kwargs)
         return result
 
-    def mqtt_subscribe(self, topic, **kwargs):
+    def mqtt_subscribe(self, topic: str, **kwargs) -> None:
         """Subscribes to a MQTT topic.
 
         This helper function used for subscribing to a topic on a broker,
@@ -263,7 +265,7 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
         result = self.call_service(service, **kwargs)
         return result
 
-    def mqtt_unsubscribe(self, topic, **kwargs):
+    def mqtt_unsubscribe(self, topic: str, **kwargs) -> None:
         """Unsubscribes from a MQTT topic.
 
         A helper function used to unsubscribe from a topic on a broker,
@@ -306,7 +308,7 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
         return result
 
     @utils.sync_wrapper
-    async def is_client_connected(self, **kwargs):
+    async def is_client_connected(self, **kwargs) -> bool:
         """Returns ``TRUE`` if the MQTT plugin is connected to its broker, ``FALSE`` otherwise.
 
         This a helper function used to check or confirm within an app if the plugin is connected
@@ -327,7 +329,7 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
                 In most cases it is safe to ignore this parameter.
 
         Returns:
-            None.
+            Boolean.
 
         Examples:
             Check if client is connected, and send data.
