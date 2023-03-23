@@ -8,7 +8,6 @@ from copy import deepcopy
 from typing import Any, Optional, Callable, Union
 from asyncio import Future
 
-# needed for fake coro cb that looks like scheduler
 import uuid
 
 
@@ -1579,7 +1578,7 @@ class ADAPI:
     @staticmethod
     def _check_service(service: str) -> None:
         if service.find("/") == -1:
-            raise ValueError("Invalid Service Name: %s", service)
+            raise ValueError(f"Invalid Service Name: {service}")
 
     def register_service(self, service: str, cb: Callable, **kwargs: Optional[Any]) -> None:
         """Registers a service that can be called from other apps, the REST API and the Event Stream
