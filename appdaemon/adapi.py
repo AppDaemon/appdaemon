@@ -1,17 +1,16 @@
-import asyncio
-import datetime as dt
-import inspect
-import iso8601
-import re
 from datetime import timedelta
 from copy import deepcopy
 from typing import Any, Optional, Callable, Union
 from asyncio import Future
 
+import asyncio
+import datetime as dt
+import inspect
+import re
 import uuid
+import iso8601
 
-
-import appdaemon.utils as utils
+from appdaemon import utils
 from appdaemon.appdaemon import AppDaemon
 from appdaemon.entity import Entity
 
