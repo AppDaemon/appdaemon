@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any, Optional, Union
 import requests
 from ast import literal_eval
 from functools import wraps
@@ -306,7 +306,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
         return unconstrained
 
-    def constrain_input_boolean(self, value: str | list) -> bool:
+    def constrain_input_boolean(self, value: Union[str, list]) -> bool:
         unconstrained = True
         state = self.get_state()
 
@@ -324,7 +324,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
         return unconstrained
 
-    def constrain_input_select(self, value: str | list) -> bool:
+    def constrain_input_select(self, value: Union[str, list]) -> bool:
         unconstrained = True
         state = self.get_state()
 
@@ -459,7 +459,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
     @utils.sync_wrapper
     @hass_check
-    async def set_value(self, entity_id: str, value: int | float, **kwargs) -> None:
+    async def set_value(self, entity_id: str, value: Union[int, float], **kwargs) -> None:
         """Sets the value of an `input_number`.
 
         This is a convenience function for the ``input_number.set_value``

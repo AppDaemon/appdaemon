@@ -11,6 +11,7 @@ from asyncio import Future
 # needed for fake coro cb that looks like scheduler
 import uuid
 
+
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
 from appdaemon.entity import Entity
@@ -457,7 +458,7 @@ class ADAPI:
         return await self.AD.state.namespace_exists(namespace)
 
     @utils.sync_wrapper
-    async def add_namespace(self, namespace: str, **kwargs) -> str | None:
+    async def add_namespace(self, namespace: str, **kwargs) -> Union[str, None]:
         """Used to add a user-defined namespaces from apps, which has a database file associated with it.
 
         This way, when AD restarts these entities will be reloaded into AD with its
@@ -936,7 +937,7 @@ class ADAPI:
     # Dialogflow
     #
 
-    def get_dialogflow_intent(self, data: dict) -> Any | None:
+    def get_dialogflow_intent(self, data: dict) -> Union[Any, None]:
         """Gets the intent's action from the Google Home response.
 
         Args:
@@ -960,7 +961,7 @@ class ADAPI:
             return None
 
     @staticmethod
-    def get_dialogflow_slot_value(data, slot=None) -> Any | None:
+    def get_dialogflow_slot_value(data, slot=None) -> Union[Any, None]:
         """Gets slots' values from the interaction model.
 
         Args:
@@ -1005,7 +1006,7 @@ class ADAPI:
         else:
             return None
 
-    def format_dialogflow_response(self, speech=None) -> Any | None:
+    def format_dialogflow_response(self, speech=None) -> Union[Any, None]:
         """Formats a response to be returned to Google Home, including speech.
 
         Args:
@@ -1059,7 +1060,7 @@ class ADAPI:
         return speech
 
     @staticmethod
-    def get_alexa_error(data: dict) -> str | None:
+    def get_alexa_error(data: dict) -> Union[str, None]:
         """Gets the error message from the Alexa API response.
 
         Args:
@@ -1075,7 +1076,7 @@ class ADAPI:
             return None
 
     @staticmethod
-    def get_alexa_intent(data: dict) -> str | None:
+    def get_alexa_intent(data: dict) -> Union[str, None]:
         """Gets the Intent's name from the Alexa response.
 
         Args:
@@ -1095,7 +1096,7 @@ class ADAPI:
             return None
 
     @staticmethod
-    def get_alexa_slot_value(data, slot=None) -> str | None:
+    def get_alexa_slot_value(data, slot=None) -> Union[str, None]:
         """Gets values for slots from the interaction model.
 
         Args:
@@ -2372,7 +2373,7 @@ class ADAPI:
         return await self.AD.sched.reset_timer(name, handle)
 
     @utils.sync_wrapper
-    async def info_timer(self, handle: str) -> tuple | None:
+    async def info_timer(self, handle: str) -> Union[tuple, None]:
         """Gets information on a scheduler event from its handle.
 
         Args:
@@ -2446,7 +2447,7 @@ class ADAPI:
         return handle
 
     @utils.sync_wrapper
-    async def run_once(self, callback: Callable, start: dt.time | str, **kwargs):
+    async def run_once(self, callback: Callable, start: Union[dt.time, str], **kwargs):
         """Runs the callback once, at the specified time of day.
 
         Args:
@@ -2517,7 +2518,7 @@ class ADAPI:
         return handle
 
     @utils.sync_wrapper
-    async def run_at(self, callback: Callable, start: dt.datetime | str, **kwargs):
+    async def run_at(self, callback: Callable, start: Union[dt.datetime, str], **kwargs):
         """Runs the callback once, at the specified time of day.
 
         Args:
@@ -2591,7 +2592,7 @@ class ADAPI:
         return handle
 
     @utils.sync_wrapper
-    async def run_daily(self, callback: Callable, start: dt.time | str, **kwargs):
+    async def run_daily(self, callback: Callable, start: Union[dt.time, str], **kwargs):
         """Runs the callback at the same time every day.
 
         Args:
