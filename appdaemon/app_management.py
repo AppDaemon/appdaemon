@@ -1249,7 +1249,7 @@ class AppManagement:
             self.logger.info("Creating app using filename %s", app_file)
 
         else:
-            if app_file[4:] != ".yaml":
+            if app_file[-5:] != ".yaml":
                 app_file = f"{app_file}.yaml"
 
             app_file = os.path.join(app_directory, app_file)
