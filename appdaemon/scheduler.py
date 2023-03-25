@@ -228,7 +228,7 @@ class Scheduler:
 
             if args["type"] == "next_rising" or args["type"] == "next_setting":
                 self.logger.warning(
-                    f"The given handle '{handle}' in reset_timer() from app {name} is a Sun timer, cannot reset that"
+                    f"The given handle '{handle}' in reset_timer() from app {name} is a Sun timer, cannot" " reset that"
                 )
                 return executed
 
@@ -627,7 +627,9 @@ class Scheduler:
 
                     delay = self.get_next_dst_offset(self.now, delay)
                     self.logger.debug(
-                        "DST transition before next event: %s %s", await self.is_dst(), await self.is_dst(next)
+                        "DST transition before next event: %s %s",
+                        await self.is_dst(),
+                        await self.is_dst(next),
                     )
 
                 self.logger.debug("Delay = %s seconds", delay)
@@ -671,10 +673,10 @@ class Scheduler:
     #
 
     async def sun_up(self):
-        return self.next_sunrise() > self.next_sunset()
+        return self.now_is_between("sunrise", "sunset")
 
     async def sun_down(self):
-        return self.next_sunrise() < self.next_sunset()
+        return self.now_is_between("sunset", "sunrise")
 
     async def info_timer(self, handle, name):
         if self.timer_running(name, handle):
