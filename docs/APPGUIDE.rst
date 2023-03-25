@@ -149,10 +149,17 @@ Configuration of Apps
 ---------------------
 
 Apps are configured by specifying new sections in an app configuration
-file. The App configuration files exist under the apps directory and can be called anything as long as they end in ``.yaml``. You can have one single file for configuration of all apps, or break it down to have one ``yaml`` file per App, or anything in between. Coupled with the fact that you can have any number of subdirectories for apps and ``yaml`` files, this gives you the flexibility to structure your apps as you see fit.
+file. These configuration files can be written in either YAML or TOML, but must be the same type as the appdaemon configuration file, and which variant is used depends on the ``--toml`` flag
+supplied to AppDaemon at startup.
+
+The App configuration files exist under the apps directory and can be called anything as long as they end in ``.yaml`` or ``.toml``.
+You can have one single file for configuration of all apps, or break it down to have one configuration file per App, or anything in between.
+Coupled with the fact that you can have any number of subdirectories for apps and configuration files, this gives you the flexibility to structure your apps as you see fit.
+
 It should also be noted that a "dot" ``.`` is not allowed in the app name.
 
-The entry for an individual App within a ``yaml`` file is simply a dictionary entry naming the App, with subfields to supply various parameters. The name of the section is the name the App is referred to within the system in log files etc. and must be unique.
+The entry for an individual App within a configuration file is simply a dictionary entry naming the App, with subfields to supply various parameters.
+The name of the section is the name the App is referred to within the system in log files etc. and must be unique.
 
 To configure a new App you need a minimum of two directives:
 
@@ -164,7 +171,7 @@ To configure a new App you need a minimum of two directives:
 Although the section/App name must be unique, it is possible to re-use a
 class as many times as you want, and conversely to put as many classes
 in a module as you want. A sample definition for a new App might look as
-follows:
+follows in YAML:
 
 .. code:: yaml
 
@@ -172,7 +179,15 @@ follows:
       module: new
       class: NewApp
 
-When AppDaemon sees the following configuration, it will expect to find a
+The TOML equivqlent would look like this:
+
+.. code:: toml
+
+    [newapp]
+    module = "new"
+    class = "NewApp"
+
+When AppDaemon sees the above configuration, it will expect to find a
 class called ``NewApp`` defined in a module called ``new.py`` in the
 apps subdirectory. Apps can be placed at the root of the Apps directory
 or within a subdirectory, an arbitrary depth down - wherever the App is,
@@ -182,6 +197,7 @@ information about the path, just the name of the file itself (without
 the ``.py``) is sufficient. If names in the subdirectories overlap,
 AppDir will pick one of them but the exact choice it will make is
 undefined.
+
 When starting the system for the first time or when reloading an App or
 Module, the system will log the fact in its main log. It is often the
 case that there is a problem with the class, maybe a syntax error or
@@ -221,7 +237,7 @@ new App has been added, or if one has been removed, and it will act
 appropriately, starting the new App immediately and removing all
 callbacks for the removed App.
 
-The suggested order for creating a new App is to first add the apps.yaml entry
+The suggested order for creating a new App is to first add the app configuration file entry
 then the module code and work until it compiles cleanly. A good workflow is to
 continuously monitor the error file (using ``tail -f`` on Linux for
 instance) to ensure that errors are seen and can be remedied.
@@ -244,6 +260,16 @@ directives like so:
       class: MyApp
       param1: spam
       param2: eggs
+
+Or in TOML:
+
+.. code:: toml
+
+    [MyApp]
+    module = "myapp"
+    class = "MyApp"
+    param1 = "spam"
+    param2 = "eggs"
 
 Within the Apps code, the 2 parameters (as well as the module and class)
 are available as a dictionary called ``args``, and accessed as follows:
@@ -276,6 +302,28 @@ like this:
       class: MotionLight
       sensor: binary_sensor.garage
       light: light.garage
+
+In TOML this would be:
+
+.. code:: toml
+
+    [downstairs_motion_light]
+    module = "motion_light"
+    class = "MotionLight"
+    sensor = "binary_sensor.downstairs_hall"
+    light = "light.downstairs_hall"
+
+    [upstairs_motion_light]
+    module = "motion_light"
+    class = "MotionLight"
+    sensor = "binary_sensor.upstairs_hall"
+    light = "light.upstairs_hall"
+
+    [garage_motion_light]
+    module = "motion_light"
+    class = "MotionLight"
+    sensor = "binary_sensor.garage"
+    light = "light.garage"
 
 Apps can use arbitrarily complex structures within arguments, e.g.:
 
@@ -321,6 +369,12 @@ An example ``secrets.yaml`` might look like this:
 
     application_api_key: ABCDEFG
 
+The equivalent ``secrets.toml`` would be:
+
+.. code:: toml
+
+    application_api_key = "ABCDEFG"
+
 The secrets can then be referred to in the ``apps.yaml`` file as follows:
 
 .. code:: yaml
@@ -329,6 +383,15 @@ The secrets can then be referred to in the ``apps.yaml`` file as follows:
       class: AppClass
       module: appmodule
       application_api_key: !secret application_api_key
+
+Or in TOML:
+
+.. code:: toml
+
+    [appname]
+    class = "AppClass"
+    module = "appmodule"
+    application_api_key = "!secret application_api_key"
 
 In the App, the api_key can be accessed like every other argument the App can access.
 
@@ -355,7 +418,15 @@ The variables can also be referred to in the ``apps.yaml`` file as follows:
       module: appmodule
       application_api_key: !env_var application_api_key
 
-In the App, the api_key can be accessed like every other argument the App can access.
+In the App, the api_key can be accessed like every other argument the App can access. This also works for TOML files:
+
+.. code:: toml
+
+    [appname]
+    class = "AppClass"
+    module = "appmodule"
+    application_api_key = "!env_var application_api_key"
+
 
 Include YAML Files
 ~~~~~~~~~~~~~~~~~~~~~
@@ -379,7 +450,7 @@ The tag can also be referred to in the ``apps.yaml`` file as follows:
       module: appmodule
       app_users: !include /home/ubuntu/dev/conf/app_users.yaml
 
-In the App, the app_users can be accessed like every other argument the App can access.
+In the App, the app_users can be accessed like every other argument the App can access, this works for TOML files also.
 
 App Dependencies
 ----------------
@@ -432,6 +503,16 @@ It is also possible to have multiple dependencies, added as a yaml list
       dependencies:
         - Sound
         - Global
+
+In TOML this would be:
+
+.. code:: toml
+
+    [Consumer]
+    module = "sound"
+    class = "Sound"
+    dependencies = [ "Sound", "Global" ]
+
 
 AppDaemon will write errors to the log if a dependency is missing and it
 will also detect circular dependencies.
