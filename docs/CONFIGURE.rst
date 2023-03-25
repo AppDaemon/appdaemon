@@ -3,7 +3,23 @@ Configuration
 *************
 
 When you have AppDaemon installed using either Docker or ``pip``, you are ready to
-start working on the ``appdaemon.yaml`` file, its main configuration file.
+start working on the ``appdaemon`` configuration file, its main configuration file.
+
+Appdaemon Configuration File Format
+===================================
+
+The AppDaemon configuration file is usually a ``YAML`` file, however from appdaemon 4.3.0 and onwards, appdaemon's configuration file
+as well as the app configuration files can be spedicied in ``TOML`` rather than YAML. This behavior
+is global for all files and is turned on and off by the ``--toml`` flag when appdaemon is invoked. This behavior
+enables the user to easily switch between YAML and TOML files, although all config files muct be converted at the same time when moving from YAML to TOML.
+YAML and TOML configuration files are identical in function and capabilities, it is a matter of personal preference which format is used. At this time,
+TOML configuration is not available for HADashboard.
+
+A useful online resource for converting from YAML to TOML and back can be found at `transform tools <https://transform.tools/yaml-to-toml>`_.
+
+Configuring AppDaemon
+=====================
+
 If you are using Docker, you should already have a skeleton configuration generated the first-time the container is run, under the bind-mounted configuration directory.
 For ``pip`` users, create a configuration directory somewhere where all the AppDaemon data will be stored (e.g., ``/home/homeassistant/conf``) and create a file in there called ``appdaemon.yaml``.
 
@@ -24,7 +40,7 @@ The ``plugins`` section configures the communication with Home Assistant.
 
 .. code:: yaml
 
-    # appdaemon.yml
+    # appdaemon.yaml
     appdaemon:
       time_zone: CET
       latitude: 51.725
@@ -35,6 +51,24 @@ The ``plugins`` section configures the communication with Home Assistant.
           type: hass
           ha_url: <home_assistant_base_url>
           token: <some_long_lived_access_token>
+
+The same configuration in a TOML file would be called ``appdaemon.toml`` and would look like this:
+
+.. code:: toml
+
+  [appdaemon]
+  time_zone = "CET"
+  latitude = 51.725
+  longitude = 14.3434
+  elevation = 0
+
+  [appdaemon.plugins.HASS]
+  type = "hass"
+  ha_url = "<home_assistant_base_url>"
+  token = "<some_long_lived_access_token>"
+
+Both YAML and TROML files work in similar ways to express atomic values, lists and dictionaries, from this point on, some examples will be given in both formats, but the end-user
+is encouraged to learn the ins and outs of both formats to help in converting configurations from one format to another.
 
 Plugins
 -------
@@ -122,21 +156,21 @@ The following options are available under the ``appdaemon`` section:
   * - missing_app_warnings
 
       .. TODO: reference to ``apps.yaml` without having introduced it before
-    - AppDaemon by default outputs a warning if it finds a Python file that has no associated configuration in an ``apps.yaml`` file.
+    - AppDaemon by default outputs a warning if it finds a Python file that has no associated configuration in an app config file.
 
       Set this parameter to ``0`` to suppress the warning. This is useful for instance to distribute Python files not strictly related to AppDaemon along with AppDaemon apps.
     - No
 
   * - invalid_config_warnings
-    - AppDaemon by default outputs a warning if it finds an ``apps.yaml`` or ``apps.toml`` file that doesn’t include ``class`` and ``module`` for an app.
+    - AppDaemon by default outputs a warning if it finds an app config file file that doesn’t include ``class`` and ``module`` for an app.
 
       Set this parameter to ``0`` to suppress the warning.
       This is intended to ease the distribution of additional files along with apps.
     - No
 
   * - production_mode
-    - - ``false``: AppDaemon checks for changes in Apps and ``apps.yaml`` files every second. This can save some processing power on busy systems.
-      - ``true``: AppDaemon checks for changes in Apps and ``apps.yaml`` files only on restart
+    - - ``false``: AppDaemon checks for changes in Apps and app config files every second. This can save some processing power on busy systems.
+      - ``true``: AppDaemon checks for changes in Apps and app config files only on restart
 
       Defaults to ``false``.
 
@@ -417,13 +451,11 @@ AppDaemon's default time format is ``%Y-%m-%d %H:%M:%S.%f%z``.
 secrets
 =======
 
-AppDaemon supports the use of `secrets` in the configuration file, to allow separate storage of sensitive information such as passwords. For this to work, AppDaemon expects to find a file called ``secrets.yaml`` in the configuration directory, or a named file introduced by the top level ``secrets:`` section. The file should be a simple list of all the secrets. The secrets can be referred to using a !secret value in the configuration file.
-
 AppDaemon supports the use of `secrets` in the configuration file, to allow separate storage of sensitive information such as passwords.
-By default AppDaemon looks for a file called ``secrets.yaml`` in the configuration directory.
-You can configure AppDaemon to load a different secrets file by defining its path by defining a top-level ``secrets:`` configuration.
+By default AppDaemon looks for a file called ``secrets.yaml`` or ``secrets.toml`` in the configuration directory.
+You can configure AppDaemon to load a different secrets file by defining its path by defining a top-level ``secrets`` configuration.
 
-The file should be a simple list of all the secrets. The secrets can be later referred to using the ``!secret`` YAML directive in the configuration file.
+The file should be a simple list of all the secrets. The secrets can be later referred to using the ``!secret`` directive in the configuration file, this works for both YAML and TOML.
 
 An example ``secrets.yaml`` might look like this:
 
@@ -489,7 +521,7 @@ For example:
 
     app_dir: /etc/appdaemon/apps
 
-An example of the HASS plugin could look like the following:
+An example of the HASS plugin configured with YAML could look like the following:
 
 .. code:: yaml
 
@@ -515,6 +547,35 @@ An example of the HASS plugin could look like the following:
           cert_path: <path/to/root/CA/cert>
           cert_verify: True
           namespace: default
+
+Or in TOML:
+
+.. code:: toml
+
+  secrets = "/some/path"
+
+  [log]
+  accessfile = "/export/hass/appdaemon_test/logs/access.log"
+  errorfile = "/export/hass/appdaemon_test/logs/error.log"
+  logfile = "/export/hass/appdaemon_test/logs/appdaemon.log"
+  log_generations = 3
+  log_size = 1_000_000
+
+  [appdaemon]
+  threads = 10
+  time_zone = "<time zone>"
+  api_port = 5_000
+  api_key = "api_key"
+  api_ssl_certificate = "<path/to/root/CA/cert>"
+  api_ssl_key = "<path/to/root/CA/key>"
+
+  [appdaemon.plugins.HASS]
+  type = "hass"
+  ha_url = "<some_url>"
+  token = "<token>"
+  cert_path = "<path/to/root/CA/cert>"
+  cert_verify = true
+  namespace = "default"
 
 
 Authentication
@@ -681,6 +742,28 @@ An example of the MQTT plugin could look like the following:
            - hermes/intent/#
            - hermes/hotword/#
 
+Or in TOML:
+
+.. code:: toml
+
+  [MQTT]
+  type = "mqtt"
+  namespace = "mqtt"
+  verbose = true
+  client_host = "Broker IP Address or DNS"
+  client_port = "Broker PORT Number"
+  client_id = "Client_ID"
+  client_user = "username"
+  client_password = "password"
+  ca_cert = "ca_cert"
+  tls_version = "auto"
+  client_cert = "mycert"
+  client_key = "mykey"
+  verify_cert = true
+  event_name = "MQTT_EVENT"
+  client_topics = [ "hermes/intent/#", "hermes/hotword/#" ]
+
+
 Creating a test app
 ===================
 
@@ -714,6 +797,14 @@ Then, we can create a file called apps.yaml in the apps directory and add an ent
     hello_world:
       module: hello
       class: HelloWorld
+
+Or if we are using TOML:
+
+.. code:: toml
+
+  [hello_world]
+  module = "hello"
+  class = "HelloWorld"
 
 App configuration is fully described in the `API doc <AD_API_REFERENCE.html>`__.
 
