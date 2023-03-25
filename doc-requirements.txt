@@ -140,6 +140,8 @@ sphinxcontrib-serializinghtml==1.1.5
     # via sphinx
 tomli==2.0.1
     # via appdaemon (pyproject.toml)
+tomli-w==1.0.0
+    # via appdaemon (pyproject.toml)
 tornado==6.2
     # via livereload
 urllib3==1.26.15

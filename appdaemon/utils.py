@@ -21,6 +21,7 @@ from appdaemon.version import __version__  # noqa: F401
 from collections.abc import Iterable
 import concurrent.futures
 import tomli
+import tomli_w
 import re
 from typing import Callable
 
@@ -277,13 +278,6 @@ def get_kwargs(kwargs):
         if kwarg[:2] != "__":
             result += "{}={} ".format(kwarg, kwargs[kwarg])
     return result
-
-
-def write_to_file(yaml_file, **kwargs):
-    """Used to write the app to Yaml file"""
-
-    with open(yaml_file, "w") as stream:
-        yaml.dump(kwargs, stream, Dumper=yaml.SafeDumper)
 
 
 def rreplace(s, old, new, occurrence):
@@ -564,6 +558,26 @@ def get_object_size(obj, seen=None):
     elif hasattr(obj, "__iter__") and not isinstance(obj, (str, bytes, bytearray)):
         size += sum([get_object_size(i, seen) for i in obj])
     return size
+
+
+def write_config_file(path, **kwargs):
+    extension = os.path.splitext(path)[1]
+    if extension == ".yaml":
+        write_yaml_config(path, **kwargs)
+    elif extension == ".toml":
+        write_toml_config(path, **kwargs)
+    else:
+        raise ValueError(f"ERROR: unknown file extension: {extension}")
+
+
+def write_yaml_config(path, **kwargs):
+    with open(path, "w") as stream:
+        yaml.dump(kwargs, stream, Dumper=yaml.SafeDumper)
+
+
+def write_toml_config(path, **kwargs):
+    with open(path, "wb") as stream:
+        tomli_w.dump(kwargs, stream)
 
 
 def read_config_file(path):

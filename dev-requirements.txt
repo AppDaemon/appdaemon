@@ -49,7 +49,7 @@ distlib==0.3.6
     # via virtualenv
 feedparser==6.0.10
     # via appdaemon (pyproject.toml)
-filelock==3.10.3
+filelock==3.10.4
     # via virtualenv
 flake8==6.0.0
     # via appdaemon (pyproject.toml)
@@ -57,7 +57,7 @@ frozenlist==1.3.3
     # via
     #   aiohttp
     #   aiosignal
-identify==2.5.21
+identify==2.5.22
     # via pre-commit
 idna==3.4
     # via
@@ -135,6 +135,8 @@ six==1.16.0
 sockjs==0.11.0
     # via appdaemon (pyproject.toml)
 tomli==2.0.1
+    # via appdaemon (pyproject.toml)
+tomli-w==1.0.0
     # via appdaemon (pyproject.toml)
 urllib3==1.26.15
     # via requests

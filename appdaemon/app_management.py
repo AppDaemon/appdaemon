@@ -413,7 +413,8 @@ class AppManagement:
                                     app_valid = True
                                     if app == "global_modules":
                                         self.logger.warning(
-                                            "global_modules directive has been deprecated and will be removed in a future release"
+                                            "global_modules directive has been deprecated and will be removed"
+                                            " in a future release"
                                         )
                                         #
                                         # Check the parameter format for string or list
@@ -425,7 +426,10 @@ class AppManagement:
                                         else:
                                             if self.AD.invalid_config_warnings:
                                                 self.logger.warning(
-                                                    "global_modules should be a list or a string in File '%s' - ignoring",
+                                                    (
+                                                        "global_modules should be a list or a string in File"
+                                                        " '%s' - ignoring"
+                                                    ),
                                                     file,
                                                 )
                                     elif app == "sequence":
@@ -688,7 +692,9 @@ class AppManagement:
 
                 # if silent is False:
                 await self.set_state(
-                    self.total_apps_sensor, state=active_apps + inactive, attributes={"friendly_name": "Total Apps"}
+                    self.total_apps_sensor,
+                    state=active_apps + inactive,
+                    attributes={"friendly_name": "Total Apps"},
                 )
 
                 self.logger.info("Found %s active apps", active_apps)
@@ -1207,7 +1213,7 @@ class AppManagement:
         return deps
 
     def create_app(self, app=None, **kwargs):  # @next-release create_app()
-        """Used to create an app, which is written to a Yaml file"""
+        """Used to create an app, which is written to a config file"""
 
         executed = True
         app_file = kwargs.pop("app_file", None)
@@ -1245,12 +1251,12 @@ class AppManagement:
             app_directory = os.path.join(self.AD.app_dir, app_directory)
 
         if app_file is None:
-            app_file = os.path.join(app_directory, f"{app}.yaml")
+            app_file = os.path.join(app_directory, f"{app}{self.ext}")
             self.logger.info("Creating app using filename %s", app_file)
 
         else:
-            if app_file[-5:] != ".yaml":
-                app_file = f"{app_file}.yaml"
+            if app_file[-5:] != self.ext:
+                app_file = f"{app_file}{self.ext}"
 
             app_file = os.path.join(app_directory, app_file)
 
@@ -1278,7 +1284,7 @@ class AppManagement:
 
         # at this point now to create write to file
         try:
-            utils.write_to_file(app_file, **new_config)
+            utils.write_config_file(app_file, **new_config)
 
             data = {
                 "event_type": "app_created",
@@ -1320,7 +1326,7 @@ class AppManagement:
 
         # now update the file with the new data
         try:
-            utils.write_to_file(app_file, **new_config)
+            utils.write_config_file(app_file, **new_config)
 
             data = {
                 "event_type": "app_edited",
@@ -1361,7 +1367,7 @@ class AppManagement:
                 os.remove(app_file)
 
             else:
-                utils.write_to_file(app_file, **file_config)
+                utils.write_config_file(app_file, **file_config)
 
             data = {
                 "event_type": "app_removed",
