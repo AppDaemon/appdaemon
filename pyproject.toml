@@ -28,7 +28,8 @@ dependencies = [
     'sockjs ~= 0.11.0',
     'uvloop==0.17.0; sys_platform != "win32"',
     'websocket-client ~= 1.5.1',
-    'tomli ~= 2.0.1'
+    'tomli ~= 2.0.1',
+    'tomli_w ~= 1.0.0'
 ]
 
 classifiers= [
