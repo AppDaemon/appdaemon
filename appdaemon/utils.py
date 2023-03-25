@@ -576,7 +576,7 @@ def write_yaml_config(path, **kwargs):
 
 
 def write_toml_config(path, **kwargs):
-    with open(path, "w") as stream:
+    with open(path, "wb") as stream:
         tomli_w.dump(kwargs, stream)
 
 
