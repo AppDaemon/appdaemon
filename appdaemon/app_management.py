@@ -1212,7 +1212,7 @@ class AppManagement:
 
         return deps
 
-    def create_app(self, app=None, **kwargs):  # @next-release create_app()
+    def create_app(self, app=None, **kwargs):
         """Used to create an app, which is written to a config file"""
 
         executed = True
@@ -1302,7 +1302,7 @@ class AppManagement:
 
         return executed
 
-    def edit_app(self, app, **kwargs):  # @next-release edit_app()
+    def edit_app(self, app, **kwargs):
         """Used to edit an app, which is already in Yaml. It is expecting the app's name"""
 
         executed = True
@@ -1344,7 +1344,7 @@ class AppManagement:
 
         return executed
 
-    def remove_app(self, app, **kwargs):  # @next-release remove_app()
+    def remove_app(self, app, **kwargs):
         """Used to remove an app"""
 
         result = None
