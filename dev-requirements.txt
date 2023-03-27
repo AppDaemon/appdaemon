@@ -49,7 +49,7 @@ distlib==0.3.6
     # via virtualenv
 feedparser==6.0.10
     # via appdaemon (pyproject.toml)
-filelock==3.10.4
+filelock==3.10.7
     # via virtualenv
 flake8==6.0.0
     # via appdaemon (pyproject.toml)
@@ -96,13 +96,13 @@ pid==3.0.4
     # via appdaemon (pyproject.toml)
 pip-tools==6.12.3
     # via appdaemon (pyproject.toml)
-platformdirs==3.1.1
+platformdirs==3.2.0
     # via
     #   black
     #   virtualenv
 pluggy==1.0.0
     # via pytest
-pre-commit==3.2.0 ; python_version > "3.7"
+pre-commit==3.2.1 ; python_version > "3.7"
     # via appdaemon (pyproject.toml)
 pycodestyle==2.10.0
     # via flake8
