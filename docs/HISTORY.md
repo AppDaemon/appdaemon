@@ -1,6 +1,6 @@
 # Change Log
 
-## 4.3.1
+## 4.4.0
 
 **Features**
 
@@ -30,7 +30,7 @@
 - Remove Python 3.7 test coverage prior to deprecation at EOL in 6/23
 - Register endpoint for async callbacks has been harmonized with the async version and supplies just the arguments received and not the request object
 
-**Versioning note for 4.3.1 - This release was intended to be 4.3.0, however a problem with the new packaging pipeline blocked use of that version number on PyPi.**
+**Versioning note for 4.4.0 - This release was intended to be 4.3.0, however a problem with the new packaging pipeline blocked use of that version number on PyPi.**
 
 ## 4.2.3 (2023-02-27)
 
