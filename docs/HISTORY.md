@@ -1,5 +1,13 @@
 # Change Log
 
+## 4.4.1
+
+**Features**
+
+**Fixes**
+
+**Breaking Changes**
+
 ## 4.4.0
 
 **Features**
