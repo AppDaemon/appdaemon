@@ -1,16 +1,17 @@
 import asyncio
+import datetime
 import json
+import os
 import ssl
-import websocket
 import traceback
+from copy import deepcopy
+from typing import Union
+from urllib.parse import quote, urlencode
+
 import aiohttp
 import pytz
+import websocket
 from deepdiff import DeepDiff
-from copy import deepcopy
-import datetime
-from urllib.parse import quote
-from urllib.parse import urlencode
-from typing import Union
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -55,10 +56,12 @@ class HassPlugin(PluginBase):
         self.cert_path = args.get("cert_path")
         self.cert_verify = args.get("cert_verify")
         self.commtype = args.get("commtype", "WS")
-        self.ha_key = args.get("ha_key")
 
-        # Remove trailing slash if present
-        self.ha_url = args.get("ha_url", "").rstrip("/")
+        # Fixes for supervised
+        self.ha_key = args.get("ha_key", os.environ.get("SUPERVISOR_TOKEN"))
+        self.ha_url = args.get("ha_url", "http://supervisor/core").rstrip("/")
+        # End fixes for supervised
+
         self.namespace = args.get("namespace", "default")
         self.plugin_startup_conditions = args.get("plugin_startup_conditions", {})
         self.retry_secs = int(args.get("retry_secs", 5))
@@ -148,7 +151,7 @@ class HassPlugin(PluginBase):
                 headers["x-ha-access"] = self.ha_key
 
             self._session = aiohttp.ClientSession(
-                base_url=self.ha_url,
+                # base_url=self.ha_url,
                 connector=conn,
                 headers=headers,
                 json_serialize=utils.convert_json,
@@ -490,7 +493,7 @@ class HassPlugin(PluginBase):
         # if we get a request for not our namespace something has gone very wrong
         assert namespace == self.namespace
 
-        api_url = "/api/states/{}".format(entity_id)
+        api_url = f"{self.ha_url}/api/states/{entity_id}"
 
         try:
             r = await self.session.post(api_url, json=kwargs)
@@ -548,7 +551,7 @@ class HassPlugin(PluginBase):
             return await self.get_history(**data)
 
         else:
-            api_url = "/api/services/{}/{}".format(domain, service)
+            api_url = f"{self.ha_url}/api/services/{domain}/{service}"
 
         try:
             r = await self.session.post(api_url, json=data)
@@ -668,7 +671,7 @@ class HassPlugin(PluginBase):
 
         # Build the url
         # /api/history/period/<start_time>?filter_entity_id=<entity_id>&end_time=<end_time>
-        apiurl = "/api/history/period"
+        apiurl = f"{self.ha_url}/api/history/period"
 
         if start_time:
             apiurl += "/" + utils.dt_to_str(start_time.replace(microsecond=0), self.AD.tz)
@@ -684,9 +687,9 @@ class HassPlugin(PluginBase):
 
     async def get_hass_state(self, entity_id=None):
         if entity_id is None:
-            api_url = "/api/states"
+            api_url = f"{self.ha_url}/api/states"
         else:
-            api_url = "/api/states/{}".format(entity_id)
+            api_url = f"{self.ha_url}/api/states/{entity_id}"
         self.logger.debug("get_ha_state: url is %s", api_url)
         r = await self.session.get(api_url)
         if r.status == 200 or r.status == 201:
@@ -731,7 +734,7 @@ class HassPlugin(PluginBase):
     async def get_hass_config(self):
         try:
             self.logger.debug("get_ha_config()")
-            api_url = "/api/config"
+            api_url = f"{self.ha_url}/api/config"
             self.logger.debug("get_ha_config: url is %s", api_url)
             r = await self.session.get(api_url)
             r.raise_for_status()
@@ -754,7 +757,7 @@ class HassPlugin(PluginBase):
         try:
             self.logger.debug("get_hass_services()")
 
-            api_url = "/api/services"
+            api_url = f"{self.ha_url}/api/services"
             self.logger.debug("get_hass_services: url is %s", api_url)
             r = await self.session.get(api_url)
 
@@ -865,7 +868,7 @@ class HassPlugin(PluginBase):
         assert namespace == self.namespace
 
         event_clean = quote(event, safe="")
-        api_url = "/api/events/{}".format(event_clean)
+        api_url = f"{self.ha_url}/api/events/{event_clean}"
         try:
             r = await self.session.post(api_url, json=kwargs)
             r.raise_for_status()
@@ -894,7 +897,7 @@ class HassPlugin(PluginBase):
         # if we get a request for not our namespace something has gone very wrong
         assert namespace == self.namespace
 
-        api_url = "/api/states/{}".format(entity_id)
+        api_url = f"{self.ha_url}/api/states/{entity_id}"
 
         try:
             r = await self.session.delete(api_url)
