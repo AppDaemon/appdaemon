@@ -151,7 +151,6 @@ class HassPlugin(PluginBase):
                 headers["x-ha-access"] = self.ha_key
 
             self._session = aiohttp.ClientSession(
-                # base_url=self.ha_url,
                 connector=conn,
                 headers=headers,
                 json_serialize=utils.convert_json,
