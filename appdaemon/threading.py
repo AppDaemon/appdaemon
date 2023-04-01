@@ -1,14 +1,15 @@
 import asyncio
-import threading
 import datetime
-from queue import Queue
-from random import randint
+import inspect
+import logging
 import re
 import sys
+import threading
 import traceback
-import inspect
 from datetime import timedelta
-import logging
+from queue import Queue
+from random import randint
+
 import iso8601
 
 from appdaemon import utils as utils
@@ -388,14 +389,13 @@ class Threading:
                     attribute="time_called",
                 )
             )
-            if (
-                self.AD.sched.realtime is True
-                and (now - start).total_seconds() >= self.AD.thread_duration_warning_threshold
-            ):
+            duration = (now - start).total_seconds()
+            if self.AD.sched.realtime is True and duration >= self.AD.thread_duration_warning_threshold:
+                thread_name = f"thread.{thread_id}"
+                callback = await self.get_state("_threading", "admin", thread_name)
                 self.logger.warning(
-                    "Thread %s: callback %s has now completed",
-                    "thread.{}".format(thread_id),
-                    await self.get_state("_threading", "admin", "thread.{}".format(thread_id)),
+                    f"Excessive time spent in callback '{callback}', Thread '{thread_name}' - "
+                    f"now complete after {duration} seconds (limit={self.AD.thread_duration_warning_threshold})"
                 )
             await self.add_to_state("_threading", "admin", "sensor.threads_current_busy", -1)
 
