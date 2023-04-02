@@ -97,7 +97,7 @@ class ADBase:
     # API/Plugin
     #
 
-    def get_ad_api(self) -> Callable:
+    def get_ad_api(self) -> adapi.ADAPI:
         api = adapi.ADAPI(
             self.AD,
             self.name,
