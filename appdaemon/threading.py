@@ -614,7 +614,7 @@ class Threading:
         unconstrained = True
         if "constrain_days" in args:
             days = args["constrain_days"]
-            now = await self.AD.sched.get_now()
+            now = (await self.AD.sched.get_now()).astimezone(self.AD.tz)
             daylist = []
             for day in days.split(","):
                 daylist.append(await utils.run_in_executor(self, utils.day_of_week, day))
