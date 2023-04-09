@@ -4,6 +4,8 @@
 
 **Features**
 
+- Added curl install to the docker image for helath checks
+
 **Fixes**
 
 - Fixed a bug that crept in to `sun_up()` and `sun_down()`

@@ -70,3 +70,6 @@ ENV PYTHONPATH=/usr/lib/python${PYTHON_RELEASE}:/usr/lib/python${PYTHON_RELEASE}
 
 # Define entrypoint script
 ENTRYPOINT ["./dockerStart.sh"]
+
+# Install curl to allow for healthchecks
+RUN apk --no-cache add curl
