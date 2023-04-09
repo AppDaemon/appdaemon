@@ -1,17 +1,18 @@
-import traceback
-import datetime
-from datetime import timedelta
-import pytz
-import random
-import uuid
-import re
 import asyncio
+import datetime
 import logging
+import random
+import re
+import traceback
+import uuid
 from collections import OrderedDict
+from datetime import timedelta
+
+import pytz
+from astral.location import Location, LocationInfo
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
-from astral.location import Location, LocationInfo
 
 
 class Scheduler:
@@ -673,10 +674,10 @@ class Scheduler:
     #
 
     async def sun_up(self):
-        return self.now_is_between("sunrise", "sunset")
+        return await self.now_is_between("sunrise", "sunset")
 
     async def sun_down(self):
-        return self.now_is_between("sunset", "sunrise")
+        return await self.now_is_between("sunset", "sunrise")
 
     async def info_timer(self, handle, name):
         if self.timer_running(name, handle):

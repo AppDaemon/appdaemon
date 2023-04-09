@@ -6,6 +6,8 @@
 
 **Fixes**
 
+- Fixed a bug that crept in to `sun_up()` and `sun_down()`
+
 **Breaking Changes**
 
 ## 4.4.0
