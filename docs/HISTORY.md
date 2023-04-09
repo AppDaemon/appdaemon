@@ -1,6 +1,6 @@
 # Change Log
 
-## 4.4.1
+## 4.4.1 (2023-04-09)
 
 **Features**
 
@@ -12,7 +12,9 @@
 
 **Breaking Changes**
 
-## 4.4.0
+None
+
+## 4.4.0 (2023-04-08)
 
 **Features**
 
