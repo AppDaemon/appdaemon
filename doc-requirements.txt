@@ -87,7 +87,7 @@ paho-mqtt==1.6.1
     # via appdaemon (pyproject.toml)
 pid==3.0.4
     # via appdaemon (pyproject.toml)
-pygments==2.14.0
+pygments==2.15.0
     # via
     #   appdaemon (pyproject.toml)
     #   sphinx
