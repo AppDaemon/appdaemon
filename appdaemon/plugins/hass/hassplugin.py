@@ -544,7 +544,7 @@ class HassPlugin(PluginBase):
             data = {"entity_id": data}
 
         if domain == "template" and service == "render":
-            api_url = "/api/template"
+            api_url = f"{self.ha_url}/api/template"
 
         elif domain == "database":
             return await self.get_history(**data)
