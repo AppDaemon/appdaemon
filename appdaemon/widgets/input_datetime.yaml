@@ -15,7 +15,7 @@ static_css:
   date_value_style: $input_datetime_date_style
   time_value_style: $input_datetime_time_style
   widget_style: $input_datetime_widget_style
-  container_style: $input_datetime__container_style
+  container_style: $input_datetime_container_style
 post_service:
   service: input_datetime/set_datetime
   entity_id: "{{entity}}"
