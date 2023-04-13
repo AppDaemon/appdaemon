@@ -362,7 +362,7 @@ class AppManagement:
             )
             await self.increase_inactive_apps(name)
 
-    def init_plugin_object(self, name, object):
+    def init_plugin_object(self, name: str, object: object, use_dictionary_unpacking: bool = False) -> None:
         self.objects[name] = {
             "type": "plugin",
             "object": object,
@@ -370,6 +370,7 @@ class AppManagement:
             "pin_app": False,
             "pin_thread": -1,
             "running": False,
+            "use_dictionary_unpacking": use_dictionary_unpacking,
         }
 
     def init_sequence_object(self, name, object):

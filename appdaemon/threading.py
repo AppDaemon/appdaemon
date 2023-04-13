@@ -870,11 +870,19 @@ class Threading:
         if "__silent" in args["kwargs"]:
             silent = args["kwargs"]["__silent"]
 
-        app_args = self.AD.app_management.app_config[args["name"]]
-        if "use_dictionary_unpacking" in app_args:
-            use_dictionary_unpacking = app_args["use_dictionary_unpacking"]
-        else:
-            use_dictionary_unpacking = self.AD.use_dictionary_unpacking
+        # first we get AD's level directive
+        use_dictionary_unpacking = self.AD.use_dictionary_unpacking
+
+        # app level config takes priority so processed after AD's
+        if args["name"] in self.AD.app_management.app_config:
+            app_args = self.AD.app_management.app_config[args["name"]]
+
+            if "use_dictionary_unpacking" in app_args:
+                use_dictionary_unpacking = app_args["use_dictionary_unpacking"]
+
+        elif args["name"] in self.AD.app_management.objects:
+            # plugin's directive is to use dictionary unpacking
+            use_dictionary_unpacking = self.AD.app_management.objects[args["name"]]["use_dictionary_unpacking"]
 
         app = await self.AD.app_management.get_app_instance(name, objectid)
         if app is not None:
