@@ -110,7 +110,7 @@ pyflakes==3.0.1
     # via flake8
 pyproject-hooks==1.0.0
     # via build
-pytest==7.2.2
+pytest==7.3.0
     # via appdaemon (pyproject.toml)
 python-dateutil==2.8.2
     # via appdaemon (pyproject.toml)
