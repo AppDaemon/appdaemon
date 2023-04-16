@@ -4,9 +4,15 @@
 
 **Features**
 
+- None
+
 **Fixes**
 
+- Fix a bug in template rendering
+
 **Breaking Changes**
+
+- None
 
 ## 4.4.1 (2023-04-09)
 
