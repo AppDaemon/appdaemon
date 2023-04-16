@@ -9,6 +9,7 @@
 **Fixes**
 
 - Fix a bug in template rendering
+- Fix a dashboard style bug - contributed by [D3SL](https://github.com/D3SL)
 
 **Breaking Changes**
 
