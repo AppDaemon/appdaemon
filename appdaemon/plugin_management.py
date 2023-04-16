@@ -19,8 +19,39 @@ class PluginBase:
         self.AD = ad
         self.logger = self.AD.logging.get_child(name)
 
+        # Performance Data
+
+        self.bytes_sent = 0
+        self.bytes_recv = 0
+        self.requests_sent = 0
+        self.updates_recv = 0
+        self.last_check_ts = 0
+
     def set_log_level(self, level):
         self.logger.setLevel(self.AD.logging.log_levels[level])
+
+    async def perf_data(self):
+        data = {
+            "bytes_sent": self.bytes_sent,
+            "bytes_recv": self.bytes_recv,
+            "requests_sent": self.requests_sent,
+            "updates_recv": self.updates_recv,
+            "duration": await self.AD.sched.get_now_ts() - self.last_check_ts,
+        }
+
+        self.bytes_sent = 0
+        self.bytes_recv = 0
+        self.requests_sent = 0
+        self.updates_recv = 0
+        self.last_check_ts = await self.AD.sched.get_now_ts()
+
+        return data
+
+    def update_perf(self, **kwargs):
+        self.bytes_sent += kwargs.get("bytes_sent", 0)
+        self.bytes_recv += kwargs.get("bytes_recv", 0)
+        self.requests_sent += kwargs.get("requests_sent", 0)
+        self.updates_recv += kwargs.get("updates_recv", 0)
 
 
 class Plugins:
