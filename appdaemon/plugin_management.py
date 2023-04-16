@@ -105,6 +105,9 @@ class Plugins:
                     if "refresh_timeout" not in self.plugins[name]:
                         self.plugins[name]["refresh_timeout"] = 30
 
+                    if "use_dictionary_unpacking" not in self.plugins[name]:
+                        self.plugins[name]["use_dictionary_unpacking"] = True
+
                     basename = self.plugins[name]["type"]
                     type = self.plugins[name]["type"]
                     module_name = "{}plugin".format(basename)
@@ -153,7 +156,8 @@ class Plugins:
                         #
                         # Create app entry for the plugin so we can listen_state/event
                         #
-                        self.AD.app_management.init_plugin_object(name, plugin)
+                        use_dictionary_unpacking = self.plugins[name]["use_dictionary_unpacking"]
+                        self.AD.app_management.init_plugin_object(name, plugin, use_dictionary_unpacking)
 
                         self.AD.loop.create_task(plugin.get_updates())
                     except Exception:
@@ -297,7 +301,14 @@ class Plugins:
                         "admin",
                         "plugin.{}".format(name),
                         "active",
-                        {"bytes_sent_ps": 0, "bytes_recv_ps": 0, "requests_sent_ps": 0, "updates_recv_ps": 0},
+                        {
+                            "bytes_sent_ps": 0,
+                            "bytes_recv_ps": 0,
+                            "requests_sent_ps": 0,
+                            "updates_recv_ps": 0,
+                            "totalcallbacks": 0,
+                            "instancecallbacks": 0,
+                        },
                     )
 
                     self.logger.info("Got initial state from namespace %s", namespace)
