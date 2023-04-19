@@ -47,7 +47,7 @@ distlib==0.3.6
     # via virtualenv
 feedparser==6.0.10
     # via appdaemon (pyproject.toml)
-filelock==3.11.0
+filelock==3.12.0
     # via virtualenv
 flake8==6.0.0
     # via appdaemon (pyproject.toml)
