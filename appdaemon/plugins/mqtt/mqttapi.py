@@ -3,7 +3,7 @@ import appdaemon.adapi as adapi
 from appdaemon.appdaemon import AppDaemon
 import appdaemon.utils as utils
 
-from typing import Callable
+from typing import Callable, Union, Optional, Any
 
 
 class Mqtt(adbase.ADBase, adapi.ADAPI):
@@ -79,7 +79,7 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
     #
 
     @utils.sync_wrapper
-    async def listen_event(self, callback: Callable, event=None, **kwargs) -> str:
+    async def listen_event(self, callback: Callable, event: str = None, **kwargs: Optional[Any]) -> str:
         """Listens for changes within the MQTT plugin.
 
         Unlike other plugins, MQTT does not keep state. All MQTT messages will have an event
@@ -177,7 +177,8 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
     #
     # service calls
     #
-    def mqtt_publish(self, topic: str, payload=None, **kwargs) -> None:
+
+    def mqtt_publish(self, topic: str, payload: Any = None, **kwargs: Optional[Any]) -> None:
         """Publishes a message to a MQTT broker.
 
         This helper function used for publishing a MQTT message to a broker, from within
@@ -224,7 +225,25 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
         result = self.call_service(service, **kwargs)
         return result
 
-    def mqtt_subscribe(self, topic: str, **kwargs) -> None:
+    def _run_service_call(self, task: str, topic: Union[str, list], **kwargs: Optional[Any]) -> None:
+        """Used to process the subscribe/unsubscribe service calls"""
+
+        # first we validate the topic
+        if not isinstance(topic, (str, list)):
+            raise ValueError(f"The given topic {topic} is not supported. Please only strs and lists are supported")
+
+        if isinstance(topic, str):
+            kwargs["topic"] = topic
+            service = f"mqtt/{task}"
+            self.call_service(service, **kwargs)
+
+        else:  # its a list
+            for t in topic:
+                kwargs["topic"] = t
+                service = f"mqtt/{task}"
+                self.call_service(service, **kwargs)
+
+    def mqtt_subscribe(self, topic: Union[str, list], **kwargs: Optional[Any]) -> None:
         """Subscribes to a MQTT topic.
 
         This helper function used for subscribing to a topic on a broker,
@@ -243,7 +262,7 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
         parameter.
 
         Args:
-            topic (str): The topic to be subscribed to on the broker
+            topic (str|list): The topic to be subscribed to on the broker
                 (e.g., ``homeassistant/bedroom/light``).
             **kwargs (optional): Zero or more keyword arguments.
 
@@ -257,15 +276,13 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
 
         Examples:
             >>> self.mqtt_subscribe("homeassistant/bedroom/light")
+            >>> self.mqtt_subscribe(["homeassistant/bedroom/light", "zigbee2mqtt/Living Room Light"])
 
         """
 
-        kwargs["topic"] = topic
-        service = "mqtt/subscribe"
-        result = self.call_service(service, **kwargs)
-        return result
+        self._run_service_call("subscribe", topic, **kwargs)
 
-    def mqtt_unsubscribe(self, topic: str, **kwargs) -> None:
+    def mqtt_unsubscribe(self, topic: Union[str, list], **kwargs: Optional[Any]) -> None:
         """Unsubscribes from a MQTT topic.
 
         A helper function used to unsubscribe from a topic on a broker,
@@ -285,7 +302,7 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
         parameter.
 
         Args:
-            topic (str): The topic to be unsubscribed from on the broker
+            topic (str|list): The topic to be unsubscribed from on the broker
                 (e.g., ``homeassistant/bedroom/light``).
             **kwargs (optional): Zero or more keyword arguments.
 
@@ -302,13 +319,10 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
 
         """
 
-        kwargs["topic"] = topic
-        service = "mqtt/unsubscribe"
-        result = self.call_service(service, **kwargs)
-        return result
+        self._run_service_call("unsubscribe", topic, **kwargs)
 
     @utils.sync_wrapper
-    async def is_client_connected(self, **kwargs) -> bool:
+    async def is_client_connected(self, **kwargs: Optional[Any]) -> bool:
         """Returns ``TRUE`` if the MQTT plugin is connected to its broker, ``FALSE`` otherwise.
 
         This a helper function used to check or confirm within an app if the plugin is connected
