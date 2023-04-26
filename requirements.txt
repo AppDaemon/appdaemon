@@ -85,5 +85,5 @@ uvloop==0.17.0 ; sys_platform != "win32"
     # via appdaemon (pyproject.toml)
 websocket-client==1.5.1
     # via appdaemon (pyproject.toml)
-yarl==1.8.2
+yarl==1.9.2
     # via aiohttp

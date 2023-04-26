@@ -146,7 +146,7 @@ websocket-client==1.5.1
     # via appdaemon (pyproject.toml)
 wheel==0.40.0
     # via pip-tools
-yarl==1.8.2
+yarl==1.9.2
     # via aiohttp
 
 # The following packages are considered to be unsafe in a requirements file:
