@@ -328,6 +328,8 @@ class Events:
                                             _run = False
                                     elif match_val != event_val:
                                         _run = False
+                                else:
+                                    _run = False
 
                             if data["event_type"] == "__AD_LOG_EVENT":
                                 if (
