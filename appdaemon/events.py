@@ -330,6 +330,7 @@ class Events:
                                         _run = False
                                 else:
                                     _run = False
+                                    break
 
                             if data["event_type"] == "__AD_LOG_EVENT":
                                 if (
