@@ -67,7 +67,7 @@ pytz==2023.3
     # via appdaemon (pyproject.toml)
 pyyaml==6.0
     # via appdaemon (pyproject.toml)
-requests==2.28.2
+requests==2.31.0
     # via appdaemon (pyproject.toml)
 sgmllib3k==1.0.0
     # via feedparser
