@@ -142,7 +142,7 @@ tomli==2.0.1
     # via appdaemon (pyproject.toml)
 tomli-w==1.0.0
     # via appdaemon (pyproject.toml)
-tornado==6.2
+tornado==6.3.2
     # via livereload
 urllib3==1.26.15
     # via requests
