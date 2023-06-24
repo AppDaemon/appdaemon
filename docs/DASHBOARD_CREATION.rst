@@ -1934,6 +1934,95 @@ Style Arguments:
 -  ``title2_style``
 -  ``state_text_style``
 
+
+pirateweather
+~~~~~~~~~~~~~
+.. figure:: images/weather.png
+   :alt: pirateweather
+
+Up to date weather reports. By default, it's configured to work with pirateweather
+sensors. To use all the features, you need to add these sensors to the
+``Monitored conditions`` option in the configuration for the Home Assistant
+Pirate Weather integration:
+
+-  Icon
+-  Precipitation Type
+-  Precipitation Intensity
+-  Precipitation Probability
+-  Temperature
+-  Apparent Temperature
+-  Humidity
+-  Wind Speed
+-  Wind Bearing
+-  Pressure
+
+To have the forecast displayed set ``show_forecast`` to 1. For it to work you
+additionally need to add 1 to the ``Daily forecasts sensors`` option in the configuration
+for the Home Assistant Pirate Weather integration. To use all the forecast features, you
+need to add these sensors to monitored_conditions:
+
+-  Temperature High
+-  Temperature Low
+
+.. code:: yaml
+
+    forecast:
+      - 1
+
+Mandatory arguments:
+^^^^^^^^^^^^^^^^^^^^
+
+None
+
+Optional Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+- ``title``
+- ``show_forecast`` - show the forecast
+- ``prefer_icons`` - use icons instead of text
+- ``forecast_title`` - title of the forecast if enabled
+- ``sensors`` - list of sensors used by the widget
+
+You can change the entities used by the widget by overwriting their values
+in the ``sensors`` key in configuration.
+
+Example with default values:
+
+.. code:: yaml
+
+    sample_weather:
+      widget_type: weather
+      title: Today
+      show_forecast: 1
+      prefer_icons: 1
+      forecast_title: Tomorrow
+      sensors:
+        icon: sensor.pirateweather_icon
+        temperature: sensor.pirateweather_temperature
+        apparent_temperature: sensor.pirateweather_apparent_temperature
+        humidity: sensor.pirateweather_humidity
+        precip_probability: sensor.pirateweather_precip_probability
+        precip_intensity: sensor.pirateweather_precip_intensity
+        precip_type: sensor.pirateweather_precip
+        pressure: sensor.pirateweather_pressure
+        wind_speed: sensor.pirateweather_wind_speed
+        wind_bearing: sensor.pirateweather_wind_bearing
+        forecast_icon: sensor.pirateweather_icon_1
+        forecast_temperature_min: sensor.pirateweather_daily_low_temperature_1
+        forecast_temperature_max: sensor.pirateweather_daily_high_temperature_1
+        forecast_precip_probability: sensor.pirateweather_precip_probability_1
+        forecast_precip_type: sensor.pirateweather_precip_1
+
+Style Arguments:
+^^^^^^^^^^^^^^^^^^^
+
+-  ``widget_style``
+-  ``main_style``
+-  ``unit_style``
+-  ``sub_style``
+-  ``sub_unit_style``
+-  ``title_style``
+
 radial
 ~~~~~~
 .. figure:: images/radial.png
@@ -2309,8 +2398,6 @@ monitored_conditions:
 
 -  temperature
 -  apparent\_temperature
--  temperature_min
--  temperature_max
 -  humidity
 -  precip\_probability
 -  precip\_intensity
@@ -2321,13 +2408,22 @@ monitored_conditions:
 -  icon
 
 To have the forecast displayed set ``show_forecast`` to 1. For it to work you
-additionally, need to add the forecast option in dark_sky Home Assistant
-configuration.
+additionally need to add the forecast option in dark_sky Home Assistant
+configuration:
 
 .. code:: yaml
 
     forecast:
       - 1
+
+To use all the forecast features, you need to add these
+sensors to monitored_conditions:
+
+-  temperature_low
+-  temperature_high
+
+Forecasts (1 day in the future) can be displayed for the weather icon, min
+and max temperature, precipitation probability and precipitation type.
 
 Mandatory arguments:
 ^^^^^^^^^^^^^^^^^^^^
@@ -2346,7 +2442,7 @@ Optional Arguments:
 You can change the entities used by the widget by overwriting their values
 in the ``sensors`` key in configuration.
 
-Example with default values:
+Example with default values plus wind forecast:
 
 .. code:: yaml
 
