@@ -4,6 +4,8 @@
 
 **Features**
 
+- Added Pirateweather widget - contributed by ]Dave Dixon](https://github.com/DaveDixon)
+
 **Fixes**
 
 **Breaking Changes**
