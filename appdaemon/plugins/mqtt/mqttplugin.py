@@ -271,7 +271,12 @@ class MqttPlugin(PluginBase):
 
             if topic not in self.mqtt_binary_topics and wildcard not in self.mqtt_binary_topics:
                 # the binary data is not required
-                payload = payload.decode()
+                try:
+                    payload = payload.decode()
+                except UnicodeDecodeError as u:
+                    self.logger.info(f"Unable to decode MQTT message from topic {topic}, ignoring message")
+                    self.logger.error(f"Unable to decode MQTT message from topic {topic}, with error: {u}")
+                    return
 
             data.update({"wildcard": wildcard, "payload": payload})
 
@@ -281,18 +286,10 @@ class MqttPlugin(PluginBase):
             }
 
             self.loop.create_task(self.send_ad_event(event_data))
-
-        except UnicodeDecodeError:
-            self.logger.info("Unable to decode MQTT message")
-            self.logger.error(
-                "Unable to decode MQTT message, with Traceback: %s",
-                traceback.format_exc(),
-            )
         except Exception as e:
-            self.logger.critical("There was an error while processing an MQTT message: {} {}".format(type(e), e))
+            self.logger.critical(f"There was an error while processing MQTT message: {type(e)} {e}")
             self.logger.error(
-                "There was an error while processing an MQTT message, with Traceback: %s",
-                traceback.format_exc(),
+                f"There was an error while processing MQTT message, with Traceback: {traceback.format_exc()}"
             )
 
     def mqtt_subscribe(self, topic, qos):
