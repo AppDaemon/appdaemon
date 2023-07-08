@@ -19,6 +19,8 @@ async-timeout==4.0.2
     # via aiohttp
 attrs==23.1.0
     # via aiohttp
+babel==2.12.1
+    # via appdaemon (pyproject.toml)
 bcrypt==4.0.1
     # via appdaemon (pyproject.toml)
 bidict==0.22.1

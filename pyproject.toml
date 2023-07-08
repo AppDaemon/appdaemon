@@ -14,6 +14,7 @@ dependencies = [
     'aiohttp ~= 3.8.4',
     'aiohttp_jinja2 ~= 1.5.1',
     'astral ~= 3.2',
+    'babel ~= 2.12.1',
     'bcrypt ~= 4.0.1',
     'deepdiff == 6.3.0',
     'feedparser ~= 6.0.10',
