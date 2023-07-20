@@ -4,7 +4,7 @@
 #
 #    pip-compile --extra=doc --output-file=doc-requirements.txt --resolver=backtracking pyproject.toml
 #
-aiohttp==3.8.4
+aiohttp==3.8.5
     # via
     #   aiohttp-jinja2
     #   appdaemon (pyproject.toml)
