@@ -1145,14 +1145,16 @@ class ADAPI:
         Examples:
             It should be noted that the register function, should return a string (can be empty),
             and an HTTP OK status response (e.g., `200`. If this is not added as a returned response,
-            the function will generate an error each time it is processed.
+            the function will generate an error each time it is processed. If the POST request
+            contains JSON data, the decoded data will be passed as the argument to the callback.
+            Otherwise the callback argument will contain the query string. A `request` kwarg contains
+            the http request object.
 
             >>> self.register_endpoint(self.my_callback)
             >>> self.register_endpoint(self.alexa_cb, "alexa")
 
-            >>> async def alexa_cb(self, request, kwargs):
-            >>>     data = await request.json()
-            >>>     self.log(data)
+            >>> async def alexa_cb(self, json_obj, kwargs):
+            >>>     self.log(json_obj)
             >>>     response = {"message": "Hello World"}
             >>>     return response, 200
 
