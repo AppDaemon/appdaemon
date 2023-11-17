@@ -531,10 +531,11 @@ class HassPlugin(PluginBase):
                     result = await r.json()
             else:
                 self.logger.warning(
-                    "Error calling Home Assistant service %s/%s/%s",
+                    "Error calling Home Assistant service %s/%s/%s (data=%s)",
                     namespace,
                     domain,
                     service,
+                    data,
                 )
                 txt = await r.text()
                 self.logger.warning("Code: %s, error: %s", r.status, txt)
