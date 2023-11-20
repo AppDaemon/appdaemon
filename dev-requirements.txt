@@ -57,7 +57,7 @@ frozenlist==1.4.0
     #   aiosignal
 h11==0.14.0
     # via wsproto
-identify==2.5.31
+identify==2.5.32
     # via pre-commit
 idna==3.4
     # via
