@@ -1,6 +1,6 @@
+import concurrent.futures
 import os
 import os.path
-import concurrent.futures
 import threading
 
 
@@ -10,19 +10,19 @@ class AppDaemon:
         # Import various AppDaemon bits and pieces now to avoid circular import
         #
 
-        import appdaemon.utils as utils
-        import appdaemon.thread_async as appq
-        import appdaemon.utility_loop as utility
-        import appdaemon.plugin_management as plugins
-        import appdaemon.threading
         import appdaemon.app_management as apps
         import appdaemon.callbacks as callbacks
-        import appdaemon.futures as futures
-        import appdaemon.state as state
         import appdaemon.events as events
-        import appdaemon.services as services
-        import appdaemon.sequences as sequences
+        import appdaemon.futures as futures
+        import appdaemon.plugin_management as plugins
         import appdaemon.scheduler as scheduler
+        import appdaemon.sequences as sequences
+        import appdaemon.services as services
+        import appdaemon.state as state
+        import appdaemon.thread_async as appq
+        import appdaemon.threading
+        import appdaemon.utility_loop as utility
+        import appdaemon.utils as utils
 
         self.logging = logging
         self.logging.register_ad(self)
@@ -156,6 +156,9 @@ class AppDaemon:
 
         self.use_dictionary_unpacking = False
         utils.process_arg(self, "use_dictionary_unpacking", kwargs)
+
+        self.use_stream = False
+        utils.process_arg(self, "use_stream", kwargs)
 
         self.namespaces = {}
         utils.process_arg(self, "namespaces", kwargs)

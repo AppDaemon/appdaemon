@@ -456,6 +456,17 @@ class HassPlugin(PluginBase):
 
     @hass_check
     async def set_plugin_state(self, namespace, entity_id, **kwargs):
+        # if self.AD.use_stream is True:
+        if False is True:
+            return await self.set_plugin_state_stream(namespace, entity_id, **kwargs)
+        else:
+            return await self.set_plugin_state_rest(namespace, entity_id, **kwargs)
+
+    async def set_plugin_state_stream(self, namespace, entity_id, **kwargs):
+        self.logger.warning("set_plugin_state_stream() called - not yet implemented]")
+        return None
+
+    async def set_plugin_state_rest(self, namespace, entity_id, **kwargs):
         self.logger.debug("set_plugin_state() %s %s %s", namespace, entity_id, kwargs)
 
         # if we get a request for not our namespace something has gone very wrong
@@ -495,6 +506,17 @@ class HassPlugin(PluginBase):
 
     @hass_check  # noqa: C901
     async def call_plugin_service(self, namespace, domain, service, data):
+        # if self.AD.use_stream is True:
+        if False is True:
+            return await self.call_plugin_service_stream(namespace, domain, service, data)
+        else:
+            return await self.call_plugin_service_rest(namespace, domain, service, data)
+
+    async def call_plugin_service_stream(self, namespace, domain, service, data):
+        self.logger.warning("all_plugin_service_stream() called - not yet implemented]")
+        return None
+
+    async def call_plugin_service_rest(self, namespace, domain, service, data):
         self.logger.debug(
             "call_plugin_service() namespace=%s domain=%s service=%s data=%s",
             namespace,
@@ -563,6 +585,17 @@ class HassPlugin(PluginBase):
             return None
 
     async def get_history(self, **kwargs):
+        # if self.AD.use_stream is True:
+        if False is True:
+            return await self.get_history_stream(**kwargs)
+        else:
+            return await self.get_history_rest(**kwargs)
+
+    async def get_history_stream(self, **kwargs):
+        self.logger.warning("get_history_stream() called - not yet implemented]")
+        return None
+
+    async def get_history_rest(self, **kwargs):
         """Used to get HA's History"""
 
         try:
@@ -655,6 +688,17 @@ class HassPlugin(PluginBase):
         return apiurl
 
     async def get_hass_state(self, entity_id=None):
+        # if self.AD.use_stream is True:
+        if False is True:
+            return await self.get_hass_state_stream(entity_id)
+        else:
+            return await self.get_hass_state_rest(entity_id)
+
+    async def get_hass_state_stream(self, entity_id):
+        self.logger.warning("get_hass_state_stream() called - not yet implemented]")
+        return None
+
+    async def get_hass_state_rest(self, entity_id):
         if entity_id is None:
             api_url = f"{self.ha_url}/api/states"
         else:
@@ -701,6 +745,17 @@ class HassPlugin(PluginBase):
             raise
 
     async def get_hass_config(self):
+        # if self.AD.use_stream is True:
+        if False is True:
+            return await self.get_hass_config_stream()
+        else:
+            return await self.get_hass_config_rest()
+
+    async def get_hass_config_stream(self):
+        self.logger.warning("get_hass_config_stream() called - not yet implemented]")
+        return None
+
+    async def get_hass_config_rest(self):
         try:
             self.logger.debug("get_ha_config()")
             api_url = f"{self.ha_url}/api/config"
@@ -722,7 +777,18 @@ class HassPlugin(PluginBase):
             self.logger.warning("Error getting metadata - retrying: %s", str(ex))
             raise
 
-    async def get_hass_services(self) -> dict:
+    async def get_hass_services(self):
+        # if self.AD.use_stream is True:
+        if False is True:
+            return await self.get_hass_services_stream()
+        else:
+            return await self.get_hass_services_rest()
+
+    async def get_hass_services_stream(self):
+        self.logger.warning("get_hass_services_stream() called - not yet implemented]")
+        return None
+
+    async def get_hass_services_rest(self) -> dict:
         try:
             self.logger.debug("get_hass_services()")
 
@@ -831,6 +897,17 @@ class HassPlugin(PluginBase):
 
     @hass_check
     async def fire_plugin_event(self, event, namespace, **kwargs):
+        # if self.AD.use_stream is True:
+        if False is True:
+            return await self.fire_plugin_event_stream(event, namespace, **kwargs)
+        else:
+            return await self.fire_plugin_event_rest(event, namespace, **kwargs)
+
+    async def fire_plugin_event_stream(self, event, namespace, **kwargs):
+        self.logger.warning("fire_plugin_event_stream() called - not yet implemented]")
+        return None
+
+    async def fire_plugin_event_rest(self, event, namespace, **kwargs):
         self.logger.debug("fire_event: %s, %s %s", event, namespace, kwargs)
 
         # if we get a request for not our namespace something has gone very wrong
@@ -861,6 +938,17 @@ class HassPlugin(PluginBase):
 
     @hass_check
     async def remove_entity(self, namespace, entity_id):
+        # if self.AD.use_stream is True:
+        if False is True:
+            return await self.remove_entity_stream(namespace, entity_id)
+        else:
+            return await self.remove_entity_rest(namespace, entity_id)
+
+    async def remove_entity_stream(self, namespace, entity_id):
+        self.logger.warning("remove_entity_stream() called - not yet implemented]")
+        return None
+
+    async def remove_entity_rest(self, namespace, entity_id):
         self.logger.debug("remove_entity() %s", entity_id)
 
         # if we get a request for not our namespace something has gone very wrong
