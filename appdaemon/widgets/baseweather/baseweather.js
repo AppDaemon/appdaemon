@@ -115,8 +115,8 @@ function baseweather(widget_id, url, skin, parameters)
             }
             else if (field == 'wind_bearing')
             {
-                var counts = [45, 90, 135, 180, 225, 270, 315]
-                var goal = (parseInt(state.state) + 270) % 360
+                var counts = [0, 45, 90, 135, 180, 225, 270, 315]
+                var goal = (parseInt(state.state) + 90) % 360
                 var closest = counts.reduce(function(prev, curr) {
                       return (Math.abs(curr - goal) < Math.abs(prev - goal) ? curr : prev);
                 });
