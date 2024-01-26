@@ -72,3 +72,9 @@ venv
 # Ruff
 
 .ruff_cache
+
+# IDE
+
+.vscode
+.devcontainer
+.devcontainer.json
