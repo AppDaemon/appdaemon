@@ -153,7 +153,7 @@ Have fun!
 Logs
 ----
 
-You can view the AppDaemon loda with this command:
+You can view the AppDaemon logs with this command:
 
 .. code:: console
 
