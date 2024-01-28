@@ -1,6 +1,6 @@
 # When changing this, make sure that the python major and minor version matches that provided by alpine's python3
 # package (see https://pkgs.alpinelinux.org/packages), otherwise alpine py3-* packages won't work
-ARG PYTHON_RELEASE=3.10 ALPINE_VERSION=3.17
+ARG PYTHON_RELEASE=3.11 ALPINE_VERSION=3.18
 ARG BASE_IMAGE=python:${PYTHON_RELEASE}-alpine${ALPINE_VERSION}
 # Image for building dependencies (on architectures that don't provide a ready-made Python wheel)
 FROM ${BASE_IMAGE} as builder

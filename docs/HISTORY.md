@@ -4,7 +4,8 @@
 
 **Features**
 
-- Added Pirateweather widget - contributed by ]Dave Dixon](https://github.com/DaveDixon)
+- Added Pirateweather widget - contributed by [Dave Dixon](https://github.com/DaveDixon)
+- Updated docker image to use Alpine 3.18 and Python 3.11
 
 **Fixes**
 
