@@ -188,6 +188,14 @@ The following options are available under the ``appdaemon`` section:
       This can be useful for troubleshooting thread starvation issues.
     - No
 
+  * - import_method
+    - By default, AppDaemon will add all subdirectories of appdir to the python interpreters path. This is intended to simplfy imports for simple applications. There is also an expert mode that will add just the top level appdir dircetory to the path allowing the user to use a more traditional hierarchical approach to imports. The default value for this directive is `normal`, set it to `expert` to enable the expert mode.
+    - No
+
+  * - import_paths
+    - Use this directive to add additional arbitary directories to the python interpreter's search path. Directories must be fully qualified.
+    - No
+
 
 .. _filters:
 

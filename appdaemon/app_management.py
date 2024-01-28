@@ -1,15 +1,15 @@
+import asyncio
+import copy
+import cProfile
+import importlib
+import io
+import logging
+import os
+import pstats
+import subprocess
 import sys
 import traceback
 import uuid
-import os
-import importlib
-import subprocess
-import cProfile
-import io
-import pstats
-import logging
-import asyncio
-import copy
 from collections import OrderedDict
 
 import appdaemon.utils as utils
@@ -884,18 +884,37 @@ class AppManagement:
 
             found_files = []
             modules = []
+
+            # One time static path additions
+            if mode == "init":
+                # Add root only if we are doing advanced importing
+                if self.AD.import_method != "normal":
+                    self.logger.info("Adding %s to module import path", self.AD.app_dir)
+                    sys.path.insert(0, self.AD.app_dir)
+                    self.module_dirs.append(self.AD.app_dir)
+
+                # Add any aditional import paths
+                for path in self.AD.import_paths:
+                    if os.path.isdir(path):
+                        self.logger.info("Adding %s to module import path", path)
+                        sys.path.insert(0, path)
+                        self.module_dirs.append(path)
+                    else:
+                        self.logger.warning(f"import_path {path} does not exist - not adding to path")
+
             for root, subdirs, files in await utils.run_in_executor(self, os.walk, self.AD.app_dir, topdown=True):
-                # print(root, subdirs, files)
+                # print(root)
                 #
                 # Prune dir list
                 #
                 subdirs[:] = [d for d in subdirs if d not in self.AD.exclude_dirs and "." not in d]
 
-                if root[-11:] != "__pycache__" and root[0] != ".":
-                    if root not in self.module_dirs:
-                        self.logger.info("Adding %s to module import path", root)
-                        sys.path.insert(0, root)
-                        self.module_dirs.append(root)
+                if self.AD.import_method == "normal":
+                    if root[-11:] != "__pycache__" and root[0] != ".":
+                        if root not in self.module_dirs:
+                            self.logger.info("Adding %s to module import path", root)
+                            sys.path.insert(0, root)
+                            self.module_dirs.append(root)
 
                 for file in files:
                     if file[-3:] == ".py" and file[0] != ".":

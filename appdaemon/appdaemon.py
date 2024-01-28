@@ -160,6 +160,12 @@ class AppDaemon:
         self.use_stream = False
         utils.process_arg(self, "use_stream", kwargs)
 
+        self.import_paths = []
+        utils.process_arg(self, "import_paths", kwargs)
+
+        self.import_method = "normal"
+        utils.process_arg(self, "import_method", kwargs)
+
         self.namespaces = {}
         utils.process_arg(self, "namespaces", kwargs)
 
