@@ -29,7 +29,7 @@ jobs:
       packages: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       # https://github.com/actions/setup-python
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -71,7 +71,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       # https://github.com/actions/setup-python
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -109,7 +109,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Download Python package
         uses: actions/download-artifact@v3
         with:
