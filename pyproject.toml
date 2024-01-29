@@ -11,7 +11,7 @@ requires-python = ">=3.8"
 keywords=[ "appdaemon", "home", "automation" ]
 dependencies = [
     'importlib-metadata; python_version<"3.8"',
-    'aiohttp ~= 3.8.4',
+    'aiohttp >= 3.8.4,< 3.10.0',
     'aiohttp_jinja2 ~= 1.5.1',
     'astral ~= 3.2',
     'bcrypt ~= 4.0.1',
@@ -59,7 +59,7 @@ dev = [
     "black >= 23.1,< 23.4",
     'pre-commit =~ 3.6.0; python_version>"3.7"',  # pre-commit does not support Python < 3.8
     "pytest >= 7.2.1,< 7.4.0",
-    "ruff~= 0.0.261"
+    "ruff>= 0.0.261,< 0.2.0"
 ]
 
 # Dependencies required to build the documentation using sphinx
