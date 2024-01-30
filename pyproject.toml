@@ -17,7 +17,7 @@ dependencies = [
     'bcrypt ~= 4.0.1',
     'deepdiff == 6.3.0',
     'feedparser ~= 6.0.10',
-    'iso8601 ~= 1.1.0',
+    'iso8601 >= 1.1,< 2.2',
     'paho-mqtt ~= 1.6.1',
     'pid ~= 3.0.4',
     'python-dateutil ~= 2.8.2',
