@@ -63,7 +63,7 @@ python-dateutil==2.8.2
     # via appdaemon (pyproject.toml)
 python-engineio==4.8.2
     # via python-socketio
-python-socketio==5.8.0
+python-socketio==5.11.0
     # via appdaemon (pyproject.toml)
 pytz==2023.3.post1
     # via appdaemon (pyproject.toml)
