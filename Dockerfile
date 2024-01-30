@@ -1,5 +1,11 @@
 # When changing this, make sure that the python major and minor version matches that provided by alpine's python3
 # package (see https://pkgs.alpinelinux.org/packages), otherwise alpine py3-* packages won't work
+# Due to incorrect PYTHONPATH
+# Test from docker shell:
+# $> apk add py3-scikit-learn
+# $> python3
+# >>> import sklearn
+# (No error and it worked!)
 ARG PYTHON_RELEASE=3.11 ALPINE_VERSION=3.18
 ARG BASE_IMAGE=python:${PYTHON_RELEASE}-alpine${ALPINE_VERSION}
 # Image for building dependencies (on architectures that don't provide a ready-made Python wheel)
