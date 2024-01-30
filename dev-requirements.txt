@@ -34,9 +34,7 @@ certifi==2023.11.17
 cfgv==3.4.0
     # via pre-commit
 charset-normalizer==3.3.2
-    # via
-    #   aiohttp
-    #   requests
+    # via requests
 click==8.1.7
     # via
     #   black
@@ -143,6 +141,7 @@ tomli==2.0.1
     #   appdaemon (pyproject.toml)
     #   black
     #   build
+    #   pip-tools
     #   pyproject-hooks
     #   pytest
 tomli-w==1.0.0

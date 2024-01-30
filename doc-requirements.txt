@@ -30,14 +30,12 @@ bidict==0.22.1
 certifi==2023.11.17
     # via requests
 charset-normalizer==3.3.2
-    # via
-    #   aiohttp
-    #   requests
+    # via requests
 colorama==0.4.6
     # via sphinx-autobuild
 deepdiff==6.3.0
     # via appdaemon (pyproject.toml)
-docutils==0.17.1
+docutils==0.19
     # via
     #   myst-parser
     #   sphinx
@@ -121,11 +119,12 @@ snowballstemmer==2.2.0
     # via sphinx
 sockjs==0.11.0
     # via appdaemon (pyproject.toml)
-sphinx==5.3.0
+sphinx==6.2.1
     # via
     #   myst-parser
     #   sphinx-autobuild
     #   sphinx-rtd-theme
+    #   sphinxcontrib-jquery
 sphinx-autobuild==2021.3.14
     # via appdaemon (pyproject.toml)
 sphinx-rtd-theme==2.0.0
@@ -136,6 +135,8 @@ sphinxcontrib-devhelp==1.0.6
     # via sphinx
 sphinxcontrib-htmlhelp==2.0.5
     # via sphinx
+sphinxcontrib-jquery==4.1
+    # via sphinx-rtd-theme
 sphinxcontrib-jsmath==1.0.1
     # via sphinx
 sphinxcontrib-qthelp==1.0.7
