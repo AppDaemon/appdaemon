@@ -79,7 +79,7 @@ multidict==6.0.4
     # via
     #   aiohttp
     #   yarl
-myst-parser==1.0.0
+myst-parser==2.0.0
     # via appdaemon (pyproject.toml)
 ordered-set==4.1.0
     # via deepdiff
