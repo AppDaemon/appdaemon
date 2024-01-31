@@ -39,7 +39,7 @@ click==8.1.7
     # via
     #   black
     #   pip-tools
-deepdiff==6.3.0
+deepdiff==6.7.1
     # via appdaemon (pyproject.toml)
 distlib==0.3.8
     # via virtualenv
