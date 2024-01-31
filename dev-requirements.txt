@@ -25,7 +25,7 @@ bidict==0.22.1
     # via python-socketio
 black==23.3.0
     # via appdaemon (pyproject.toml)
-build==0.10.0
+build==1.0.3
     # via
     #   appdaemon (pyproject.toml)
     #   pip-tools
