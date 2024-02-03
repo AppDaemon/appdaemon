@@ -86,7 +86,7 @@ function baseicon(widget_id, url, skin, parameters)
             {
                 self.set_icon(self, "icon", self.parameters.icons.default.icon);
                 self.set_field(self, "icon_style", self.parameters.icons.default.style);
-                set_service_call(self, self.parameters.default);
+                set_service_call(self, self.parameters.icons.default);
             }
             else
             {
