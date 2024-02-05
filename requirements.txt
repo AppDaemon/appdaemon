@@ -23,7 +23,7 @@ bcrypt==4.0.1
     # via appdaemon (pyproject.toml)
 bidict==0.22.1
     # via python-socketio
-certifi==2023.11.17
+certifi==2024.2.2
     # via requests
 charset-normalizer==3.3.2
     # via requests
