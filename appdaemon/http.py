@@ -164,10 +164,9 @@ class HTTP:
         try:
             url = urlparse(self.url)
 
-            net = url.netloc.split(":")
-            self.host = net[0]
+            self.host = url.hostname
             try:
-                self.port = net[1]
+                self.port = url.port
             except IndexError:
                 self.port = 80
 
@@ -367,7 +366,7 @@ class HTTP:
 
         self.runner = web.AppRunner(self.app)
         await self.runner.setup()
-        site = web.TCPSite(self.runner, "0.0.0.0", int(self.port), ssl_context=self.context)
+        site = web.TCPSite(self.runner, self.host, int(self.port), ssl_context=self.context)
         await site.start()
 
     async def stop_server(self):
