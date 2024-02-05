@@ -12,6 +12,8 @@
 
 **Fixes**
 
+- baseicon set_service_call fix - contributed by [lancasterJ](https://github.com/lancasterJ)
+
 **Breaking Changes**
 
 
