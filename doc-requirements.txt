@@ -35,7 +35,7 @@ colorama==0.4.6
     # via sphinx-autobuild
 deepdiff==6.3.0
     # via appdaemon (pyproject.toml)
-docutils==0.19
+docutils==0.20.1
     # via
     #   myst-parser
     #   sphinx
