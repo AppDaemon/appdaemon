@@ -47,7 +47,7 @@ jinja2==3.1.3
     # via aiohttp-jinja2
 markupsafe==2.1.4
     # via jinja2
-multidict==6.0.4
+multidict==6.0.5
     # via
     #   aiohttp
     #   yarl

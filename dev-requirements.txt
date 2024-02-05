@@ -73,7 +73,7 @@ markupsafe==2.1.4
     # via jinja2
 mccabe==0.7.0
     # via flake8
-multidict==6.0.4
+multidict==6.0.5
     # via
     #   aiohttp
     #   yarl
