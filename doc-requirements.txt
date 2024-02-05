@@ -97,7 +97,7 @@ python-engineio==4.8.2
     # via python-socketio
 python-socketio==5.11.0
     # via appdaemon (pyproject.toml)
-pytz==2023.3.post1
+pytz==2024.1
     # via appdaemon (pyproject.toml)
 pyyaml==6.0.1
     # via
@@ -125,7 +125,7 @@ sphinx==6.2.1
     #   sphinx-autobuild
     #   sphinx-rtd-theme
     #   sphinxcontrib-jquery
-sphinx-autobuild==2021.3.14
+sphinx-autobuild==2024.2.4
     # via appdaemon (pyproject.toml)
 sphinx-rtd-theme==2.0.0
     # via appdaemon (pyproject.toml)
@@ -151,7 +151,7 @@ tornado==6.4
     # via livereload
 urllib3==1.26.18
     # via requests
-uvloop==0.17.0 ; sys_platform != "win32"
+uvloop==0.19.0 ; sys_platform != "win32"
     # via appdaemon (pyproject.toml)
 websocket-client==1.7.0
     # via appdaemon (pyproject.toml)
