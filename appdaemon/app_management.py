@@ -401,7 +401,7 @@ class AppManagement:
 
         for root, subdirs, files in await utils.run_in_executor(self, os.walk, self.AD.app_dir):
             subdirs[:] = [d for d in subdirs if d not in self.AD.exclude_dirs and "." not in d]
-            if root[-11:] != "__pycache__" and root[0] != ".":
+            if utils.is_valid_root_path(root):
                 for file in files:
                     if file[-5:] == self.ext and file[0] != ".":
                         path = os.path.join(root, file)
@@ -544,7 +544,7 @@ class AppManagement:
         later_files["deleted"] = []
         for root, subdirs, files in os.walk(self.AD.app_dir):
             subdirs[:] = [d for d in subdirs if d not in self.AD.exclude_dirs and "." not in d]
-            if root[-11:] != "__pycache__" and root[0] != ".":
+            if utils.is_valid_root_path(root):
                 for file in files:
                     if file[-5:] == self.ext and file[0] != ".":
                         path = os.path.join(root, file)
@@ -910,7 +910,7 @@ class AppManagement:
                 subdirs[:] = [d for d in subdirs if d not in self.AD.exclude_dirs and "." not in d]
 
                 if self.AD.import_method == "normal":
-                    if root[-11:] != "__pycache__" and root[0] != ".":
+                    if utils.is_valid_root_path(root):
                         if root not in self.module_dirs:
                             self.logger.info("Adding %s to module import path", root)
                             sys.path.insert(0, root)
