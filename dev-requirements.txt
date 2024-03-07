@@ -94,7 +94,7 @@ pathspec==0.12.1
     # via black
 pid==3.0.4
     # via appdaemon (pyproject.toml)
-pip-tools==7.3.0
+pip-tools==7.4.1
     # via appdaemon (pyproject.toml)
 platformdirs==4.1.0
     # via
