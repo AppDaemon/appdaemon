@@ -124,7 +124,7 @@ class Threading:
             self.auto_pin = False
         else:
             apps = await self.AD.app_management.check_config(True, False)
-            self.total_threads = int(apps["active"])
+            self.total_threads = apps.active
 
         self.pin_apps = True
         utils.process_arg(self, "pin_apps", kwargs)

@@ -5,11 +5,11 @@ import datetime
 import traceback
 
 import appdaemon.utils as utils
+from appdaemon.app_management import UpdateMode
 from appdaemon.appdaemon import AppDaemon
 
 
 class Utility:
-
     """Class that includes the utility loop.
 
     Checks for file changes, overdue threads, thread starvation, and schedules regular state refreshes.
@@ -115,7 +115,7 @@ class Utility:
             if self.AD.apps is True:
                 self.logger.debug("Reading Apps")
 
-                await self.AD.app_management.check_app_updates(mode="init")
+                await self.AD.app_management.check_app_updates(mode=UpdateMode.INIT)
 
                 self.logger.info("App initialization complete")
                 #

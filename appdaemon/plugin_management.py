@@ -1,16 +1,17 @@
-import sys
-import os
-import traceback
-import datetime
 import asyncio
+import datetime
+import os
+import sys
+import traceback
+
 import async_timeout
 
-from appdaemon.appdaemon import AppDaemon
 import appdaemon.utils as utils
+from appdaemon.app_management import UpdateMode
+from appdaemon.appdaemon import AppDaemon
 
 
 class PluginBase:
-
     """
     Base class for plugins to set up _logging
     """
@@ -291,7 +292,7 @@ class Plugins:
 
                 if not first_time:
                     await self.AD.app_management.check_app_updates(
-                        self.get_plugin_from_namespace(namespace), mode="init"
+                        self.get_plugin_from_namespace(namespace), mode=UpdateMode.INIT
                     )
                 else:
                     #
