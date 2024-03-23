@@ -2190,11 +2190,9 @@ Here is an example of an App using the API:
         def initialize(self):
             self.register_endpoint(my_callback, "test_endpoint")
 
-        def my_callback(self, args, cb_args):
+        def my_callback(self, json_obj, cb_args):
 
-            data = await request.json()
-
-            self.log(data)
+            self.log(json_obj)
 
             response = {"message": "Hello World"}
 
