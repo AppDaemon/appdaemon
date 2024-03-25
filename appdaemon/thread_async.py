@@ -5,7 +5,6 @@ from appdaemon.appdaemon import AppDaemon
 
 
 class ThreadAsync:
-
     """
     Module to translate from the thread world to the async world via queues
     """

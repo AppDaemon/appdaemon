@@ -21,6 +21,8 @@ import appdaemon.logging as logging
 import appdaemon.utils as utils
 import pytz
 
+from appdaemon.app_management import UpdateMode
+
 try:
     import pid
 except ImportError:
@@ -81,7 +83,7 @@ class ADMain:
             self.AD.thread_async.call_async_no_wait(self.AD.app_management.dump_objects)
             self.AD.thread_async.call_async_no_wait(self.AD.sched.dump_sun)
         if signum == signal.SIGHUP:
-            self.AD.thread_async.call_async_no_wait(self.AD.app_management.check_app_updates, mode="term")
+            self.AD.thread_async.call_async_no_wait(self.AD.app_management.check_app_updates, mode=UpdateMode.TERMINATE)
         if signum == signal.SIGINT:
             self.logger.info("Keyboard interrupt")
             self.stop()

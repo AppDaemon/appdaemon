@@ -1,29 +1,33 @@
-import os
-from datetime import timedelta
 import asyncio
-import platform
-import functools
-import time
-import cProfile
-import io
-import pstats
-import shelve
-import threading
-import datetime
-import dateutil.parser
-import yaml
-import copy
-import json
-import sys
-import inspect
-from functools import wraps
-from appdaemon.version import __version__  # noqa: F401
-from collections.abc import Iterable
 import concurrent.futures
+import copy
+import cProfile
+import datetime
+import functools
+import importlib
+import inspect
+import io
+import json
+import os
+import platform
+import pstats
+import re
+import shelve
+import sys
+import threading
+import time
+from collections.abc import Iterable
+from datetime import timedelta
+from functools import wraps
+from types import ModuleType
+from typing import Callable
+
+import dateutil.parser
 import tomli
 import tomli_w
-import re
-from typing import Callable
+import yaml
+
+from appdaemon.version import __version__  # noqa: F401
 
 # Comment
 
@@ -756,3 +760,27 @@ def read_yaml_config(config_file_yaml):
     config = yaml.load(config_file_contents, Loader=yaml.SafeLoader)
 
     return config
+
+
+def recursive_reload(module: ModuleType, reloaded: set = None):
+    """Recursive reload function that does a depth-first search through all sub-modules and reloads them in the correct order of dependence.
+
+    Adapted from https://gist.github.com/KristianHolsheimer/f139646259056c1dffbf79169f84c5de
+    """
+    reloaded = reloaded or set()
+
+    for attr_name in dir(module):
+        attr = getattr(module, attr_name)
+        check = (
+            # is it a module?
+            isinstance(attr, ModuleType)
+            # has it already been reloaded?
+            and attr.__name__ not in reloaded
+            # is it a proper submodule?
+            and attr.__name__.startswith(module.__name__)
+        )
+        if check:
+            recursive_reload(attr, reloaded)
+
+    importlib.reload(module)
+    reloaded.add(module.__name__)
