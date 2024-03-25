@@ -15,17 +15,21 @@ from collections import OrderedDict
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Dict, Iterable, List
+from typing import Dict, Iterable, List, Literal
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
 
 
 class UpdateMode(Enum):
-    """Used as an argument for AppManagement.check_app_updates
+    """Used as an argument for :meth:`AppManagement.check_app_updates` to set the mode of the check.
 
     INIT
         Triggers AppManagement._init_update_mode to run during check_app_updates
+    NORMAL
+        Normal update mode, for when :meth:`AppManagement.check_app_updates` is called by :meth:`.utility_loop.Utility.loop`
+    TERMINATE
+        Terminate all apps
     """
 
     INIT = 0
@@ -35,16 +39,17 @@ class UpdateMode(Enum):
 
 @dataclass
 class ModuleLoad:
-    """Settings for AppManagement.read_app()"""
+    """Dataclass containing settings for calls to :meth:`AppManagement.read_app`
 
-    # Filepath of the module
+    Attributes:
+        path: Filepath of the module or path to the `__init__.py` of a package.
+        reload: Whether to reload the app using `importlib.reload`
+        name: Importable name of the module/package
+    """
+
     path: Path
-
-    # Whether to reload the app using importlib.reload
     reload: bool = False
-
-    # Importable module name
-    _name: str = field(init=False, repr=False)
+    name: str = field(init=False, repr=False)
 
     def __post_init__(self):
         # This is needed for loading a package the first time by name
@@ -57,19 +62,17 @@ class ModuleLoad:
             else:
                 self.name = self.path.stem
 
-    @property
-    def name(self) -> str:
-        """The importable name of the module"""
-        return self._name
-
-    @name.setter
-    def name(self, new: str):
-        self._name = new
-
 
 @dataclass
 class AppActions:
-    """Stores which apps to initialize and terminate, as well as the total number of apps and the number of active apps."""
+    """Stores which apps to initialize and terminate, as well as the total number of apps and the number of active apps.
+
+    Attributes:
+        init: Dictionary of apps to initialize, which ultimately happens in :meth:`AppManagement._load_apps` as part of :meth:`AppManagement.check_app_updates`
+        term: Dictionary of apps to terminate, which ultimately happens in :meth:`AppManagement._terminate_apps` as part of :meth:`AppManagement.check_app_updates`
+        total: Total number of apps
+        active: Number of active apps
+    """
 
     init: Dict[str, int] = field(default_factory=dict)
     term: Dict[str, int] = field(default_factory=dict)
@@ -84,7 +87,22 @@ class AppActions:
 
 
 class AppManagement:
-    def __init__(self, ad: AppDaemon, use_toml):
+    """Container object to manage the lifecycles of the apps
+
+    Attributes:
+        ext: Either `.yaml` or `.toml`
+        monitored_files: Dictionary of the Python files that are being watched for changes and their last modified times
+        modules: Dictionary of the loaded modules and their names
+    """
+
+    AD: AppDaemon
+    use_toml: bool
+    ext: Literal[".yaml", ".toml"]
+    modules: Dict[str, ModuleType]
+    monitored_files: Dict[str | Path, float]
+    filter_files: Dict[str, float]
+
+    def __init__(self, ad: AppDaemon, use_toml: bool):
         self.AD = ad
         self.use_toml = use_toml
         self.ext = ".toml" if use_toml is True else ".yaml"
@@ -93,7 +111,7 @@ class AppManagement:
         self.diag = ad.logging.get_diag()
         self.monitored_files = {}
         self.filter_files = {}
-        self.modules: Dict[str, ModuleType] = {}
+        self.modules = {}
         self.objects = {}
         self.check_app_updates_profile_stats = None
         self.check_updates_lock = None
@@ -950,6 +968,23 @@ class AppManagement:
 
     # @_timeit
     async def check_app_updates(self, plugin: str = None, mode: UpdateMode = UpdateMode.NORMAL):  # noqa: C901
+        """Checks the states of the Python files that define the apps, reloading when necessary.
+
+        Called as part of :meth:`.utility_loop.Utility.loop`
+
+        Args:
+            plugin (str, optional): Plugin to restart, if necessary. Defaults to None.
+            mode (UpdateMode, optional): Defaults to UpdateMode.NORMAL.
+
+        Check Process:
+            - Refresh modified times of monitored files.
+            - Checks for deleted files
+            - Marks the apps for reloading or removal as necessary
+            - Restarts the plugin, if specified
+            - Terminates apps as necessary
+            - Loads or reloads modules/pacakges as necessary
+            - Loads apps from the modules/packages
+        """
         async with self.check_updates_lock:
             if self.AD.apps is False:
                 return
@@ -1288,8 +1323,6 @@ class AppManagement:
                     else:
                         self.logger.debug("Cannot initialize app %s, as it didn't terminate properly", app)
 
-        return
-
     def get_app_deps_and_prios(self, applist: Iterable[str], mode: UpdateMode) -> Dict[str, float]:
         """Gets the dependencies and priorities for the given apps
 
@@ -1563,7 +1596,10 @@ class AppManagement:
         return executed
 
     def remove_app(self, app, **kwargs):
-        """Used to remove an app"""
+        """Used to remove an app
+
+        Seems to be unreferenced?
+        """
 
         result = None
         # now get the app's file
