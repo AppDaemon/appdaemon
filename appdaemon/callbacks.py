@@ -5,6 +5,12 @@ from appdaemon.appdaemon import AppDaemon
 
 
 class Callbacks:
+    """Subsystem container for events
+
+    Attributes:
+        AD: Reference to the AppDaemon container object
+    """
+
     def __init__(self, ad: AppDaemon):
         self.AD = ad
 

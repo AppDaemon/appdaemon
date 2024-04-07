@@ -5,6 +5,41 @@ import threading
 
 
 class AppDaemon:
+    """Top-level container for the subsystem objects. This gets passed to the subsystem objects and stored in them as the ``self.AD`` attribute.
+
+    Subsystems:
+
+    .. list-table::
+        :widths: 25, 50
+        :header-rows: 1
+
+        * - Attribute
+          - Object
+        * - ``services``
+          - :class:`~.services.Services`
+        * - ``sequences``
+          - :class:`~.sequences.Sequences`
+        * - ``state``
+          - :class:`~.state.State`
+        * - ``events``
+          - :class:`~.events.Events`
+        * - ``callbacks``
+          - :class:`~.callbacks.Callbacks`
+        * - ``futures``
+          - :class:`~.futures.Futures`
+        * - ``app_management``
+          - :class:`~.app_management.AppManagement`
+        * - ``threading``
+          - :class:`~.threading.Threading`
+        * - ``executor``
+          - :class:`~concurrent.futures.ThreadPoolExecutor`
+        * - ``plugins``
+          - :class:`~.plugin_management.Plugins`
+        * - ``utility``
+          - :class:`~.utility_loop.Utility`
+
+    """
+
     def __init__(self, logging, loop, **kwargs):
         #
         # Import various AppDaemon bits and pieces now to avoid circular import

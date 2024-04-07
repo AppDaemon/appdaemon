@@ -9,6 +9,12 @@ from appdaemon.appdaemon import AppDaemon
 
 
 class State:
+    """Subsystem container for tracking states
+
+    Attributes:
+        AD: Reference to the AppDaemon container object
+    """
+
     def __init__(self, ad: AppDaemon):
         self.AD = ad
 

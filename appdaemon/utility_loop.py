@@ -10,10 +10,13 @@ from appdaemon.appdaemon import AppDaemon
 
 
 class Utility:
-    """Class that includes the utility loop.
+    """Subsystem container for managing the utility loop
 
     Checks for file changes, overdue threads, thread starvation, and schedules regular state refreshes.
     """
+
+    AD: AppDaemon
+    stopping: bool
 
     def __init__(self, ad: AppDaemon):
         """Constructor.

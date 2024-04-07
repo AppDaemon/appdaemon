@@ -1,5 +1,3 @@
-"""Module to handle all events within AppDaemon."""
-
 import uuid
 from copy import deepcopy
 import traceback
@@ -10,7 +8,13 @@ import appdaemon.utils as utils
 
 
 class Events:
-    """Encapsulate event handling."""
+    """Subsystem container for handling all events
+
+    Attributes:
+        AD: Reference to the AppDaemon container object
+    """
+
+    AD: AppDaemon
 
     def __init__(self, ad: AppDaemon):
         """Constructor.

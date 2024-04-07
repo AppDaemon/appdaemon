@@ -87,20 +87,22 @@ class AppActions:
 
 
 class AppManagement:
-    """Container object to manage the lifecycles of the apps
+    """Subsystem container for managing app lifecycles
 
     Attributes:
-        ext: Either `.yaml` or `.toml`
         monitored_files: Dictionary of the Python files that are being watched for changes and their last modified times
+        filter_files: Dictionary of the modified times of the filter files and their paths.
         modules: Dictionary of the loaded modules and their names
+        objects: Dictionary of dictionaries with the instantiated apps, plugins, and sequences along with some metadata
     """
 
     AD: AppDaemon
     use_toml: bool
     ext: Literal[".yaml", ".toml"]
-    modules: Dict[str, ModuleType]
     monitored_files: Dict[str | Path, float]
     filter_files: Dict[str, float]
+    modules: Dict[str, ModuleType]
+    objects: Dict[str, Dict]
 
     def __init__(self, ad: AppDaemon, use_toml: bool):
         self.AD = ad
@@ -206,23 +208,17 @@ class AppManagement:
             self.diag.info("%s: %s", object_, self.objects[object_])
         self.diag.info("--------------------------------------------------")
 
-    async def get_app(self, name):
+    async def get_app(self, name: str):
         if name in self.objects:
             return self.objects[name]["object"]
-        else:
-            return None
 
-    def get_app_info(self, name):
+    def get_app_info(self, name: str):
         if name in self.objects:
             return self.objects[name]
-        else:
-            return None
 
-    async def get_app_instance(self, name, id):
+    async def get_app_instance(self, name: str, id):
         if name in self.objects and self.objects[name]["id"] == id:
             return self.AD.app_management.objects[name]["object"]
-        else:
-            return None
 
     async def initialize_app(self, name):
         if name in self.objects:
