@@ -37,7 +37,7 @@ frozenlist==1.4.1
     #   aiosignal
 h11==0.14.0
     # via wsproto
-idna==3.6
+idna==3.7
     # via
     #   requests
     #   yarl
