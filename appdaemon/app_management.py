@@ -15,7 +15,7 @@ from collections import OrderedDict
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Dict, Iterable, List, Literal
+from typing import Dict, Iterable, List, Literal, Union, Optional
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -99,7 +99,7 @@ class AppManagement:
     AD: AppDaemon
     use_toml: bool
     ext: Literal[".yaml", ".toml"]
-    monitored_files: Dict[str | Path, float]
+    monitored_files: Dict[Union[str, Path], float]
     filter_files: Dict[str, float]
     modules: Dict[str, ModuleType]
     objects: Dict[str, Dict]
@@ -125,7 +125,7 @@ class AppManagement:
         self.module_dirs = []
 
         # Keeps track of the name of the module and class to load for each app name
-        self.app_config: Dict[str, Dict[str, str | bool]] = {}
+        self.app_config: Dict[str, Dict[str, Dict[str, bool]]] = {}
         self.global_module_dependencies = {}
 
         self.apps_initialized = False
@@ -672,7 +672,7 @@ class AppManagement:
             self.logger.warning("-" * 60)
 
     # noinspection PyBroadException
-    async def check_config(self, silent=False, add_threads=True) -> AppActions | None:  # noqa: C901
+    async def check_config(self, silent=False, add_threads=True) -> Optional[AppActions]:  # noqa: C901
         terminate_apps = {}
         initialize_apps = {}
         total_apps = len(self.app_config)
@@ -878,14 +878,14 @@ class AppManagement:
     def get_module_from_path(path):
         return Path(path).stem
 
-    def get_file_from_module(self, module_name: str) -> Path | None:
+    def get_file_from_module(self, module_name: str) -> Optional[Path]:
         """Gets the module __file__ based on the module name.
 
         Args:
             mod (str): Module name
 
         Returns:
-            Path | None: Path of the __file__
+            Optional[Path]: Path of the __file__
         """
         module_name = module_name.split(".")[0]
         try:
@@ -956,7 +956,7 @@ class AppManagement:
         with open(file, "r"):
             pass
 
-    def add_to_import_path(self, path: str | Path):
+    def add_to_import_path(self, path: Union[str, Path]):
         path = str(path)
         self.logger.info("Adding directory to import path: %s", path)
         sys.path.insert(0, path)

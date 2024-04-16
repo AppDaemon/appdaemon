@@ -38,4 +38,4 @@ html_static_path = ["css"]
 # -- Intersphinx configuration -----------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/extensions/intersphinx.html
 
-intersphinx_mapping = {'python': ('https://docs.python.org/3', None)}
+intersphinx_mapping = {"python": ("https://docs.python.org/3", None)}
