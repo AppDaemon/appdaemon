@@ -1,19 +1,27 @@
-import sys
-import os
-import traceback
-import datetime
 import asyncio
+import datetime
+import os
+import sys
+import traceback
+
 import async_timeout
 
-from appdaemon.appdaemon import AppDaemon
 import appdaemon.utils as utils
+from appdaemon.app_management import UpdateMode
+from appdaemon.appdaemon import AppDaemon
 
 
 class PluginBase:
-
     """
     Base class for plugins to set up _logging
     """
+
+    AD: AppDaemon
+    bytes_sent: int
+    bytes_recv: int
+    requests_sent: int
+    updates_recv: int
+    last_check_ts: int
 
     def __init__(self, ad: AppDaemon, name, args):
         self.AD = ad
@@ -55,6 +63,17 @@ class PluginBase:
 
 
 class Plugins:
+    """Subsystem container for managing plugins
+
+    Attributes:
+        AD: Reference to the AppDaemon container object
+        plugin_meta: Dictionary storing the metadata for the loaded plugins
+        plugin_objs: Dictionary storing the instantiated plugin objects
+    """
+
+    AD: AppDaemon
+    stopping: bool
+    plugin_meta: dict[str, dict]
     required_meta = ["latitude", "longitude", "elevation", "time_zone"]
 
     def __init__(self, ad: AppDaemon, kwargs):
@@ -291,7 +310,7 @@ class Plugins:
 
                 if not first_time:
                     await self.AD.app_management.check_app_updates(
-                        self.get_plugin_from_namespace(namespace), mode="init"
+                        self.get_plugin_from_namespace(namespace), mode=UpdateMode.INIT
                     )
                 else:
                     #

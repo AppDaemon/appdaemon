@@ -53,12 +53,22 @@ main
 .. automodule:: appdaemon.plugin_management
    :members:
 
+scheduler
+=========
+
 .. automodule:: appdaemon.scheduler
    :members:
 
-scheduler
+services
 =========
+
 .. automodule:: appdaemon.services
+   :members:
+
+sequences
+=========
+
+.. automodule:: appdaemon.sequences
    :members:
 
 state

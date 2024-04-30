@@ -9,6 +9,14 @@ from appdaemon.exceptions import TimeOutException
 
 
 class Sequences:
+    """Subsystem container for managing sequences
+
+    Attributes:
+        AD: Reference to the AppDaemon container object
+    """
+
+    AD: AppDaemon
+
     def __init__(self, ad: AppDaemon):
         self.AD = ad
         self.logger = ad.logging.get_child("_sequences")

@@ -10,6 +10,14 @@ import appdaemon.utils as utils
 
 
 class Services:
+    """Subsystem container for handling services
+
+    Attributes:
+        AD: Reference to the AppDaemon container object
+    """
+
+    AD: AppDaemon
+
     def __init__(self, ad: AppDaemon):
         self.AD = ad
         self.services = {}
