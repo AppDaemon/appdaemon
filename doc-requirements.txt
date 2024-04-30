@@ -83,7 +83,7 @@ ordered-set==4.1.0
     # via deepdiff
 packaging==23.2
     # via sphinx
-paho-mqtt==1.6.1
+paho-mqtt==2.1.0
     # via appdaemon (pyproject.toml)
 pid==3.0.4
     # via appdaemon (pyproject.toml)

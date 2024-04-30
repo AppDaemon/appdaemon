@@ -88,7 +88,7 @@ packaging==23.2
     #   black
     #   build
     #   pytest
-paho-mqtt==1.6.1
+paho-mqtt==2.1.0
     # via appdaemon (pyproject.toml)
 pathspec==0.12.1
     # via black
