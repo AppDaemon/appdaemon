@@ -49,18 +49,15 @@ class ModuleLoad:
 
     path: Path
     reload: bool = False
-    name: str = field(init=False, repr=False)
+    name: str = field(init=False, repr=True)
 
     def __post_init__(self):
-        # This is needed for loading a package the first time by name
-        if isinstance(self.path, str):
-            self.name = self.path
-            self.path = None
+        self.path = Path(self.path)
+
+        if self.path.name == "__init__.py":
+            self.name = self.path.parent.name
         else:
-            if self.path.name == "__init__.py":
-                self.name = self.path.parent.name
-            else:
-                self.name = self.path.stem
+            self.name = self.path.stem
 
 
 @dataclass
