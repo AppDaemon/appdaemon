@@ -286,7 +286,7 @@ class State:
         else:
             return None
 
-    async def cancel_state_callback(self, handle, name):
+    async def cancel_state_callback(self, handle, name, silent=False):
         executed = False
         async with self.AD.callbacks.callbacks_lock:
             if name in self.AD.callbacks.callbacks and handle in self.AD.callbacks.callbacks[name]:
@@ -297,7 +297,7 @@ class State:
             if name in self.AD.callbacks.callbacks and self.AD.callbacks.callbacks[name] == {}:
                 del self.AD.callbacks.callbacks[name]
 
-        if not executed:
+        if not executed and not silent:
             self.logger.warning(
                 "Invalid callback handle '{}' in cancel_state_callback() from app {}".format(handle, name)
             )
