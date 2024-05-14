@@ -9,16 +9,19 @@ import pstats
 import subprocess
 import sys
 import traceback
-from types import ModuleType
 import uuid
 from collections import OrderedDict
 from dataclasses import dataclass, field
 from enum import Enum
+from logging import Logger
 from pathlib import Path
-from typing import Dict, Iterable, List, Literal, Union, Optional
+from types import ModuleType
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Literal, Optional, Union
 
 import appdaemon.utils as utils
-from appdaemon.appdaemon import AppDaemon
+
+if TYPE_CHECKING:
+    from appdaemon.appdaemon import AppDaemon
 
 
 class UpdateMode(Enum):
@@ -52,7 +55,7 @@ class ModuleLoad:
     name: str = field(init=False, repr=True)
 
     def __post_init__(self):
-        self.path = Path(self.path)
+        self.path = Path(self.path).resolve()
 
         if self.path.name == "__init__.py":
             self.name = self.path.parent.name
@@ -84,24 +87,45 @@ class AppActions:
 
 
 class AppManagement:
-    """Subsystem container for managing app lifecycles
+    """Subsystem container for managing app lifecycles"""
 
-    Attributes:
-        monitored_files: Dictionary of the Python files that are being watched for changes and their last modified times
-        filter_files: Dictionary of the modified times of the filter files and their paths.
-        modules: Dictionary of the loaded modules and their names
-        objects: Dictionary of dictionaries with the instantiated apps, plugins, and sequences along with some metadata
+    AD: "AppDaemon"
+    """Reference to the top-level AppDaemon container object
     """
-
-    AD: AppDaemon
     use_toml: bool
+    """Whether to use TOML files for configuration
+    """
     ext: Literal[".yaml", ".toml"]
+    logger: Logger
+    """Standard python logger named ``AppDaemon._app_management``
+    """
+    error: Logger
+    """Standard python logger named ``Error``
+    """
     monitored_files: Dict[Union[str, Path], float]
+    """Dictionary of the Python files that are being watched for changes and their last modified times
+    """
     filter_files: Dict[str, float]
+    """Dictionary of the modified times of the filter files and their paths.
+    """
     modules: Dict[str, ModuleType]
-    objects: Dict[str, Dict]
+    """Dictionary of the loaded modules and their names
+    """
+    objects: Dict[str, Dict[str, Any]]
+    """Dictionary of dictionaries with the instantiated apps, plugins, and sequences along with some metadata. Gets populated by
 
-    def __init__(self, ad: AppDaemon, use_toml: bool):
+    - ``self.init_object``, which instantiates the app classes
+    - ``self.init_plugin_object``
+    - ``self.init_sequence_object``
+    """
+    app_config: Dict[str, Dict[str, Dict[str, bool]]]
+    """Keeps track of which module and class each app comes from, along with any associated global modules. Gets set at the end of :meth:`~appdaemon.app_management.AppManagement.check_config`.
+    """
+    active_apps: List[str]
+    inactive_apps: List[str]
+    non_apps: List[str]
+
+    def __init__(self, ad: "AppDaemon", use_toml: bool):
         self.AD = ad
         self.use_toml = use_toml
         self.ext = ".toml" if use_toml is True else ".yaml"
@@ -122,7 +146,7 @@ class AppManagement:
         self.module_dirs = []
 
         # Keeps track of the name of the module and class to load for each app name
-        self.app_config: Dict[str, Dict[str, Dict[str, bool]]] = {}
+        self.app_config = {}
         self.global_module_dependencies = {}
 
         self.apps_initialized = False
@@ -217,7 +241,7 @@ class AppManagement:
         if name in self.objects and self.objects[name]["id"] == id:
             return self.AD.app_management.objects[name]["object"]
 
-    async def initialize_app(self, name):
+    async def initialize_app(self, name: str):
         if name in self.objects:
             init = getattr(self.objects[name]["object"], "initialize", None)
             if init is None:
@@ -372,7 +396,12 @@ class AppManagement:
         else:
             return "None"
 
-    async def init_object(self, app_name):
+    async def init_object(self, app_name: str):
+        """Instantiates an app by name and stores it in ``self.objects``
+
+        Args:
+            app_name (str): Name of the app, as defined in a config file
+        """
         app_args = self.app_config[app_name]
 
         # as it appears in the YAML definition of the app
@@ -481,7 +510,12 @@ class AppManagement:
 
         return True
 
-    async def read_config(self):  # noqa: C901
+    async def read_config(self) -> Dict[str, Dict[str, Any]]:  # noqa: C901
+        """Walks the apps directory and reads all the config files with :func:`~.utils.read_config_file`, which reads individual config files and runs in the :attr:`~.appdaemon.AppDaemon.executor`.
+
+        Returns:
+            Dict[str, Dict[str, Any]]: Loaded app configuration
+        """
         new_config = None
 
         for root, subdirs, files in await utils.run_in_executor(self, os.walk, self.AD.app_dir):
@@ -491,7 +525,7 @@ class AppManagement:
                     if file[-5:] == self.ext and file[0] != ".":
                         path = os.path.join(root, file)
                         self.logger.debug("Reading %s", path)
-                        config = await utils.run_in_executor(self, self.read_config_file, path)
+                        config: Dict[str, Dict] = await utils.run_in_executor(self, self.read_config_file, path)
                         valid_apps = {}
                         if type(config).__name__ == "dict":
                             for app in config:
@@ -658,7 +692,8 @@ class AppManagement:
         return later_files
 
     # Run in executor
-    def read_config_file(self, file):
+    def read_config_file(self, file) -> Dict[str, Dict]:
+        """Reads a single YAML or TOML file."""
         try:
             return utils.read_config_file(file)
         except Exception:
@@ -669,7 +704,16 @@ class AppManagement:
             self.logger.warning("-" * 60)
 
     # noinspection PyBroadException
-    async def check_config(self, silent=False, add_threads=True) -> Optional[AppActions]:  # noqa: C901
+    async def check_config(self, silent: bool = False, add_threads: bool = True) -> Optional[AppActions]:  # noqa: C901
+        """Wraps :meth:`~AppManagement.read_config`
+
+        Args:
+            silent (bool, optional): _description_. Defaults to False.
+            add_threads (bool, optional): _description_. Defaults to True.
+
+        Returns:
+            AppActions object with information about which apps to initialize and/or terminate
+        """
         terminate_apps = {}
         initialize_apps = {}
         total_apps = len(self.app_config)
@@ -823,7 +867,7 @@ class AppManagement:
         """Finds the apps that depend on a given file"""
         module_name = self.get_module_from_path(file)
         for app_name, cfg in self.app_config.items():
-            if "module" in cfg and cfg["module"] == module_name:
+            if "module" in cfg and cfg["module"].startswith(module_name):
                 return app_name
         return None
 
@@ -866,7 +910,6 @@ class AppManagement:
             elif "global_modules" in self.app_config and module_name in self.app_config["global_modules"]:
                 self.logger.info("Loading Global Module: %s", module_name)
                 self.modules[module_name] = importlib.import_module(module_name)
-            # elif "global" in
             else:
                 if self.AD.missing_app_warnings:
                     self.logger.warning("No app description found for: %s - ignoring", module_name)
@@ -892,8 +935,8 @@ class AppManagement:
             return None
         else:
             module_path = Path(module_obj.__file__)
-            if all(isinstance(f, Path) for f in self.monitored_files):
-                assert module_path in self.monitored_files
+            if self.monitored_files and all(isinstance(f, Path) for f in self.monitored_files):
+                assert module_path in self.monitored_files, f"{module_path} is not being monitored"
             return module_path
 
     def get_path_from_app(self, app_name: str) -> Path:
@@ -1057,7 +1100,7 @@ class AppManagement:
     def get_python_files(self) -> List[Path]:
         return [
             f
-            for f in Path(self.AD.app_dir).rglob("*.py")
+            for f in Path(self.AD.app_dir).resolve().rglob("*.py")
             # Prune dir list
             if f.parent.name not in self.AD.exclude_dirs and "." not in f.parent.name
         ]
@@ -1729,7 +1772,7 @@ class AppManagement:
 
         return None
 
-    async def increase_active_apps(self, name):
+    async def increase_active_apps(self, name: str):
         if name not in self.active_apps:
             self.active_apps.append(name)
 
@@ -1742,7 +1785,7 @@ class AppManagement:
         await self.set_state(self.active_apps_sensor, state=active_apps)
         await self.set_state(self.inactive_apps_sensor, state=inactive_apps)
 
-    async def increase_inactive_apps(self, name):
+    async def increase_inactive_apps(self, name: str):
         if name not in self.inactive_apps:
             self.inactive_apps.append(name)
 

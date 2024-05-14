@@ -3,10 +3,14 @@
 import asyncio
 import datetime
 import traceback
+from logging import Logger
+from typing import TYPE_CHECKING
 
 import appdaemon.utils as utils
 from appdaemon.app_management import UpdateMode
-from appdaemon.appdaemon import AppDaemon
+
+if TYPE_CHECKING:
+    from appdaemon.appdaemon import AppDaemon
 
 
 class Utility:
@@ -15,10 +19,14 @@ class Utility:
     Checks for file changes, overdue threads, thread starvation, and schedules regular state refreshes.
     """
 
-    AD: AppDaemon
-    stopping: bool
+    AD: "AppDaemon"
+    """Reference to the AppDaemon container object
+    """
 
-    def __init__(self, ad: AppDaemon):
+    stopping: bool
+    logger: Logger
+
+    def __init__(self, ad: "AppDaemon"):
         """Constructor.
 
         Args:
@@ -29,6 +37,7 @@ class Utility:
         self.stopping = False
         self.logger = ad.logging.get_child("_utility")
         self.booted = None
+        # self.AD.loop.create_task(self.loop())
 
     def stop(self):
         """Called by the AppDaemon object to terminate the loop cleanly

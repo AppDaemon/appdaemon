@@ -1,11 +1,37 @@
-import concurrent.futures
 import os
 import os.path
 import threading
+from asyncio import BaseEventLoop
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+from typing import TYPE_CHECKING, Union
+
+import appdaemon.utils as utils
+from appdaemon.admin_loop import AdminLoop
+from appdaemon.app_management import AppManagement
+from appdaemon.callbacks import Callbacks
+from appdaemon.events import Events
+from appdaemon.futures import Futures
+from appdaemon.plugin_management import Plugins
+from appdaemon.scheduler import Scheduler
+from appdaemon.sequences import Sequences
+from appdaemon.services import Services
+from appdaemon.state import State
+from appdaemon.thread_async import ThreadAsync
+from appdaemon.threading import Threading
+from appdaemon.utility_loop import Utility
+
+if TYPE_CHECKING:
+    from appdaemon.http import HTTP
+    from appdaemon.logging import Logging
 
 
 class AppDaemon:
     """Top-level container for the subsystem objects. This gets passed to the subsystem objects and stored in them as the ``self.AD`` attribute.
+
+    Asyncio:
+
+    :class:`~concurrent.futures.ThreadPoolExecutor`
 
     Subsystems:
 
@@ -15,50 +41,75 @@ class AppDaemon:
 
         * - Attribute
           - Object
+        * - ``app_management``
+          - :class:`~.app_management.AppManagement`
+        * - ``callbacks``
+          - :class:`~.callbacks.Callbacks`
+        * - ``events``
+          - :class:`~.events.Events`
+        * - ``futures``
+          - :class:`~.futures.Futures`
+        * - ``http``
+          - :class:`~.http.HTTP`
+        * - ``plugins``
+          - :class:`~.plugin_management.Plugins`
+        * - ``scheduler``
+          - :class:`~.scheduler.Scheduler`
         * - ``services``
           - :class:`~.services.Services`
         * - ``sequences``
           - :class:`~.sequences.Sequences`
         * - ``state``
           - :class:`~.state.State`
-        * - ``events``
-          - :class:`~.events.Events`
-        * - ``callbacks``
-          - :class:`~.callbacks.Callbacks`
-        * - ``futures``
-          - :class:`~.futures.Futures`
-        * - ``app_management``
-          - :class:`~.app_management.AppManagement`
         * - ``threading``
           - :class:`~.threading.Threading`
-        * - ``executor``
-          - :class:`~concurrent.futures.ThreadPoolExecutor`
-        * - ``plugins``
-          - :class:`~.plugin_management.Plugins`
         * - ``utility``
           - :class:`~.utility_loop.Utility`
 
+
     """
 
-    def __init__(self, logging, loop, **kwargs):
-        #
-        # Import various AppDaemon bits and pieces now to avoid circular import
-        #
+    # asyncio
+    loop: BaseEventLoop
+    """Main asyncio event loop
+    """
+    executor: ThreadPoolExecutor
+    """Executes functions from a pool of async threads. Configured with the ``threadpool_workers`` key. Defaults to 10.
+    """
 
-        import appdaemon.app_management as apps
-        import appdaemon.callbacks as callbacks
-        import appdaemon.events as events
-        import appdaemon.futures as futures
-        import appdaemon.plugin_management as plugins
-        import appdaemon.scheduler as scheduler
-        import appdaemon.sequences as sequences
-        import appdaemon.services as services
-        import appdaemon.state as state
-        import appdaemon.thread_async as appq
-        import appdaemon.threading
-        import appdaemon.utility_loop as utility
-        import appdaemon.utils as utils
+    # subsystems
+    app_management: AppManagement
+    callbacks: Callbacks
+    events: Events
+    futures: Futures
+    http: "HTTP"
+    logging: "Logging"
+    plugins: Plugins
+    scheduler: Scheduler
+    services: Services
+    sequences: Sequences
+    state: State
+    threading: Threading
+    utility: Utility
 
+    # shut down flag
+    stopping: bool
+
+    # settings
+    app_dir: Union[str, Path]
+    """Defined in the main YAML config under ``appdaemon.app_dir``. Defaults to ``./apps``
+    """
+    config_dir: Union[str, Path]
+    """Path to the AppDaemon configuration files. Defaults to the first folder that has ``./apps``
+
+    - ``~/.homeassistant``
+    - ``/etc/appdaemon``
+    """
+    apps: bool
+    """Flag for whether ``disable_apps`` was set in the AppDaemon config
+    """
+
+    def __init__(self, logging: "Logging", loop: BaseEventLoop, **kwargs):
         self.logging = logging
         self.logging.register_ad(self)
         self.logger = logging.get_logger()
@@ -71,10 +122,6 @@ class AppDaemon:
         self.booted = "booting"
         self.config["ad_version"] = utils.__version__
         self.check_app_updates_profile = ""
-
-        self.was_dst = False
-
-        self.last_state = None
 
         self.executor = None
         self.loop = None
@@ -223,37 +270,37 @@ class AppDaemon:
         #
         # Set up services
         #
-        self.services = services.Services(self)
+        self.services = Services(self)
 
         #
         # Set up sequences
         #
-        self.sequences = sequences.Sequences(self)
+        self.sequences = Sequences(self)
 
         #
         # Set up scheduler
         #
-        self.sched = scheduler.Scheduler(self)
+        self.sched = Scheduler(self)
 
         #
         # Set up state
         #
-        self.state = state.State(self)
+        self.state = State(self)
 
         #
         # Set up events
         #
-        self.events = events.Events(self)
+        self.events = Events(self)
 
         #
         # Set up callbacks
         #
-        self.callbacks = callbacks.Callbacks(self)
+        self.callbacks = Callbacks(self)
 
         #
         # Set up futures
         #
-        self.futures = futures.Futures(self)
+        self.futures = Futures(self)
 
         if self.apps is True:
             if self.app_dir is None:
@@ -266,13 +313,16 @@ class AppDaemon:
             utils.check_path("config_dir", self.logger, self.config_dir, permissions="rwx")
             utils.check_path("appdir", self.logger, self.app_dir)
 
+            self.config_dir = os.path.abspath(self.config_dir)
+            self.app_dir = os.path.abspath(self.app_dir)
+
             # Initialize Apps
 
-            self.app_management = apps.AppManagement(self, self.use_toml)
+            self.app_management = AppManagement(self, self.use_toml)
 
             # threading setup
 
-            self.threading = appdaemon.threading.Threading(self, kwargs)
+            self.threading = Threading(self, kwargs)
 
         self.stopping = False
 
@@ -282,33 +332,34 @@ class AppDaemon:
         if "threadpool_workers" in kwargs:
             self.threadpool_workers = int(kwargs["threadpool_workers"])
 
-        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=self.threadpool_workers)
+        self.executor = ThreadPoolExecutor(max_workers=self.threadpool_workers)
 
         # Initialize Plugins
-
-        if "plugins" in kwargs:
-            args = kwargs["plugins"]
-        else:
-            args = None
-
-        self.plugins = plugins.Plugins(self, args)
+        args = kwargs.get("plugins", None)
+        self.plugins = Plugins(self, args)
 
         # Create thread_async Loop
-
         self.logger.debug("Starting thread_async loop")
-
         if self.apps is True:
-            self.thread_async = appq.ThreadAsync(self)
+            self.thread_async = ThreadAsync(self)
             loop.create_task(self.thread_async.loop())
 
         # Create utility loop
-
         self.logger.debug("Starting utility loop")
-
-        self.utility = utility.Utility(self)
+        self.utility = Utility(self)
         loop.create_task(self.utility.loop())
 
     def stop(self):
+        """Called by the signal handler to shut AD down.
+
+        Also stops
+
+        - :class:`~.admin_loop.AdminLoop`
+        - :class:`~.thread_async.ThreadAsync`
+        - :class:`~.scheduler.Scheduler`
+        - :class:`~.utility_loop.Utility`
+        - :class:`~.plugin_management.Plugins`
+        """
         self.stopping = True
         if self.admin_loop is not None:
             self.admin_loop.stop()
@@ -329,14 +380,14 @@ class AppDaemon:
     # Utilities
     #
 
-    def register_http(self, http):
-        import appdaemon.admin_loop as admin_loop
+    def register_http(self, http: "HTTP"):
+        """Sets the ``self.http`` attribute with a :class:`~.http.HTTP` object and starts the admin loop."""
 
-        self.http = http
+        self.http: "HTTP" = http
         # Create admin loop
 
         if http.old_admin is not None or http.admin is not None:
             self.logger.debug("Starting admin loop")
 
-            self.admin_loop = admin_loop.AdminLoop(self)
+            self.admin_loop = AdminLoop(self)
             self.loop.create_task(self.admin_loop.loop())

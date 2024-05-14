@@ -1,7 +1,10 @@
 import asyncio
 import traceback
+from logging import Logger
+from typing import TYPE_CHECKING
 
-from appdaemon.appdaemon import AppDaemon
+if TYPE_CHECKING:
+    from appdaemon.appdaemon import AppDaemon
 
 
 class ThreadAsync:
@@ -9,14 +12,15 @@ class ThreadAsync:
     Module to translate from the thread world to the async world via queues
     """
 
-    def __init__(self, ad: AppDaemon):
+    AD: "AppDaemon"
+    stopping: bool
+    logging: Logger
+    appq: asyncio.Queue
+
+    def __init__(self, ad: "AppDaemon"):
         self.AD = ad
         self.stopping = False
         self.logger = ad.logging.get_child("_thread_async")
-        #
-        # Initial Setup
-        #
-
         self.appq = asyncio.Queue(maxsize=0)
 
     def stop(self):

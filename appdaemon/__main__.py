@@ -15,13 +15,13 @@ import platform
 import signal
 import sys
 
-import appdaemon.appdaemon as ad
-import appdaemon.http as adhttp
-import appdaemon.logging as logging
-import appdaemon.utils as utils
 import pytz
 
+import appdaemon.appdaemon as ad
+import appdaemon.utils as utils
 from appdaemon.app_management import UpdateMode
+from appdaemon.http import HTTP
+from appdaemon.logging import Logging
 
 try:
     import pid
@@ -38,6 +38,8 @@ class ADMain:
     """
     Class to encapsulate all main() functionality.
     """
+
+    logging: Logging
 
     def __init__(self):
         """Constructor."""
@@ -104,7 +106,7 @@ class ADMain:
             self.http_object.stop()
 
     # noinspection PyBroadException,PyBroadException
-    def run(self, appdaemon, hadashboard, admin, aui, api, http):
+    def run(self, appdaemon: ad.AppDaemon, hadashboard, admin, aui, api, http):
         """Start AppDaemon up after initial argument parsing.
 
         Args:
@@ -126,7 +128,7 @@ class ADMain:
                 self.logger.info("Running AD using uvloop")
                 uvloop.install()
 
-            loop = asyncio.get_event_loop()
+            loop: asyncio.BaseEventLoop = asyncio.get_event_loop()
 
             # Initialize AppDaemon
 
@@ -138,7 +140,7 @@ class ADMain:
                 hadashboard is not None or admin is not None or aui is not None or api is not False
             ):
                 self.logger.info("Initializing HTTP")
-                self.http_object = adhttp.HTTP(
+                self.http_object = HTTP(
                     self.AD,
                     loop,
                     self.logging,
@@ -357,7 +359,7 @@ class ADMain:
         else:
             logs = {}
 
-        self.logging = logging.Logging(logs, args.debug)
+        self.logging = Logging(logs, args.debug)
         self.logger = self.logging.get_logger()
 
         if "time_zone" in config["appdaemon"]:

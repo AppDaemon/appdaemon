@@ -1,9 +1,20 @@
-from appdaemon.appdaemon import AppDaemon
 import functools
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from appdaemon.appdaemon import AppDaemon
 
 
 class Futures:
-    def __init__(self, ad: AppDaemon):
+    """Subsystem container for managing :class:`~asyncio.Future` objects
+
+    Attributes:
+        AD: Reference to the AppDaemon container object
+    """
+
+    AD: "AppDaemon"
+
+    def __init__(self, ad: "AppDaemon"):
         self.AD = ad
 
         self.futures = {}

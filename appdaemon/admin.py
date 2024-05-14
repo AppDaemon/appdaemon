@@ -1,14 +1,17 @@
 import os
 import traceback
+from typing import TYPE_CHECKING
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 import appdaemon.utils as utils
-from appdaemon.appdaemon import AppDaemon
+
+if TYPE_CHECKING:
+    from appdaemon.appdaemon import AppDaemon
 
 
 class Admin:
-    def __init__(self, config_dir, logger, ad: AppDaemon, **kwargs):
+    def __init__(self, config_dir, logger, ad: "AppDaemon", **kwargs):
         #
         # Set Defaults
         #
