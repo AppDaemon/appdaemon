@@ -1,13 +1,16 @@
-from appdaemon.appdaemon import AppDaemon
-from appdaemon.exceptions import TimeOutException
-import appdaemon.utils as utils
-
-from typing import Any, Optional, Callable, Union
-from logging import Logger
 import asyncio
 import uuid
-import iso8601
 from collections.abc import Iterable
+from logging import Logger
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union
+
+import iso8601
+
+import appdaemon.utils as utils
+from appdaemon.exceptions import TimeOutException
+
+if TYPE_CHECKING:
+    from appdaemon.appdaemon import AppDaemon
 
 
 class EntityAttrs:
@@ -20,11 +23,12 @@ class EntityAttrs:
 
 
 class Entity:
+    AD: "AppDaemon"
+    name: str
+    logger: Logger
     states_attrs = EntityAttrs()
 
-    def __init__(self, logger: Logger, ad: AppDaemon, name: str, namespace: str, entity_id: str):
-        # Store args
-
+    def __init__(self, logger: Logger, ad: "AppDaemon", name: str, namespace: str, entity_id: str):
         self.AD = ad
         self.name = name
         self.logger = logger
@@ -434,7 +438,7 @@ class Entity:
     #
 
     @classmethod
-    def entity_api(cls, logger: Logger, ad: AppDaemon, name: str, namespace: str, entity: str):
+    def entity_api(cls, logger: Logger, ad: "AppDaemon", name: str, namespace: str, entity: str):
         return cls(logger, ad, name, namespace, entity)
 
     #

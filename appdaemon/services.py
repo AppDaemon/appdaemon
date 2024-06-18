@@ -1,12 +1,15 @@
+import asyncio
 import threading
 import traceback
-import asyncio
 from copy import deepcopy
-from typing import Any, Optional, Callable, Awaitable
+from logging import Logger
+from typing import TYPE_CHECKING, Any, Awaitable, Callable, Dict, Optional, Set
 
-from appdaemon.appdaemon import AppDaemon
-from appdaemon.exceptions import NamespaceException, DomainException, ServiceException
 import appdaemon.utils as utils
+from appdaemon.exceptions import DomainException, NamespaceException, ServiceException
+
+if TYPE_CHECKING:
+    from appdaemon.appdaemon import AppDaemon
 
 
 class Services:
@@ -16,9 +19,13 @@ class Services:
         AD: Reference to the AppDaemon container object
     """
 
-    AD: AppDaemon
+    AD: "AppDaemon"
+    logger: Logger
+    services: Dict[str, Dict[str, Any]]
+    services_lock: threading.RLock
+    app_registered_services: Dict[str, Set]
 
-    def __init__(self, ad: AppDaemon):
+    def __init__(self, ad: "AppDaemon"):
         self.AD = ad
         self.services = {}
         self.services_lock = threading.RLock()
@@ -26,7 +33,7 @@ class Services:
         self.logger = ad.logging.get_child("_services")
 
     def register_service(
-        self, namespace: str, domain: str, service: str, callback: Callable, **kwargs: Optional[Any]
+        self, namespace: str, domain: str, service: str, callback: Callable, **kwargs: Optional[Dict[str, Any]]
     ) -> None:
         self.logger.debug(
             "register_service called: %s.%s.%s -> %s",

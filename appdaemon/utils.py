@@ -20,7 +20,7 @@ from collections.abc import Iterable
 from datetime import timedelta
 from functools import wraps
 from types import ModuleType
-from typing import Callable
+from typing import Any, Callable, Dict
 
 import dateutil.parser
 import tomli
@@ -293,17 +293,30 @@ def day_of_week(day):
     nums = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
     days = {day: idx for idx, day in enumerate(nums)}
 
-    if type(day) == str:
+    if isinstance(day, str):
         return days[day]
-    if type(day) == int:
+    if isinstance(day, int):
         return nums[day]
     raise ValueError("Incorrect type for 'day' in day_of_week()'")
 
 
-async def run_in_executor(self, fn, *args, **kwargs):
-    completed, pending = await asyncio.wait(
-        [self.AD.loop.run_in_executor(self.AD.executor, functools.partial(fn, *args, **kwargs))]
-    )
+async def run_in_executor(self, fn, *args, **kwargs) -> Any:
+    """Runs the function with the given arguments in the instance of :class:`~concurrent.futures.ThreadPoolExecutor` in the top-level :class:`~appdaemon.appdaemon.AppDaemon` object.
+
+    Args:
+        self: Needs to have an ``AD`` attribute with the :class:`~appdaemon.appdaemon.AppDaemon` object
+        fn (function): Function to run in the executor
+        *args: Any positional arguments to use with the function
+        **kwargs: Any keyword arguments to use with the function
+
+    Returns:
+        Whatever the function returns
+    """
+    loop: asyncio.BaseEventLoop = self.AD.loop
+    executor: concurrent.futures.ThreadPoolExecutor = self.AD.executor
+    preloaded_function = functools.partial(fn, *args, **kwargs)
+
+    completed, pending = await asyncio.wait([loop.run_in_executor(executor, preloaded_function)])
     future = list(completed)[0]
     response = future.result()
     return response
@@ -370,7 +383,7 @@ def deepcopy(data):
     return result
 
 
-def find_path(name):
+def find_path(name: str):
     for path in [
         os.path.join(os.path.expanduser("~"), ".homeassistant"),
         os.path.join(os.path.sep, "etc", "appdaemon"),
@@ -584,7 +597,8 @@ def write_toml_config(path, **kwargs):
         tomli_w.dump(kwargs, stream)
 
 
-def read_config_file(path):
+def read_config_file(path) -> Dict[str, Dict]:
+    """Reads a single YAML or TOML file."""
     extension = os.path.splitext(path)[1]
     if extension == ".yaml":
         return read_yaml_config(path)
@@ -699,7 +713,7 @@ def _include_yaml(loader, node):
         return yaml.load(f, Loader=yaml.SafeLoader)
 
 
-def read_yaml_config(config_file_yaml):
+def read_yaml_config(config_file_yaml) -> Dict[str, Dict]:
     #
     # First locate secrets file
     #

@@ -1,21 +1,31 @@
-import datetime
-import pytz
-import sys
-import uuid
 import copy
-
+import datetime
 import logging
-from logging.handlers import RotatingFileHandler
-from logging import StreamHandler
-from collections import OrderedDict
+import sys
 import traceback
+import uuid
+from collections import OrderedDict
+from logging import Logger, StreamHandler
+from logging.handlers import RotatingFileHandler
+from typing import Any, Callable, Dict, List, Optional, Union
 
-from appdaemon.thread_async import AppDaemon
+import pytz
+
 import appdaemon.utils as utils
+from appdaemon.appdaemon import AppDaemon
 
 
 class DuplicateFilter(logging.Filter):
-    def __init__(self, logger, threshold, delay, timeout):
+    """:class:`logging.Filter` that filters duplicate messages"""
+
+    threshold: int
+    timeout: float
+    delay: float
+    filtering: bool
+    """Flag to track if the filter is active or not.
+    """
+
+    def __init__(self, logger: logging.Logger, threshold: float, delay: float, timeout: float):
         self.logger = logger
         self.last_log = None
         self.current_count = 0
@@ -27,7 +37,7 @@ class DuplicateFilter(logging.Filter):
         self.timeout = timeout
         self.last_log_time = None
 
-    def filter(self, record):
+    def filter(self, record: logging.LogRecord) -> bool:
         if record.msg == "Previous message repeated %s times":
             return True
         if self.threshold == 0:
@@ -165,6 +175,14 @@ class LogSubscriptionHandler(StreamHandler):
 
 
 class Logging:
+    """Creates and configures the Python logging. The top-level logger is called ``AppDaemon``. Child loggers are created with :meth:`~Logging.get_child`."""
+
+    AD: "AppDaemon"
+    """Reference to the top-level AppDaemon container object
+    """
+
+    config: Dict[str, Dict[str, Any]]
+
     log_levels = {
         "CRITICAL": 50,
         "ERROR": 40,
@@ -174,7 +192,7 @@ class Logging:
         "NOTSET": 0,
     }
 
-    def __init__(self, config, log_level):
+    def __init__(self, config: Optional[Dict] = None, log_level: str = "INFO"):
         self.AD = None
         self.tz = None
 
@@ -367,7 +385,8 @@ class Logging:
             return True
         return False
 
-    def register_ad(self, ad):
+    def register_ad(self, ad: "AppDaemon"):
+        """Adds a reference to the top-level ``AppDaemon`` object. This is necessary because the Logging object gets created first."""
         self.AD = ad
 
         # Log Subscriptions
@@ -379,21 +398,38 @@ class Logging:
                 lh.setLevel(logging.INFO)
                 self.config[log]["logger"].addHandler(lh)
 
-    # Log Objects
+    # Logger Objects
+    def get_error(self) -> Logger:
+        """Gets the top-level error log
 
-    def get_error(self):
+        Returns:
+            Logger: Python logger named ``Error``
+        """
         return self.config["error_log"]["logger"]
 
-    def get_logger(self):
+    def get_logger(self) -> Logger:
+        """Gets the top-level log
+
+        Returns:
+            Logger: Python logger named ``AppDaemon``
+        """
         return self.config["main_log"]["logger"]
 
-    def get_access(self):
+    def get_access(self) -> Logger:
+        """
+        Returns:
+            Logger: Python logger named ``Access``
+        """
         return self.config["access_log"]["logger"]
 
-    def get_diag(self):
+    def get_diag(self) -> Logger:
+        """
+        Returns:
+            Logger: Python logger named ``Diag``
+        """
         return self.config["diag_log"]["logger"]
 
-    def get_filename(self, log):
+    def get_filename(self, log: str):
         return self.config[log]["filename"]
 
     def get_user_log(self, app, log):
@@ -402,7 +438,19 @@ class Logging:
             return None
         return self.config[log]["logger"]
 
-    def get_child(self, name):
+    def get_child(self, name: str) -> Logger:
+        """Creates a logger with the name ``AppDaemon.<name>``. Automatically adds a :class:`~DuplicateFilter` with the config options from ``main_log``:
+
+        - filter_threshold
+        - filter_repeat_delay
+        - filter_timeout
+
+        Args:
+            name (str): Child name for the logger.
+
+        Returns:
+            Logger: Child logger
+        """
         logger = self.get_logger().getChild(name)
         logger.addFilter(
             DuplicateFilter(
@@ -458,12 +506,12 @@ class Logging:
             return True
         return False
 
-    async def add_log_callback(self, namespace, name, cb, level, **kwargs):
+    async def add_log_callback(self, namespace: str, name: str, cb: Callable, level, **kwargs):
         """Adds a callback for log which is called internally by apps.
 
         Args:
-            name (str): Name of the app.
             namespace  (str): Namespace of the log event.
+            name (str): Name of the app.
             cb: Callback function.
             event (str): Name of the event.
             **kwargs: List of values to filter on, and additional arguments to pass to the callback.
@@ -598,16 +646,12 @@ class Logging:
         for remove in removes:
             await self.cancel_log_callback(remove["name"], remove["uuid"])
 
-    async def cancel_log_callback(self, name, handles):
-        """Cancels an log callback.
+    async def cancel_log_callback(self, name: str, handles: Union[str, List[str]]):
+        """Cancels log callback(s).
 
         Args:
             name (str): Name of the app or module.
-            handle: Previously supplied callback handle for the callback.
-
-        Returns:
-            None.
-
+            handles (Union[str, List[str]]): Callback handle or list of them
         """
 
         executed = False

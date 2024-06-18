@@ -40,16 +40,30 @@ events
 .. automodule:: appdaemon.events
    :members:
 
+futures
+=======
+.. automodule:: appdaemon.futures
+   :members:
+
+http
+======
+.. automodule:: appdaemon.http
+   :members:
+
 logging
 =======
 .. automodule:: appdaemon.logging
    :members:
 
+main
+====
+
 .. automodule:: appdaemon.__main__
    :members:
 
-main
-====
+plugins
+=======
+
 .. automodule:: appdaemon.plugin_management
    :members:
 
