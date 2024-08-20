@@ -1439,7 +1439,7 @@ class ADAPI:
             return await self.get_entity_api(namespace, entity_id).listen_state(callback, **kwargs)
 
     @utils.sync_wrapper
-    async def cancel_listen_state(self, handle: str) -> bool:
+    async def cancel_listen_state(self, handle: str, silent=False) -> bool:
         """Cancels a ``listen_state()`` callback.
 
         This will mean that the App will no longer be notified for the specific
@@ -1448,6 +1448,7 @@ class ADAPI:
 
         Args:
             handle: The handle returned when the ``listen_state()`` call was made.
+            silent (bool, optional): If ``True``, no warning will be issued if the handle is not found.
 
         Returns:
             Boolean.
@@ -1455,9 +1456,13 @@ class ADAPI:
         Examples:
             >>> self.cancel_listen_state(self.office_light_handle)
 
+            Don't display a warning if the handle is not found.
+
+            >>> self.cancel_listen_state(self.dummy_handle, silent=True)
+
         """
         self.logger.debug("Canceling listen_state for %s", self.name)
-        return await self.AD.state.cancel_state_callback(handle, self.name)
+        return await self.AD.state.cancel_state_callback(handle, self.name, silent)
 
     @utils.sync_wrapper
     async def info_listen_state(self, handle: str) -> dict:
