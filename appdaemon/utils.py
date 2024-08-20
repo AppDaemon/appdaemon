@@ -441,6 +441,11 @@ def find_owner(filename):
     return pwd.getpwuid(os.stat(filename).st_uid).pw_name
 
 
+def is_valid_root_path(root: str) -> bool:
+    root = os.path.basename(root)
+    return root != "__pycache__" and not root.startswith(".")
+
+
 def check_path(type, logger, inpath, pathtype="directory", permissions=None):  # noqa: C901
     # disable checks for windows platform
 
