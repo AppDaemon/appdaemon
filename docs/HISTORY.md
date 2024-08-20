@@ -9,10 +9,13 @@
 - Added ability to know the topic associated with an MQTT message decode error
 - Added `expert` mode for python imports via the `import_method` directive
 - Added `import_path` directive to enable python imports from arbitary paths
+- Added access to the request object for both async and non-async http callbacks - contributed by [Eric Severance](https://github.com/esev)
+- Added option for N deg rising|setting to Scheduler._parse_time
 
 **Fixes**
 
 - baseicon set_service_call fix - contributed by [lancasterJ](https://github.com/lancasterJ)
+- HTTP module now correctly honors the provided host name instead of binding to 0.0.0.0, and also works for IPv6 - contributed by [bitstacker](https://github.com/bitstacker)
 
 **Breaking Changes**
 

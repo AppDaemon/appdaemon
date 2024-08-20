@@ -40,6 +40,7 @@ AppDaemon is developed and maintained by a small team of hard working folks:
 
 - `Andrew Cockburn <https://github.com/acockburn>`__ - AppDaemon founder, Chief Architect and Benevolent Dictator For Life.
 - `Odianosen Ejale <https://github.com/Odianosen25>`__ - Core & MQTT Development and maintenance, fixer and tester.
+- `John Lancaster <https://github.com/jsl12>`__ - New 'hire' that shows promse!
 
 Contributors
 ^^^^^^^^^^^^
