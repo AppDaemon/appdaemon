@@ -18,7 +18,7 @@ dependencies = [
     'deepdiff == 6.3.0',
     'feedparser ~= 6.0.10',
     'iso8601 >= 1.1,< 2.2',
-    'paho-mqtt ~= 1.6.1',
+    'paho-mqtt >= 1.6.1,< 2.2.0',
     'pid ~= 3.0.4',
     'python-dateutil ~= 2.8.2',
     'python-socketio >= 5.5,< 5.12',
