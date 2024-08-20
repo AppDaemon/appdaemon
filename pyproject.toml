@@ -11,7 +11,7 @@ requires-python = ">=3.8"
 keywords=[ "appdaemon", "home", "automation" ]
 dependencies = [
     'importlib-metadata; python_version<"3.8"',
-    'aiohttp >= 3.9.0,< 3.10.0',
+    'aiohttp >= 3.9.0,< 3.11.0',
     'aiohttp_jinja2 >= 1.5.1,< 1.7.0',
     'astral ~= 3.2',
     'bcrypt ~= 4.0.1',
