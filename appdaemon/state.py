@@ -1,15 +1,28 @@
-import uuid
-import traceback
-import os
-from copy import copy, deepcopy
 import datetime
+import os
+import traceback
+import uuid
+from copy import copy, deepcopy
+from logging import Logger
+from typing import TYPE_CHECKING
 
 import appdaemon.utils as utils
-from appdaemon.appdaemon import AppDaemon
+
+if TYPE_CHECKING:
+    from appdaemon.appdaemon import AppDaemon
 
 
 class State:
-    def __init__(self, ad: AppDaemon):
+    """Subsystem container for tracking states
+
+    Attributes:
+        AD: Reference to the AppDaemon container object
+    """
+
+    AD: "AppDaemon"
+    logger: Logger
+
+    def __init__(self, ad: "AppDaemon"):
         self.AD = ad
 
         self.state = {"default": {}, "admin": {}, "rules": {}}

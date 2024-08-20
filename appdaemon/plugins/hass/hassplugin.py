@@ -650,11 +650,11 @@ class HassPlugin(PluginBase):
         days = max(0, kwargs.get("days", 0))
 
         def as_datetime(args, key):
-            if key in args:
-                if isinstance(args[key], str):
-                    return utils.str_to_dt(args(key)).replace(microsecond=0)
-                elif isinstance(args[key], datetime.datetime):
-                    return self.AD.tz.localize(args[key]).replace(microsecond=0)
+            if val := args.get(key):
+                if isinstance(val, str):
+                    return utils.str_to_dt(val).replace(microsecond=0)
+                elif isinstance(val, datetime.datetime):
+                    return self.AD.tz.localize(val).replace(microsecond=0)
                 else:
                     raise ValueError(f"Invalid type for {key}")
 

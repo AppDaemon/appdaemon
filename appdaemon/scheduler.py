@@ -7,16 +7,25 @@ import traceback
 import uuid
 from collections import OrderedDict
 from datetime import timedelta
+from logging import Logger
+from typing import TYPE_CHECKING
 
 import pytz
 from astral.location import Location, LocationInfo
 
 import appdaemon.utils as utils
-from appdaemon.appdaemon import AppDaemon
+
+if TYPE_CHECKING:
+    from appdaemon.appdaemon import AppDaemon
 
 
 class Scheduler:
-    def __init__(self, ad: AppDaemon):
+    AD: "AppDaemon"
+    logger: Logger
+    error: Logger
+    diag: Logger
+
+    def __init__(self, ad: "AppDaemon"):
         self.AD = ad
 
         self.logger = ad.logging.get_child("_scheduler")

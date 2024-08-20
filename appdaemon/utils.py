@@ -1,29 +1,33 @@
-import os
-from datetime import timedelta
 import asyncio
-import platform
-import functools
-import time
-import cProfile
-import io
-import pstats
-import shelve
-import threading
-import datetime
-import dateutil.parser
-import yaml
-import copy
-import json
-import sys
-import inspect
-from functools import wraps
-from appdaemon.version import __version__  # noqa: F401
-from collections.abc import Iterable
 import concurrent.futures
+import copy
+import cProfile
+import datetime
+import functools
+import importlib
+import inspect
+import io
+import json
+import os
+import platform
+import pstats
+import re
+import shelve
+import sys
+import threading
+import time
+from collections.abc import Iterable
+from datetime import timedelta
+from functools import wraps
+from types import ModuleType
+from typing import Any, Callable, Dict
+
+import dateutil.parser
 import tomli
 import tomli_w
-import re
-from typing import Callable
+import yaml
+
+from appdaemon.version import __version__  # noqa: F401
 
 # Comment
 
@@ -289,17 +293,30 @@ def day_of_week(day):
     nums = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
     days = {day: idx for idx, day in enumerate(nums)}
 
-    if type(day) == str:
+    if isinstance(day, str):
         return days[day]
-    if type(day) == int:
+    if isinstance(day, int):
         return nums[day]
     raise ValueError("Incorrect type for 'day' in day_of_week()'")
 
 
-async def run_in_executor(self, fn, *args, **kwargs):
-    completed, pending = await asyncio.wait(
-        [self.AD.loop.run_in_executor(self.AD.executor, functools.partial(fn, *args, **kwargs))]
-    )
+async def run_in_executor(self, fn, *args, **kwargs) -> Any:
+    """Runs the function with the given arguments in the instance of :class:`~concurrent.futures.ThreadPoolExecutor` in the top-level :class:`~appdaemon.appdaemon.AppDaemon` object.
+
+    Args:
+        self: Needs to have an ``AD`` attribute with the :class:`~appdaemon.appdaemon.AppDaemon` object
+        fn (function): Function to run in the executor
+        *args: Any positional arguments to use with the function
+        **kwargs: Any keyword arguments to use with the function
+
+    Returns:
+        Whatever the function returns
+    """
+    loop: asyncio.BaseEventLoop = self.AD.loop
+    executor: concurrent.futures.ThreadPoolExecutor = self.AD.executor
+    preloaded_function = functools.partial(fn, *args, **kwargs)
+
+    completed, pending = await asyncio.wait([loop.run_in_executor(executor, preloaded_function)])
     future = list(completed)[0]
     response = future.result()
     return response
@@ -366,7 +383,7 @@ def deepcopy(data):
     return result
 
 
-def find_path(name):
+def find_path(name: str):
     for path in [
         os.path.join(os.path.expanduser("~"), ".homeassistant"),
         os.path.join(os.path.sep, "etc", "appdaemon"),
@@ -422,6 +439,11 @@ def process_arg(self, arg, args, **kwargs):
 
 def find_owner(filename):
     return pwd.getpwuid(os.stat(filename).st_uid).pw_name
+
+
+def is_valid_root_path(root: str) -> bool:
+    root = os.path.basename(root)
+    return root != "__pycache__" and not root.startswith(".")
 
 
 def check_path(type, logger, inpath, pathtype="directory", permissions=None):  # noqa: C901
@@ -580,7 +602,8 @@ def write_toml_config(path, **kwargs):
         tomli_w.dump(kwargs, stream)
 
 
-def read_config_file(path):
+def read_config_file(path) -> Dict[str, Dict]:
+    """Reads a single YAML or TOML file."""
     extension = os.path.splitext(path)[1]
     if extension == ".yaml":
         return read_yaml_config(path)
@@ -695,7 +718,7 @@ def _include_yaml(loader, node):
         return yaml.load(f, Loader=yaml.SafeLoader)
 
 
-def read_yaml_config(config_file_yaml):
+def read_yaml_config(config_file_yaml) -> Dict[str, Dict]:
     #
     # First locate secrets file
     #
@@ -756,3 +779,27 @@ def read_yaml_config(config_file_yaml):
     config = yaml.load(config_file_contents, Loader=yaml.SafeLoader)
 
     return config
+
+
+def recursive_reload(module: ModuleType, reloaded: set = None):
+    """Recursive reload function that does a depth-first search through all sub-modules and reloads them in the correct order of dependence.
+
+    Adapted from https://gist.github.com/KristianHolsheimer/f139646259056c1dffbf79169f84c5de
+    """
+    reloaded = reloaded or set()
+
+    for attr_name in dir(module):
+        attr = getattr(module, attr_name)
+        check = (
+            # is it a module?
+            isinstance(attr, ModuleType)
+            # has it already been reloaded?
+            and attr.__name__ not in reloaded
+            # is it a proper submodule?
+            and attr.__name__.startswith(module.__name__)
+        )
+        if check:
+            recursive_reload(attr, reloaded)
+
+    importlib.reload(module)
+    reloaded.add(module.__name__)

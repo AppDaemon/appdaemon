@@ -7,17 +7,44 @@ import sys
 import threading
 import traceback
 from datetime import timedelta
+from logging import Logger
 from queue import Queue
 from random import randint
+from threading import Thread
+from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 import iso8601
 
 from appdaemon import utils as utils
-from appdaemon.appdaemon import AppDaemon
+
+if TYPE_CHECKING:
+    from appdaemon.appdaemon import AppDaemon
 
 
 class Threading:
-    def __init__(self, ad: AppDaemon, kwargs):
+    """Subsystem container for managing :class:`~threading.Thread` objects"""
+
+    AD: "AppDaemon"
+    """Reference to the AppDaemon container object
+    """
+    logger: Logger
+    """Standard python logger named ``AppDaemon._threading``
+    """
+    diag: Logger
+    """Standard python logger named ``Diag``
+    """
+    thread_count: int
+    threads: Dict[str, Dict[str, Union[Thread, Queue]]]
+    """Dictionary with keys of the thread ID (string beginning with `thread-`) and values of another dictionary with `thread` and `queue` keys that have values of :class:`~threading.Thread` and :class:`~queue.Queue` objects respectively."""
+    auto_pin: bool
+    pin_threads: int
+    total_threads: int
+    pin_apps: Optional[bool]
+    next_thread: Optional[int]
+    last_stats_time: datetime.datetime
+    callback_list: List[Dict]
+
+    def __init__(self, ad: "AppDaemon", kwargs):
         self.AD = ad
         self.kwargs = kwargs
 
@@ -49,11 +76,17 @@ class Threading:
         self.callback_list = []
 
     async def get_q_update(self):
+        """Updates queue sizes"""
         for thread in self.threads:
             qsize = self.get_q(thread).qsize()
             await self.set_state("_threading", "admin", "thread.{}".format(thread), q=qsize)
 
     async def get_callback_update(self):
+        """Updates the sensors with information about how many callbacks have been fired. Called by the :class:`~appdaemon.admin_loop.AdminLoop`
+
+        - ``sensor.callbacks_average_fired``
+        - ``sensor.callbacks_average_executed``
+        """
         now = datetime.datetime.now()
         self.callback_list.append(
             {"fired": self.current_callbacks_fired, "executed": self.current_callbacks_executed, "ts": now}
@@ -124,7 +157,7 @@ class Threading:
             self.auto_pin = False
         else:
             apps = await self.AD.app_management.check_config(True, False)
-            self.total_threads = int(apps["active"])
+            self.total_threads = apps.active
 
         self.pin_apps = True
         utils.process_arg(self, "pin_apps", kwargs)
@@ -170,7 +203,7 @@ class Threading:
             },
         )
 
-    def get_q(self, thread_id):
+    def get_q(self, thread_id: str) -> Queue:
         return self.threads[thread_id]["queue"]
 
     @staticmethod

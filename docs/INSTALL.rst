@@ -166,13 +166,13 @@ Note: make sure first to create a directory to contain all AppDaemon configurati
 
 .. code:: console
 
-    $ appdaemon -c <patch_to_config_folder>
+    $ appdaemon -c <path_to_config_folder>
 
 You should see something like the following:
 
 .. code:: console
 
-    $ appdaemon -c <patch_to_config_folder>
+    $ appdaemon -c <path_to_config_folder>
     2016-08-22 10:08:16,575 INFO Got initial state
     2016-08-22 10:08:16,576 INFO Loading Module: /home/homeassistant/conf/apps/hello.py
     2016-08-22 10:08:16,578 INFO Loading Object hello_world using class HelloWorld from module hello

@@ -1,18 +1,19 @@
-from datetime import timedelta
-from copy import deepcopy
-from typing import Any, Optional, Callable, Union
-from asyncio import Future
-
 import asyncio
 import datetime as dt
 import inspect
 import re
 import uuid
+from asyncio import Future
+from copy import deepcopy
+from datetime import timedelta
+from typing import Any, Callable, Dict, Optional, Union
+
 import iso8601
 
 from appdaemon import utils
 from appdaemon.appdaemon import AppDaemon
 from appdaemon.entity import Entity
+from appdaemon.logging import Logging
 
 
 class ADAPI:
@@ -22,10 +23,32 @@ class ADAPI:
 
     """
 
+    AD: AppDaemon
+    """Reference to the top-level AppDaemon container object
+    """
+    name: str
+    """The app name, which is set by the top-level key in the YAML file
+    """
+    _logging: Logging
+    """Reference to the Logging subsystem object
+    """
+    args: Dict[str, Any]
+    """The arguments provided in this app's YAML config file
+    """
+
     #
     # Internal parameters
     #
-    def __init__(self, ad: AppDaemon, name, logging_obj, args, config, app_config, global_vars):
+    def __init__(
+        self,
+        ad: AppDaemon,
+        name: str,
+        logging_obj: Logging,
+        args: Dict[str, Any],
+        config: Dict[str, Any],
+        app_config,
+        global_vars,
+    ):
         # Store args
 
         self.AD = ad
@@ -33,6 +56,7 @@ class ADAPI:
         self._logging = logging_obj
         self.config = config
         self.app_config = app_config
+        # same as self.AD.app_management.app_config
         self.args = deepcopy(args)
         self.app_dir = self.AD.app_dir
         self.config_dir = self.AD.config_dir
@@ -58,7 +82,7 @@ class ADAPI:
     @staticmethod
     def _sub_stack(msg):
         # If msg is a data structure of some type, don't sub
-        if type(msg) is str:
+        if isinstance(msg, str):
             stack = inspect.stack()
             if msg.find("__module__") != -1:
                 msg = msg.replace("__module__", stack[2][1])
@@ -1145,14 +1169,16 @@ class ADAPI:
         Examples:
             It should be noted that the register function, should return a string (can be empty),
             and an HTTP OK status response (e.g., `200`. If this is not added as a returned response,
-            the function will generate an error each time it is processed.
+            the function will generate an error each time it is processed. If the POST request
+            contains JSON data, the decoded data will be passed as the argument to the callback.
+            Otherwise the callback argument will contain the query string. A `request` kwarg contains
+            the http request object.
 
             >>> self.register_endpoint(self.my_callback)
             >>> self.register_endpoint(self.alexa_cb, "alexa")
 
-            >>> async def alexa_cb(self, request, kwargs):
-            >>>     data = await request.json()
-            >>>     self.log(data)
+            >>> async def alexa_cb(self, json_obj, kwargs):
+            >>>     self.log(json_obj)
             >>>     response = {"message": "Hello World"}
             >>>     return response, 200
 
@@ -2494,9 +2520,9 @@ class ADAPI:
             >>> handle = self.run_once(self.run_once_c, "sunrise + 01:00:00")
 
         """
-        if type(start) == dt.time:
+        if isinstance(start, dt.time):
             when = start
-        elif type(start) == str:
+        elif isinstance(start, str):
             start_time_obj = await self.AD.sched._parse_time(start, self.name)
             when = start_time_obj["datetime"].time()
         else:
@@ -2571,9 +2597,9 @@ class ADAPI:
             >>> handle = self.run_at(self.run_at_c, "sunrise + 01:00:00")
 
         """
-        if type(start) == dt.datetime:
+        if isinstance(start, dt.datetime):
             when = start
-        elif type(start) == str:
+        elif isinstance(start, str):
             start_time_obj = await self.AD.sched._parse_time(start, self.name)
             when = start_time_obj["datetime"]
         else:
@@ -2644,9 +2670,9 @@ class ADAPI:
         """
         info = None
         when = None
-        if type(start) == dt.time:
+        if isinstance(start, dt.time):
             when = start
-        elif type(start) == str:
+        elif isinstance(start, str):
             info = await self.AD.sched._parse_time(start, self.name)
         else:
             raise ValueError("Invalid type for start")

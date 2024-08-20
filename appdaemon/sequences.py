@@ -1,15 +1,28 @@
-import uuid
 import asyncio
-import traceback
 import copy
+import traceback
+import uuid
+from logging import Logger
+from typing import TYPE_CHECKING
 
-from appdaemon.appdaemon import AppDaemon
 from appdaemon.entity import Entity
 from appdaemon.exceptions import TimeOutException
 
+if TYPE_CHECKING:
+    from appdaemon.appdaemon import AppDaemon
+
 
 class Sequences:
-    def __init__(self, ad: AppDaemon):
+    """Subsystem container for managing sequences
+
+    Attributes:
+        AD: Reference to the AppDaemon container object
+    """
+
+    AD: "AppDaemon"
+    logger: Logger
+
+    def __init__(self, ad: "AppDaemon"):
         self.AD = ad
         self.logger = ad.logging.get_child("_sequences")
 
