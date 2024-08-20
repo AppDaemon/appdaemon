@@ -3,19 +3,30 @@
 import asyncio
 import datetime
 import traceback
+from logging import Logger
+from typing import TYPE_CHECKING
 
 import appdaemon.utils as utils
-from appdaemon.appdaemon import AppDaemon
+from appdaemon.app_management import UpdateMode
+
+if TYPE_CHECKING:
+    from appdaemon.appdaemon import AppDaemon
 
 
 class Utility:
-
-    """Class that includes the utility loop.
+    """Subsystem container for managing the utility loop
 
     Checks for file changes, overdue threads, thread starvation, and schedules regular state refreshes.
     """
 
-    def __init__(self, ad: AppDaemon):
+    AD: "AppDaemon"
+    """Reference to the AppDaemon container object
+    """
+
+    stopping: bool
+    logger: Logger
+
+    def __init__(self, ad: "AppDaemon"):
         """Constructor.
 
         Args:
@@ -26,6 +37,7 @@ class Utility:
         self.stopping = False
         self.logger = ad.logging.get_child("_utility")
         self.booted = None
+        # self.AD.loop.create_task(self.loop())
 
     def stop(self):
         """Called by the AppDaemon object to terminate the loop cleanly
@@ -115,7 +127,7 @@ class Utility:
             if self.AD.apps is True:
                 self.logger.debug("Reading Apps")
 
-                await self.AD.app_management.check_app_updates(mode="init")
+                await self.AD.app_management.check_app_updates(mode=UpdateMode.INIT)
 
                 self.logger.info("App initialization complete")
                 #

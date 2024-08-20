@@ -1,21 +1,34 @@
-import sys
-import os
-import traceback
-import datetime
 import asyncio
+import datetime
+import os
+import sys
+import traceback
+from logging import Logger
+from typing import TYPE_CHECKING, Any, Dict, Union
+
 import async_timeout
 
-from appdaemon.appdaemon import AppDaemon
 import appdaemon.utils as utils
+from appdaemon.app_management import UpdateMode
+
+if TYPE_CHECKING:
+    from appdaemon.appdaemon import AppDaemon
 
 
 class PluginBase:
-
     """
     Base class for plugins to set up _logging
     """
 
-    def __init__(self, ad: AppDaemon, name, args):
+    AD: "AppDaemon"
+    logger: Logger
+    bytes_sent: int
+    bytes_recv: int
+    requests_sent: int
+    updates_recv: int
+    last_check_ts: int
+
+    def __init__(self, ad: "AppDaemon", name, args):
         self.AD = ad
         self.logger = self.AD.logging.get_child(name)
 
@@ -30,7 +43,7 @@ class PluginBase:
     def set_log_level(self, level):
         self.logger.setLevel(self.AD.logging.log_levels[level])
 
-    async def perf_data(self):
+    async def perf_data(self) -> Dict[str, Union[int, float]]:
         data = {
             "bytes_sent": self.bytes_sent,
             "bytes_recv": self.bytes_recv,
@@ -55,9 +68,27 @@ class PluginBase:
 
 
 class Plugins:
+    """Subsystem container for managing plugins"""
+
+    AD: "AppDaemon"
+    """Reference to the top-level AppDaemon container object
+    """
+    logger: Logger
+    """Standard python logger named ``AppDaemon._plugin_management``
+    """
+    error: Logger
+    """Standard python logger named ``Error``
+    """
+    stopping: bool
+    plugin_meta: Dict[str, dict]
+    """Dictionary storing the metadata for the loaded plugins
+    """
+    plugin_objs: Dict[str, Any]
+    """Dictionary storing the instantiated plugin objects
+    """
     required_meta = ["latitude", "longitude", "elevation", "time_zone"]
 
-    def __init__(self, ad: AppDaemon, kwargs):
+    def __init__(self, ad: "AppDaemon", kwargs):
         self.AD = ad
         self.plugins = kwargs
         self.stopping = False
@@ -213,7 +244,7 @@ class Plugins:
     def get_plugin(self, plugin):
         return self.plugins[plugin]
 
-    async def get_plugin_object(self, namespace):
+    async def get_plugin_object(self, namespace: str):
         if namespace in self.plugin_objs:
             return self.plugin_objs[namespace]["object"]
 
@@ -291,7 +322,7 @@ class Plugins:
 
                 if not first_time:
                     await self.AD.app_management.check_app_updates(
-                        self.get_plugin_from_namespace(namespace), mode="init"
+                        self.get_plugin_from_namespace(namespace), mode=UpdateMode.INIT
                     )
                 else:
                     #

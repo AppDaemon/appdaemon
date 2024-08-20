@@ -11,13 +11,121 @@ import sys
 import traceback
 import uuid
 from collections import OrderedDict
+from dataclasses import dataclass, field
+from enum import Enum
+from logging import Logger
+from pathlib import Path
+from types import ModuleType
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Literal, Optional, Union
 
 import appdaemon.utils as utils
-from appdaemon.appdaemon import AppDaemon
+
+if TYPE_CHECKING:
+    from appdaemon.appdaemon import AppDaemon
+
+
+class UpdateMode(Enum):
+    """Used as an argument for :meth:`AppManagement.check_app_updates` to set the mode of the check.
+
+    INIT
+        Triggers AppManagement._init_update_mode to run during check_app_updates
+    NORMAL
+        Normal update mode, for when :meth:`AppManagement.check_app_updates` is called by :meth:`.utility_loop.Utility.loop`
+    TERMINATE
+        Terminate all apps
+    """
+
+    INIT = 0
+    NORMAL = 1
+    TERMINATE = 2
+
+
+@dataclass
+class ModuleLoad:
+    """Dataclass containing settings for calls to :meth:`AppManagement.read_app`
+
+    Attributes:
+        path: Filepath of the module or path to the `__init__.py` of a package.
+        reload: Whether to reload the app using `importlib.reload`
+        name: Importable name of the module/package
+    """
+
+    path: Path
+    reload: bool = False
+    name: str = field(init=False, repr=True)
+
+    def __post_init__(self):
+        self.path = Path(self.path).resolve()
+
+        if self.path.name == "__init__.py":
+            self.name = self.path.parent.name
+        else:
+            self.name = self.path.stem
+
+
+@dataclass
+class AppActions:
+    """Stores which apps to initialize and terminate, as well as the total number of apps and the number of active apps.
+
+    Attributes:
+        init: Dictionary of apps to initialize, which ultimately happens in :meth:`AppManagement._load_apps` as part of :meth:`AppManagement.check_app_updates`
+        term: Dictionary of apps to terminate, which ultimately happens in :meth:`AppManagement._terminate_apps` as part of :meth:`AppManagement.check_app_updates`
+        total: Total number of apps
+        active: Number of active apps
+    """
+
+    init: Dict[str, int] = field(default_factory=dict)
+    term: Dict[str, int] = field(default_factory=dict)
+    total: int = 0
+    active: int = 0
+
+    def mark_app_for_initialization(self, appname: str):
+        self.init[appname] = 1
+
+    def mark_app_for_termination(self, appname: str):
+        self.term[appname] = 1
 
 
 class AppManagement:
-    def __init__(self, ad: AppDaemon, use_toml):
+    """Subsystem container for managing app lifecycles"""
+
+    AD: "AppDaemon"
+    """Reference to the top-level AppDaemon container object
+    """
+    use_toml: bool
+    """Whether to use TOML files for configuration
+    """
+    ext: Literal[".yaml", ".toml"]
+    logger: Logger
+    """Standard python logger named ``AppDaemon._app_management``
+    """
+    error: Logger
+    """Standard python logger named ``Error``
+    """
+    monitored_files: Dict[Union[str, Path], float]
+    """Dictionary of the Python files that are being watched for changes and their last modified times
+    """
+    filter_files: Dict[str, float]
+    """Dictionary of the modified times of the filter files and their paths.
+    """
+    modules: Dict[str, ModuleType]
+    """Dictionary of the loaded modules and their names
+    """
+    objects: Dict[str, Dict[str, Any]]
+    """Dictionary of dictionaries with the instantiated apps, plugins, and sequences along with some metadata. Gets populated by
+
+    - ``self.init_object``, which instantiates the app classes
+    - ``self.init_plugin_object``
+    - ``self.init_sequence_object``
+    """
+    app_config: Dict[str, Dict[str, Dict[str, bool]]]
+    """Keeps track of which module and class each app comes from, along with any associated global modules. Gets set at the end of :meth:`~appdaemon.app_management.AppManagement.check_config`.
+    """
+    active_apps: List[str]
+    inactive_apps: List[str]
+    non_apps: List[str]
+
+    def __init__(self, ad: "AppDaemon", use_toml: bool):
         self.AD = ad
         self.use_toml = use_toml
         self.ext = ".toml" if use_toml is True else ".yaml"
@@ -37,6 +145,7 @@ class AppManagement:
         self.app_config_files = {}
         self.module_dirs = []
 
+        # Keeps track of the name of the module and class to load for each app name
         self.app_config = {}
         self.global_module_dependencies = {}
 
@@ -110,7 +219,7 @@ class AppManagement:
     async def terminate(self):
         self.logger.debug("terminate() called for app_management")
         if self.apps_initialized is True:
-            await self.check_app_updates(mode="term")
+            await self.check_app_updates(mode=UpdateMode.TERMINATE)
 
     async def dump_objects(self):
         self.diag.info("--------------------------------------------------")
@@ -120,25 +229,19 @@ class AppManagement:
             self.diag.info("%s: %s", object_, self.objects[object_])
         self.diag.info("--------------------------------------------------")
 
-    async def get_app(self, name):
+    async def get_app(self, name: str):
         if name in self.objects:
             return self.objects[name]["object"]
-        else:
-            return None
 
-    def get_app_info(self, name):
+    def get_app_info(self, name: str):
         if name in self.objects:
             return self.objects[name]
-        else:
-            return None
 
-    async def get_app_instance(self, name, id):
+    async def get_app_instance(self, name: str, id):
         if name in self.objects and self.objects[name]["id"] == id:
             return self.AD.app_management.objects[name]["object"]
-        else:
-            return None
 
-    async def initialize_app(self, name):
+    async def initialize_app(self, name: str):
         if name in self.objects:
             init = getattr(self.objects[name]["object"], "initialize", None)
             if init is None:
@@ -181,7 +284,7 @@ class AppManagement:
             await self.set_state(name, state="initialize_error")
             await self.increase_inactive_apps(name)
 
-    async def terminate_app(self, name, delete=True):
+    async def terminate_app(self, name, delete: bool = True) -> bool:
         term = None
         executed = True
         if name in self.objects and hasattr(self.objects[name]["object"], "terminate"):
@@ -263,7 +366,7 @@ class AppManagement:
         else:
             await self.initialize_app(app)
 
-    async def stop_app(self, app, delete=False):
+    async def stop_app(self, app, delete: bool = False) -> bool:
         executed = False
         try:
             if "global" in self.app_config[app] and self.app_config[app]["global"] is True:
@@ -293,51 +396,62 @@ class AppManagement:
         else:
             return "None"
 
-    async def init_object(self, name):
-        app_args = self.app_config[name]
+    async def init_object(self, app_name: str):
+        """Instantiates an app by name and stores it in ``self.objects``
+
+        Args:
+            app_name (str): Name of the app, as defined in a config file
+        """
+        app_args = self.app_config[app_name]
+
+        # as it appears in the YAML definition of the app
+        module_name = self.app_config[app_name]["module"]
+        class_name = self.app_config[app_name]["class"]
+
         self.logger.info(
             "Loading app %s using class %s from module %s",
-            name,
-            app_args["class"],
-            app_args["module"],
+            app_name,
+            class_name,
+            module_name,
         )
 
-        if self.get_file_from_module(app_args["module"]) is not None:
+        if self.get_file_from_module(module_name) is not None:
             if "pin_thread" in app_args:
                 if app_args["pin_thread"] < 0 or app_args["pin_thread"] >= self.AD.threading.total_threads:
                     self.logger.warning(
                         "pin_thread out of range ({}) in app definition for {} - app will be discarded".format(
-                            app_args["pin_thread"], name
+                            app_args["pin_thread"], app_name
                         )
                     )
                     return
                 else:
                     pin = app_args["pin_thread"]
 
-            elif name in self.objects and "pin_thread" in self.objects[name]:
-                pin = self.objects[name]["pin_thread"]
+            elif app_name in self.objects and "pin_thread" in self.objects[app_name]:
+                pin = self.objects[app_name]["pin_thread"]
 
             else:
                 pin = -1
 
-            modname = await utils.run_in_executor(self, __import__, app_args["module"])
+            # mod_obj = await utils.run_in_executor(self, importlib.import_module, module_name)
+            mod_obj = importlib.import_module(module_name)
 
-            app_class = getattr(modname, app_args["class"], None)
+            app_class = getattr(mod_obj, class_name, None)
             if app_class is None:
                 self.logger.warning(
                     "Unable to find class %s in module %s - '%s' is not initialized",
                     app_args["class"],
                     app_args["module"],
-                    name,
+                    app_name,
                 )
-                await self.increase_inactive_apps(name)
+                await self.increase_inactive_apps(app_name)
 
             else:
-                self.objects[name] = {
+                self.objects[app_name] = {
                     "type": "app",
                     "object": app_class(
                         self.AD,
-                        name,
+                        app_name,
                         self.AD.logging,
                         app_args,
                         self.AD.config,
@@ -345,22 +459,22 @@ class AppManagement:
                         self.AD.global_vars,
                     ),
                     "id": uuid.uuid4().hex,
-                    "pin_app": self.AD.threading.app_should_be_pinned(name),
+                    "pin_app": self.AD.threading.app_should_be_pinned(app_name),
                     "pin_thread": pin,
                     "running": True,
                 }
 
                 # load the module path into app entity
-                module_path = await utils.run_in_executor(self, os.path.abspath, modname.__file__)
-                await self.set_state(name, module_path=module_path)
+                module_path = await utils.run_in_executor(self, os.path.abspath, mod_obj.__file__)
+                await self.set_state(app_name, module_path=module_path)
 
         else:
             self.logger.warning(
                 "Unable to find module module %s - '%s' is not loaded",
                 app_args["module"],
-                name,
+                app_name,
             )
-            await self.increase_inactive_apps(name)
+            await self.increase_inactive_apps(app_name)
 
     def init_plugin_object(self, name: str, object: object, use_dictionary_unpacking: bool = False) -> None:
         self.objects[name] = {
@@ -396,7 +510,12 @@ class AppManagement:
 
         return True
 
-    async def read_config(self):  # noqa: C901
+    async def read_config(self) -> Dict[str, Dict[str, Any]]:  # noqa: C901
+        """Walks the apps directory and reads all the config files with :func:`~.utils.read_config_file`, which reads individual config files and runs in the :attr:`~.appdaemon.AppDaemon.executor`.
+
+        Returns:
+            Dict[str, Dict[str, Any]]: Loaded app configuration
+        """
         new_config = None
 
         for root, subdirs, files in await utils.run_in_executor(self, os.walk, self.AD.app_dir):
@@ -406,7 +525,7 @@ class AppManagement:
                     if file[-5:] == self.ext and file[0] != ".":
                         path = os.path.join(root, file)
                         self.logger.debug("Reading %s", path)
-                        config = await utils.run_in_executor(self, self.read_config_file, path)
+                        config: Dict[str, Dict] = await utils.run_in_executor(self, self.read_config_file, path)
                         valid_apps = {}
                         if type(config).__name__ == "dict":
                             for app in config:
@@ -573,7 +692,8 @@ class AppManagement:
         return later_files
 
     # Run in executor
-    def read_config_file(self, file):
+    def read_config_file(self, file) -> Dict[str, Dict]:
+        """Reads a single YAML or TOML file."""
         try:
             return utils.read_config_file(file)
         except Exception:
@@ -584,7 +704,16 @@ class AppManagement:
             self.logger.warning("-" * 60)
 
     # noinspection PyBroadException
-    async def check_config(self, silent=False, add_threads=True):  # noqa: C901
+    async def check_config(self, silent: bool = False, add_threads: bool = True) -> Optional[AppActions]:  # noqa: C901
+        """Wraps :meth:`~AppManagement.read_config`
+
+        Args:
+            silent (bool, optional): _description_. Defaults to False.
+            add_threads (bool, optional): _description_. Defaults to True.
+
+        Returns:
+            AppActions object with information about which apps to initialize and/or terminate
+        """
         terminate_apps = {}
         initialize_apps = {}
         total_apps = len(self.app_config)
@@ -711,12 +840,7 @@ class AppManagement:
                     for i in range(active_apps - self.AD.threading.thread_count):
                         await self.AD.threading.add_thread(False, True)
 
-            return {
-                "init": initialize_apps,
-                "term": terminate_apps,
-                "total": total_apps,
-                "active": active_apps,
-            }
+            return AppActions(init=initialize_apps, term=terminate_apps, total=total_apps, active=active_apps)
         except Exception:
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error:")
@@ -740,71 +864,88 @@ class AppManagement:
         return active, inactive, glbl
 
     def get_app_from_file(self, file):
-        module = self.get_module_from_path(file)
-        for app in self.app_config:
-            if "module" in self.app_config[app] and self.app_config[app]["module"] == module:
-                return app
+        """Finds the apps that depend on a given file"""
+        module_name = self.get_module_from_path(file)
+        for app_name, cfg in self.app_config.items():
+            if "module" in cfg and cfg["module"].startswith(module_name):
+                return app_name
         return None
 
     # noinspection PyBroadException
     # Run in executor
-    def read_app(self, file, reload=False):
-        name = os.path.basename(file)
-        module_name = os.path.splitext(name)[0]
-        # Import the App
-        if reload:
-            self.logger.info("Reloading Module: %s", file)
+    def read_app(self, reload_cfg: ModuleLoad):
+        """Reads an app into memory by importing or reloading the module it needs"""
+        module_name = reload_cfg.name
 
-            file, ext = os.path.splitext(name)
-            #
-            # Reload
-            #
+        if reload_cfg.reload:
             try:
-                importlib.reload(self.modules[module_name])
+                module = self.modules[module_name]
             except KeyError:
-                if name not in sys.modules:
+                if module_name not in sys.modules:
                     # Probably failed to compile on initial load
                     # so we need to re-import not reload
-                    self.read_app(file)
+                    reload_cfg.reload = False
+                    self.read_app(reload_cfg)
                 else:
                     # A real KeyError!
                     raise
+            else:
+                self.logger.info("Recursively reloading module: %s", module.__name__)
+                utils.recursive_reload(module)
         else:
-            app = self.get_app_from_file(file)
+            app = self.get_app_from_file(module_name)
             if app is not None:
                 if "global" in self.app_config[app] and self.app_config[app]["global"] is True:
                     # It's a new style global module
-                    self.logger.info("Loading Global Module: %s", file)
+                    self.logger.info("Loading Global Module: %s", module_name)
                     self.modules[module_name] = importlib.import_module(module_name)
                 else:
                     # A regular app
-                    self.logger.info("Loading App Module: %s", file)
+                    self.logger.info("Loading App Module: %s", module_name)
                     if module_name not in self.modules:
                         self.modules[module_name] = importlib.import_module(module_name)
                     else:
                         # We previously imported it so we need to reload to pick up any potential changes
                         importlib.reload(self.modules[module_name])
             elif "global_modules" in self.app_config and module_name in self.app_config["global_modules"]:
-                self.logger.info("Loading Global Module: %s", file)
+                self.logger.info("Loading Global Module: %s", module_name)
                 self.modules[module_name] = importlib.import_module(module_name)
-            # elif "global" in
             else:
                 if self.AD.missing_app_warnings:
-                    self.logger.warning("No app description found for: %s - ignoring", file)
+                    self.logger.warning("No app description found for: %s - ignoring", module_name)
 
     @staticmethod
     def get_module_from_path(path):
-        name = os.path.basename(path)
-        module_name = os.path.splitext(name)[0]
-        return module_name
+        return Path(path).stem
 
-    def get_file_from_module(self, mod):
-        for file in self.monitored_files:
-            module_name = self.get_module_from_path(file)
-            if module_name == mod:
-                return file
+    def get_file_from_module(self, module_name: str) -> Optional[Path]:
+        """Gets the module __file__ based on the module name.
 
-        return None
+        Args:
+            mod (str): Module name
+
+        Returns:
+            Optional[Path]: Path of the __file__
+        """
+        module_name = module_name.split(".")[0]
+        try:
+            module_obj = self.modules[module_name]
+        except KeyError:
+            self.logger.warning("No file for module: %s", module_name)
+            return None
+        else:
+            module_path = Path(module_obj.__file__)
+            if self.monitored_files and all(isinstance(f, Path) for f in self.monitored_files):
+                assert module_path in self.monitored_files, f"{module_path} is not being monitored"
+            return module_path
+
+    def get_path_from_app(self, app_name: str) -> Path:
+        """Gets the module path based on the app_name
+
+        Used in self._terminate_apps
+        """
+        module_name = self.app_config[app_name]["module"]
+        return self.get_file_from_module(module_name)
 
     # Run in executor
     def process_filters(self):
@@ -851,19 +992,35 @@ class AppManagement:
                                     self.logger.warning("-" * 60)
 
     @staticmethod
-    def file_in_modules(file, modules):
-        for mod in modules:
-            if mod["name"] == file:
-                return True
-        return False
+    def check_file(file: str):
+        with open(file, "r"):
+            pass
 
-    @staticmethod
-    def check_file(file):
-        fh = open(file)
-        fh.close()
+    def add_to_import_path(self, path: Union[str, Path]):
+        path = str(path)
+        self.logger.info("Adding directory to import path: %s", path)
+        sys.path.insert(0, path)
+        self.module_dirs.append(path)
 
     # @_timeit
-    async def check_app_updates(self, plugin: str = None, mode: str = "normal"):  # noqa: C901
+    async def check_app_updates(self, plugin: str = None, mode: UpdateMode = UpdateMode.NORMAL):  # noqa: C901
+        """Checks the states of the Python files that define the apps, reloading when necessary.
+
+        Called as part of :meth:`.utility_loop.Utility.loop`
+
+        Args:
+            plugin (str, optional): Plugin to restart, if necessary. Defaults to None.
+            mode (UpdateMode, optional): Defaults to UpdateMode.NORMAL.
+
+        Check Process:
+            - Refresh modified times of monitored files.
+            - Checks for deleted files
+            - Marks the apps for reloading or removal as necessary
+            - Restarts the plugin, if specified
+            - Terminates apps as necessary
+            - Loads or reloads modules/pacakges as necessary
+            - Loads apps from the modules/packages
+        """
         async with self.check_updates_lock:
             if self.AD.apps is False:
                 return
@@ -875,46 +1032,105 @@ class AppManagement:
                 pr.enable()
 
             # Process filters
-
             await utils.run_in_executor(self, self.process_filters)
 
-            # Get list of apps we need to terminate and/or initialize
+            if mode == UpdateMode.INIT:
+                await self._init_update_mode()
 
+            modules: List[ModuleLoad] = []
+            await self._refresh_monitored_files(modules)
+
+            # Refresh app config
             apps = await self.check_config()
 
-            found_files = []
-            modules = []
+            await self._check_for_deleted_modules(mode, apps)
 
-            # One time static path additions
-            if mode == "init":
-                # Add root only if we are doing advanced importing
-                if self.AD.import_method != "normal":
-                    self.logger.info("Adding %s to module import path", self.AD.app_dir)
-                    sys.path.insert(0, self.AD.app_dir)
-                    self.module_dirs.append(self.AD.app_dir)
+            self._add_reload_apps(apps, modules)
 
-                # Add any aditional import paths
-                for path in self.AD.import_paths:
-                    if os.path.isdir(path):
-                        self.logger.info("Adding %s to module import path", path)
-                        sys.path.insert(0, path)
-                        self.module_dirs.append(path)
-                    else:
-                        self.logger.warning(f"import_path {path} does not exist - not adding to path")
+            await self._restart_plugin(plugin, apps)
 
+            apps_terminated = await self._terminate_apps(mode, apps, modules)
+
+            await self._load_reload_modules(apps, modules)
+
+            if mode == UpdateMode.INIT and self.AD.import_method == "expert":
+                self.logger.info(f"Loaded modules: {self.modules}")
+
+            await self._load_apps(mode, apps, apps_terminated)
+
+            if self.AD.check_app_updates_profile is True:
+                pr.disable()
+
+            s = io.StringIO()
+            sortby = "cumulative"
+            ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+            ps.print_stats()
+            self.check_app_updates_profile_stats = s.getvalue()
+
+            self.apps_initialized = True
+
+    async def _init_update_mode(self):
+        """Process one time static path additions"""
+        self.logger.info("Initializing import method: %s", self.AD.import_method)
+        if self.AD.import_method == "expert":
+            python_file_parents = set(f.parent.resolve() for f in Path(self.AD.app_dir).rglob("*.py"))
+            module_parents = set(p for p in python_file_parents if not (p / "__init__.py").exists())
+
+            package_dirs = set(p for p in python_file_parents if (p / "__init__.py").exists())
+            top_packages_dirs = set(p for p in package_dirs if not (p.parent / "__init__.py").exists())
+            package_parents = set(p.parent for p in top_packages_dirs)
+
+            import_dirs = module_parents | package_parents
+
+            for path in sorted(import_dirs):
+                self.add_to_import_path(path)
+
+            # keeps track of which modules go to which packages
+            self.mod_pkg_map: Dict[Path, str] = {
+                module_file: dir.stem for dir in top_packages_dirs for module_file in dir.rglob("*.py")
+            }
+
+        # Add any aditional import paths
+        for path in self.AD.import_paths:
+            if os.path.isdir(path):
+                self.add_to_import_path(path)
+            else:
+                self.logger.warning(f"import_path {path} does not exist - not adding to path")
+
+    def get_python_files(self) -> List[Path]:
+        return [
+            f
+            for f in Path(self.AD.app_dir).resolve().rglob("*.py")
+            # Prune dir list
+            if f.parent.name not in self.AD.exclude_dirs and "." not in f.parent.name
+        ]
+
+    def module_path_from_file(self, file: Path):
+        assert file in self.mod_pkg_map
+        pkg_name = self.mod_pkg_map[file]
+        module_obj = self.modules[pkg_name]
+        module_path = Path(module_obj.__file__)
+        return module_path
+
+    async def _refresh_monitored_files(self, modules: List[ModuleLoad]):
+        """Refreshes the modified times of the monitored files. Part of self.check_app_updates sequence
+
+        - Refreshes attributes
+            - self.monitored_files
+            - self.module_dirs
+        """
+        if self.AD.import_method == "normal":
+            found_files: List[str] = []
             for root, subdirs, files in await utils.run_in_executor(self, os.walk, self.AD.app_dir, topdown=True):
-                # print(root)
-                #
                 # Prune dir list
-                #
                 subdirs[:] = [d for d in subdirs if d not in self.AD.exclude_dirs and "." not in d]
 
-                if self.AD.import_method == "normal":
-                    if utils.is_valid_root_path(root):
-                        if root not in self.module_dirs:
-                            self.logger.info("Adding %s to module import path", root)
-                            sys.path.insert(0, root)
-                            self.module_dirs.append(root)
+
+                if utils.is_valid_root_path(root):
+                    if root not in self.module_dirs:
+                        self.logger.info("Adding %s to module import path", root)
+                        sys.path.insert(0, root)
+                        self.module_dirs.append(root)
 
                 for file in files:
                     if file[-3:] == ".py" and file[0] != ".":
@@ -928,227 +1144,279 @@ class AppManagement:
                     await utils.run_in_executor(self, self.check_file, file)
 
                     modified = await utils.run_in_executor(self, os.path.getmtime, file)
+
                     if file in self.monitored_files:
                         if self.monitored_files[file] < modified:
-                            modules.append({"name": file, "reload": True})
+                            modules.append(ModuleLoad(path=file, reload=True))
                             self.monitored_files[file] = modified
                     else:
                         self.logger.debug("Found module %s", file)
-                        modules.append({"name": file, "reload": False})
+                        modules.append(ModuleLoad(path=file, reload=False))
                         self.monitored_files[file] = modified
                 except IOError as err:
                     self.logger.warning("Unable to read app %s: %s - skipping", file, err)
 
-            # Check for deleted modules and add them to the terminate list
-            deleted_modules = []
-            for file in self.monitored_files:
-                if file not in found_files or mode == "term":
-                    deleted_modules.append(file)
-                    self.logger.info("Removing module %s", file)
+        elif self.AD.import_method == "expert":
+            found_files: List[Path] = await utils.run_in_executor(self, self.get_python_files)
+            for file in found_files:
+                # check we can actually open the file
+                try:
+                    await utils.run_in_executor(self, self.check_file, file)
+                except IOError as err:
+                    self.logger.warning("Unable to read app %s: %s - skipping", file, err)
 
-            for file in deleted_modules:
+                # file was readable during the check
+                else:
+                    modified = await utils.run_in_executor(self, os.path.getmtime, file)
+
+                    file: Path
+                    # if the file is being monitored
+                    if file in self.monitored_files:
+                        # if the monitored file has been modified
+                        if self.monitored_files[file] < modified:
+                            # update the modified time
+                            self.monitored_files[file] = modified
+                            # if the file is associated with a package
+                            if file in self.mod_pkg_map:
+                                modules.append(ModuleLoad(path=self.module_path_from_file(file), reload=True))
+                            else:
+                                modules.append(ModuleLoad(path=file, reload=True))
+                    else:
+                        # start monitoring
+                        self.monitored_files[file] = modified
+
+                        # if it's not part of a package, add a module load config for it
+                        if not file.with_name("__init__.py").exists():
+                            self.logger.info("Found module %s", file)
+                            modules.append(ModuleLoad(path=file, reload=False))
+                        else:
+                            pkg_name: str = self.mod_pkg_map[file]
+                            names = [mod.name for mod in modules]
+                            if pkg_name not in names:
+                                modules.append(ModuleLoad(path=pkg_name, reload=False))
+
+    async def _check_for_deleted_modules(self, mode: UpdateMode, apps: AppActions):
+        """Check for deleted modules and add them to the terminate list in the apps dict. Part of self.check_app_updates sequence"""
+        deleted_modules = []
+
+        for file in list(self.monitored_files.keys()):
+            if not Path(file).exists() or mode == UpdateMode.TERMINATE:
+                self.logger.info("Removing module %s", file)
                 del self.monitored_files[file]
                 for app in self.apps_per_module(self.get_module_from_path(file)):
-                    apps["term"][app] = 1
+                    apps.term[app] = 1
 
-            # Add any apps we need to reload because of file changes
+                deleted_modules.append(file)
 
-            for module in modules:
-                for app in self.apps_per_module(self.get_module_from_path(module["name"])):
-                    if module["reload"]:
-                        apps["term"][app] = 1
-                    apps["init"][app] = 1
+        return deleted_modules
 
-                for gm in self.get_global_modules():
-                    if gm == self.get_module_from_path(module["name"]):
-                        for app in self.apps_per_global_module(gm):
-                            if module["reload"]:
-                                apps["term"][app] = 1
-                            apps["init"][app] = 1
+    def _add_reload_apps(self, apps: AppActions, modules: List[ModuleLoad]):
+        """Add any apps we need to reload because of file changes. Part of self.check_app_updates sequence
 
-            if plugin is not None:
-                self.logger.info("Processing restart for %s", plugin)
-                # This is a restart of one of the plugins so check which apps need to be restarted
+        If the module an app is based on will be reloaded, the app will need to be terminated first and
+        re-initialized afterwards.
+        """
+        for module in modules:
+            app_names = self.apps_per_module(module.name)
+            self.logger.info("%s apps come from %s", len(app_names), module.name)
+            for app in app_names:
+                apps.mark_app_for_initialization(app)
+                if module.reload:
+                    apps.mark_app_for_termination(app)
+
+            for gm in self.get_global_modules():
+                if gm == self.get_module_from_path(module.name):
+                    for app in self.apps_per_global_module(gm):
+                        apps.mark_app_for_initialization(app)
+                        if module.reload:
+                            apps.mark_app_for_termination(app)
+
+    async def _restart_plugin(self, plugin, apps: AppActions):
+        if plugin is not None:
+            self.logger.info("Processing restart for %s", plugin)
+            # This is a restart of one of the plugins so check which apps need to be restarted
+            for app in self.app_config:
+                reload = False
+                if app in self.non_apps:
+                    continue
+                if "plugin" in self.app_config[app]:
+                    for this_plugin in utils.single_or_list(self.app_config[app]["plugin"]):
+                        if this_plugin == plugin:
+                            # We got a match so do the reload
+                            reload = True
+                            break
+                        elif plugin == "__ALL__":
+                            reload = True
+                            break
+                else:
+                    # No plugin dependency specified, reload to error on the side of caution
+                    reload = True
+
+                if reload is True:
+                    apps.mark_app_for_termination(app)
+                    apps.mark_app_for_initialization(app)
+
+    async def _terminate_apps(self, mode: UpdateMode, apps: AppActions, modules: List[ModuleLoad]) -> Dict[str, bool]:
+        """Terminate apps. Part of self.check_app_updates sequence"""
+        apps_terminated: Dict[str, bool] = {}  # stores properly terminated apps
+        if apps is not None and apps.term:
+            prio_apps = self.get_app_deps_and_prios(apps.term, mode)
+
+            # Mark dependant global modules for reload
+            for app_name in sorted(prio_apps, key=prio_apps.get):
+                app_path = self.get_path_from_app(app_name)
+
+                # If it's already in the list, set it to reload
+                for module in modules:
+                    if module.path == app_path:
+                        module.reload = True
+                        break
+
+                # Otherwise, append a reload for that path
+                else:
+                    if app_path is not None:
+                        modules.append(ModuleLoad(path=app_path, reload=True))
+
+            # Terminate Apps
+            for app in sorted(prio_apps, key=prio_apps.get, reverse=True):
+                executed = await self.stop_app(app)
+                apps_terminated[app] = executed
+
+        return apps_terminated
+
+    async def _load_reload_modules(self, apps: AppActions, modules: List[ModuleLoad]):
+        """Calls self.read_app for each module in the list"""
+        for mod in modules:
+            try:
+                await utils.run_in_executor(self, self.read_app, mod)
+            except Exception:
+                self.error.warning("-" * 60)
+                self.error.warning("Unexpected error loading module: %s:", mod.name)
+                self.error.warning("-" * 60)
+                self.error.warning(traceback.format_exc())
+                self.error.warning("-" * 60)
+                if self.AD.logging.separate_error_log() is True:
+                    self.logger.warning("Unexpected error loading module: %s:", mod.name)
+
+                self.logger.warning("Removing associated apps:")
+                module = self.get_module_from_path(mod.name)
                 for app in self.app_config:
-                    reload = False
-                    if app in self.non_apps:
-                        continue
-                    if "plugin" in self.app_config[app]:
-                        for this_plugin in utils.single_or_list(self.app_config[app]["plugin"]):
-                            if this_plugin == plugin:
-                                # We got a match so do the reload
-                                reload = True
-                                break
-                            elif plugin == "__ALL__":
-                                reload = True
-                                break
-                    else:
-                        # No plugin dependency specified, reload to error on the side of caution
-                        reload = True
+                    if "module" in self.app_config[app] and self.app_config[app]["module"] == module:
+                        if apps.init and app in apps.init:
+                            del apps.init[app]
+                            self.logger.warning("%s", app)
+                            await self.set_state(app, state="compile_error")
 
-                    if reload is True:
-                        apps["term"][app] = 1
-                        apps["init"][app] = 1
+    async def _load_apps(self, mode: UpdateMode, apps: AppActions, apps_terminated: Dict[str, bool]):
+        """Loads apps from imported modules/packages. Part of self.check_app_updates sequence"""
+        if apps is not None and apps.init:
+            self.logger.info(f"{len(apps.init)} apps to initialize")
+            prio_apps = self.get_app_deps_and_prios(apps.init, mode)
 
-            # Terminate apps
+            # Load Apps
 
-            apps_terminated = {}  # store apps properly terminated is any
-            if apps is not None and apps["term"]:
-                prio_apps = self.get_app_deps_and_prios(apps["term"], mode)
-
-                # Mark dependant global modules for reload
-                for app in sorted(prio_apps, key=prio_apps.get):
-                    found = False
-                    for module in modules:
-                        if module["name"] == self.get_path_from_app(app):
-                            found = True
-                            module["reload"] = True
-                    if found is False:
-                        if self.get_path_from_app(app) is not None:
-                            modules.append({"name": self.get_path_from_app(app), "reload": True})
-
-                # Terminate Apps
-                for app in sorted(prio_apps, key=prio_apps.get, reverse=True):
-                    executed = await self.stop_app(app)
-                    apps_terminated[app] = executed
-
-            # Load/reload modules
-
-            for mod in modules:
+            for app in sorted(prio_apps, key=prio_apps.get):
                 try:
-                    await utils.run_in_executor(self, self.read_app, mod["name"], mod["reload"])
-                except Exception:
-                    self.error.warning("-" * 60)
-                    self.error.warning("Unexpected error loading module: %s:", mod["name"])
-                    self.error.warning("-" * 60)
-                    self.error.warning(traceback.format_exc())
-                    self.error.warning("-" * 60)
-                    if self.AD.logging.separate_error_log() is True:
-                        self.logger.warning("Unexpected error loading module: %s:", mod["name"])
-
-                    self.logger.warning("Removing associated apps:")
-                    module = self.get_module_from_path(mod["name"])
-                    for app in self.app_config:
-                        if "module" in self.app_config[app] and self.app_config[app]["module"] == module:
-                            if apps["init"] and app in apps["init"]:
-                                del apps["init"][app]
-                                self.logger.warning("%s", app)
-                                await self.set_state(app, state="compile_error")
-
-            if apps is not None and apps["init"]:
-                prio_apps = self.get_app_deps_and_prios(apps["init"], mode)
-
-                # Load Apps
-
-                for app in sorted(prio_apps, key=prio_apps.get):
-                    try:
-                        if "disable" in self.app_config[app] and self.app_config[app]["disable"] is True:
-                            self.logger.info("%s is disabled", app)
-                            await self.set_state(app, state="disabled")
-                            await self.increase_inactive_apps(app)
-                        elif "global" in self.app_config[app] and self.app_config[app]["global"] is True:
-                            await self.set_state(app, state="global")
-                            await self.increase_inactive_apps(app)
-                        else:
-                            if apps_terminated.get(app, True) is True:  # the app terminated properly
-                                await self.init_object(app)
-
-                            else:
-                                self.logger.warning("Cannot initialize app %s, as it didn't terminate properly", app)
-
-                    except Exception:
-                        error_logger = logging.getLogger("Error.{}".format(app))
-                        error_logger.warning("-" * 60)
-                        error_logger.warning("Unexpected error initializing app: %s:", app)
-                        error_logger.warning("-" * 60)
-                        error_logger.warning(traceback.format_exc())
-                        error_logger.warning("-" * 60)
-                        if self.AD.logging.separate_error_log() is True:
-                            self.logger.warning(
-                                "Logged an error to %s",
-                                self.AD.logging.get_filename("error_log"),
-                            )
-
-                await self.AD.threading.calculate_pin_threads()
-
-                # Call initialize() for apps
-
-                for app in sorted(prio_apps, key=prio_apps.get):
                     if "disable" in self.app_config[app] and self.app_config[app]["disable"] is True:
-                        pass
+                        self.logger.info("%s is disabled", app)
+                        await self.set_state(app, state="disabled")
+                        await self.increase_inactive_apps(app)
                     elif "global" in self.app_config[app] and self.app_config[app]["global"] is True:
-                        pass
+                        await self.set_state(app, state="global")
+                        await self.increase_inactive_apps(app)
                     else:
                         if apps_terminated.get(app, True) is True:  # the app terminated properly
-                            await self.initialize_app(app)
+                            await self.init_object(app)
 
                         else:
-                            self.logger.debug("Cannot initialize app %s, as it didn't terminate properly", app)
+                            self.logger.warning("Cannot initialize app %s, as it didn't terminate properly", app)
 
-            if self.AD.check_app_updates_profile is True:
-                pr.disable()
+                except Exception:
+                    error_logger = logging.getLogger("Error.{}".format(app))
+                    error_logger.warning("-" * 60)
+                    error_logger.warning("Unexpected error initializing app: %s:", app)
+                    error_logger.warning("-" * 60)
+                    error_logger.warning(traceback.format_exc())
+                    error_logger.warning("-" * 60)
+                    if self.AD.logging.separate_error_log() is True:
+                        self.logger.warning(
+                            "Logged an error to %s",
+                            self.AD.logging.get_filename("error_log"),
+                        )
 
-            s = io.StringIO()
-            sortby = "cumulative"
-            ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-            ps.print_stats()
-            self.check_app_updates_profile_stats = s.getvalue()
+            await self.AD.threading.calculate_pin_threads()
 
-            self.apps_initialized = True
+            # Call initialize() for apps
 
-    def get_path_from_app(self, app):
-        module = self.app_config[app]["module"]
-        return self.get_file_from_module(module)
+            for app in sorted(prio_apps, key=prio_apps.get):
+                if "disable" in self.app_config[app] and self.app_config[app]["disable"] is True:
+                    pass
+                elif "global" in self.app_config[app] and self.app_config[app]["global"] is True:
+                    pass
+                else:
+                    if apps_terminated.get(app, True) is True:  # the app terminated properly
+                        await self.initialize_app(app)
 
-    def get_app_deps_and_prios(self, applist, mode):
+                    else:
+                        self.logger.debug("Cannot initialize app %s, as it didn't terminate properly", app)
+
+    def get_app_deps_and_prios(self, applist: Iterable[str], mode: UpdateMode) -> Dict[str, float]:
+        """Gets the dependencies and priorities for the given apps
+
+        Args:
+            applist (Iterable[str]): Iterable of app names
+            mode (UpdateMode): UpdateMode
+
+        Returns:
+            _type_: _description_
+        """
         # Build a list of modules and their dependencies
-
         deplist = []
-        for app in applist:
-            if app not in deplist:
-                deplist.append(app)
-            self.get_dependent_apps(app, deplist)
+        for app_name in applist:
+            if app_name not in deplist:
+                deplist.append(app_name)
+            self.get_dependent_apps(app_name, deplist)
 
         # Need to give the topological sort a full list of apps or it will fail
         full_list = list(self.app_config.keys())
 
         deps = []
 
-        for app in full_list:
+        for app_name in full_list:
             dependees = []
-            for dep in self.get_app_dependencies(app):
+            for dep in self.get_app_dependencies(app_name):
                 if dep in self.app_config:
                     dependees.append(dep)
                 else:
-                    self.logger.warning("Unable to find app %s in dependencies for %s", dep, app)
-                    self.logger.warning("Ignoring app %s", app)
-            deps.append((app, dependees))
+                    self.logger.warning("Unable to find app %s in dependencies for %s", dep, app_name)
+                    self.logger.warning("Ignoring app %s", app_name)
+            deps.append((app_name, dependees))
 
         prio_apps = {}
         prio = float(50.1)
         try:
-            for app in self.topological_sort(deps):
+            for app_name in self.topological_sort(deps):
                 if (
-                    "dependencies" in self.app_config[app]
-                    or app in self.global_module_dependencies
-                    or self.app_has_dependents(app)
+                    "dependencies" in self.app_config[app_name]
+                    or app_name in self.global_module_dependencies
+                    or self.app_has_dependents(app_name)
                 ):
-                    prio_apps[app] = prio
+                    prio_apps[app_name] = prio
                     prio += float(0.0001)
                 else:
-                    if mode == "init" and "priority" in self.app_config[app]:
-                        prio_apps[app] = float(self.app_config[app]["priority"])
+                    if mode == UpdateMode.INIT and "priority" in self.app_config[app_name]:
+                        prio_apps[app_name] = float(self.app_config[app_name]["priority"])
                     else:
-                        prio_apps[app] = float(50)
+                        prio_apps[app_name] = float(50)
         except ValueError:
             pass
 
         # now we remove the ones we aren't interested in
 
         final_apps = {}
-        for app in prio_apps:
-            if app in deplist:
-                final_apps[app] = prio_apps[app]
+        for app_name in prio_apps:
+            if app_name in deplist:
+                final_apps[app_name] = prio_apps[app_name]
 
         return final_apps
 
@@ -1197,13 +1465,13 @@ class AppManagement:
             pending = next_pending
             emitted = next_emitted
 
-    def apps_per_module(self, module):
-        apps = []
-        for app in self.app_config:
-            if app not in self.non_apps and self.app_config[app]["module"] == module:
-                apps.append(app)
-
-        return apps
+    def apps_per_module(self, module_name: str):
+        """Finds which apps came from a given module name"""
+        return [
+            app_name
+            for app_name, app_cfg in self.app_config.items()
+            if app_name not in self.non_apps and app_cfg["module"].split(".")[0] == module_name
+        ]
 
     def apps_per_global_module(self, module):
         apps = []
@@ -1365,7 +1633,10 @@ class AppManagement:
         return executed
 
     def remove_app(self, app, **kwargs):
-        """Used to remove an app"""
+        """Used to remove an app
+
+        Seems to be unreferenced?
+        """
 
         result = None
         # now get the app's file
@@ -1474,7 +1745,7 @@ class AppManagement:
             asyncio.ensure_future(self.restart_app(app))
 
         elif service == "reload":
-            asyncio.ensure_future(self.check_app_updates(mode="init"))
+            asyncio.ensure_future(self.check_app_updates(mode=UpdateMode.INIT))
 
         elif service in ["create", "edit", "remove", "enable", "disable"]:
             # first the check app updates needs to be stopped if on
@@ -1502,7 +1773,7 @@ class AppManagement:
 
         return None
 
-    async def increase_active_apps(self, name):
+    async def increase_active_apps(self, name: str):
         if name not in self.active_apps:
             self.active_apps.append(name)
 
@@ -1515,7 +1786,7 @@ class AppManagement:
         await self.set_state(self.active_apps_sensor, state=active_apps)
         await self.set_state(self.inactive_apps_sensor, state=inactive_apps)
 
-    async def increase_inactive_apps(self, name):
+    async def increase_inactive_apps(self, name: str):
         if name not in self.inactive_apps:
             self.inactive_apps.append(name)
 

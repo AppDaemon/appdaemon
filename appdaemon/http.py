@@ -1,25 +1,27 @@
 import asyncio
+import concurrent.futures
 import json
 import os
 import re
+import ssl
 import time
 import traceback
-import concurrent.futures
-from typing import Callable, Optional
+import uuid
+from typing import TYPE_CHECKING, Callable, Optional
 from urllib.parse import urlparse
+
+import bcrypt
 import feedparser
 from aiohttp import web
-import ssl
-import bcrypt
-import uuid
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-import appdaemon.dashboard as addashboard
-import appdaemon.utils as utils
-import appdaemon.stream.adstream as stream
 import appdaemon.admin as adadmin
+import appdaemon.dashboard as addashboard
+import appdaemon.stream.adstream as stream
+import appdaemon.utils as utils
 
-from appdaemon.appdaemon import AppDaemon
+if TYPE_CHECKING:
+    from appdaemon.appdaemon import AppDaemon
 
 
 def securedata(myfunc):
@@ -107,7 +109,16 @@ def route_secure(myfunc):
 
 
 class HTTP:
-    def __init__(self, ad: AppDaemon, loop, logging, appdaemon, dashboard, old_admin, admin, api, http):
+    """Handles serving the web UI"""
+
+    AD: "AppDaemon"
+    """Reference to the AppDaemon container object
+    """
+
+    stopping: bool
+    executor: concurrent.futures.ThreadPoolExecutor
+
+    def __init__(self, ad: "AppDaemon", loop, logging, appdaemon, dashboard, old_admin, admin, api, http):
         self.AD = ad
         self.logging = logging
         self.logger = ad.logging.get_child("_http")
@@ -164,10 +175,9 @@ class HTTP:
         try:
             url = urlparse(self.url)
 
-            net = url.netloc.split(":")
-            self.host = net[0]
+            self.host = url.hostname
             try:
-                self.port = net[1]
+                self.port = url.port
             except IndexError:
                 self.port = 80
 
@@ -367,7 +377,7 @@ class HTTP:
 
         self.runner = web.AppRunner(self.app)
         await self.runner.setup()
-        site = web.TCPSite(self.runner, "0.0.0.0", int(self.port), ssl_context=self.context)
+        site = web.TCPSite(self.runner, self.host, int(self.port), ssl_context=self.context)
         await site.start()
 
     async def stop_server(self):
@@ -911,7 +921,7 @@ class HTTP:
 
     async def dispatch_app_endpoint(self, endpoint, request):
         callback = None
-        rargs = {}
+        rargs = {"request": request}
         appname = None
 
         for name in self.app_endpoints:
@@ -948,9 +958,8 @@ class HTTP:
                     return await callback(args, rargs)
             else:
                 if use_dictionary_unpacking is True:
-                    return await utils.run_in_executor(self, callback, args, request=request, **rargs)
+                    return await utils.run_in_executor(self, callback, args, **rargs)
                 else:
-                    rargs["request"] = request
                     return await utils.run_in_executor(self, callback, args, rargs)
         else:
             return "", 404

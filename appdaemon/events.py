@@ -1,29 +1,29 @@
-"""Module to handle all events within AppDaemon."""
-
+import datetime
+import traceback
 import uuid
 from copy import deepcopy
-import traceback
-import datetime
+from logging import Logger
+from typing import TYPE_CHECKING, Any, Dict
 
-from appdaemon.appdaemon import AppDaemon
 import appdaemon.utils as utils
+
+if TYPE_CHECKING:
+    from appdaemon.appdaemon import AppDaemon
 
 
 class Events:
-    """Encapsulate event handling."""
+    """Subsystem container for handling all events"""
 
-    def __init__(self, ad: AppDaemon):
-        """Constructor.
+    AD: "AppDaemon"
+    """Reference to the top-level AppDaemon container object
+    """
+    logger: Logger
+    """Standard python logger named ``AppDaemon._events``
+    """
 
-        Args:
-            ad: Reference to the AppDaemon object
-        """
-
+    def __init__(self, ad: "AppDaemon"):
         self.AD = ad
         self.logger = ad.logging.get_child("_events")
-        #
-        # Events
-        #
 
     async def add_event_callback(self, name, namespace, cb, event, **kwargs):
         """Adds a callback for an event which is called internally by apps.
@@ -130,12 +130,15 @@ class Events:
 
         return executed
 
-    async def info_event_callback(self, name, handle):
+    async def info_event_callback(self, name: str, handle: str):
         """Gets the information of an event callback.
 
         Args:
             name (str): Name of the app or subsystem.
-            handle: Previously supplied handle for the callback.
+            handle (str): Previously supplied handle for the callback.
+
+        Raises:
+            ValueError: an invalid name or handle was provided
 
         Returns:
             A dictionary of callback entries or rise a ``ValueError`` if an invalid handle is provided.
@@ -149,7 +152,7 @@ class Events:
             else:
                 raise ValueError("Invalid handle: {}".format(handle))
 
-    async def fire_event(self, namespace, event, **kwargs):
+    async def fire_event(self, namespace: str, event: str, **kwargs):
         """Fires an event.
 
         If the namespace does not have a plugin associated with it, the event will be fired locally.
@@ -177,7 +180,7 @@ class Events:
             # Just fire the event locally
             await self.AD.events.process_event(namespace, {"event_type": event, "data": kwargs})
 
-    async def process_event(self, namespace, data):
+    async def process_event(self, namespace: str, data: Dict[str, Any]):
         """Processes an event that has been received either locally or from a plugin.
 
         Args:
@@ -257,7 +260,7 @@ class Events:
             self.logger.warning(traceback.format_exc())
             self.logger.warning("-" * 60)
 
-    async def has_log_callback(self, name):
+    async def has_log_callback(self, name: str):
         """Returns ``True`` if the app has a log callback, ``False`` otherwise.
 
         Used to prevent callback loops. In the calling logic, if this function returns
