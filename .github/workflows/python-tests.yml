@@ -23,7 +23,7 @@ jobs:
         # Workaround while waiting for https://github.com/actions/setup-python/issues/529
         cache-dependency-path: 'pyproject.toml'
     - name: Run pre-commit
-      uses: pre-commit/action@v3.0.0
+      uses: pre-commit/action@v3.0.1
     - uses: pre-commit-ci/lite-action@v1.0.1
       if: always()
 
