@@ -69,7 +69,7 @@ pytz==2024.1
     # via appdaemon (pyproject.toml)
 pyyaml==6.0.2
     # via appdaemon (pyproject.toml)
-requests==2.32.2
+requests==2.32.3
     # via appdaemon (pyproject.toml)
 sgmllib3k==1.0.0
     # via feedparser
@@ -83,7 +83,7 @@ tomli==2.0.1
     # via appdaemon (pyproject.toml)
 tomli-w==1.0.0
     # via appdaemon (pyproject.toml)
-urllib3==1.26.19
+urllib3==2.2.2
     # via requests
 uvloop==0.19.0 ; sys_platform != "win32"
     # via appdaemon (pyproject.toml)
