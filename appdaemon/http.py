@@ -922,7 +922,7 @@ class HTTP:
 
     async def dispatch_app_endpoint(self, endpoint, request):
         callback = None
-        rargs = {}
+        rargs = {"request": request}
         appname = None
 
         for name in self.app_endpoints:
@@ -959,9 +959,8 @@ class HTTP:
                     return await callback(args, rargs)
             else:
                 if use_dictionary_unpacking is True:
-                    return await utils.run_in_executor(self, callback, args, request=request, **rargs)
+                    return await utils.run_in_executor(self, callback, args, **rargs)
                 else:
-                    rargs["request"] = request
                     return await utils.run_in_executor(self, callback, args, rargs)
         else:
             return "", 404
