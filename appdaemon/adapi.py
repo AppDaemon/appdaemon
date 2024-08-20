@@ -2068,6 +2068,8 @@ class ADAPI:
                     b. ``sunrise|sunset [+|- HH:MM:SS[.ss]]`` - time of the next sunrise or sunset
                     with an optional positive or negative offset in Hours Minutes, Seconds and Microseconds.
 
+                    c. ``N deg rising|setting`` - time the sun will be at N degrees of elevation while either rising or setting
+
                 If the ``HH:MM:SS.ss`` format is used, the resulting datetime object will have
                 today's date.
             name (str, optional): Name of the calling app or module. It is used only for logging purposes.
