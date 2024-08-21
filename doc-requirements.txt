@@ -25,7 +25,7 @@ attrs==24.2.0
     # via aiohttp
 babel==2.16.0
     # via sphinx
-bcrypt==4.0.1
+bcrypt==4.2.0
     # via appdaemon (pyproject.toml)
 bidict==0.23.1
     # via python-socketio
