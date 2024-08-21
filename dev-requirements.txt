@@ -153,7 +153,7 @@ typing-extensions==4.12.2
     # via black
 urllib3==2.2.2
     # via requests
-uvloop==0.19.0 ; sys_platform != "win32"
+uvloop==0.20.0 ; sys_platform != "win32"
     # via appdaemon (pyproject.toml)
 virtualenv==20.26.3
     # via pre-commit
