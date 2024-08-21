@@ -114,7 +114,7 @@ pyproject-hooks==1.1.0
     # via
     #   build
     #   pip-tools
-pytest==8.0.2
+pytest==8.3.2
     # via appdaemon (pyproject.toml)
 python-dateutil==2.9.0.post0
     # via appdaemon (pyproject.toml)
