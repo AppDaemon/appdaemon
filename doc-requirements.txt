@@ -45,7 +45,7 @@ colorama==0.4.6
     # via sphinx-autobuild
 deepdiff==7.0.1
     # via appdaemon (pyproject.toml)
-docutils==0.19
+docutils==0.20.1
     # via
     #   myst-parser
     #   sphinx
@@ -76,13 +76,13 @@ jinja2==3.1.4
     #   aiohttp-jinja2
     #   myst-parser
     #   sphinx
-markdown-it-py==2.2.0
+markdown-it-py==3.0.0
     # via
     #   mdit-py-plugins
     #   myst-parser
 markupsafe==2.1.5
     # via jinja2
-mdit-py-plugins==0.3.5
+mdit-py-plugins==0.4.1
     # via myst-parser
 mdurl==0.1.2
     # via markdown-it-py
@@ -132,7 +132,7 @@ snowballstemmer==2.2.0
     # via sphinx
 sockjs==0.13.0
     # via appdaemon (pyproject.toml)
-sphinx==6.2.1
+sphinx==7.4.7
     # via
     #   myst-parser
     #   sphinx-autobuild
@@ -159,7 +159,9 @@ sphinxcontrib-serializinghtml==2.0.0
 starlette==0.38.2
     # via sphinx-autobuild
 tomli==2.0.1
-    # via appdaemon (pyproject.toml)
+    # via
+    #   appdaemon (pyproject.toml)
+    #   sphinx
 tomli-w==1.0.0
     # via appdaemon (pyproject.toml)
 typing-extensions==4.12.2

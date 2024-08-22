@@ -27,9 +27,9 @@ bcrypt==4.2.0
     # via appdaemon (pyproject.toml)
 bidict==0.23.1
     # via python-socketio
-black==24.8.0
+black==24.4.2
     # via appdaemon (pyproject.toml)
-build==1.2.1
+build==1.0.3
     # via
     #   appdaemon (pyproject.toml)
     #   pip-tools
@@ -106,11 +106,11 @@ platformdirs==4.2.2
     #   virtualenv
 pluggy==1.5.0
     # via pytest
-pre-commit==3.8.0 ; python_version > "3.7"
+pre-commit==3.5.0 ; python_version > "3.7"
     # via appdaemon (pyproject.toml)
-pycodestyle==2.10.0
+pycodestyle==2.12.1
     # via flake8
-pyflakes==3.0.1
+pyflakes==3.2.0
     # via flake8
 pyproject-hooks==1.1.0
     # via
@@ -132,7 +132,7 @@ pyyaml==6.0.2
     #   pre-commit
 requests==2.32.3
     # via appdaemon (pyproject.toml)
-ruff==0.6.1
+ruff==0.6.2
     # via appdaemon (pyproject.toml)
 sgmllib3k==1.0.0
     # via feedparser
