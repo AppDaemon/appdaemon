@@ -128,7 +128,7 @@ class ADMain:
                 self.logger.info("Running AD using uvloop")
                 uvloop.install()
 
-            loop: asyncio.BaseEventLoop = asyncio.get_event_loop()
+            loop: asyncio.BaseEventLoop = asyncio.new_event_loop()
 
             # Initialize AppDaemon
 
