@@ -1125,7 +1125,6 @@ class AppManagement:
                 # Prune dir list
                 subdirs[:] = [d for d in subdirs if d not in self.AD.exclude_dirs and "." not in d]
 
-
                 if utils.is_valid_root_path(root):
                     if root not in self.module_dirs:
                         self.logger.info("Adding %s to module import path", root)
