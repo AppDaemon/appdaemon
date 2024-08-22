@@ -27,9 +27,9 @@ bcrypt==4.2.0
     # via appdaemon (pyproject.toml)
 bidict==0.23.1
     # via python-socketio
-black==24.4.2
+black==24.8.0
     # via appdaemon (pyproject.toml)
-build==1.0.3
+build==1.2.1
     # via
     #   appdaemon (pyproject.toml)
     #   pip-tools
@@ -53,7 +53,7 @@ feedparser==6.0.11
     # via appdaemon (pyproject.toml)
 filelock==3.15.4
     # via virtualenv
-flake8==6.0.0
+flake8==7.1.1
     # via appdaemon (pyproject.toml)
 frozenlist==1.4.1
     # via
@@ -106,7 +106,7 @@ platformdirs==4.2.2
     #   virtualenv
 pluggy==1.5.0
     # via pytest
-pre-commit==3.5.0 ; python_version > "3.7"
+pre-commit==3.8.0 ; python_version > "3.7"
     # via appdaemon (pyproject.toml)
 pycodestyle==2.10.0
     # via flake8
@@ -159,7 +159,7 @@ uvloop==0.20.0 ; sys_platform != "win32"
     # via appdaemon (pyproject.toml)
 virtualenv==20.26.3
     # via pre-commit
-websocket-client==1.7.0
+websocket-client==1.8.0
     # via appdaemon (pyproject.toml)
 wheel==0.44.0
     # via pip-tools
