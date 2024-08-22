@@ -132,7 +132,7 @@ snowballstemmer==2.2.0
     # via sphinx
 sockjs==0.13.0
     # via appdaemon (pyproject.toml)
-sphinx==6.2.1
+sphinx==8.0.2
     # via
     #   myst-parser
     #   sphinx-autobuild
