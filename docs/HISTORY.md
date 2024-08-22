@@ -12,6 +12,7 @@
 - Added access to the request object for both async and non-async http callbacks - contributed by [Eric Severance](https://github.com/esev)
 - Added option for N deg rising|setting to Scheduler._parse_time
 - Added `silent` parameter to `cancel_listen_state()` - contributed by [Daniel Rocha](https://github.com/danroc)
+- Remove support for python 3.8 and 3.9
 
 **Fixes**
 
@@ -23,6 +24,7 @@
 **Breaking Changes**
 
 - The fix to honor the host name in the HTTP URL may cause AppDaemon to fail to start, if the hostname provided is not valid. In particular, docker users will need to switch their URL to either use localhost, explicitly, or "0.0.0.0" which will bind to any available interface, or use command line tools to discover the correct IP address and use that.
+- AppDaemon no longer supports versions of Python prior to 3.10. This is in line with other packages, and allows us to keep the code base up to date and current with the latest developments
 
 ## 4.4.2 (2023-04-16)
 
