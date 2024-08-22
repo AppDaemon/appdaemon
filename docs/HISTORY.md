@@ -5,7 +5,6 @@
 **Features**
 
 - Added Pirateweather widget - contributed by [Dave Dixon](https://github.com/DaveDixon)
-- Updated docker image to use Alpine 3.18 and Python 3.11
 - Added ability to know the topic associated with an MQTT message decode error
 - Added `expert` mode for python imports via the `import_method` directive
 - Added `import_path` directive to enable python imports from arbitary paths
