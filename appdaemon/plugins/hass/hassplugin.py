@@ -10,7 +10,6 @@ from urllib.parse import quote, urlencode
 
 import aiohttp
 import pytz
-import websocket
 from deepdiff import DeepDiff
 
 import appdaemon.utils as utils
@@ -130,37 +129,30 @@ class HassPlugin(PluginBase):
     # Connect and return a new WebSocket to HASS instance
     #
     async def create_websocket(self):
-        # change to websocket protocol
-        url = self.ha_url
-        if url.startswith("https://"):
-            url = url.replace("https", "wss", 1)
-        elif url.startswith("http://"):
-            url = url.replace("http", "ws", 1)
-
         # ssl options
-        sslopt = {}
-        if self.cert_verify is False:
-            sslopt = {"cert_reqs": ssl.CERT_NONE}
-        if self.cert_path:
-            sslopt["ca_certs"] = self.cert_path
-        ws = websocket.create_connection("{}/api/websocket".format(url), sslopt=sslopt)
+        # sslopt = {}
+        # if self.cert_verify is False:
+        #    sslopt = {"cert_reqs": ssl.CERT_NONE}
+        # if self.cert_path:
+        #    sslopt["ca_certs"] = self.cert_path
+        # TODO: Figure out SSL - is it handled already by the session?
 
-        # wait for successful connection
-        res = await utils.run_in_executor(self, ws.recv)
-        result = json.loads(res)
-        self.logger.info("Connected to Home Assistant %s", result["ha_version"])
+        ws = await self.session.ws_connect(f"{self.ha_url}/api/websocket")
+        result = await ws.receive_json()
+        self.logger.info("Connected to Home Assistant %s with aiohttp", result["ha_version"])
 
         # Check if auth required, if so send password
         if result["type"] == "auth_required":
             if self.token is not None:
-                auth = json.dumps({"type": "auth", "access_token": self.token})
+                auth = {"type": "auth", "access_token": self.token}
             elif self.ha_key is not None:
-                auth = json.dumps({"type": "auth", "api_password": self.ha_key})
+                auth = {"type": "auth", "api_password": self.ha_key}
             else:
                 raise ValueError("HASS requires authentication and none provided in plugin config")
 
-            await utils.run_in_executor(self, ws.send, auth)
-            result = json.loads(ws.recv())
+            await ws.send_json(auth)
+
+            result = await ws.receive_json()
             if result["type"] != "auth_ok":
                 self.logger.warning("Error in authentication")
                 raise ValueError("Error in authentication")
@@ -329,9 +321,9 @@ class HassPlugin(PluginBase):
                 #
                 # Subscribe to event stream
                 #
-                sub = json.dumps({"id": _id, "type": "subscribe_events"})
-                await utils.run_in_executor(self, self.ws.send, sub)
-                result = json.loads(self.ws.recv())
+                sub = {"id": _id, "type": "subscribe_events"}
+                await self.ws.send_json(sub)
+                result = await self.ws.receive_json()
                 if not (result["id"] == _id and result["type"] == "result" and result["success"] is True):
                     self.logger.warning("Unable to subscribe to HA events, id = %s", _id)
                     self.logger.warning(result)
@@ -377,10 +369,9 @@ class HassPlugin(PluginBase):
                 # Loop forever consuming events
                 #
                 while not self.stopping:
-                    ret = await utils.run_in_executor(self, self.ws.recv)
-                    result = json.loads(ret)
+                    result = await self.ws.receive_json()
 
-                    self.update_perf(bytes_recv=len(ret), updates_recv=1)
+                    self.update_perf(bytes_recv=len(result), updates_recv=1)
 
                     if not (result["id"] == _id and result["type"] == "event"):
                         self.logger.warning("Unexpected result from Home Assistant, id = %s", _id)
@@ -426,11 +417,12 @@ class HassPlugin(PluginBase):
                         "Disconnected from Home Assistant, retrying in %s seconds",
                         self.retry_secs,
                     )
-                    self.logger.debug("-" * 60)
-                    self.logger.debug("Unexpected error:")
-                    self.logger.debug("-" * 60)
-                    self.logger.debug(traceback.format_exc())
-                    self.logger.debug("-" * 60)
+                    # TODO: change back to logger.debug
+                    self.logger.warning("-" * 60)
+                    self.logger.warning("Unexpected error:")
+                    self.logger.warning("-" * 60)
+                    self.logger.warning(traceback.format_exc())
+                    self.logger.warning("-" * 60)
                     await asyncio.sleep(self.retry_secs)
 
         self.logger.info("Disconnecting from Home Assistant")
@@ -982,4 +974,5 @@ class HassPlugin(PluginBase):
             self.logger.warning("-" * 60)
             self.logger.warning(traceback.format_exc())
             self.logger.warning("-" * 60)
+            return None
             return None
