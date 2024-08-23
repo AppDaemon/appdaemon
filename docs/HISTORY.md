@@ -14,6 +14,7 @@
 - Remove support for python 3.8 and 3.9
 - Add support for python 3.12
 - Update docker image to Alpine 3.20/Python 3.12
+- Upgraded HASS plugin to use the aiohttp websocket client
 
 **Fixes**
 
