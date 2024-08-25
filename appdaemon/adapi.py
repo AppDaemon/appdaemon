@@ -3110,8 +3110,6 @@ class ADAPI:
 
         def callback_inner(f):
             try:
-                # @todo : use our own callback type instead of borrowing
-                # from scheduler
                 rargs = {}
                 rargs["result"] = f.result()
                 sched_data["kwargs"] = rargs
@@ -3161,8 +3159,6 @@ class ADAPI:
 
         def callback_inner(f):
             try:
-                # @todo : use our own callback type instead of borrowing
-                # from scheduler
                 kwargs["result"] = f.result()
                 sched_data["kwargs"] = kwargs
                 self.create_task(self.AD.threading.dispatch_worker(self.name, sched_data))

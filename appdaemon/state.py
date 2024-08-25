@@ -63,7 +63,7 @@ class State:
 
         await self.AD.events.process_event("admin", data)
 
-        # @todo need to update and reload the admin page to show the new namespace in real-time
+        # TODO need to update and reload the admin page to show the new namespace in real-time
 
         return nspath_file
 
@@ -91,7 +91,7 @@ class State:
 
             await self.AD.events.process_event("admin", data)
 
-            # @todo need to update and reload the admin page to show the removed namespace in real-time
+            # TODO need to update and reload the admin page to show the removed namespace in real-time
 
         elif namespace in self.state:
             self.logger.warning("Cannot delete namespace %s, as not an app defined namespace", namespace)
@@ -510,7 +510,8 @@ class State:
     async def get_state(self, name, namespace, entity_id=None, attribute=None, default=None, copy=True):
         self.logger.debug("get_state: %s.%s %s %s", entity_id, attribute, default, copy)
 
-        maybe_copy = lambda data: deepcopy(data) if copy else data  # noqa: E731
+        def maybe_copy(data):
+            return deepcopy(data) if copy else data  # noqa: E731
 
         if entity_id is not None and "." in entity_id:
             if not await self.entity_exists(namespace, entity_id):

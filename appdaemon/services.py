@@ -201,7 +201,7 @@ class Services:
             isasync = True
 
             # if to wait for results, default to False
-            return_result = data.pop("return_result", False)
+            return_result = data.get("return_result", False)
 
             # if to return results via callback
             callback = data.pop("callback", None)
