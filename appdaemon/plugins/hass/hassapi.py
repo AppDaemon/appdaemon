@@ -1,15 +1,14 @@
-from typing import Any, Optional, Union
-import requests
 from ast import literal_eval
 from functools import wraps
+from typing import Any, Optional, Union
 
-import appdaemon.adbase as adbase
-import appdaemon.adapi as adapi
-import appdaemon.utils as utils
-
-from appdaemon.appdaemon import AppDaemon
-
+import requests
 from urllib3.exceptions import InsecureRequestWarning
+
+import appdaemon.adapi as adapi
+import appdaemon.adbase as adbase
+import appdaemon.utils as utils
+from appdaemon.appdaemon import AppDaemon
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
@@ -727,16 +726,12 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
         """
         namespace = self._get_namespace(**kwargs)
+        plugin = await self.AD.plugins.get_plugin_object(namespace)
 
         if "namespace" in kwargs:
             del kwargs["namespace"]
 
-        rargs = kwargs
-        rargs["namespace"] = namespace
-        rargs["template"] = template
-        rargs["return_result"] = True
-
-        result = await self.call_service("template/render", **rargs)
+        result = await plugin.render_template(namespace, template)
         try:
             return literal_eval(result)
         except (SyntaxError, ValueError):
