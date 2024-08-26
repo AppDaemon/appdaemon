@@ -19,7 +19,7 @@
 **Fixes**
 
 - baseicon set_service_call fix - contributed by [lancasterJ](https://github.com/lancasterJ)
-- HTTP module now correctly honors the provided host name instead of binding to 0.0.0.0, and should also now for IPv6 - contributed by [bitstacker](https://github.com/bitstacker)
+- HTTP module now correctly honors the provided host name instead of binding to 0.0.0.0, and should also now work for IPv6 - contributed by [bitstacker](https://github.com/bitstacker)
 - Fix for baseweather direcytion icon - contributed by [carawan](https://github.com/carawan)
 - Fix for bug in pathname checking for hidden files and __pycache__  - contributed by [David Warde-Farley](https://github.com/dwf)
 
@@ -30,7 +30,7 @@
 **Changes in Behavior**
 
 - The fix to honor the host name in the HTTP URL may cause AppDaemon to fail to start, if the hostname provided is not valid. In particular, docker users will need to switch their URL to either use localhost, explicitly, or "0.0.0.0" which will bind to any available interface, or use command line tools to discover the correct IP address and use that.
-- The timer for internal function timeouts has been increased from 10 seconds to 60 to allow for the fact that service calls to hass can now be synchronous and mat take longer
+- The timer for internal function timeouts has been increased from 10 seconds to 60 to allow for the fact that service calls to hass can now be synchronous and may take longer
 
 
 ## 4.4.2 (2023-04-16)
