@@ -204,7 +204,7 @@ class Services:
             return_result = data.get("return_result", False)
 
             # if to return results via callback
-            callback = data.pop("callback", None)
+            callback = data.get("callback", None)
 
             if "__async" in self.services[namespace][domain][service]:
                 # We have a kwarg to tell us what to do

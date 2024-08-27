@@ -103,19 +103,19 @@ class HassPlugin(PluginBase):
         # We recieved a response from the WS, match it up with the caller
         if "id" in response and response["id"] in self.queues:
             q = self.queues[response["id"]]
-            await q.put({"status": "OK", "response": response})
+            await q.put(response)
         else:
             pass
             self.logger.debug(f"Unable to find Q, discarding response {response}")
 
-    async def process_command(self, command, return_result, timeout=0):
+    async def process_command(self, command, return_result, hass_timeout=0, suppress=False):
         # self.logger.info(locals())
         # This routine makes websocket requests appear synchronous to the calling task
 
-        if timeout == 0:
+        if hass_timeout == 0:
             t = self.q_timeout
         else:
-            t = timeout
+            t = hass_timeout
 
         async with self.queue_lock:
             self.id += 1
@@ -132,41 +132,46 @@ class HassPlugin(PluginBase):
         await self.ws.send_json(command)
 
         if return_result is True:
+            start_ts = await self.AD.sched.get_now_ts()
             # We are now waiting on our Q for a message to be returned on the websocket
 
             get = self.queues[id].get()
             try:
                 response = await asyncio.wait_for(get, t)
             except asyncio.TimeoutError:
-                self.logger.warning(f"Timeout waiting for HASS response, {t}s, request={command}")
-                return None
+                now = await self.AD.sched.get_now_ts()
+                if suppress is False:
+                    self.logger.warning(f"Timeout waiting for HASS response, {t}s, request={command}")
+                return {"ad_status": "TIMEOUT", "ad_duration": now - start_ts}
+
+            if "ad_status" in response and response["ad_status"] == "TERMINATING":
+                # if we get a termination message we transfer control back
+                now = await self.AD.sched.get_now_ts()
+                response["ad_duration"] = now - start_ts
+                del self.queues[id]
+                return response
 
             # self.logger.info(f"Response: {response}")
-            # We got a response, we can dispense with the queue
+            # We got a valid response
 
-            # self.logger.info(response)
-            if response["status"] == "OK":
-                # All OK, send the data back
-                del self.queues[id]
+            # Set the AD response code and timeing
+            response["ad_status"] = "OK"
+            now = await self.AD.sched.get_now_ts()
 
-                # Sanity check
-                assert "id" in response["response"] and response["response"]["id"] == id
+            response["ad_duration"] = now - start_ts
+            # remove the Q
+            del self.queues[id]
 
-                # Did we get an error code from HASS?
-                if response["response"]["success"] is False:
-                    # HASS reported an error
-                    self.logger.warning(f"Error in HASS response: {response['response']}")
-                    return None
-                else:
-                    return response["response"]
-            elif response["status"] == "TERMINATE":
-                # if we get a termination message we transfer control back
-                del self.queues[id]
-                return None
-            else:
-                # Something went wrong
-                self.logger.warning(f"Error in HASS response: {response['response']}")
-                return None
+            # Sanity check
+            assert "id" in response and response["id"] == id
+
+            # Did we get an error code from HASS?
+            if response["success"] is False:
+                # HASS reported an error
+                if suppress is False:
+                    self.logger.warning(f"Error in HASS response: {response}")
+
+            return response
         else:
             # We don't care about the result
             # Immediately return
@@ -177,7 +182,7 @@ class HassPlugin(PluginBase):
         async with self.queue_lock:
             for k, q in self.queues.items():
                 self.logger.info(f"id={k}")
-                q.send({"status": "TERMINATE"})
+                q.send({"ad_status": "TERMINATING"})
 
     def stop(self):
         self.logger.debug("stop() called for %s", self.name)
@@ -751,17 +756,21 @@ class HassPlugin(PluginBase):
             else:
                 return_result = False
 
+            if "callback" in data:
+                del data["callback"]
+                return_result = True
+
             if "hass_result" in data:
                 hass_result = data["hass_result"]
                 del data["hass_result"]
             else:
                 hass_result = False
 
-            if "timeout" in data:
-                timeout = data["timeout"]
-                del data["timeout"]
+            if "hass_timeout" in data:
+                hass_timeout = data["hass_timeout"]
+                del data["hass_timeout"]
             else:
-                timeout = 0
+                hass_timeout = 0
 
             req = {"type": "call_service", "domain": domain, "service": service, "service_data": data}
 
@@ -771,7 +780,9 @@ class HassPlugin(PluginBase):
             if hass_result is True:
                 req["return_response"] = hass_result
 
-            res = await self.process_command(req, return_result, timeout)
+            suppress = data.pop("suppress_log_messages", False)
+
+            res = await self.process_command(req, return_result, hass_timeout, suppress)
 
             self.update_perf(bytes_sent=len(json.dumps(req)), bytes_recv=len(json.dumps(res)), requests_sent=1)
 

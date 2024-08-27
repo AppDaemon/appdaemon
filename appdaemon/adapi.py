@@ -1752,8 +1752,22 @@ class ADAPI:
                 or the default namespace. See the section on `namespaces <APPGUIDE.html#namespaces>`__
                 for a detailed description. In most cases, it is safe to ignore this parameter.
             return_result(str, option): If `return_result` is provided and set to `True` AD will attempt
-                to wait for the result, and return it after execution
+                to wait for the result, and return it after execution. In the case of Home Assistant calls that do not
+                return values this may seem pointless, but it does force the call to be synchronous with respect to Home Assistant
+                whcih can in turn highlight slow performing services if they timeout or trigger thread warnings.
             callback: The non-async callback to be executed when complete.
+            hass_result (False, Home Assistant Specific): Mark the service call to Home Assistant as returnng a
+                value. If set to ``True``, the call to Home Assistant will specifically request a return result.
+                If this flag is set for a service that does not return a result, Home Assistant will respond with an error,
+                which AppDaemon will log. If this flag is NOT set for a service that does returns a result,
+                Home Assistant will respond with an error, which AppDaemon will log. Note: if you specify ``hass_result``
+                you must also set ``return_result`` or the result from HomeAssistant will not be propagated to your app. See `Some Notes on Service Calls <APPGUIDE.html#some-notes-on-service-calls>`__
+            hass_timeout (Home Assistant Specific): time in seconds to wait for Home Assistant's response for this specific service call. If not specified
+                defaults to the value of the ``q_timeout`` parameter in the HASS plugin configuration, which itself defaults to 30 seconds. See `Some Notes on Service Calls <APPGUIDE.html#some-notes-on-service-calls>`__
+            suppress_log_messages (Home Assistant Specific, False): if set to ``True`` Appdaemon will suppress logging of warnings for service calls to Home Assistant, specifically timeouts and non OK statuses. Use this flag and set it to ``True``
+                to supress these log messages if you are performing your own error checking as described `here <APPGUIDE.html#some-notes-on-service-calls>`__
+
+
 
         Returns:
             Result of the `call_service` function if any
@@ -1763,6 +1777,7 @@ class ADAPI:
 
             >>> self.call_service("light/turn_on", entity_id = "light.office_lamp", color_name = "red")
             >>> self.call_service("notify/notify", title = "Hello", message = "Hello World")
+            >>> self.call_service("calendar/get_events", entity_id="calendar.home", start_date_time="2024-08-25 00:00:00", end_date_time="2024-08-27 00:00:00", return_result=True, hass_result=True, hass_timeout=10)
 
             MQTT
 
