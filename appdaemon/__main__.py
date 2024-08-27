@@ -367,7 +367,9 @@ class ADMain:
 
         # Startup message
 
+        self.logger.info("-" * 60)
         self.logger.info("AppDaemon Version %s starting", utils.__version__)
+        self.logger.info("-" * 60)
         self.logger.info(
             "Python version is %s.%s.%s",
             sys.version_info[0],

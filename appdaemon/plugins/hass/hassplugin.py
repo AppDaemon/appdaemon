@@ -138,7 +138,7 @@ class HassPlugin(PluginBase):
             try:
                 response = await asyncio.wait_for(get, t)
             except asyncio.TimeoutError:
-                self.logger.warning(f"Timeout waiting for HASS response, request={command}")
+                self.logger.warning(f"Timeout waiting for HASS response, {t}s, request={command}")
                 return None
 
             # self.logger.info(f"Response: {response}")
@@ -181,10 +181,7 @@ class HassPlugin(PluginBase):
 
     def stop(self):
         self.logger.debug("stop() called for %s", self.name)
-        # TODO: needs to be async
         self.stopping = True
-        # if self.ws is not None:
-        #    self.ws.close()
 
     #
     # Placeholder for constraints
@@ -222,14 +219,6 @@ class HassPlugin(PluginBase):
     # Connect and return a new WebSocket to HASS instance
     #
     async def create_websocket(self):
-        # ssl options
-        # sslopt = {}
-        # if self.cert_verify is False:
-        #    sslopt = {"cert_reqs": ssl.CERT_NONE}
-        # if self.cert_path:
-        #    sslopt["ca_certs"] = self.cert_path
-        # TODO: Figure out SSL - is it handled already by the session?
-
         self.init_q()
 
         ws = await self.session.ws_connect(f"{self.ha_url}/api/websocket")
