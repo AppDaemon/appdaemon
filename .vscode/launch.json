@@ -4,13 +4,22 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+
         {
-            "name": "AppDaemon Dev",
+            "name": "AppDaemon Dev Test",
             "type": "python",
             "request": "launch",
             "module": "appdaemon",
             "justMyCode": true,
-            "args": "-c /conf --toml"
+            "args": "-c /conf/dev_test --toml"
+        },
+        {
+            "name": "AppDaemon Production",
+            "type": "python",
+            "request": "launch",
+            "module": "appdaemon",
+            "justMyCode": true,
+            "args": "-c /conf/production --toml"
         },
     ]
 }

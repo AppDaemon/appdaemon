@@ -3189,6 +3189,8 @@ Here is how you would force a synchronous call, that will return error informati
                return_result=True,
            )
 
+It is also possible to force all calls to be synchronous by setting the ``return_result`` parameter in the plugin configuration.
+
 Home Assistant Return Data Format
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -3217,7 +3219,7 @@ This example shows how to use the return data with full error handling:
 
         result = self.call_service(
             "calendar/get_events",
-            entity_id="calendar.homee",
+            entity_id="calendar.home",
             start_date_time="2024-08-25 00:00:00",
             end_date_time="2024-08-27 00:00:00",
             return_result=True,
@@ -3231,7 +3233,7 @@ This example shows how to use the return data with full error handling:
             )
         elif result["ad_status"] == "TERMINATING":
             self.log(
-                f"service call to calendar/get_events ended due to AppDaemon shutdwon, elapsed time={result['ad_duration']}"
+                f"service call to calendar/get_events ended due to AppDaemon shutdown, elapsed time={result['ad_duration']}"
             )
         elif result["ad_status"] == "OK":
             if result["success"] is True:
@@ -3270,9 +3272,9 @@ Sample output:
     app1: service call to calendar/get_events succeeded with errors, elapsed time=0.0038149356842041016
     app1: code=home_assistant_error, message=Service call requested response data but did not match any entities
 
-Service CALL Logging With Home Assistant
+Service Call Logging With Home Assistant
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 By default, AppDaemon will log errors when any service call to HomeAssistant either times out, or returns
 a service error. If you prefer to do error checking yourself on a per-call basis you can use the ``suppress_log_messages``
-flag in the servicer call and set it to ``True``
+flag in the servicer call and set it to ``True``, or you can suppress log messages globally by setting ``suppress_log_messages`` to true in the plugin configuration.

@@ -63,6 +63,8 @@ class HassPlugin(PluginBase):
         self.cert_verify = args.get("cert_verify")
         self.commtype = args.get("commtype", "WS")
         self.q_timeout = args.get("q_timeout", 30)
+        self.return_result = args.get("return_result", False)
+        self.suppress_log_messages = args.get("suppress_log_messages", False)
 
         # Fixes for supervised
         self.ha_key = args.get("ha_key", os.environ.get("SUPERVISOR_TOKEN"))
@@ -81,7 +83,7 @@ class HassPlugin(PluginBase):
 
         # Cached state from HA
         self.metadata = None
-        self.services = None
+        self.services = []
 
         # Internal state flags
         self.already_notified = False
@@ -419,17 +421,11 @@ class HassPlugin(PluginBase):
                 #
                 # Register Services
                 #
-                self.services = await self.get_hass_services()
-                for hass_service in self.services:
+                services = await self.get_hass_services()
+                for hass_service in services:
                     domain = hass_service["domain"]
-                    for service in hass_service["services"]:
-                        self.AD.services.register_service(
-                            self.get_namespace(),
-                            domain,
-                            service,
-                            self.call_plugin_service,
-                            __silent=True,
-                        )
+                    services = hass_service["services"]
+                    await self.check_register_service(domain, services, silent=True)
 
                 #
                 # We schedule a task to check for new services over the next 10 minutes
@@ -582,7 +578,7 @@ class HassPlugin(PluginBase):
 
                 await self.check_register_service(domain, services)
 
-    async def check_register_service(self, domain: str, services: Union[dict, str]) -> bool:
+    async def check_register_service(self, domain: str, services: Union[dict, str], silent=False) -> bool:
         """Used to check and register a service if need be"""
 
         domain_exists = False
@@ -602,7 +598,8 @@ class HassPlugin(PluginBase):
 
         if isinstance(services, str):  # its a string
             if services not in domain_services["services"]:
-                self.logger.info("Registering new service %s/%s", domain, services)
+                if silent is not True:
+                    self.logger.info("Registering new Home Assistant service %s/%s", domain, services)
 
                 self.services[service_index]["services"][services] = {}
                 self.AD.services.register_service(
@@ -616,7 +613,8 @@ class HassPlugin(PluginBase):
         else:
             for service, service_data in services.items():
                 if service not in domain_services["services"]:
-                    self.logger.info("Registering new service %s/%s", domain, service)
+                    if silent is not True:
+                        self.logger.info("Registering new service %s/%s", domain, service)
 
                     self.services[service_index]["services"][service] = service_data
                     self.AD.services.register_service(
@@ -625,6 +623,7 @@ class HassPlugin(PluginBase):
                         service,
                         self.call_plugin_service,
                         __silent=True,
+                        return_result=self.return_result,
                     )
 
         return domain_exists
@@ -754,7 +753,7 @@ class HassPlugin(PluginBase):
                 return_result = data["return_result"]
                 del data["return_result"]
             else:
-                return_result = False
+                return_result = self.return_result
 
             if "callback" in data:
                 del data["callback"]
@@ -778,9 +777,9 @@ class HassPlugin(PluginBase):
                 req["target"] = target
 
             if hass_result is True:
-                req["return_response"] = hass_result
+                req["return_response"] = True
 
-            suppress = data.pop("suppress_log_messages", False)
+            suppress = data.pop("suppress_log_messages", self.suppress_log_messages)
 
             res = await self.process_command(req, return_result, hass_timeout, suppress)
 

@@ -523,6 +523,9 @@ To configure the HASS plugin, in addition to the required parameters above, you 
 -  ``appdaemon_startup_conditions`` - see `HASS Plugin Startup Conditions <#hass-plugin-startup-conditions>`__
 -  ``plugin_startup_conditions`` - see `HASS Plugin Startup Conditions <#hass-plugin-startup-conditions>`__
 -  ``q_timeout`` (optional, 30 seconds) - amount of time to wait for a response from Home Assistant before returning an error
+-  ``return_result`` (optional, false) - if set to true, all service calls to Home Assistant will wait for a response. Whether or not this returns data,
+   it can also provide error checking, and accurate timing for how long service calls take. Will be overridden by the ``return_result`` argument in ``call_service()``
+-  ``suppress_log_messages`` - (optional, false) - if set to true, all ``call_service()`` related log messages will be suppressed by default. Will be overridden by the ``suppress_log_messages`` argument in ``call_service()``
 
 For example:
 
