@@ -6,7 +6,7 @@ CONF=/conf
 CONF_SRC=/usr/src/app/conf
 
 # if configuration file doesn't exist, copy the default
-if [ ! -f $CONF/appdaemon.yaml ]; then
+if [ ! -f $CONF/appdaemon.yaml -a ! -f $CONF/appdaemon.toml ]; then
   cp $CONF_SRC/appdaemon.yaml.example $CONF/appdaemon.yaml
 fi
 
@@ -16,7 +16,7 @@ if [ ! -d $CONF/apps ]; then
 fi
 
 # if apps file doesn't exist, copy the default
-if [ ! -f $CONF/apps/apps.yaml ]; then
+if [ ! -f $CONF/apps/apps.yaml -a  -f $CONF/apps/apps.toml ]; then
   cp $CONF_SRC/apps/apps.yaml.example $CONF/apps/apps.yaml
 fi
 
