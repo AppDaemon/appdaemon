@@ -174,7 +174,7 @@ uvicorn==0.30.6
     # via sphinx-autobuild
 uvloop==0.20.0 ; sys_platform != "win32"
     # via appdaemon (pyproject.toml)
-watchfiles==0.23.0
+watchfiles==0.24.0
     # via sphinx-autobuild
 websockets==13.0
     # via sphinx-autobuild
