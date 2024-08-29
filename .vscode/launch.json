@@ -4,10 +4,9 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-
         {
             "name": "AppDaemon Dev Test",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "appdaemon",
             "justMyCode": true,
@@ -15,7 +14,7 @@
         },
         {
             "name": "AppDaemon Production",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "appdaemon",
             "justMyCode": true,
