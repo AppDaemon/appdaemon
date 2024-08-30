@@ -3047,13 +3047,13 @@ With these preparations in place your IDE should give you correct error reportin
 Some Notes on Service Calls
 ---------------------------
 
-Service calls within AppDaemon are used to make something happen. For instance, instruction HomeAssitsnt to turn a light on, or instructing AppDaemon itself
+Service calls within AppDaemon are used to make something happen. For instance, instructing Home Assitant to turn a light on, or instructing AppDaemon itself
 to reload an App. The Home Assistant plugin provides AppDaemon apps with a number of services that can be called, dependent upon what devices are configured,
-and what integrations have been added. WHile entities and state tell you what the current situation is, service calls will usually make some sort of change
+and what integrations have been added. While entities and state tell you what the current situation is, service calls will usually make some sort of change
 to the current situation, and the results will often be propagated back to the app via a state change callback, for instance, a light's state changing from
 ``off`` to ``on``.
 
-Most service calls are "fire and forget" - the service call is made and control is returned to the App immediately. This has the benefits of keeping
+Most service calls to date have been "fire and forget" - the service call is made and control is returned to the App immediately. This has the benefit of keeping
 things moving along which AppDaemon likes, but the downside of this is that you have to hope that the service call went through OK, and your app won't
 be given information on any errors that may have occured. Also, sometimes we may want to get specific information back from a service call, as the use
 of AppDaemon internal service calls is a powerful way of modularizing and communicating between apps.
@@ -3064,11 +3064,12 @@ Returning Results from App Provided Service Calls
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Setting your app up as a service that other apps can call is very simple. All that is required is the `Register Service <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.register_service>`__
-API call to register your service, and it then becomes visible to all of your other apps.
+API call to register your service, and it then becomes visible to all of your other apps. This works very much like a subroutine call, it's just between different Apps,
+and the communication is handled by AppDaemon, not Python itself.
 
 The register service call takes a name for the service and a callback, and the callback itself is what is executed when a second app makes a service call of that name.
 All that is necessary for the callback is that it has the correct function signature. Inter-app callbacks should be assigned to a `User Defined Namespace <APPGUIDE.html#user-defined-namespaces>`__ to avoid collisions
-with services in other namespaces. The return value from the callback will be the result of the ``call_service()`` API call in the second app.
+with services in other namespaces. The return value from the callback will be the result of the ``call_service()`` API call in the second app. For example:
 
 We define the service in App 1
 
@@ -3080,7 +3081,7 @@ App 1:
 
         def initialize(self):
 
-            self.register_service("my_domain/my_exciting_service", self.my_exciting_c, namespace="my_custom_namespace")
+            self.register_service("my_domain/my_exciting_service", self.my_exciting_cb, namespace="my_custom_namespace")
 
         def my_exciting_cb(self, namespace, domain, service, kwargs):
             self.log(f"Service called! {namespace=} {domain=} {service=} {kwargs=}")
@@ -3137,7 +3138,7 @@ to propagate return values from Home Assitant service calls to the App. As a res
 service calls even if no return data is requested, this is beneficial as it is now possible to detect errors that were previously unreported. In addition, waiting for the
 response also allows the app and AppDaemon to identify poorly performing Home Assistant services (such as ZWave communication slowdowns) that previously would have gone unnoticed.
 
-To tell AppDaemon that you are expecting Home Assistant to return a value, set the ``hass_result`` parameter to True. In addition, if you should also set either the ``callback`` or ``return_result``
+To tell AppDaemon that you are expecting Home Assistant to return a value, set the ``hass_result`` parameter to True. In addition, you should also set either the ``callback`` or ``return_result``
 flags depending on how you want to recieve the result - both methods are supported. In order to force the call to be synchronous for a Home Assistant service that does not return a value, simply set ``return_result``
 to ``True`` but don't set ``hass_result`` to anything.
 
@@ -3146,10 +3147,10 @@ If you don't ask for a result from a service that returns one, you will also get
 Home Assistant service returns a value.
 
 Specifically for Home Assistant service calls there is also an optional ``timeout`` value that specifies how long to wait for the response from Home Assistant before returning to the
-app with an error. There are a couple of other timers in AppDaemon that are related and will give information on slow service.
+app with an error. There are a couple of other timers already in AppDaemon that are related and will give information on slow service.
 
 * The callback tracking timer will issue warnings if a callback takes longer than 10 seconds to return
-* The internall function timer will cancel any task that takes longer than 60 seconds.
+* The internal function timer will cancel any task that takes longer than 60 seconds.
 
 With the above in mind, the default timeout for the Home Assitant service call has been set to 30 seconds to fall in between these 2 values so that in most cases for a slow service call
 you will get warnings from the callback tracking, but the call will cleanly timeout before AppDaemon is forced to cancel it for it's own internal housekeeping. If you set the timeout value higher,
@@ -3194,13 +3195,15 @@ It is also possible to force all calls to be synchronous by setting the ``return
 Home Assistant Return Data Format
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Data from internal service calls is arbitary and returned as is from the return statement of the called service. The return format from Home Assistant service
-calls is more complex and includes additional data as well as the requested data. The return data wil be a dictionary, and AppDaemon starts with the data returned directly
+Return Data from internal AppDaemon service calls is arbitary and returned as is from the return statement of the called service. and can be of any time just as you would expect with a regular Python ```return`` statement.
+
+The return format from Home Assistant service calls is more complex and includes additional data as well as the requested data.
+The return data wil be a dictionary, and AppDaemon starts with the data returned directly
 from HomeAssistant and adds a couple of additional fields that can be used to check status and gather information. The AppDaemon specific fields are guaranteed to exist and are:
 
 * ``ad_status`` - the status of the call from AppDaemon's perspective. Possible values are:
 
-    * ``OK`` - everything went as planned from AppDaemon;s perspective, a call was made to Home Assistant and a Response was obtained, and the response from Home Assistant is also contained within the results dictionary. This does not mean Home Assistant didn't produce an error, just that AppDaemon succesfully obtained a response from Home Assistant
+    * ``OK`` - everything went as planned from AppDaemon's perspective, a call was made to Home Assistant and a Response was obtained, and the response from Home Assistant is also contained within the results dictionary. This does not mean Home Assistant didn't produce an error, just that AppDaemon succesfully obtained a response from Home Assistant
     * ``TIMEOUT`` - the call to Home Assistant did not return a value before a timeout occured (either the default 30 second timeout, or a per call timeout specified by the user)
     * ``TERMINATING`` - the service call was terminated as AppDaemon is shutting down
 
