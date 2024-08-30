@@ -15,6 +15,8 @@
 - Added support for python 3.12
 - Update docker image to Alpine 3.20/Python 3.12
 - Upgraded HASS plugin to use the aiohttp websocket client
+- Upgraded HASS plugin to use the Websocket API where possible
+- Implemented value return for HASS Service Calls
 
 **Fixes**
 
