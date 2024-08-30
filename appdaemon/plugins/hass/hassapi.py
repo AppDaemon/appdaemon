@@ -361,7 +361,8 @@ class Hass(adbase.ADBase, adapi.ADAPI):
                 In most cases it is safe to ignore this parameter.
 
         Returns:
-            None.
+            Result of the `turn_on` function if any, see `service call notes <APPGUIDE.html#some-notes-on-service-calls>`__ for more details.
+
 
         Examples:
             Turn `on` a switch.
@@ -381,7 +382,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         await self._check_entity(namespace, entity_id)
         kwargs["entity_id"] = entity_id
 
-        await self.call_service("homeassistant/turn_on", **kwargs)
+        return await self.call_service("homeassistant/turn_on", **kwargs)
 
     @utils.sync_wrapper
     @hass_check
@@ -403,7 +404,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
                 In most cases it is safe to ignore this parameter.
 
         Returns:
-            None.
+                        Result of the `turn_off` function if any, see `service call notes <APPGUIDE.html#some-notes-on-service-calls>`__ for more details.
 
         Examples:
             Turn `off` a switch.
@@ -419,9 +420,9 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         kwargs["entity_id"] = entity_id
 
         if domain == "scene":
-            await self.call_service("homeassistant/turn_on", **kwargs)
+            return await self.call_service("homeassistant/turn_on", **kwargs)
         else:
-            await self.call_service("homeassistant/turn_off", **kwargs)
+            return await self.call_service("homeassistant/turn_off", **kwargs)
 
     @utils.sync_wrapper
     @hass_check
@@ -443,7 +444,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
                 In most cases it is safe to ignore this parameter.
 
         Returns:
-            None.
+            Result of the `toggle` function if any, see `service call notes <APPGUIDE.html#some-notes-on-service-calls>`__ for more details.
 
         Examples:
             >>> self.toggle("switch.backyard_lights")
@@ -454,7 +455,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         await self._check_entity(namespace, entity_id)
         kwargs["entity_id"] = entity_id
 
-        await self.call_service("homeassistant/toggle", **kwargs)
+        return await self.call_service("homeassistant/toggle", **kwargs)
 
     @utils.sync_wrapper
     @hass_check
@@ -476,7 +477,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
                 In most cases it is safe to ignore this parameter.
 
         Returns:
-            None.
+            Result of the `set_value` function if any, see `service call notes <APPGUIDE.html#some-notes-on-service-calls>`__ for more details.
 
         Examples:
             >>> self.set_value("input_number.alarm_hour", 6)
@@ -486,7 +487,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         await self._check_entity(namespace, entity_id)
 
         kwargs.update({"value": value})
-        await self.get_entity_api(namespace, entity_id).call_service("set_value", **kwargs)
+        return await self.get_entity_api(namespace, entity_id).call_service("set_value", **kwargs)
 
     @utils.sync_wrapper
     @hass_check
@@ -508,7 +509,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
                 In most cases it is safe to ignore this parameter.
 
         Returns:
-            None.
+            Result of the `set_textvalue` function if any, see `service call notes <APPGUIDE.html#some-notes-on-service-calls>`__ for more details.
 
         Examples:
             >>> self.set_textvalue("input_text.text1", "hello world")
@@ -518,7 +519,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         await self._check_entity(namespace, entity_id)
 
         kwargs.update({"value": value})
-        await self.get_entity_api(namespace, entity_id).call_service("set_value", **kwargs)
+        return await self.get_entity_api(namespace, entity_id).call_service("set_value", **kwargs)
 
     @utils.sync_wrapper
     @hass_check
@@ -540,7 +541,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
                 In most cases it is safe to ignore this parameter.
 
         Returns:
-            None.
+            Result of the `select_option` function if any, see `service call notes <APPGUIDE.html#some-notes-on-service-calls>`__ for more details.
 
         Examples:
             >>> self.select_option("input_select.mode", "Day")
@@ -550,7 +551,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         await self._check_entity(namespace, entity_id)
 
         kwargs.update({"option": option})
-        await self.get_entity_api(namespace, entity_id).call_service("select_option", **kwargs)
+        return await self.get_entity_api(namespace, entity_id).call_service("select_option", **kwargs)
 
     @utils.sync_wrapper
     @hass_check
@@ -573,7 +574,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
                 In most cases it is safe to ignore this parameter.
 
         Returns:
-            None.
+            Result of the `notify` function if any, see `service call notes <APPGUIDE.html#some-notes-on-service-calls>`__ for more details.
 
         Examples:
             >>> self.notify("Switching mode to Evening")
@@ -589,7 +590,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         else:
             service = "notify/notify"
 
-        await self.call_service(service, **kwargs)
+        return await self.call_service(service, **kwargs)
 
     @utils.sync_wrapper
     @hass_check

@@ -1770,7 +1770,8 @@ class ADAPI:
 
 
         Returns:
-            Result of the `call_service` function if any
+            Result of the `call_service` function if any, see `service call notes <APPGUIDE.html#some-notes-on-service-calls>`__ for more details.
+
 
         Examples:
             HASS
