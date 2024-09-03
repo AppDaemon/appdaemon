@@ -386,7 +386,7 @@ class HTTP:
             self.logger.error("As of AppDaemon 4.5 the host name specificed in the URL must resolve to a known host")
             self.logger.error("You can restore previous behavior by using `0.0.0.0` as the host portion of the URL")
             self.logger.error("For instance: `http://0.0.0.0:5050`")
-            self.logger.error("AppDaemon teminated with errors.")
+            self.logger.error("AppDaemon terminated with errors.")
             raise e
 
     async def stop_server(self):
