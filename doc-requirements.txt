@@ -108,7 +108,7 @@ python-dateutil==2.9.0.post0
     # via appdaemon (pyproject.toml)
 python-engineio==4.9.1
     # via python-socketio
-python-socketio==5.11.3
+python-socketio==5.11.4
     # via appdaemon (pyproject.toml)
 pytz==2024.1
     # via appdaemon (pyproject.toml)
