@@ -20,6 +20,7 @@ import appdaemon.admin as adadmin
 import appdaemon.dashboard as addashboard
 import appdaemon.stream.adstream as stream
 import appdaemon.utils as utils
+from appdaemon.exceptions import StartupAbortedException
 
 if TYPE_CHECKING:
     from appdaemon.appdaemon import AppDaemon
@@ -381,13 +382,12 @@ class HTTP:
         site = web.TCPSite(self.runner, self.host, int(self.port), ssl_context=self.context)
         try:
             await site.start()
-        except gaierror as e:
+        except gaierror:
             self.logger.error("Invalid host specified in URL for HTTP component")
             self.logger.error("As of AppDaemon 4.5 the host name specificed in the URL must resolve to a known host")
             self.logger.error("You can restore previous behavior by using `0.0.0.0` as the host portion of the URL")
             self.logger.error("For instance: `http://0.0.0.0:5050`")
-            self.logger.error("AppDaemon terminated with errors.")
-            raise e
+            raise StartupAbortedException("Invalid host specified in URL for HTTP component")
 
     async def stop_server(self):
         self.logger.info("Shutting down webserver")

@@ -14,13 +14,13 @@ import os.path
 import platform
 import signal
 import sys
-from socket import gaierror
 
 import pytz
 
 import appdaemon.appdaemon as ad
 import appdaemon.utils as utils
 from appdaemon.app_management import UpdateMode
+from appdaemon.exceptions import StartupAbortedException
 from appdaemon.http import HTTP
 from appdaemon.logging import Logging
 
@@ -172,10 +172,9 @@ class ADMain:
 
             self.logger.info("AppDaemon is stopped.")
 
-        except gaierror:
-            # We most likely got an error in the HTTP module which was reraised
-            # HTTP module has printed out relevant error message, so ignore.
-            pass
+        except StartupAbortedException as e:
+            # We got an unrecoverable error during startup so print it out and quit
+            self.logger.error(f"AppDaemon terminated with errors: {e}")
         except Exception:
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error during run()")
