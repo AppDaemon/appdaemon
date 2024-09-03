@@ -384,7 +384,7 @@ class HTTP:
         except gaierror as e:
             self.logger.error("Invalid host specified in URL for HTTP component")
             self.logger.error("As of AppDaemon 4.5 the host name specificed in the URL must resolve to a known host")
-            self.logger.error("You can restore previous behavior by using `0.0.0.0` as the host portion of ther URL")
+            self.logger.error("You can restore previous behavior by using `0.0.0.0` as the host portion of the URL")
             self.logger.error("For instance: `http://0.0.0.0:5050`")
             self.logger.error("AppDaemon teminated with errors.")
             raise e
