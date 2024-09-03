@@ -14,6 +14,7 @@ import os.path
 import platform
 import signal
 import sys
+from socket import gaierror
 
 import pytz
 
@@ -171,6 +172,10 @@ class ADMain:
 
             self.logger.info("AppDaemon is stopped.")
 
+        except gaierror:
+            # We most likely got an error in the HTTP module which was reraised
+            # HTTP module has printed out relevant error message, so ignore.
+            pass
         except Exception:
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error during run()")
