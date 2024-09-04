@@ -790,8 +790,8 @@ class HassPlugin(PluginBase):
             res = await self.process_command(req, return_result, hass_timeout, suppress)
 
             # Debug Info
-            debug = self.AD.logging.get_diag()
-            debug.info(f"{self.id=} {len(self.queues)=}")
+            # debug = self.AD.logging.get_diag()
+            # debug.info(f"{self.id=} {len(self.queues)=}")
 
             self.update_perf(bytes_sent=len(json.dumps(req)), bytes_recv=len(json.dumps(res)), requests_sent=1)
 
