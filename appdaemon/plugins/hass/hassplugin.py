@@ -144,6 +144,8 @@ class HassPlugin(PluginBase):
                 now = await self.AD.sched.get_now_ts()
                 if suppress is False:
                     self.logger.warning(f"Timeout waiting for HASS response, {t}s, request={command}")
+
+                del self.queues[id]
                 return {"ad_status": "TIMEOUT", "ad_duration": now - start_ts}
 
             if "ad_status" in response and response["ad_status"] == "TERMINATING":
@@ -423,6 +425,10 @@ class HassPlugin(PluginBase):
                 #
                 services = await self.get_hass_services()
                 for hass_service in services:
+                    # Debug Info
+                    # debug = self.AD.logging.get_diag()
+                    # debug.info(f"{hass_service}")
+
                     domain = hass_service["domain"]
                     services = hass_service["services"]
                     await self.check_register_service(domain, services, silent=True)
@@ -782,6 +788,10 @@ class HassPlugin(PluginBase):
             suppress = data.pop("suppress_log_messages", self.suppress_log_messages)
 
             res = await self.process_command(req, return_result, hass_timeout, suppress)
+
+            # Debug Info
+            debug = self.AD.logging.get_diag()
+            debug.info(f"{self.id=} {len(self.queues)=}")
 
             self.update_perf(bytes_sent=len(json.dumps(req)), bytes_recv=len(json.dumps(res)), requests_sent=1)
 
