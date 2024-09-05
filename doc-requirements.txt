@@ -35,7 +35,7 @@ bcrypt==4.2.0
     # via appdaemon (pyproject.toml)
 bidict==0.23.1
     # via python-socketio
-certifi==2024.7.4
+certifi==2024.8.30
     # via requests
 charset-normalizer==3.3.2
     # via requests
@@ -62,7 +62,7 @@ h11==0.14.0
     # via
     #   uvicorn
     #   wsproto
-idna==3.7
+idna==3.8
     # via
     #   anyio
     #   requests
@@ -92,7 +92,7 @@ multidict==6.0.5
     #   yarl
 myst-parser==4.0.0
     # via appdaemon (pyproject.toml)
-ordered-set==4.1.0
+orderly-set==5.2.2
     # via deepdiff
 packaging==24.1
     # via sphinx
@@ -108,7 +108,7 @@ python-dateutil==2.9.0.post0
     # via appdaemon (pyproject.toml)
 python-engineio==4.9.1
     # via python-socketio
-python-socketio==5.11.3
+python-socketio==5.11.4
     # via appdaemon (pyproject.toml)
 pytz==2024.1
     # via appdaemon (pyproject.toml)
@@ -156,7 +156,7 @@ sphinxcontrib-qthelp==2.0.0
     # via sphinx
 sphinxcontrib-serializinghtml==2.0.0
     # via sphinx
-starlette==0.38.2
+starlette==0.38.4
     # via sphinx-autobuild
 tomli==2.0.1
     # via
@@ -174,11 +174,11 @@ uvicorn==0.30.6
     # via sphinx-autobuild
 uvloop==0.20.0 ; sys_platform != "win32"
     # via appdaemon (pyproject.toml)
-watchfiles==0.23.0
+watchfiles==0.24.0
     # via sphinx-autobuild
-websockets==13.0
+websockets==13.0.1
     # via sphinx-autobuild
 wsproto==1.2.0
     # via simple-websocket
-yarl==1.9.4
+yarl==1.9.11
     # via aiohttp

@@ -27,7 +27,7 @@ bcrypt==4.2.0
     # via appdaemon (pyproject.toml)
 bidict==0.23.1
     # via python-socketio
-certifi==2024.7.4
+certifi==2024.8.30
     # via requests
 charset-normalizer==3.3.2
     # via requests
@@ -41,7 +41,7 @@ frozenlist==1.4.1
     #   aiosignal
 h11==0.14.0
     # via wsproto
-idna==3.7
+idna==3.8
     # via
     #   requests
     #   yarl
@@ -55,7 +55,7 @@ multidict==6.0.5
     # via
     #   aiohttp
     #   yarl
-ordered-set==4.1.0
+orderly-set==5.2.2
     # via deepdiff
 paho-mqtt==2.1.0
     # via appdaemon (pyproject.toml)
@@ -65,7 +65,7 @@ python-dateutil==2.9.0.post0
     # via appdaemon (pyproject.toml)
 python-engineio==4.9.1
     # via python-socketio
-python-socketio==5.11.3
+python-socketio==5.11.4
     # via appdaemon (pyproject.toml)
 pytz==2024.1
     # via appdaemon (pyproject.toml)
@@ -91,5 +91,5 @@ uvloop==0.20.0 ; sys_platform != "win32"
     # via appdaemon (pyproject.toml)
 wsproto==1.2.0
     # via simple-websocket
-yarl==1.9.4
+yarl==1.9.11
     # via aiohttp

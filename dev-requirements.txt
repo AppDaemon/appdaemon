@@ -33,7 +33,7 @@ build==1.2.1
     # via
     #   appdaemon (pyproject.toml)
     #   pip-tools
-certifi==2024.7.4
+certifi==2024.8.30
     # via requests
 cfgv==3.4.0
     # via pre-commit
@@ -63,7 +63,7 @@ h11==0.14.0
     # via wsproto
 identify==2.6.0
     # via pre-commit
-idna==3.7
+idna==3.8
     # via
     #   requests
     #   yarl
@@ -85,7 +85,7 @@ mypy-extensions==1.0.0
     # via black
 nodeenv==1.9.1
     # via pre-commit
-ordered-set==4.1.0
+orderly-set==5.2.2
     # via deepdiff
 packaging==24.1
     # via
@@ -122,7 +122,7 @@ python-dateutil==2.9.0.post0
     # via appdaemon (pyproject.toml)
 python-engineio==4.9.1
     # via python-socketio
-python-socketio==5.11.3
+python-socketio==5.11.4
     # via appdaemon (pyproject.toml)
 pytz==2024.1
     # via appdaemon (pyproject.toml)
@@ -132,7 +132,7 @@ pyyaml==6.0.2
     #   pre-commit
 requests==2.32.3
     # via appdaemon (pyproject.toml)
-ruff==0.6.2
+ruff==0.6.3
     # via appdaemon (pyproject.toml)
 sgmllib3k==1.0.0
     # via feedparser
@@ -163,7 +163,7 @@ wheel==0.44.0
     # via pip-tools
 wsproto==1.2.0
     # via simple-websocket
-yarl==1.9.4
+yarl==1.9.11
     # via aiohttp
 
 # The following packages are considered to be unsafe in a requirements file:
