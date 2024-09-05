@@ -58,7 +58,7 @@ jobs:
       - name: Upload documentation
         uses: actions/upload-artifact@v4
         with:
-          name: python-package
+          name: python-doc-package
           path: docs/_build/
 
   # The Python package is required in the subsequent Docker image build
