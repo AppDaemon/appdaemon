@@ -43,7 +43,7 @@ click==8.1.7
     # via uvicorn
 colorama==0.4.6
     # via sphinx-autobuild
-deepdiff==7.0.1
+deepdiff==8.0.1
     # via appdaemon (pyproject.toml)
 docutils==0.20.1
     # via
