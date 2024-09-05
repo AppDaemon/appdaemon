@@ -6,17 +6,29 @@ import re
 import traceback
 import uuid
 from collections import OrderedDict
-from datetime import timedelta
+from datetime import time, timedelta
 from logging import Logger
 from typing import TYPE_CHECKING
 
 import pytz
+from astral import SunDirection
 from astral.location import Location, LocationInfo
 
 import appdaemon.utils as utils
 
 if TYPE_CHECKING:
     from appdaemon.appdaemon import AppDaemon
+
+
+time_regex_str = r"(?P<hour>\d+):(?P<minute>\d+):(?P<second>\d+)(?:\.(?P<microsecond>\d+))?"
+date_regex_str = r"^(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})" + f"(?:\s+{time_regex_str})?"
+DATE_REGEX = re.compile(date_regex_str)
+TIME_REGEX = re.compile(f"^{time_regex_str}")
+SUN_REGEX = re.compile(
+    r"^(?P<dir>sunrise|sunset)(?:\s+[+-]\s+(?P<hours>\d+):(?P<minutes>\d+):(?P<seconds>\d+)(?:\.(?P<microseconds>\d+))?)?",
+    re.IGNORECASE,
+)
+ELEVATION_REGEX = re.compile(r"^(?P<N>\d+(?:\.\d+)?)\s+deg\s+(?P<dir>rising|setting)$", re.IGNORECASE)
 
 
 class Scheduler:
@@ -860,100 +872,72 @@ class Scheduler:
             )
 
     async def _parse_time(self, time_str, name=None, today=False, days_offset=0):
-        parsed_time = None
         sun = None
         offset = 0
-        parts = re.search(r"^(\d+)-(\d+)-(\d+)\s+(\d+):(\d+):(\d+)(?:\.(\d+))?$", time_str)
-        if parts:
-            if parts.group(7) is None:
-                us = 0
-            else:
-                us = int(float("0." + parts.group(7)) * 1000000)
 
-            this_time = datetime.datetime(
-                int(parts.group(1)),
-                int(parts.group(2)),
-                int(parts.group(3)),
-                int(parts.group(4)),
-                int(parts.group(5)),
-                int(parts.group(6)),
-                us,
+        # parse time with date
+        if match := DATE_REGEX.match(time_str):
+            kwargs = {k: int(v) for k, v in match.groupdict().items() if v is not None}
+
+            if "microsecond" in kwargs:
+                kwargs["microsecond"] = int(float(f"0.{kwargs['microsecond']}") * 10**6)
+
+            dt = datetime.datetime(**kwargs)
+
+        # parse time based on time only (date will be today)
+        elif match := TIME_REGEX.match(time_str):
+            kwargs = {k: int(v) for k, v in match.groupdict().items() if v is not None}
+
+            if "microsecond" in kwargs:
+                kwargs["microsecond"] = int(float(f"0.{kwargs['microsecond']}") * 10**6)
+
+            dt = datetime.datetime.combine(datetime.datetime.today().date(), time(**kwargs))
+
+        # parse time from sunrise/sunset + optional offset
+        elif match := SUN_REGEX.match(time_str):
+            match_dict = match.groupdict()
+            sun = match_dict.pop("dir")
+            kwargs = {k: int(v) for k, v in match_dict.items() if v is not None}
+            td = timedelta(**kwargs)
+            offset = td.total_seconds()
+            if "-" in time_str:
+                td *= -1
+                offset *= -1
+
+            if "microsecond" in kwargs:
+                kwargs["microsecond"] = int(float(f"0.{kwargs['microsecond']}") * 10**6)
+
+            if sun == "sunrise":
+                dt = await self.sunrise(True, today, days_offset)
+            else:
+                assert sun == "sunset", "Invalid sun event"
+                dt = await self.sunset(True, today, days_offset)
+
+            dt += td
+
+        # parse time for sun elevation angle
+        elif match := ELEVATION_REGEX.match(time_str):
+            if match.group("dir") == "rising":
+                dir = SunDirection.RISING
+            else:
+                dir = SunDirection.SETTING
+
+            # use astral.Location object to determine elevation
+            dt = self.location.time_at_elevation(
+                elevation=float(match.group("N")), direction=dir, local=False  # time will be in UTC timezone
             )
-            parsed_time = self.AD.tz.localize(this_time + datetime.timedelta(days=days_offset))
+
         else:
-            parts = re.search(r"^(\d+):(\d+):(\d+)(?:\.(\d+))?$", time_str)
-            if parts:
-                if parts.group(4) is None:
-                    us = 0
-                else:
-                    us = int(float("0." + parts.group(4)) * 1000000)
-
-                today = (await self.get_now()).astimezone(self.AD.tz)
-                time = datetime.time(int(parts.group(1)), int(parts.group(2)), int(parts.group(3)), us)
-                parsed_time = today.replace(
-                    hour=time.hour,
-                    minute=time.minute,
-                    second=time.second,
-                    microsecond=us,
-                ) + datetime.timedelta(days=days_offset)
-            else:
-                if time_str == "sunrise":
-                    parsed_time = await self.sunrise(True, today, days_offset)
-                    sun = "sunrise"
-                    offset = 0
-                elif time_str == "sunset":
-                    parsed_time = await self.sunset(True, today, days_offset)
-                    sun = "sunset"
-                    offset = 0
-                else:
-                    parts = re.search(r"^sunrise\s*([+-])\s*(\d+):(\d+):(\d+)(?:\.(\d+))?$", time_str)
-                    if parts:
-                        if parts.group(5) is None:
-                            us = 0
-                        else:
-                            us = int(float("0." + parts.group(5)) * 1000000)
-
-                        sun = "sunrise"
-                        td = datetime.timedelta(
-                            hours=int(parts.group(2)),
-                            minutes=int(parts.group(3)),
-                            seconds=int(parts.group(4)),
-                            microseconds=us,
-                        )
-
-                        if parts.group(1) == "+":
-                            offset = td.total_seconds()
-                            parsed_time = await self.sunrise(True, today, days_offset) + td
-                        else:
-                            offset = td.total_seconds() * -1
-                            parsed_time = await self.sunrise(True, today, days_offset) - td
-                    else:
-                        parts = re.search(r"^sunset\s*([+-])\s*(\d+):(\d+):(\d+)(?:\.(\d+))?$", time_str)
-                        if parts:
-                            if parts.group(5) is None:
-                                us = 0
-                            else:
-                                us = int(float("0." + parts.group(5)) * 1000000)
-
-                            sun = "sunset"
-                            td = datetime.timedelta(
-                                hours=int(parts.group(2)),
-                                minutes=int(parts.group(3)),
-                                seconds=int(parts.group(4)),
-                                microseconds=us,
-                            )
-                            if parts.group(1) == "+":
-                                offset = td.total_seconds()
-                                parsed_time = await self.sunset(True, today, days_offset) + td
-                            else:
-                                offset = td.total_seconds() * -1
-                                parsed_time = await self.sunset(True, today, days_offset) - td
-
-        if parsed_time is None:
             if name is not None:
                 raise ValueError("%s: invalid time string: %s", name, time_str)
             else:
                 raise ValueError("invalid time string: %s", time_str)
+
+        if dt.tzinfo is None:
+            parsed_time = self.AD.tz.localize(dt)
+        else:
+            parsed_time = dt
+
         return {"datetime": parsed_time, "sun": sun, "offset": offset}
 
     #
