@@ -425,12 +425,17 @@ class HassPlugin(PluginBase):
                 #
                 services = await self.get_hass_services()
                 for hass_service in services:
-                    # Debug Info
-                    # debug = self.AD.logging.get_diag()
-                    # debug.info(f"{hass_service}")
-
                     domain = hass_service["domain"]
                     services = hass_service["services"]
+
+                    # Debug Info - dump service response flag
+                    # debug = self.AD.logging.get_diag()
+                    # for name, service in services.items():
+                    # debug.info(f"{name} -> {service}")
+                    #    if "response" in service:
+                    #        debug.info(
+                    #            f"{domain}/{name} -> {service['response']}")
+
                     await self.check_register_service(domain, services, silent=True)
 
                 #
