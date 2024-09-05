@@ -33,7 +33,7 @@ build==1.2.1
     # via
     #   appdaemon (pyproject.toml)
     #   pip-tools
-certifi==2024.7.4
+certifi==2024.8.30
     # via requests
 cfgv==3.4.0
     # via pre-commit
