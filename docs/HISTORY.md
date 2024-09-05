@@ -15,18 +15,25 @@
 - Added support for python 3.12
 - Update docker image to Alpine 3.20/Python 3.12
 - Upgraded HASS plugin to use the aiohttp websocket client
+- Upgraded HASS plugin to use the Websocket API where possible
+- Implemented value return for HASS Service Calls
 
 **Fixes**
 
 - baseicon set_service_call fix - contributed by [lancasterJ](https://github.com/lancasterJ)
-- HTTP module now correctly honors the provided host name instead of binding to 0.0.0.0, and should also now for IPv6 - contributed by [bitstacker](https://github.com/bitstacker)
+- HTTP module now correctly honors the provided host name instead of binding to 0.0.0.0, and should also now work for IPv6 - contributed by [bitstacker](https://github.com/bitstacker)
 - Fix for baseweather direcytion icon - contributed by [carawan](https://github.com/carawan)
 - Fix for bug in pathname checking for hidden files and __pycache__  - contributed by [David Warde-Farley](https://github.com/dwf)
 
 **Breaking Changes**
 
-- The fix to honor the host name in the HTTP URL may cause AppDaemon to fail to start, if the hostname provided is not valid. In particular, docker users will need to switch their URL to either use localhost, explicitly, or "0.0.0.0" which will bind to any available interface, or use command line tools to discover the correct IP address and use that.
 - AppDaemon no longer supports versions of Python prior to 3.10. This is in line with other packages, and allows us to keep the code base up to date and current with the latest developments
+
+**Changes in Behavior**
+
+- The fix to honor the host name in the HTTP URL may cause AppDaemon to fail to start, if the hostname provided is not valid. In particular, docker users will need to switch their URL to either use localhost, explicitly, or "0.0.0.0" which will bind to any available interface, or use command line tools to discover the correct IP address and use that.
+- The timer for internal function timeouts has been increased from 10 seconds to 60 to allow for the fact that service calls to hass can now be synchronous and may take longer
+
 
 ## 4.4.2 (2023-04-16)
 

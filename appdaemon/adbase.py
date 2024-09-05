@@ -1,15 +1,14 @@
 import threading
-from functools import wraps
 from copy import deepcopy
-
-import appdaemon.utils as utils
-import appdaemon.adapi as adapi
-from appdaemon.appdaemon import AppDaemon
-
+from functools import wraps
 from typing import Callable
 
+import appdaemon.adapi as adapi
+import appdaemon.utils as utils
+from appdaemon.appdaemon import AppDaemon
 
-class Entities:  # @todo
+
+class Entities:
     def __init__(self):
         pass
 

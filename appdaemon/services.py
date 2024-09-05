@@ -194,6 +194,7 @@ class Services:
                 ns = namespace
 
             funcref = self.services[namespace][domain][service]["callback"]
+            plugin_return_result = self.services[namespace][domain][service].get("return_result", False)
 
             # Decide whether or not to call this as async
 
@@ -201,10 +202,10 @@ class Services:
             isasync = True
 
             # if to wait for results, default to False
-            return_result = data.pop("return_result", False)
+            return_result = data.get("return_result", False)
 
             # if to return results via callback
-            callback = data.pop("callback", None)
+            callback = data.get("callback", None)
 
             if "__async" in self.services[namespace][domain][service]:
                 # We have a kwarg to tell us what to do
@@ -239,7 +240,7 @@ class Services:
                 else:
                     coro = utils.run_in_executor(self, funcref, ns, domain, service, data)
 
-            if return_result is True:
+            if return_result is True or plugin_return_result is True:
                 return await self.run_service(coro)
 
             elif callback is not None and name is not None:

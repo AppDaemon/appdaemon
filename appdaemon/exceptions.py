@@ -30,3 +30,7 @@ class HandlerException(Exception):
 
 class TimeOutException(Exception):
     pass
+
+
+class StartupAbortedException(Exception):
+    pass

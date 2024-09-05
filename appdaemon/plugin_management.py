@@ -408,13 +408,15 @@ class Plugins:
 
                     except asyncio.TimeoutError:
                         self.logger.warning(
-                            "Timeout refreshing %s state - retrying in 10 minutes",
+                            "Timeout refreshing %s state - retrying in %s seconds",
                             plugin,
+                            self.plugins[name]["refresh_delay"],
                         )
                     except Exception:
                         self.logger.warning(
-                            "Unexpected error refreshing %s state - retrying in 10 minutes",
+                            "Timeout refreshing %s state - retrying in %s seconds",
                             plugin,
+                            self.plugins[name]["refresh_delay"],
                         )
                     finally:
                         self.last_plugin_state[plugin] = datetime.datetime.now()

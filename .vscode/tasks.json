@@ -5,7 +5,7 @@
         {
             "label": "Run Dev",
             "command": "${command:python.interpreterPath}",
-            "args": ["-m", "appdaemon", "-c", "/conf", "--toml"],
+            "args": ["-m", "appdaemon", "-c", "/conf/ad_config/production", "--toml"],
             "type": "shell",
             "presentation":
                 {

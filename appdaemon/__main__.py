@@ -20,6 +20,7 @@ import pytz
 import appdaemon.appdaemon as ad
 import appdaemon.utils as utils
 from appdaemon.app_management import UpdateMode
+from appdaemon.exceptions import StartupAbortedException
 from appdaemon.http import HTTP
 from appdaemon.logging import Logging
 
@@ -171,6 +172,9 @@ class ADMain:
 
             self.logger.info("AppDaemon is stopped.")
 
+        except StartupAbortedException as e:
+            # We got an unrecoverable error during startup so print it out and quit
+            self.logger.error(f"AppDaemon terminated with errors: {e}")
         except Exception:
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error during run()")
@@ -367,7 +371,9 @@ class ADMain:
 
         # Startup message
 
+        self.logger.info("-" * 60)
         self.logger.info("AppDaemon Version %s starting", utils.__version__)
+        self.logger.info("-" * 60)
         self.logger.info(
             "Python version is %s.%s.%s",
             sys.version_info[0],
