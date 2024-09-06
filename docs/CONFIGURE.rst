@@ -9,7 +9,7 @@ Appdaemon Configuration File Format
 ===================================
 
 The AppDaemon configuration file is usually a ``YAML`` file, however from appdaemon 4.3.0 and onwards, appdaemon's configuration file
-as well as the app configuration files can be spedicied in ``TOML`` rather than YAML. This behavior
+as well as the app configuration files can be specified in ``TOML`` rather than YAML. This behavior
 is global for all files and is turned on and off by the ``--toml`` flag when appdaemon is invoked. This behavior
 enables the user to easily switch between YAML and TOML files, although all config files muct be converted at the same time when moving from YAML to TOML.
 YAML and TOML configuration files are identical in function and capabilities, it is a matter of personal preference which format is used. At this time,
@@ -67,7 +67,7 @@ The same configuration in a TOML file would be called ``appdaemon.toml`` and wou
   ha_url = "<home_assistant_base_url>"
   token = "<some_long_lived_access_token>"
 
-Both YAML and TROML files work in similar ways to express atomic values, lists and dictionaries, from this point on, some examples will be given in both formats, but the end-user
+Both YAML and TOML files work in similar ways to express atomic values, lists and dictionaries, from this point on, some examples will be given in both formats, but the end-user
 is encouraged to learn the ins and outs of both formats to help in converting configurations from one format to another.
 
 Plugins
