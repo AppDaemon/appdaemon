@@ -10,6 +10,8 @@ import appdaemon.adbase as adbase
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
 
+from ...models.app_config import AppConfig
+
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 
@@ -41,12 +43,10 @@ class Hass(adbase.ADBase, adapi.ADAPI):
     # Internal
     #
 
-    def __init__(self, ad: AppDaemon, name, logging, args, config, app_config, global_vars):
+    def __init__(self, ad: AppDaemon, config_model: AppConfig):
         # Call Super Classes
-        adbase.ADBase.__init__(self, ad, name, logging, args, config, app_config, global_vars)
-        adapi.ADAPI.__init__(self, ad, name, logging, args, config, app_config, global_vars)
-
-        self.AD = ad
+        adbase.ADBase.__init__(self, ad, config_model)
+        adapi.ADAPI.__init__(self, ad, config_model)
 
         #
         # Register specific constraints
@@ -152,7 +152,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         self._check_entity(self._get_namespace(**kwargs), entity_id)
         return self.get_state(entity_id, **kwargs)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def anyone_home(self, **kwargs) -> bool:
         """Determines if the house/apartment is occupied.
 
@@ -195,7 +195,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
                     return True
         return False
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def everyone_home(self, **kwargs) -> bool:
         """Determine if all family's members at home.
 
@@ -237,7 +237,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
                     return False
         return True
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def noone_home(self, **kwargs) -> bool:
         """Determines if the house/apartment is empty.
 
@@ -340,7 +340,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
     # Helper functions for services
     #
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     @hass_check
     async def turn_on(self, entity_id: str, **kwargs) -> None:
         """Turns `on` a Home Assistant entity.
@@ -384,7 +384,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
         return await self.call_service("homeassistant/turn_on", **kwargs)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     @hass_check
     async def turn_off(self, entity_id: str, **kwargs) -> None:
         """Turns `off` a Home Assistant entity.
@@ -424,7 +424,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         else:
             return await self.call_service("homeassistant/turn_off", **kwargs)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     @hass_check
     async def toggle(self, entity_id: str, **kwargs) -> None:
         """Toggles between ``on`` and ``off`` for the selected entity.
@@ -457,7 +457,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
         return await self.call_service("homeassistant/toggle", **kwargs)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     @hass_check
     async def set_value(self, entity_id: str, value: Union[int, float], **kwargs) -> None:
         """Sets the value of an `input_number`.
@@ -489,7 +489,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         kwargs.update({"value": value})
         return await self.get_entity_api(namespace, entity_id).call_service("set_value", **kwargs)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     @hass_check
     async def set_textvalue(self, entity_id: str, value: str, **kwargs) -> None:
         """Sets the value of an `input_text`.
@@ -521,7 +521,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         kwargs.update({"value": value})
         return await self.get_entity_api(namespace, entity_id).call_service("set_value", **kwargs)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     @hass_check
     async def select_option(self, entity_id: str, option: str, **kwargs) -> None:
         """Sets the value of an `input_option`.
@@ -553,7 +553,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         kwargs.update({"option": option})
         return await self.get_entity_api(namespace, entity_id).call_service("select_option", **kwargs)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     @hass_check
     async def notify(self, message: str, **kwargs) -> None:
         """Sends a notification.
@@ -592,7 +592,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
         return await self.call_service(service, **kwargs)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     @hass_check
     async def persistent_notification(self, message: str, title=None, id=None) -> None:
         """
@@ -615,7 +615,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             kwargs["notification_id"] = id
         await self.call_service("persistent_notification/create", **kwargs)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     @hass_check
     async def get_history(self, **kwargs) -> list:
         """Gets access to the HA Database.
@@ -701,7 +701,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             )
             return None
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     @hass_check
     async def render_template(self, template: str, **kwargs: Optional[Any]):
         """Renders a Home Assistant Template

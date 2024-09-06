@@ -1,9 +1,11 @@
-import appdaemon.adbase as adbase
-import appdaemon.adapi as adapi
-from appdaemon.appdaemon import AppDaemon
-import appdaemon.utils as utils
+from typing import Any, Callable, Optional, Union
 
-from typing import Callable, Union, Optional, Any
+import appdaemon.adapi as adapi
+import appdaemon.adbase as adbase
+import appdaemon.utils as utils
+from appdaemon.appdaemon import AppDaemon
+from appdaemon.models.app_config import AppConfig
+from appdaemon.plugins.mqtt.mqttplugin import MqttPlugin
 
 
 class Mqtt(adbase.ADBase, adapi.ADAPI):
@@ -48,16 +50,7 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
     The MQTT API also provides 3 convenience functions to make calling of specific functions easier an more readable. These are documented in the following section.
     """
 
-    def __init__(
-        self,
-        ad: AppDaemon,
-        name,
-        logging,
-        args,
-        config,
-        app_config,
-        global_vars,
-    ):
+    def __init__(self, ad: AppDaemon, config_model: AppConfig):
         """Constructor for the app.
 
         Args:
@@ -71,14 +64,14 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
 
         """
         # Call Super Classes
-        adbase.ADBase.__init__(self, ad, name, logging, args, config, app_config, global_vars)
-        adapi.ADAPI.__init__(self, ad, name, logging, args, config, app_config, global_vars)
+        adbase.ADBase.__init__(self, ad, config_model)
+        adapi.ADAPI.__init__(self, ad, config_model)
 
     #
     # Override listen_event()
     #
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def listen_event(self, callback: Callable, event: str = None, **kwargs: Optional[Any]) -> str:
         """Listens for changes within the MQTT plugin.
 
@@ -155,7 +148,7 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
         """
 
         namespace = self._get_namespace(**kwargs)
-        plugin = await self.AD.plugins.get_plugin_object(namespace)
+        plugin: MqttPlugin = await self.AD.plugins.get_plugin_object(namespace)
         topic = kwargs.get("topic", kwargs.get("wildcard"))
 
         if plugin is not None:
@@ -321,7 +314,7 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
 
         self._run_service_call("unsubscribe", topic, **kwargs)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def is_client_connected(self, **kwargs: Optional[Any]) -> bool:
         """Returns ``TRUE`` if the MQTT plugin is connected to its broker, ``FALSE`` otherwise.
 

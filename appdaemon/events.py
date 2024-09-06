@@ -44,13 +44,13 @@ class Events:
             if "pin" in kwargs:
                 pin_app = kwargs["pin_app"]
             else:
-                pin_app = self.AD.app_management.objects[name]["pin_app"]
+                pin_app = self.AD.app_management.objects[name].pin_app
 
             if "pin_thread" in kwargs:
                 pin_thread = kwargs["pin_thread"]
                 pin_app = True
             else:
-                pin_thread = self.AD.app_management.objects[name]["pin_thread"]
+                pin_thread = self.AD.app_management.objects[name].pin_thread
 
             async with self.AD.callbacks.callbacks_lock:
                 if name not in self.AD.callbacks.callbacks:
@@ -58,7 +58,7 @@ class Events:
                 handle = uuid.uuid4().hex
                 self.AD.callbacks.callbacks[name][handle] = {
                     "name": name,
-                    "id": self.AD.app_management.objects[name]["id"],
+                    "id": self.AD.app_management.objects[name].id,
                     "type": "event",
                     "function": cb,
                     "namespace": namespace,
@@ -346,7 +346,7 @@ class Events:
                                         {
                                             "id": uuid_,
                                             "name": name,
-                                            "objectid": self.AD.app_management.objects[name]["id"],
+                                            "objectid": self.AD.app_management.objects[name].id,
                                             "type": "event",
                                             "event": data["event_type"],
                                             "function": callback["function"],

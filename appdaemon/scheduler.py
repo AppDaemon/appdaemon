@@ -6,7 +6,7 @@ import re
 import traceback
 import uuid
 from collections import OrderedDict
-from datetime import time, timedelta
+from datetime import time, timedelta, timezone
 from logging import Logger
 from typing import TYPE_CHECKING
 
@@ -37,73 +37,49 @@ class Scheduler:
     error: Logger
     diag: Logger
 
+    active: bool = False
+    realtime: bool = True
+    stopping: bool = False
+
     def __init__(self, ad: "AppDaemon"):
         self.AD = ad
-
         self.logger = ad.logging.get_child("_scheduler")
         self.error = ad.logging.get_error()
         self.diag = ad.logging.get_diag()
         self.last_fired = None
         self.sleep_task = None
-        self.active = False
         self.timer_resetted = False
         self.location = None
         self.schedule = {}
 
-        self.now = pytz.utc.localize(datetime.datetime.utcnow())
+        self.now = datetime.datetime.now(timezone.utc)
 
         #
         # If we were waiting for a timezone from metadata, we have it now.
         #
-        tz = pytz.timezone(self.AD.time_zone)
-        self.AD.tz = tz
-        self.AD.logging.set_tz(tz)
-
-        self.stopping = False
-        self.realtime = True
+        self.AD.logging.set_tz(self.AD.tz)
 
         self.set_start_time()
 
         if self.AD.endtime is not None:
-            unaware_end = None
-            try:
-                unaware_end = datetime.datetime.strptime(self.AD.endtime, "%Y-%m-%d %H:%M:%S")
-            except ValueError:
-                try:
-                    unaware_end = datetime.datetime.strptime(self.AD.endtime, "%Y-%m-%d#%H:%M:%S")
-                except ValueError:
-                    pass
-            if unaware_end is None:
-                raise ValueError("Invalid end time for time travel")
+            unaware_end = self.AD.endtime
             aware_end = self.AD.tz.localize(unaware_end)
             self.endtime = aware_end.astimezone(pytz.utc)
         else:
             self.endtime = None
 
         # Setup sun
-
         self.init_sun()
 
     def set_start_time(self):
         tt = False
-        unaware_now = None
         if self.AD.starttime is not None:
             tt = True
-            try:
-                unaware_now = datetime.datetime.strptime(self.AD.starttime, "%Y-%m-%d %H:%M:%S")
-            except ValueError:
-                # Support "#" as date and time separator as well
-                try:
-                    unaware_now = datetime.datetime.strptime(self.AD.starttime, "%Y-%m-%d#%H:%M:%S")
-                except ValueError:
-                    # Catching this allows us to raise a single exception and avoid a nested exception
-                    pass
-            if unaware_now is None:
-                raise ValueError("Invalid start time for time travel")
+            unaware_now = self.AD.starttime
             aware_now = self.AD.tz.localize(unaware_now)
             self.now = aware_now.astimezone(pytz.utc)
         else:
-            self.now = pytz.utc.localize(datetime.datetime.utcnow())
+            self.now = datetime.datetime.now(pytz.utc)
 
         if self.AD.timewarp != 1:
             tt = True
@@ -130,13 +106,13 @@ class Scheduler:
         if "pin" in kwargs:
             pin_app = kwargs["pin"]
         else:
-            pin_app = self.AD.app_management.objects[name]["pin_app"]
+            pin_app = self.AD.app_management.objects[name].pin_app
 
         if "pin_thread" in kwargs:
             pin_thread = kwargs["pin_thread"]
             pin_app = True
         else:
-            pin_thread = self.AD.app_management.objects[name]["pin_thread"]
+            pin_thread = self.AD.app_management.objects[name].pin_thread
 
         if name not in self.schedule:
             self.schedule[name] = {}
@@ -149,7 +125,7 @@ class Scheduler:
 
         self.schedule[name][handle] = {
             "name": name,
-            "id": self.AD.app_management.objects[name]["id"],
+            "id": self.AD.app_management.objects[name].id,
             "callback": callback,
             "timestamp": ts,
             "interval": interval,
@@ -306,7 +282,7 @@ class Scheduler:
                     {
                         "id": uuid_,
                         "name": name,
-                        "objectid": self.AD.app_management.objects[name]["id"],
+                        "objectid": self.AD.app_management.objects[name].id,
                         "type": "state",
                         "function": args["callback"],
                         "attribute": args["kwargs"]["__attribute"],
@@ -355,7 +331,7 @@ class Scheduler:
                     {
                         "id": uuid_,
                         "name": name,
-                        "objectid": self.AD.app_management.objects[name]["id"],
+                        "objectid": self.AD.app_management.objects[name].id,
                         "type": "scheduler",
                         "function": args["callback"],
                         "pin_app": args["pin_app"],
@@ -706,7 +682,7 @@ class Scheduler:
             return (
                 self.make_naive(callback["timestamp"]),
                 callback["interval"],
-                self.sanitize_timer_kwargs(self.AD.app_management.objects[name]["object"], callback["kwargs"]),
+                self.sanitize_timer_kwargs(self.AD.app_management.objects[name].object, callback["kwargs"]),
             )
         else:
             # self.logger.warning("Invalid timer handle given as: %s", handle)

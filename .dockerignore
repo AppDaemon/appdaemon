@@ -16,3 +16,5 @@ MANIFEST.in
 # Documentation
 docs
 .readthedocs.yml
+
+.venv

@@ -28,7 +28,8 @@ dependencies = [
     'sockjs >= 0.11,< 0.14',
     'uvloop==0.20.0; sys_platform != "win32"',
     'tomli ~= 2.0.1',
-    'tomli_w ~= 1.0.0'
+    'tomli_w ~= 1.0.0',
+    "pydantic>=2.8.2",
 ]
 
 classifiers= [
@@ -147,3 +148,15 @@ target-version = "py311"
 [tool.ruff.mccabe]
 # Unlike Flake8, default to a complexity level of 10.
 max-complexity = 10
+
+[tool.rye]
+dev-dependencies = [
+    "uv>=0.3.4",
+    "pre-commit>=3.8.0",
+    "ruff>=0.6.3",
+    "pytest>=8.3.2",
+    "build>=1.2.1",
+    "gitpython>=3.1.43",
+    "ipykernel>=6.29.5",
+    "rich>=13.8.0",
+]

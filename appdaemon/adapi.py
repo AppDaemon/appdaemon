@@ -6,7 +6,8 @@ import uuid
 from asyncio import Future
 from copy import deepcopy
 from datetime import timedelta
-from typing import Any, Callable, Dict, Optional, Union
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import iso8601
 
@@ -14,9 +15,11 @@ from appdaemon import utils
 from appdaemon.appdaemon import AppDaemon
 from appdaemon.entity import Entity
 from appdaemon.logging import Logging
+from appdaemon.models.app_config import AppConfig
 
 
 class ADAPI:
+
     """AppDaemon API class.
 
     This class includes all native API calls to AppDaemon
@@ -29,54 +32,50 @@ class ADAPI:
     name: str
     """The app name, which is set by the top-level key in the YAML file
     """
+    config_model: AppConfig
+    """Pydantic model of the app configuration
+    """
+    config: Dict[str, Any]
+    """Dictionary of the AppDaemon configuration
+    """
+    app_config: Dict[str, Any]
+    """Dictionary of the full app configuration, which includes all apps
+    """
+    args: Dict[str, Any]
+    """Dictionary of this app's configuration
+    """
+
+    app_dir: Path
+    config_dir: Path
     _logging: Logging
     """Reference to the Logging subsystem object
     """
-    args: Dict[str, Any]
-    """The arguments provided in this app's YAML config file
-    """
 
-    #
-    # Internal parameters
-    #
-    def __init__(
-        self,
-        ad: AppDaemon,
-        name: str,
-        logging_obj: Logging,
-        args: Dict[str, Any],
-        config: Dict[str, Any],
-        app_config,
-        global_vars,
-    ):
-        # Store args
-
+    def __init__(self, ad: AppDaemon, config_model: AppConfig):
         self.AD = ad
-        self.name = name
-        self._logging = logging_obj
-        self.config = config
-        self.app_config = app_config
-        # same as self.AD.app_management.app_config
-        self.args = deepcopy(args)
-        self.app_dir = self.AD.app_dir
-        self.config_dir = self.AD.config_dir
+        self.config_model = config_model
+
+        self.config = self.AD.config.model_dump(by_alias=True, exclude_unset=True)
+        self.args = self.config_model.model_dump(by_alias=True, exclude_unset=True)
+
         self.dashboard_dir = None
 
         if self.AD.http is not None:
             self.dashboard_dir = self.AD.http.dashboard_dir
 
-        self.global_vars = global_vars
         self._namespace = "default"
-        self.logger = self._logging.get_child(name)
-        self.err = self._logging.get_error().getChild(name)
+        self.logger = self._logging.get_child(self.name)
+        self.err = self._logging.get_error().getChild(self.name)
+
+        if lvl := config_model.log_level:
+            self.logger.setLevel(lvl)
+            self.err.setLevel(lvl)
+
         self.user_logs = {}
-        if "log_level" in args:
-            self.logger.setLevel(args["log_level"])
-            self.err.setLevel(args["log_level"])
-        if "log" in args:
-            userlog = self.get_user_log(args["log"])
-            if userlog is not None:
-                self.logger = userlog
+        if log_name := config_model.log:
+            if user_log := self.get_user_log(log_name):
+                self.logger = user_log
+
         self.dialogflow_v = 2
 
     @staticmethod
@@ -100,6 +99,29 @@ class ADAPI:
             namespace = self._namespace
 
         return namespace
+
+    #
+    # Properties
+    #
+    @property
+    def app_dir(self) -> Path:
+        return self.AD.app_dir
+
+    @property
+    def config_dir(self) -> Path:
+        return self.AD.config_dir
+
+    @property
+    def global_vars(self):
+        return self.AD.global_vars
+
+    @property
+    def _logging(self) -> Logging:
+        return self.AD.logging
+
+    @property
+    def name(self) -> str:
+        return self.config_model.name
 
     #
     # Logging
@@ -210,7 +232,7 @@ class ADAPI:
         """
         self._log(self.err, msg, *args, **kwargs)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def listen_log(self, callback: Callable, level="INFO", **kwargs) -> str:
         """Registers the App to receive a callback every time an App logs a message.
 
@@ -257,7 +279,7 @@ class ADAPI:
 
         return await self.AD.logging.add_log_callback(namespace, self.name, callback, level, **kwargs)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def cancel_listen_log(self, handle: str) -> None:
         """Cancels the log callback for the App.
 
@@ -372,7 +394,7 @@ class ADAPI:
     # Threading
     #
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def set_app_pin(self, pin: bool) -> None:
         """Sets an App to be pinned or unpinned.
 
@@ -390,7 +412,7 @@ class ADAPI:
         """
         await self.AD.threading.set_app_pin(self.name, pin)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def get_app_pin(self) -> bool:
         """Finds out if the current App is currently pinned or not.
 
@@ -404,7 +426,7 @@ class ADAPI:
         """
         return await self.AD.threading.get_app_pin(self.name)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def set_pin_thread(self, thread: int) -> None:
         """Sets the thread that the App will be pinned to.
 
@@ -423,7 +445,7 @@ class ADAPI:
         """
         await self.AD.threading.set_pin_thread(self.name, thread)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def get_pin_thread(self) -> int:
         """Finds out which thread the App is pinned to.
 
@@ -460,7 +482,7 @@ class ADAPI:
         """Returns the App's namespace."""
         return self._namespace
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def namespace_exists(self, namespace: str) -> bool:
         """Checks the existence of a namespace in AppDaemon.
 
@@ -477,9 +499,9 @@ class ADAPI:
             >>>     #do something like create it
 
         """
-        return await self.AD.state.namespace_exists(namespace)
+        return self.AD.state.namespace_exists(namespace)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def add_namespace(self, namespace: str, **kwargs) -> Union[str, None]:
         """Used to add a user-defined namespaces from apps, which has a database file associated with it.
 
@@ -519,7 +541,7 @@ class ADAPI:
 
         return await self.AD.state.add_namespace(namespace, writeback, persist, self.name)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def remove_namespace(self, namespace: str) -> Any:
         """Used to remove a previously user-defined namespaces from apps, which has a database file associated with it.
 
@@ -541,7 +563,7 @@ class ADAPI:
 
         return await self.AD.state.remove_namespace(namespace)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def list_namespaces(self) -> list:
         """Returns a list of available namespaces.
 
@@ -549,9 +571,9 @@ class ADAPI:
             >>> self.list_namespaces()
 
         """
-        return await self.AD.state.list_namespaces()
+        return self.AD.state.list_namespaces()
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def save_namespace(self, **kwargs) -> None:
         """Saves entities created in user-defined namespaces into a file.
 
@@ -586,7 +608,7 @@ class ADAPI:
     # Utility
     #
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def get_app(self, name: str) -> Callable:
         """Gets the instantiated object of another app running within the system.
 
@@ -607,11 +629,11 @@ class ADAPI:
         """
         return await self.AD.app_management.get_app(name)
 
-    @utils.sync_wrapper
-    async def _check_entity(self, namespace, entity):
+    @utils.sync_decorator
+    async def _check_entity(self, namespace: str, entity: str):
         if "." not in entity:
             raise ValueError(f"{self.name}: Invalid entity ID: {entity}")
-        if not await self.AD.state.entity_exists(namespace, entity):
+        if not self.AD.state.entity_exists(namespace, entity):
             self.logger.warning("%s: Entity %s not found in namespace %s", self.name, entity, namespace)
 
     @staticmethod
@@ -628,7 +650,7 @@ class ADAPI:
     # Entity
     #
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def add_entity(
         self, entity_id: str, state: Any = None, attributes: dict = None, **kwargs: Optional[Any]
     ) -> None:
@@ -665,7 +687,7 @@ class ADAPI:
 
         await self.get_entity_api(namespace, entity_id).add(state, attributes)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def entity_exists(self, entity_id: str, **kwargs: Optional[Any]) -> bool:
         """Checks the existence of an entity in AD.
 
@@ -702,7 +724,7 @@ class ADAPI:
         namespace = self._get_namespace(**kwargs)
         return await self.get_entity_api(namespace, entity_id).exists()
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def split_entity(self, entity_id: str, **kwargs) -> list:
         """Splits an entity into parts.
 
@@ -732,7 +754,7 @@ class ADAPI:
         await self._check_entity(self._get_namespace(**kwargs), entity_id)
         return entity_id.split(".")
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def remove_entity(self, entity_id: str, **kwargs) -> None:
         """Deletes an entity created within a namespaces.
 
@@ -787,7 +809,7 @@ class ADAPI:
         """
         return devices.split(",")
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def get_plugin_config(self, **kwargs) -> Any:
         """Gets any useful metadata that the plugin may have available.
 
@@ -813,7 +835,7 @@ class ADAPI:
         namespace = self._get_namespace(**kwargs)
         return await self.AD.plugins.get_plugin_meta(namespace)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def friendly_name(self, entity_id: str, **kwargs) -> str:
         """Gets the Friendly Name of an entity.
 
@@ -846,7 +868,7 @@ class ADAPI:
                 return entity_id
         return None
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def set_production_mode(self, mode=True) -> bool:
         """Deactivates or activates the production mode in AppDaemon.
 
@@ -1149,7 +1171,7 @@ class ADAPI:
     # API
     #
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def register_endpoint(
         self, callback: Callable[[Any, dict], Any], endpoint: str = None, **kwargs: Optional[Any]
     ) -> str:
@@ -1194,7 +1216,7 @@ class ADAPI:
                 endpoint,
             )
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def deregister_endpoint(self, handle: str) -> None:
         """Removes a previously registered endpoint.
 
@@ -1214,7 +1236,7 @@ class ADAPI:
     # Web Route
     #
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def register_route(
         self, callback: Callable[[Any, dict], Any], route: str = None, **kwargs: Optional[Any]
     ) -> str:
@@ -1256,7 +1278,7 @@ class ADAPI:
         else:
             self.logger.warning("register_route for %s filed - HTTP component is not configured", route)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def deregister_route(self, handle: str) -> None:
         """Removes a previously registered app route.
 
@@ -1276,7 +1298,7 @@ class ADAPI:
     # State
     #
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def listen_state(
         self, callback: Callable, entity_id: Union[str, list] = None, **kwargs: Optional[Any]
     ) -> Union[str, list]:
@@ -1438,8 +1460,8 @@ class ADAPI:
 
             return await self.get_entity_api(namespace, entity_id).listen_state(callback, **kwargs)
 
-    @utils.sync_wrapper
-    async def cancel_listen_state(self, handle: str, silent=False) -> bool:
+    @utils.sync_decorator
+    async def cancel_listen_state(self, handle: str, silent: bool = False) -> bool:
         """Cancels a ``listen_state()`` callback.
 
         This will mean that the App will no longer be notified for the specific
@@ -1464,7 +1486,7 @@ class ADAPI:
         self.logger.debug("Canceling listen_state for %s", self.name)
         return await self.AD.state.cancel_state_callback(handle, self.name, silent)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def info_listen_state(self, handle: str) -> dict:
         """Gets information on state a callback from its handle.
 
@@ -1482,7 +1504,7 @@ class ADAPI:
         self.logger.debug("Calling info_listen_state for %s", self.name)
         return await self.AD.state.info_state_callback(handle, self.name)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def get_state(
         self,
         entity_id: str = None,
@@ -1555,7 +1577,7 @@ class ADAPI:
 
         return await self.get_entity_api(namespace, entity_id).get_state(attribute, default, copy, **kwargs)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def set_state(self, entity_id: str, **kwargs: Optional[Any]) -> dict:
         """Updates the state of the specified entity.
 
@@ -1719,7 +1741,7 @@ class ADAPI:
 
         return self.AD.services.list_services(namespace)  # retrieve services
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def call_service(self, service: str, **kwargs: Optional[Any]) -> Any:
         """Calls a Service within AppDaemon.
 
@@ -1808,7 +1830,7 @@ class ADAPI:
 
         return await self.AD.services.call_service(namespace, d, s, kwargs)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def run_sequence(self, sequence: Union[str, list], **kwargs: Optional[Any]):
         """Run an AppDaemon Sequence. Sequences are defined in a valid apps.yaml file or inline, and are sequences of
         service calls.
@@ -1848,7 +1870,7 @@ class ADAPI:
         self.logger.debug("Calling run_sequence() for %s from %s", sequence, self.name)
         return await self.AD.sequences.run_sequence(_name, namespace, sequence, **kwargs)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def cancel_sequence(self, sequence: Any) -> None:
         """Cancel an already running AppDaemon Sequence.
 
@@ -1871,7 +1893,7 @@ class ADAPI:
     # Events
     #
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def listen_event(
         self, callback: Callable, event: Union[str, list] = None, **kwargs: Optional[Any]
     ) -> Union[str, list]:
@@ -1965,7 +1987,7 @@ class ADAPI:
         else:
             return await self.AD.events.add_event_callback(_name, namespace, callback, event, **kwargs)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def cancel_listen_event(self, handle: str) -> bool:
         """Cancels a callback for a specific event.
 
@@ -1982,7 +2004,7 @@ class ADAPI:
         self.logger.debug("Canceling listen_event for %s", self.name)
         return await self.AD.events.cancel_event_callback(self.name, handle)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def info_listen_event(self, handle: str) -> bool:
         """Gets information on an event callback from its handle.
 
@@ -1999,7 +2021,7 @@ class ADAPI:
         self.logger.debug("Calling info_listen_event for %s", self.name)
         return await self.AD.events.info_event_callback(self.name, handle)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def fire_event(self, event: str, **kwargs: Optional[Any]) -> None:
         """Fires an event on the AppDaemon bus, for apps and plugins.
 
@@ -2069,7 +2091,7 @@ class ADAPI:
         """
         return iso8601.parse_date(utc)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def sun_up(self) -> bool:
         """Determines if the sun is currently up.
 
@@ -2083,7 +2105,7 @@ class ADAPI:
         """
         return await self.AD.sched.sun_up()
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def sun_down(self) -> bool:
         """Determines if the sun is currently down.
 
@@ -2097,7 +2119,7 @@ class ADAPI:
         """
         return await self.AD.sched.sun_down()
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def parse_time(
         self, time_str: str, name: str = None, aware: bool = False, today=False, days_offset=0
     ) -> dt.time:
@@ -2147,7 +2169,7 @@ class ADAPI:
         """
         return await self.AD.sched.parse_time(time_str, name, aware, today=False, days_offset=0)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def parse_datetime(self, time_str: str, name=None, aware=False, today=False, days_offset=0) -> dt.datetime:
         """Creates a `datetime` object from its string representation.
 
@@ -2198,7 +2220,7 @@ class ADAPI:
         """
         return await self.AD.sched.parse_datetime(time_str, name, aware, today=today, days_offset=days_offset)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def get_now(self) -> dt.datetime:
         """Returns the current Local Date and Time.
 
@@ -2210,7 +2232,7 @@ class ADAPI:
         now = await self.AD.sched.get_now()
         return now.astimezone(self.AD.tz)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def get_now_ts(self) -> int:
         """Returns the current Local Timestamp.
 
@@ -2221,7 +2243,7 @@ class ADAPI:
         """
         return await self.AD.sched.get_now_ts()
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def now_is_between(self, start_time: str, end_time: str, name=None, now=None) -> bool:
         """Determines if the current `time` is within the specified start and end times.
 
@@ -2259,7 +2281,7 @@ class ADAPI:
         """
         return await self.AD.sched.now_is_between(start_time, end_time, name, now=now)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def sunrise(self, aware=False, today=False, days_offset=0) -> dt.datetime:
         """Returns a `datetime` object that represents the next time Sunrise will occur.
 
@@ -2280,7 +2302,7 @@ class ADAPI:
         """
         return await self.AD.sched.sunrise(aware, today=today, days_offset=days_offset)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def sunset(self, aware=False, today=False, days_offset=0) -> dt.datetime:
         """Returns a `datetime` object that represents the next time Sunset will occur.
 
@@ -2301,7 +2323,7 @@ class ADAPI:
         """
         return await self.AD.sched.sunset(aware, today=today, days_offset=days_offset)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def time(self) -> dt.time:
         """Returns a localised `time` object representing the current Local Time.
 
@@ -2316,7 +2338,7 @@ class ADAPI:
         now = await self.AD.sched.get_now()
         return now.astimezone(self.AD.tz).time()
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def datetime(self, aware=False) -> dt.datetime:
         """Returns a `datetime` object representing the current Local Date and Time.
 
@@ -2338,7 +2360,7 @@ class ADAPI:
         else:
             return await self.AD.sched.get_now_naive()
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def date(self) -> dt.date:
         """Returns a localised `date` object representing the current Local Date.
 
@@ -2361,7 +2383,7 @@ class ADAPI:
     # Scheduler
     #
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def timer_running(self, handle: str) -> bool:
         """Checks if a previously created timer is still running.
 
@@ -2379,7 +2401,7 @@ class ADAPI:
         self.logger.debug("Checking timer with handle %s for %s", handle, self.name)
         return self.AD.sched.timer_running(name, handle)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def cancel_timer(self, handle: str, silent=False) -> bool:
         """Cancels a previously created timer.
 
@@ -2400,7 +2422,7 @@ class ADAPI:
         self.logger.debug("Canceling timer with handle %s for %s", handle, self.name)
         return await self.AD.sched.cancel_timer(name, handle, silent)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def reset_timer(self, handle: str) -> bool:
         """Resets a previously created timer.
 
@@ -2419,7 +2441,7 @@ class ADAPI:
         self.logger.debug("Resetting timer with handle %s for %s", handle, self.name)
         return await self.AD.sched.reset_timer(name, handle)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def info_timer(self, handle: str) -> Union[tuple, None]:
         """Gets information on a scheduler event from its handle.
 
@@ -2441,7 +2463,7 @@ class ADAPI:
         """
         return await self.AD.sched.info_timer(handle, self.name)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def run_in(self, callback: Callable, delay: int, **kwargs) -> str:
         """Runs the callback in a defined number of seconds.
 
@@ -2493,7 +2515,7 @@ class ADAPI:
 
         return handle
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def run_once(self, callback: Callable, start: Union[dt.time, str], **kwargs):
         """Runs the callback once, at the specified time of day.
 
@@ -2564,7 +2586,7 @@ class ADAPI:
         handle = await self.AD.sched.insert_schedule(name, aware_event, callback, False, None, **kwargs)
         return handle
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def run_at(self, callback: Callable, start: Union[dt.datetime, str], **kwargs):
         """Runs the callback once, at the specified time of day.
 
@@ -2638,7 +2660,7 @@ class ADAPI:
         handle = await self.AD.sched.insert_schedule(name, aware_when, callback, False, None, **kwargs)
         return handle
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def run_daily(self, callback: Callable, start: Union[dt.time, str], **kwargs):
         """Runs the callback at the same time every day.
 
@@ -2718,7 +2740,7 @@ class ADAPI:
             handle = await self.run_at_sunset(callback, **kwargs)
         return handle
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def run_hourly(self, callback, start, **kwargs):
         """Runs the callback at the same time every hour.
 
@@ -2768,7 +2790,7 @@ class ADAPI:
         handle = await self.run_every(callback, event, 60 * 60, **kwargs)
         return handle
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def run_minutely(self, callback: Callable, start: dt.time, **kwargs) -> str:
         """Runs the callback at the same time every minute.
 
@@ -2818,7 +2840,7 @@ class ADAPI:
         handle = await self.run_every(callback, event, 60, **kwargs)
         return handle
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def run_every(self, callback: Callable, start: dt.datetime, interval: int, **kwargs) -> str:
         """Runs the callback with a configurable delay starting at a specific time.
 
@@ -2892,7 +2914,7 @@ class ADAPI:
         )
         return handle
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def _schedule_sun(self, name, type_, callback, **kwargs):
         if type_ == "next_rising":
             event = self.AD.sched.next_sunrise()
@@ -2902,7 +2924,7 @@ class ADAPI:
         handle = await self.AD.sched.insert_schedule(name, event, callback, True, type_, **kwargs)
         return handle
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def run_at_sunset(self, callback: Callable, **kwargs) -> str:
         """Runs a callback every day at or around sunset.
 
@@ -2953,7 +2975,7 @@ class ADAPI:
         handle = await self._schedule_sun(name, "next_setting", callback, **kwargs)
         return handle
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def run_at_sunrise(self, callback: Callable, **kwargs) -> str:
         """Runs a callback every day at or around sunrise.
 
@@ -3137,16 +3159,16 @@ class ADAPI:
             except Exception as e:
                 self.error(e, level="ERROR")
 
-        f = self.AD.executor.submit(func, *args, **kwargs)
+        future = self.AD.executor.submit(func, *args, **kwargs)
 
         if callback is not None:
-            self.logger.debug("Adding add_done_callback for future %s for %s", f, self.name)
-            f.add_done_callback(callback_inner)
+            self.logger.debug("Adding add_done_callback for future %s for %s", future, self.name)
+            future.add_done_callback(callback_inner)
 
-        self.AD.futures.add_future(self.name, f)
-        return f
+        self.AD.futures.add_future(self.name, future)
+        return future
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def create_task(self, coro: Callable, callback=None, **kwargs) -> Future:
         """Schedules a Coroutine to be executed.
 
@@ -3185,13 +3207,13 @@ class ADAPI:
             except asyncio.CancelledError:
                 pass
 
-        f = asyncio.create_task(coro)
+        task = asyncio.create_task(coro)
         if callback is not None:
-            self.logger.debug("Adding add_done_callback for future %s for %s", f, self.name)
-            f.add_done_callback(callback_inner)
+            self.logger.debug("Adding add_done_callback for future %s for %s", task, self.name)
+            task.add_done_callback(callback_inner)
 
-        self.AD.futures.add_future(self.name, f)
-        return f
+        self.AD.futures.add_future(self.name, task)
+        return task
 
     @staticmethod
     async def sleep(delay: int, result=None) -> None:
@@ -3258,7 +3280,7 @@ class ADAPI:
         """
         self.run_in(callback, 0, pin=False, pin_thread=thread, **kwargs)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def get_thread_info(self) -> Any:
         """Gets information on AppDaemon worker threads.
 
@@ -3271,7 +3293,7 @@ class ADAPI:
         """
         return await self.AD.threading.get_thread_info()
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def get_scheduler_entries(self):
         """Gets information on AppDaemon scheduler entries.
 
@@ -3284,7 +3306,7 @@ class ADAPI:
         """
         return await self.AD.sched.get_scheduler_entries()
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def get_callback_entries(self) -> list:
         """Gets information on AppDaemon callback entries.
 
@@ -3298,8 +3320,8 @@ class ADAPI:
         """
         return await self.AD.callbacks.get_callback_entries()
 
-    @utils.sync_wrapper
-    async def depends_on_module(self, *modules: str) -> None:
+    @utils.sync_decorator
+    async def depends_on_module(self, *modules: List[str]) -> None:
         """Registers a global_modules dependency for an app.
 
         Args:
@@ -3309,10 +3331,10 @@ class ADAPI:
             None.
 
         Examples:
-            >>> import somemodule
-            >>> import anothermodule
+            >>> import some_module
+            >>> import another_module
             >>> # later
-            >>> self.depends_on_module([somemodule)
+            >>> self.depends_on_module('some_module')
 
         """
-        return await self.AD.app_management.register_module_dependency(self.name, *modules)
+        self.log("depends_on_module is deprecated", level="WARNING")

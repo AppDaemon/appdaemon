@@ -1,5 +1,6 @@
+import asyncio
 import functools
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, List, Union
 
 if TYPE_CHECKING:
     from appdaemon.appdaemon import AppDaemon
@@ -13,37 +14,33 @@ class Futures:
     """
 
     AD: "AppDaemon"
+    futures: Dict[str, List[Union[asyncio.Future, asyncio.Task]]] = {}
 
     def __init__(self, ad: "AppDaemon"):
         self.AD = ad
 
-        self.futures = {}
+    def add_future(self, app_name: str, future_or_task: Union[asyncio.Future, asyncio.Task]):
+        future_or_task.add_done_callback(functools.partial(self.remove_future, app_name))
+        if app_name not in self.futures:
+            self.futures[app_name] = []
 
-    def add_future(self, name, f):
-        f.add_done_callback(functools.partial(self.remove_future, name))
-        if name not in self.futures:
-            self.futures[name] = []
+        self.futures[app_name].append(future_or_task)
+        self.AD.logger.debug("Registered a future in %s: %s", app_name, future_or_task)
 
-        self.futures[name].append(f)
-        self.AD.logger.debug("Registered a future in {}: {}".format(name, f))
+    def remove_future(self, app_name: str, future_or_task: Union[asyncio.Future, asyncio.Task]):
+        if app_name in self.futures:
+            self.futures[app_name].remove(future_or_task)
+            self.AD.logger.debug("Future removed from registry %s", future_or_task)
 
-    def remove_future(self, name, f):
-        if name in self.futures:
-            self.futures[name].remove(f)
+        if not future_or_task.done() and not future_or_task.cancelled():
+            self.AD.logger.debug("Cancelling future %s", future_or_task)
+            future_or_task.cancel()
 
-        self.AD.logger.debug("Future removed from registry {}".format(f))
-
-        if f.cancelled():
+    def cancel_futures(self, app_name: str):
+        if app_name not in self.futures:
             return
 
-        if not f.done():
-            f.cancel()
-
-    def cancel_futures(self, name):
-        if name not in self.futures:
-            return
-
-        for f in self.futures[name]:
+        for f in self.futures[app_name]:
             if not f.done() and not f.cancelled():
-                self.AD.logger.debug("Cancelling Future {}".format(f))
+                self.AD.logger.debug("Cancelling future %s", f)
                 f.cancel()

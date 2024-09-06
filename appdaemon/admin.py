@@ -63,7 +63,7 @@ class Admin:
 
             # Entities
 
-            params["namespaces"] = await self.AD.state.list_namespaces()
+            params["namespaces"] = self.AD.state.list_namespaces()
 
             env = Environment(
                 loader=FileSystemLoader(self.template_dir),

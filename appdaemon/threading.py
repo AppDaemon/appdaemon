@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Union
 import iso8601
 
 from appdaemon import utils as utils
+from appdaemon.models.app_config import AllAppConfig, AppConfig
 
 if TYPE_CHECKING:
     from appdaemon.appdaemon import AppDaemon
@@ -36,44 +37,46 @@ class Threading:
     thread_count: int
     threads: Dict[str, Dict[str, Union[Thread, Queue]]]
     """Dictionary with keys of the thread ID (string beginning with `thread-`) and values of another dictionary with `thread` and `queue` keys that have values of :class:`~threading.Thread` and :class:`~queue.Queue` objects respectively."""
-    auto_pin: bool
-    pin_threads: int
-    total_threads: int
-    pin_apps: Optional[bool]
-    next_thread: Optional[int]
-    last_stats_time: datetime.datetime
+
+    last_stats_time: datetime.datetime = datetime.datetime.fromtimestamp(0)
     callback_list: List[Dict]
 
-    def __init__(self, ad: "AppDaemon", kwargs):
-        self.AD = ad
-        self.kwargs = kwargs
+    auto_pin: bool = True
+    pin_threads: int = 0
+    total_threads: int = 0
 
+    next_thread: int = 0
+    current_callbacks_executed: int = 0
+    current_callbacks_fired: int = 0
+
+    def __init__(self, ad: "AppDaemon"):
+        self.AD = ad
         self.logger = ad.logging.get_child("_threading")
         self.diag = ad.logging.get_diag()
-        self.thread_count = 0
 
+        self.thread_count = 0
         self.threads = {}
 
         # A few shortcuts
-
         self.add_entity = ad.state.add_entity
         self.get_state = ad.state.get_state
         self.set_state = ad.state.set_state
         self.add_to_state = ad.state.add_to_state
         self.add_to_attr = ad.state.add_to_attr
 
-        self.auto_pin = True
-        self.pin_threads = 0
-        self.total_threads = 0
-        self.pin_apps = None
-        self.next_thread = None
-        # Setup stats
-
-        self.current_callbacks_executed = 0
-        self.current_callbacks_fired = 0
-
-        self.last_stats_time = datetime.datetime(1970, 1, 1, 0, 0, 0, 0)
         self.callback_list = []
+
+    @property
+    def pin_apps(self):
+        return self.AD.config.pin_apps
+
+    @property
+    def total_threads(self):
+        return self.AD.config.total_threads
+
+    @total_threads.setter
+    def total_threads(self, new: int):
+        self.AD.config.total_threads = new
 
     async def get_q_update(self):
         """Updates queue sizes"""
@@ -145,32 +148,21 @@ class Threading:
         )
 
     async def create_initial_threads(self):
-        kwargs = self.kwargs
-
-        if "threads" in kwargs:
-            self.logger.warning(
-                "Threads directive is deprecated apps - will be pinned. Use total_threads if you want to unpin your apps"
-            )
-
-        if "total_threads" in kwargs:
-            self.total_threads = kwargs["total_threads"]
+        if self.total_threads:
             self.auto_pin = False
         else:
-            apps = await self.AD.app_management.check_config(True, False)
-            self.total_threads = apps.active
+            # Force a config check here so we have an accurate activate app count
+            self.AD.app_management.logger.debug("Reading app config files to determine how many threads to make")
+            cfg_paths = await self.AD.app_management.get_app_config_files()
+            full_cfg: AllAppConfig = await self.AD.app_management.read_all(cfg_paths)
+            self.total_threads = full_cfg.active_app_count
 
-        self.pin_apps = True
-        utils.process_arg(self, "pin_apps", kwargs)
-
-        if self.pin_apps is True:
-            self.pin_threads = self.total_threads
+        if self.pin_apps:
+            self.pin_threads = self.pin_threads or self.total_threads
         else:
             self.auto_pin = False
             self.pin_threads = 0
-            if "total_threads" not in kwargs:
-                self.total_threads = 10
-
-        utils.process_arg(self, "pin_threads", kwargs, int=True)
+            self.total_threads = self.total_threads or 10
 
         if self.pin_threads > self.total_threads:
             raise ValueError("pin_threads cannot be > total_threads")
@@ -187,7 +179,7 @@ class Threading:
         self.next_thread = self.pin_threads
 
         self.thread_count = 0
-        for i in range(self.total_threads):
+        for _ in range(self.total_threads):
             await self.add_thread(True)
 
         # Add thread object to track async
@@ -410,7 +402,7 @@ class Threading:
         if appinfo is None:  # app possibly terminated
             return
 
-        appentity = "{}.{}".format(appinfo["type"], app)
+        appentity = f"{appinfo.type}.{app}"
 
         now = await self.AD.sched.get_now()
         if callback == "idle":
@@ -496,7 +488,7 @@ class Threading:
     # Pinning
     #
 
-    async def add_thread(self, silent=False, pinthread=False, id=None):
+    async def add_thread(self, silent: bool = False, pinthread: bool = False, id: Optional[Union[int, str]] = None):
         if id is None:
             tid = self.thread_count
         else:
@@ -505,17 +497,16 @@ class Threading:
             self.logger.info("Adding thread %s", tid)
         t = threading.Thread(target=self.worker)
         t.daemon = True
-        name = "thread-{}".format(tid)
-        t.setName(name)
+        t.name = f"thread-{tid}"
         if id is None:
             await self.add_entity(
                 "admin",
-                "thread.{}".format(name),
+                "thread.{}".format(t.name),
                 "idle",
                 {"q": 0, "is_alive": True, "time_called": utils.dt_to_str(datetime.datetime(1970, 1, 1, 0, 0, 0, 0))},
             )
-            self.threads[name] = {}
-            self.threads[name]["queue"] = Queue(maxsize=0)
+            self.threads[t.name] = {}
+            self.threads[t.name]["queue"] = Queue(maxsize=0)
             t.start()
             self.thread_count += 1
             if pinthread is True:
@@ -524,22 +515,21 @@ class Threading:
             await self.set_state(
                 "_threading",
                 "admin",
-                "thread.{}".format(name),
+                "thread.{}".format(t.name),
                 state="idle",
                 is_alive=True,
             )
 
-        self.threads[name]["thread"] = t
+        self.threads[t.name]["thread"] = t
 
     async def calculate_pin_threads(self):
         if self.pin_threads == 0:
             return
 
         thread_pins = [0] * self.pin_threads
-        for name in self.AD.app_management.objects:
+        for name, obj in self.AD.app_management.objects.items():
             # Looking for apps that already have a thread pin value
-            if await self.get_app_pin(name) and await self.get_pin_thread(name) != -1:
-                thread = await self.get_pin_thread(name)
+            if obj.pin_app and (thread := obj.pin_thread) != -1:
                 if thread >= self.thread_count:
                     raise ValueError(
                         "Pinned thread out of range - check apps.yaml for 'pin_thread' or app code for 'set_pin_thread()'"
@@ -549,9 +539,8 @@ class Threading:
                     thread_pins[thread] += 1
 
         # Now we know the numbers, go fill in the gaps
-
-        for name in self.AD.app_management.objects:
-            if await self.get_app_pin(name) and await self.get_pin_thread(name) == -1:
+        for name, obj in self.AD.app_management.objects.items():
+            if obj.pin_app and obj.pin_thread == -1:
                 thread = thread_pins.index(min(thread_pins))
                 await self.set_pin_thread(name, thread)
                 thread_pins[thread] += 1
@@ -565,29 +554,29 @@ class Threading:
                 pinned_apps=pinned_apps,
             )
 
-    def app_should_be_pinned(self, name):
+    def app_should_be_pinned(self, app_name: str) -> bool:
         # Check apps.yaml first - allow override
-        app = self.AD.app_management.app_config[name]
-        if "pin_app" in app:
-            return app["pin_app"]
+        cfg = self.AD.app_management.app_config.root[app_name]
+        assert isinstance(cfg, AppConfig)
+        if cfg.pin_app is not None:
+            return cfg.pin_app
+        else:
+            return bool(self.pin_apps)
 
-        # if not, go with the global default
-        return self.pin_apps
+    async def get_app_pin(self, name: str):
+        return self.AD.app_management.objects[name].pin_app
 
-    async def get_app_pin(self, name):
-        return self.AD.app_management.objects[name]["pin_app"]
-
-    async def set_app_pin(self, name, pin):
-        self.AD.app_management.objects[name]["pin_app"] = pin
+    async def set_app_pin(self, name: str, pin: bool):
+        self.AD.app_management.objects[name].pin_app = pin
         if pin is True:
             # May need to set this app up with a pinned thread
             await self.calculate_pin_threads()
 
-    async def get_pin_thread(self, name):
-        return self.AD.app_management.objects[name]["pin_thread"]
+    async def get_pin_thread(self, name: str):
+        return self.AD.app_management.objects[name].pin_thread
 
-    async def set_pin_thread(self, name, thread):
-        self.AD.app_management.objects[name]["pin_thread"] = thread
+    async def set_pin_thread(self, name: str, thread: int):
+        self.AD.app_management.objects[name].pin_thread = thread
 
     def validate_pin(self, name, kwargs):
         valid = True
@@ -601,13 +590,9 @@ class Threading:
                 valid = False
         return valid
 
-    async def get_pinned_apps(self, thread):
+    async def get_pinned_apps(self, thread: str):
         id = int(thread.split("-")[1])
-        apps = []
-        for obj in self.AD.app_management.objects:
-            if self.AD.app_management.objects[obj]["pin_thread"] == id:
-                apps.append(obj)
-        return apps
+        return [app_name for app_name, obj in self.AD.app_management.objects.items() if obj.pin_thread == id]
 
     #
     # Constraints
@@ -617,7 +602,7 @@ class Threading:
         """Used to check Constraint"""
 
         unconstrained = True
-        if key in app.list_constraints():
+        if hasattr(app, "list_constraints") and key in app.list_constraints():
             method = getattr(app, key)
             unconstrained = await utils.run_async_sync_func(self, method, value)
 
@@ -696,7 +681,7 @@ class Threading:
                 {
                     "id": uuid_,
                     "name": name,
-                    "objectid": self.AD.app_management.objects[name]["id"],
+                    "objectid": self.AD.app_management.objects[name].id,
                     "type": "state",
                     "function": funcref,
                     "attribute": attribute,
@@ -801,7 +786,7 @@ class Threading:
                             {
                                 "id": uuid_,
                                 "name": name,
-                                "objectid": self.AD.app_management.objects[name]["id"],
+                                "objectid": self.AD.app_management.objects[name].id,
                                 "type": "state",
                                 "function": funcref,
                                 "attribute": attribute,
@@ -822,12 +807,12 @@ class Threading:
         # Argument Constraints
         # (plugins have no args so skip if necessary)
         #
-        if name in self.AD.app_management.app_config:
-            for arg in self.AD.app_management.app_config[name].keys():
+        if app_cfg := self.AD.app_management.app_config.root.get(name):
+            for arg, val in app_cfg.args.items():
                 constrained = await self.check_constraint(
                     arg,
-                    self.AD.app_management.app_config[name][arg],
-                    self.AD.app_management.objects[name]["object"],
+                    val,
+                    self.AD.app_management.objects[name].object,
                 )
                 if not constrained:
                     unconstrained = False
@@ -845,7 +830,7 @@ class Threading:
                 constrained = await self.check_constraint(
                     arg,
                     myargs["kwargs"][arg],
-                    self.AD.app_management.objects[name]["object"],
+                    self.AD.app_management.objects[name].object,
                 )
                 if not constrained:
                     unconstrained = False
@@ -880,8 +865,8 @@ class Threading:
             # And Q
             #
             if asyncio.iscoroutinefunction(myargs["function"]):
-                f = asyncio.ensure_future(self.async_worker(myargs))
-                self.AD.futures.add_future(name, f)
+                future = asyncio.ensure_future(self.async_worker(myargs))
+                self.AD.futures.add_future(name, future)
             else:
                 self.select_q(myargs)
             return True
@@ -915,7 +900,7 @@ class Threading:
 
         elif args["name"] in self.AD.app_management.objects:
             # plugin's directive is to use dictionary unpacking
-            use_dictionary_unpacking = self.AD.app_management.objects[args["name"]]["use_dictionary_unpacking"]
+            use_dictionary_unpacking = self.AD.app_management.objects[args["name"]].use_dictionary_unpacking
 
         app = await self.AD.app_management.get_app_instance(name, objectid)
         if app is not None:

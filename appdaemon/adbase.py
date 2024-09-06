@@ -1,14 +1,17 @@
 import threading
-from copy import deepcopy
 from functools import wraps
-from typing import Callable
+from logging import Logger
+from pathlib import Path
+from typing import Callable, Dict, List
 
 import appdaemon.adapi as adapi
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
+from appdaemon.logging import Logging
+from appdaemon.models.app_config import AppConfig
 
 
-class Entities:
+class Entities:  # @todo
     def __init__(self):
         pass
 
@@ -55,36 +58,52 @@ def global_lock(f):
 
 
 class ADBase:
-    #
-    # Internal
-    #
+    AD: AppDaemon
+    config_model: AppConfig
 
-    entities = Entities()
+    config: Dict
+    """Dictionary of the AppDaemon configuration
+    """
+    args: Dict
+    """Dictionary of the app configuration
+    """
 
-    def __init__(self, ad: AppDaemon, name, logging, args, config, app_config, global_vars):
-        # Store args
+    name: str
+    namespace: str
+    entities: Entities
 
+    app_dir: Path
+    config_dir: Path
+
+    _logging: Logging
+    logger: Logger
+    err: Logger
+
+    lock: threading.RLock
+    user_logs: Dict
+    constraints: List
+
+    def __init__(self, ad: AppDaemon, config_model: AppConfig):
         self.AD = ad
-        self.name = name
-        self._logging = logging
-        self.config = config
-        self.app_config = app_config
-        self.args = deepcopy(args)
-        self.global_vars = global_vars
+        self.config_model = config_model
+
+        self.config = self.AD.config.model_dump(by_alias=True, exclude_unset=True)
+        self.args = self.config_model.model_dump(by_alias=True, exclude_unset=True)
+
         self.namespace = "default"
-        self.app_dir = self.AD.app_dir
-        self.config_dir = self.AD.config_dir
         self.dashboard_dir = None
+
+        self.entities = Entities()
 
         if self.AD.http is not None:
             self.dashboard_dir = self.AD.http.dashboard_dir
 
-        self.logger = self._logging.get_child(name)
-        self.err = self._logging.get_error().getChild(name)
+        self.logger = self._logging.get_child(self.name)
+        self.err = self._logging.get_error().getChild(self.name)
         self.user_logs = {}
-        if "log_level" in args:
-            self.logger.setLevel(args["log_level"])
-            self.err.setLevel(args["log_level"])
+        if lvl := config_model.log_level:
+            self.logger.setLevel(lvl)
+            self.err.setLevel(lvl)
 
         # Some initial Setup
 
@@ -92,31 +111,45 @@ class ADBase:
 
         self.constraints = []
 
+    @property
+    def app_config(self):
+        return self.AD.app_management.app_config
+
+    @property
+    def app_dir(self) -> Path:
+        return self.AD.app_dir
+
+    @property
+    def config_dir(self) -> Path:
+        return self.AD.config_dir
+
+    @property
+    def global_vars(self):
+        return self.AD.global_vars
+
+    @property
+    def _logging(self) -> Logging:
+        return self.AD.logging
+
+    @property
+    def name(self) -> str:
+        return self.config_model.name
+
     #
     # API/Plugin
     #
 
     def get_ad_api(self) -> adapi.ADAPI:
-        api = adapi.ADAPI(
-            self.AD,
-            self.name,
-            self._logging,
-            self.args,
-            self.config,
-            self.app_config,
-            self.global_vars,
-        )
+        return adapi.ADAPI(self.AD, self.config_model)
 
-        return api
-
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def get_plugin_api(self, plugin_name: str) -> Callable:
         return await self.AD.plugins.get_plugin_api(
             plugin_name,
             self.name,
             self._logging,
             self.args,
-            self.config,
+            self.config_model,
             self.app_config,
             self.global_vars,
         )

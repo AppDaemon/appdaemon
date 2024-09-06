@@ -58,7 +58,7 @@ class Entity:
         """
         self._namespace = namespace
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def set_state(self, **kwargs: Optional[Any]) -> dict:
         """Updates the state of the specified entity.
 
@@ -101,7 +101,7 @@ class Entity:
 
         return await self.AD.state.set_state(self.name, namespace, entity_id, **kwargs)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def get_state(
         self, attribute: str = None, default: Any = None, copy: bool = True, **kwargs: Optional[Any]
     ) -> Any:
@@ -157,7 +157,7 @@ class Entity:
 
         return await self.AD.state.get_state(self.name, namespace, entity_id, attribute, default, copy)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def listen_state(self, callback: Callable, **kwargs: Optional[Any]) -> str:
         """Registers a callback to react to state changes.
 
@@ -279,7 +279,7 @@ class Entity:
 
         return await self.AD.state.add_state_callback(name, namespace, entity_id, callback, kwargs)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def add(self, state: Union[str, int, float] = None, attributes: dict = None) -> None:
         """Adds a non-existent entity, by creating it within a namespaces.
 
@@ -311,16 +311,16 @@ class Entity:
 
         await self.AD.state.add_entity(namespace, entity_id, state, attributes)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def exists(self) -> bool:
         """Checks the existence of the entity in AD."""
 
         namespace = self._namespace
         entity_id = self._entity_id
 
-        return await self.AD.state.entity_exists(namespace, entity_id)
+        return self.AD.state.entity_exists(namespace, entity_id)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def call_service(self, service: str, **kwargs: Optional[Any]) -> Any:
         """Calls an entity supported Service within AppDaemon.
 
@@ -445,7 +445,7 @@ class Entity:
     # helper functions
     #
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def copy(self, copy: bool = True) -> dict:
         """Gets the complete state of the entity within AD.
 
@@ -457,7 +457,7 @@ class Entity:
 
         return await self.get_state(attribute="all", copy=copy, default={})
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def is_state(self, state: Any) -> bool:
         """Checks the state of the entity against the given state
 
@@ -482,7 +482,7 @@ class Entity:
 
         return entity_state == state
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def turn_on(self, **kwargs: Optional[Any]) -> Any:
         """Generic helper function, used to turn the entity ON if supported.
         This function will attempt to call the `turn_on` service if registered,
@@ -500,7 +500,7 @@ class Entity:
 
         return await self.call_service("turn_on", **kwargs)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def turn_off(self, **kwargs: Optional[Any]) -> Any:
         """Generic function, used to turn the entity OFF if supported.
         This function will attempt to call the `turn_off` service if registered,
@@ -518,7 +518,7 @@ class Entity:
 
         return await self.call_service("turn_off", **kwargs)
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def toggle(self, **kwargs: Optional[Any]) -> Any:
         """Generic function, used to toggle the entity ON/OFF if supported.
         This function will attempt to call the `toggle` service if registered,

@@ -54,7 +54,7 @@ class Sequences:
             if sequence_namespace is not None:
                 attributes.update({"namespace": sequence_namespace})
 
-            if not await self.AD.state.entity_exists("rules", entity):
+            if not self.AD.state.entity_exists("rules", entity):
                 # it doesn't exist so add it
                 await self.AD.state.add_entity(
                     "rules",
@@ -133,7 +133,7 @@ class Sequences:
 
         if isinstance(sequence, str):
             entity_id = sequence
-            if await self.AD.state.entity_exists("rules", entity_id) is False:
+            if self.AD.state.entity_exists("rules", entity_id) is False:
                 self.logger.warning('Unknown sequence "%s" in run_sequence()', sequence)
                 return None
 

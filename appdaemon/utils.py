@@ -4,7 +4,6 @@ import copy
 import cProfile
 import datetime
 import functools
-import importlib
 import inspect
 import io
 import json
@@ -16,20 +15,25 @@ import shelve
 import sys
 import threading
 import time
+import traceback
 from collections.abc import Iterable
 from datetime import timedelta
 from functools import wraps
-from types import ModuleType
-from typing import Any, Callable, Dict
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Callable, Dict
 
 import dateutil.parser
 import tomli
 import tomli_w
 import yaml
+from pydantic import ValidationError
 
+from appdaemon.futures import Futures
 from appdaemon.version import __version__  # noqa: F401
 
-# Comment
+if TYPE_CHECKING:
+    from appdaemon.appdaemon import AppDaemon
+
 
 if platform.system() != "Windows":
     import pwd
@@ -96,7 +100,7 @@ class PersistentDict(shelve.DbfilenameShelf):
     Dict-like object that uses a Shelf to persist its contents.
     """
 
-    def __init__(self, filename, safe, *args, **kwargs):
+    def __init__(self, filename, safe: bool, *args, **kwargs):
         # writeback=True allows for mutating objects in place, like with a dict.
         super().__init__(filename, writeback=True)
         self.safe = safe
@@ -215,41 +219,36 @@ def check_state(logger, new_state, callback_state, name) -> bool:
     return passed
 
 
-def sync_wrapper(coro) -> Callable:
+def sync_decorator(coro):  # no type hints here, so that @wraps(func) works properly
     @wraps(coro)
-    def inner_sync_wrapper(self, *args, **kwargs):
-        is_async = None
+    def wrapper(self, *args, **kwargs):
         try:
-            # do this first to get the exception
-            # otherwise the coro could be started and never awaited
-            asyncio.get_event_loop()
-            is_async = True
+            asyncio.get_running_loop()
+            task = asyncio.create_task(coro(self, *args, **kwargs))
+            futures: Futures = self.AD.futures
+            futures.add_future(self.name, task)
+            return task
         except RuntimeError:
-            is_async = False
+            # Maybe the async loop is not running yet
+            result = run_coroutine_threadsafe(self, coro(self, *args, **kwargs))
+            return result
 
-        if is_async is True:
-            # don't use create_task. It's python3.7 only
-            f = asyncio.ensure_future(coro(self, *args, **kwargs))
-            self.AD.futures.add_future(self.name, f)
-        else:
-            f = run_coroutine_threadsafe(self, coro(self, *args, **kwargs))
-
-        return f
-
-    return inner_sync_wrapper
+    return wrapper
 
 
-def _timeit(func):
-    @functools.wraps(func)
-    def newfunc(*args, **kwargs):
-        self = args[0]
-        start_time = time.time()
-        result = func(self, *args, **kwargs)
-        elapsed_time = time.time() - start_time
-        self.logger.info("function [%s] finished in %s ms", func.__name__, int(elapsed_time * 1000))
-        return result
+def timeit(func):
+    @wraps(func)
+    async def wrapper(self, *args, **kwargs):
+        start_time = time.perf_counter()
+        try:
+            return await func(self, *args, **kwargs)
+        except Exception as e:
+            self.logger.exception(e)
+        finally:
+            elapsed_time = time.perf_counter() - start_time
+            self.logger.debug(f"Finished [{func.__name__}] in {elapsed_time * 10**3:.0f} ms")
 
-    return newfunc
+    return wrapper
 
 
 def _profile_this(fn):
@@ -300,6 +299,76 @@ def day_of_week(day):
     raise ValueError("Incorrect type for 'day' in day_of_week()'")
 
 
+# don't use any type hints here, so that @wraps will work properly
+def executor_decorator(func):
+    """Use this decorator on synchronous class methods to have them run in the AD executor asynchronously"""
+
+    @wraps(func)
+    async def wrapper(self, *args, **kwargs):
+        ad: "AppDaemon" = self.AD
+        preloaded_function = functools.partial(func, self, *args, **kwargs)
+        ad.threading.logger.debug(f"Running {func.__qualname__} in the {type(ad.executor).__name__}")
+        # self.logger.debug(f"Running {func.__qualname__} in the {type(ad.executor).__name__}")
+        future = ad.loop.run_in_executor(executor=ad.executor, func=preloaded_function)
+        return await future
+
+    return wrapper
+
+
+def format_exception(e):
+    # return "\n\n" + "".join(traceback.format_exception_only(e))
+    return traceback.format_exc()
+
+
+def warning_decorator(
+    start_text: str = None, success_text: str = None, error_text: str = None, finally_text: str = None
+):
+    """Creates a decorator for a function that logs custom text before and after."""
+
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(self, *args, **kwargs):
+            try:
+                nonlocal start_text
+                if start_text is not None:
+                    self.logger.debug(start_text)
+
+                if asyncio.iscoroutinefunction(func):
+                    result = await func(self, *args, **kwargs)
+                else:
+                    result = func(self, *args, **kwargs)
+            except Exception as e:
+                error_logger = self.error
+                error_logger.warning("-" * 60)
+                nonlocal error_text
+                error_text = error_text or f"Unexpected error running {func.__qualname__}"
+                error_logger.warning(error_text)
+                error_logger.warning("-" * 60)
+                if isinstance(e, ValidationError):
+                    error_logger.warning(e)
+                else:
+                    error_logger.warning(format_exception(e))
+                error_logger.warning("-" * 60)
+
+                if self.AD.logging.separate_error_log():
+                    self.logger.warning(
+                        "Logged an error to %s",
+                        self.AD.logging.get_filename("error_log"),
+                    )
+            else:
+                if success_text:
+                    self.logger.debug(success_text)
+                return result
+            finally:
+                nonlocal finally_text
+                if finally_text:
+                    self.logger.debug(finally_text)
+
+        return wrapper
+
+    return decorator
+
+
 async def run_in_executor(self, fn, *args, **kwargs) -> Any:
     """Runs the function with the given arguments in the instance of :class:`~concurrent.futures.ThreadPoolExecutor` in the top-level :class:`~appdaemon.appdaemon.AppDaemon` object.
 
@@ -312,14 +381,10 @@ async def run_in_executor(self, fn, *args, **kwargs) -> Any:
     Returns:
         Whatever the function returns
     """
-    loop: asyncio.BaseEventLoop = self.AD.loop
-    executor: concurrent.futures.ThreadPoolExecutor = self.AD.executor
+    ad: "AppDaemon" = self.AD
     preloaded_function = functools.partial(fn, *args, **kwargs)
-
-    completed, pending = await asyncio.wait([loop.run_in_executor(executor, preloaded_function)])
-    future = list(completed)[0]
-    response = future.result()
-    return response
+    future = ad.loop.run_in_executor(executor=ad.executor, func=preloaded_function)
+    return await future
 
 
 def run_coroutine_threadsafe(self, coro, timeout=0):
@@ -388,15 +453,13 @@ def deepcopy(data):
     return result
 
 
-def find_path(name: str):
-    for path in [
-        os.path.join(os.path.expanduser("~"), ".homeassistant"),
-        os.path.join(os.path.sep, "etc", "appdaemon"),
-    ]:
-        _file = os.path.join(path, name)
-        if os.path.isfile(_file) or os.path.isdir(_file):
-            return _file
-    return None
+def find_path(name: str) -> Path:
+    search_paths = [Path("~/.homeassistant").expanduser(), Path("/etc/appdaemon")]
+    for path in search_paths:
+        if (file := (path / name)).exists():
+            return file
+    else:
+        raise FileNotFoundError(f"Did not find {name} in {search_paths}")
 
 
 def single_or_list(field):
@@ -587,14 +650,15 @@ def get_object_size(obj, seen=None):
     return size
 
 
-def write_config_file(path, **kwargs):
-    extension = os.path.splitext(path)[1]
-    if extension == ".yaml":
-        write_yaml_config(path, **kwargs)
-    elif extension == ".toml":
-        write_toml_config(path, **kwargs)
+def write_config_file(file: Path, **kwargs):
+    """Writes a single YAML or TOML file."""
+    file = Path(file) if not isinstance(file, Path) else file
+    if file.suffix == ".yaml":
+        write_yaml_config(file, **kwargs)
+    elif file.suffix == ".toml":
+        write_toml_config(file, **kwargs)
     else:
-        raise ValueError(f"ERROR: unknown file extension: {extension}")
+        raise ValueError(f"ERROR: unknown file extension: {file.suffix}")
 
 
 def write_yaml_config(path, **kwargs):
@@ -607,30 +671,34 @@ def write_toml_config(path, **kwargs):
         tomli_w.dump(kwargs, stream)
 
 
-def read_config_file(path) -> Dict[str, Dict]:
-    """Reads a single YAML or TOML file."""
-    extension = os.path.splitext(path)[1]
-    if extension == ".yaml":
-        return read_yaml_config(path)
-    elif extension == ".toml":
-        return read_toml_config(path)
+def read_config_file(file: Path) -> Dict[str, Dict]:
+    # raise ValueError
+    """Reads a single YAML or TOML file.
+
+    This includes all the mechanics for including secrets and environment variables.
+    """
+    file = Path(file) if not isinstance(file, Path) else file
+    if file.suffix == ".yaml":
+        return read_yaml_config(file)
+    elif file.suffix == ".toml":
+        return read_toml_config(file)
     else:
-        raise ValueError(f"ERROR: unknown file extension: {extension}")
+        raise ValueError(f"ERROR: unknown file extension: {file.suffix}")
 
 
-def read_toml_config(path):
-    with open(path, "rb") as f:
+def read_toml_config(path: Path):
+    with path.open("rb") as f:
         config = tomli.load(f)
 
     # now figure out secrets file
 
     if "secrets" in config:
-        secrets_file = config["secrets"]
+        secrets_file = Path(config["secrets"])
     else:
-        secrets_file = os.path.join(os.path.dirname(path), "secrets.toml")
+        secrets_file = path.with_name("secrets.toml")
 
     try:
-        with open(secrets_file, "rb") as f:
+        with secrets_file.open("rb") as f:
             secrets = tomli.load(f)
     except FileNotFoundError:
         # We have no secrets
@@ -723,7 +791,7 @@ def _include_yaml(loader, node):
         return yaml.load(f, Loader=yaml.SafeLoader)
 
 
-def read_yaml_config(config_file_yaml) -> Dict[str, Dict]:
+def read_yaml_config(file: Path) -> Dict[str, Dict]:
     #
     # First locate secrets file
     #
@@ -744,33 +812,32 @@ def read_yaml_config(config_file_yaml) -> Dict[str, Dict]:
     # Initially load file to see if secret directive is present
     #
     yaml.add_constructor("!secret", _dummy_secret, Loader=yaml.SafeLoader)
-    with open(config_file_yaml, "r") as yamlfd:
-        config_file_contents = yamlfd.read()
+    with file.open("r") as yamlfd:
+        config = yaml.safe_load(yamlfd)
 
-    config = yaml.load(config_file_contents, Loader=yaml.SafeLoader)
+    # No need to keep processing if the file is empty
+    if not bool(config):
+        return {}
 
     if "secrets" in config:
-        secrets_file = config["secrets"]
+        secrets_file = Path(config["secrets"])
     else:
-        secrets_file = os.path.join(os.path.dirname(config_file_yaml), "secrets.yaml")
+        secrets_file = file.with_name("secrets.yaml")
 
     #
     # Read Secrets
     #
-    if os.path.isfile(secrets_file):
-        with open(secrets_file, "r") as yamlfd:
-            secrets_file_contents = yamlfd.read()
-
-        global secrets
-        secrets = yaml.load(secrets_file_contents, Loader=yaml.SafeLoader)
-
-    else:
-        if "secrets" in config:
-            print(
-                "ERROR",
-                "Error loading secrets file: {}".format(config["secrets"]),
-            )
-            return None
+    try:
+        if secrets_file.exists():
+            with secrets_file.open("r") as yamlfd:
+                global secrets
+                secrets = yaml.safe_load(yamlfd)
+    except Exception:
+        print(
+            "ERROR",
+            f"Error loading secrets file: {secrets_file}",
+        )
+        return None
 
     #
     # Read config file again, this time with secrets
@@ -778,33 +845,24 @@ def read_yaml_config(config_file_yaml) -> Dict[str, Dict]:
 
     yaml.add_constructor("!secret", _secret_yaml, Loader=yaml.SafeLoader)
 
-    with open(config_file_yaml, "r") as yamlfd:
-        config_file_contents = yamlfd.read()
-
-    config = yaml.load(config_file_contents, Loader=yaml.SafeLoader)
-
-    return config
+    with file.open("r") as yamlfd:
+        return yaml.safe_load(yamlfd)
 
 
-def recursive_reload(module: ModuleType, reloaded: set = None):
-    """Recursive reload function that does a depth-first search through all sub-modules and reloads them in the correct order of dependence.
+def count_positional_arguments(callable: Callable) -> int:
+    return len(
+        [
+            p
+            for p in inspect.signature(callable).parameters.values()
+            if p.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD or p.kind == inspect.Parameter.VAR_POSITIONAL
+        ]
+    )
 
-    Adapted from https://gist.github.com/KristianHolsheimer/f139646259056c1dffbf79169f84c5de
-    """
-    reloaded = reloaded or set()
 
-    for attr_name in dir(module):
-        attr = getattr(module, attr_name)
-        check = (
-            # is it a module?
-            isinstance(attr, ModuleType)
-            # has it already been reloaded?
-            and attr.__name__ not in reloaded
-            # is it a proper submodule?
-            and attr.__name__.startswith(module.__name__)
-        )
-        if check:
-            recursive_reload(attr, reloaded)
+class Singleton(type):
+    _instances = {}
 
-    importlib.reload(module)
-    reloaded.add(module.__name__)
+    def __call__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            cls._instances[cls] = super().__call__(*args, **kwargs)
+        return cls._instances[cls]

@@ -174,7 +174,7 @@ class LogSubscriptionHandler(StreamHandler):
             logger.warning("-" * 60)
 
 
-class Logging:
+class Logging(metaclass=utils.Singleton):
     """Creates and configures the Python logging. The top-level logger is called ``AppDaemon``. Child loggers are created with :meth:`~Logging.get_child`."""
 
     AD: "AppDaemon"
@@ -287,14 +287,14 @@ class Logging:
                 args["formatter"] = formatter
                 formatter.formatTime = self.get_time
                 logger = logging.getLogger(args["name"])
-                logger.addFilter(
-                    DuplicateFilter(
-                        logger,
-                        args["filter_threshold"],
-                        args["filter_repeat_delay"],
-                        args["filter_timeout"],
-                    )
-                )
+                # logger.addFilter(
+                #     DuplicateFilter(
+                #         logger,
+                #         args["filter_threshold"],
+                #         args["filter_repeat_delay"],
+                #         args["filter_timeout"],
+                #     )
+                # )
                 args["logger"] = logger
                 logger.setLevel(log_level)
                 logger.propagate = False
@@ -310,14 +310,14 @@ class Logging:
                     )
                 self.config[log]["handler"] = handler
                 handler.setFormatter(formatter)
-                logger.addFilter(
-                    DuplicateFilter(
-                        logger,
-                        args["filter_threshold"],
-                        args["filter_repeat_delay"],
-                        args["filter_timeout"],
-                    )
-                )
+                # logger.addFilter(
+                #     DuplicateFilter(
+                #         logger,
+                #         args["filter_threshold"],
+                #         args["filter_repeat_delay"],
+                #         args["filter_timeout"],
+                #     )
+                # )
                 logger.addHandler(handler)
 
         # Setup any aliases
@@ -376,14 +376,12 @@ class Logging:
                 return lvl
         return "UNKNOWN"
 
-    def separate_error_log(self):
-        if (
+    def separate_error_log(self) -> bool:
+        return (
             self.config["error_log"]["filename"] != "STDERR"
             and self.config["main_log"]["filename"] != "STDOUT"
             and not self.is_alias("error_log")
-        ):
-            return True
-        return False
+        )
 
     def register_ad(self, ad: "AppDaemon"):
         """Adds a reference to the top-level ``AppDaemon`` object. This is necessary because the Logging object gets created first."""
@@ -452,14 +450,14 @@ class Logging:
             Logger: Child logger
         """
         logger = self.get_logger().getChild(name)
-        logger.addFilter(
-            DuplicateFilter(
-                logger,
-                self.config["main_log"]["filter_threshold"],
-                self.config["main_log"]["filter_repeat_delay"],
-                self.config["main_log"]["filter_timeout"],
-            )
-        )
+        # logger.addFilter(
+        #     DuplicateFilter(
+        #         logger,
+        #         self.config["main_log"]["filter_threshold"],
+        #         self.config["main_log"]["filter_repeat_delay"],
+        #         self.config["main_log"]["filter_timeout"],
+        #     )
+        # )
 
         if name in self.AD.module_debug:
             logger.setLevel(self.AD.module_debug[name])
@@ -524,13 +522,13 @@ class Logging:
             if "pin" in kwargs:
                 pin_app = kwargs["pin"]
             else:
-                pin_app = self.AD.app_management.objects[name]["pin_app"]
+                pin_app = self.AD.app_management.objects[name].pin_app
 
             if "pin_thread" in kwargs:
                 pin_thread = kwargs["pin_thread"]
                 pin_app = True
             else:
-                pin_thread = self.AD.app_management.objects[name]["pin_thread"]
+                pin_thread = self.AD.app_management.objects[name].pin_thread
 
             #
             # Add the callback
@@ -549,7 +547,7 @@ class Logging:
                         cb_kwargs["level"] = thislevel
                         self.AD.callbacks.callbacks[name][handle] = {
                             "name": name,
-                            "id": self.AD.app_management.objects[name]["id"],
+                            "id": self.AD.app_management.objects[name].id,
                             "type": "log",
                             "function": cb,
                             "namespace": namespace,
@@ -627,7 +625,7 @@ class Logging:
                                     {
                                         "id": uuid_,
                                         "name": name,
-                                        "objectid": self.AD.app_management.objects[name]["id"],
+                                        "objectid": self.AD.app_management.objects[name].id,
                                         "type": "log",
                                         "function": callback["function"],
                                         "data": data,
