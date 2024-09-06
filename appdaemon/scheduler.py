@@ -823,6 +823,7 @@ class Scheduler:
 
         # self.logger.info(f"\nFinal\nstart = {start_time}\nnow   = {now}\nend   = {end_time}\n" + "-" * 80)
         # self.logger.info(f"Final decision: {start_time <= now <= end_time}\n" + "=" * 80)
+
         return start_time <= now <= end_time
 
     async def sunset(self, aware, today=False, days_offset=0):
@@ -882,7 +883,7 @@ class Scheduler:
             if "microsecond" in kwargs:
                 kwargs["microsecond"] = int(float(f"0.{kwargs['microsecond']}") * 10**6)
 
-            dt = datetime.datetime(**kwargs)
+            dt = datetime.datetime(**kwargs) + datetime.timedelta(days=days_offset)
 
         # parse time based on time only (date will be today)
         elif match := TIME_REGEX.match(time_str):
@@ -891,7 +892,9 @@ class Scheduler:
             if "microsecond" in kwargs:
                 kwargs["microsecond"] = int(float(f"0.{kwargs['microsecond']}") * 10**6)
 
-            dt = datetime.datetime.combine(datetime.datetime.today().date(), time(**kwargs))
+            dt = datetime.datetime.combine(datetime.datetime.today().date(), time(**kwargs)) + datetime.timedelta(
+                days=days_offset
+            )
 
         # parse time from sunrise/sunset + optional offset
         elif match := SUN_REGEX.match(time_str):
@@ -924,7 +927,10 @@ class Scheduler:
 
             # use astral.Location object to determine elevation
             dt = self.location.time_at_elevation(
-                elevation=float(match.group("N")), direction=dir, local=False  # time will be in UTC timezone
+                # time will be in UTC timezone
+                elevation=float(match.group("N")),
+                direction=dir,
+                local=False,
             )
 
         else:

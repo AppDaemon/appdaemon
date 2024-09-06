@@ -6,6 +6,7 @@
     "configurations": [
 
 
+
         {
             "name": "AppDaemon Dev Test",
             "type": "debugpy",
