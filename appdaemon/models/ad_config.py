@@ -4,17 +4,42 @@ from pathlib import Path
 from typing import Annotated, Any, Callable, Dict, List, Literal, Optional, Union
 
 import pytz
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    Tag,
+    field_validator,
+    model_validator,
+    SecretStr,
+    Discriminator,
+)
 from pytz.tzinfo import DstTzInfo, StaticTzInfo
 from typing_extensions import deprecated
 
 from appdaemon.version import __version__
 
 
+def get_plugin_type(v: Any) -> str:
+    return v["type"].lower()
+
+
 class PluginConfig(BaseModel, extra="allow"):
     type: str
     persist_entities: bool = False
     namespace: str = "default"
+
+
+class MQTTConfig(PluginConfig):
+    client_host: str
+    client_user: str
+    client_password: SecretStr
+    client_topics: Optional[list[str]] = None
+
+
+class HASSConfig(PluginConfig):
+    ha_url: str
+    token: SecretStr
 
 
 class FilterConfig(BaseModel):
@@ -33,7 +58,13 @@ class AppDaemonConfig(BaseModel, extra="forbid"):
     longitude: float
     elevation: int
     time_zone: Union[StaticTzInfo, DstTzInfo]
-    plugins: Dict[str, PluginConfig] = Field(default_factory=dict)
+    plugins: Dict[
+        str,
+        Annotated[
+            Union[Annotated[HASSConfig, Tag("hass")], Annotated[MQTTConfig, Tag("mqtt")]],
+            Discriminator(get_plugin_type),
+        ],
+    ] = Field(default_factory=dict)
 
     config_dir: Path
     config_file: Path
@@ -137,3 +168,11 @@ class AppDaemonConfig(BaseModel, extra="forbid"):
             self.app_dir = self.config_dir / self.app_dir
 
         self.ext = ".toml" if self.use_toml else ".yaml"
+
+    @model_validator(mode="after")
+    def warn_deprecated(self):
+        for field in self.model_fields_set:
+            info = self.model_fields[field]
+            if info.deprecated:
+                print(f"Deprecated field: {field}")
+        return self
