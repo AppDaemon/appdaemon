@@ -31,10 +31,51 @@ class PluginConfig(BaseModel, extra="allow"):
 
 
 class MQTTConfig(PluginConfig):
-    client_host: str
-    client_user: str
-    client_password: SecretStr
-    client_topics: Optional[list[str]] = None
+    name: str
+    client_host: str = "127.0.0.1"
+    client_port: int = 1883
+    client_transport: Literal["tcp", "websocket"] = "tcp"
+    client_clean_session: bool = True
+
+    client_user: Optional[str] = None
+    client_password: Optional[SecretStr] = None
+    client_id: Optional[str] = None
+
+    client_qos: int = 0
+    client_topics: list[str] = Field(default=["#"])
+    event_name: str = "MQTT_MESSAGE"
+    force_start: bool = False
+
+    status_topic: str = None
+
+    birth_topic: Optional[str] = None
+    birth_payload: str = "online"
+    birth_retain: bool = True
+
+    will_topic: Optional[str] = None
+    will_payload: str = "offline"
+    will_retain: bool = True
+
+    shutdown_payload: str = None
+
+    ca_cert: Optional[str] = None
+    client_cert: Optional[str] = None
+    client_key: Optional[str] = None
+    verify_cert: bool = True
+    tls_version: str = "auto"
+
+    @model_validator(mode="after")
+    def custom_validator(self):
+        if "client_id" not in self.model_fields_set:
+            self.client_id = f"{self.name}-client".lower()
+
+        if "status_topic" not in self.model_fields_set:
+            self.status_topic = f"{self.client_id}/status"
+
+        if "shutdown_payload" not in self.model_fields_set:
+            self.shutdown_payload = self.will_payload
+
+        return self
 
 
 class HASSConfig(PluginConfig):
@@ -158,6 +199,13 @@ class AppDaemonConfig(BaseModel, extra="forbid"):
     @classmethod
     def convert_timezone(cls, v: str):
         return pytz.timezone(v)
+
+    @field_validator("plugins", mode="before")
+    @classmethod
+    def validate_plugins(cls, v: Any):
+        for n in set(v.keys()):
+            v[n]["name"] = n
+        return v
 
     def model_post_init(self, __context: Any):
         # Convert app_dir to Path object
