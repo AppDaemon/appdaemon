@@ -80,6 +80,11 @@ class AppDaemonConfig(BaseModel, extra="forbid"):
     module_debug: Dict[str, str] = {}
     pin_apps: Optional[bool] = None
 
+    import_method: Annotated[
+        Literal["normal", "expert"],
+        deprecated("Import method is no longer relevant with the new AppManagement system."),
+    ]
+
     load_distribution: str = "roundrobbin"
     threads: Optional[
         Annotated[
