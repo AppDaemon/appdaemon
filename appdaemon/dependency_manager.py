@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Iterable
 
 from .dependency import find_all_dependents, get_dependency_graph, get_full_module_name, reverse_graph, topo_sort
-from .models.app_config import AllAppConfig, AppConfig
+from .models.app_config import AllAppConfig, BaseApp
 from .models.internal.file_check import FileCheck
 
 
@@ -82,7 +82,7 @@ class AppDeps(Dependencies):
         return set(
             app_name
             for app_name, app_cfg in self.app_config.root.items()
-            if isinstance(app_cfg, AppConfig) and app_cfg.module_name in modules
+            if isinstance(app_cfg, BaseApp) and app_cfg.module_name in modules
         )
 
     def all_app_deps(self, modules: Iterable[str]) -> set[str]:

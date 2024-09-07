@@ -90,18 +90,21 @@ class HassPlugin(PluginBase):
             pass
             self.logger.debug(f"Unable to find Q, discarding response {response}")
 
-    async def websocket_request(self, type: str):
+    async def websocket_request(self, type: str, result_key: Optional[str] = "result"):
         """Must not be called with active subs on stream. We need this because the Q mechanism will lock if we call this from the same thread of control"""
         async with self.queue_lock:
             self.id += 1
             req = {"id": self.id, "type": type}
 
             await self.ws.send_json(req)
-            result = await self.ws.receive_json()
+            try:
+                result = await self.ws.receive_json()
+            except RuntimeError:
+                raise
             self.update_perf(bytes_sent=len(type), bytes_recv=len(json.dumps(result)), requests_sent=1)
 
             if result["success"]:
-                return result["result"]
+                return result[result_key] if bool(result_key) else result
             else:
                 self.logger.warning(f"Unexpected result from websocket request '{type}': {result}")
 
@@ -220,24 +223,24 @@ class HassPlugin(PluginBase):
     # Connect and return a new WebSocket to HASS instance
     #
     async def create_websocket(self):
-        ws = await self.session.ws_connect(self.config.websocket_url)
-        result = await ws.receive_json()
-        self.logger.info("Connected to Home Assistant %s with aiohttp websocket", result["ha_version"])
-
-        # Zero command ID counter
         async with self.queue_lock:
+            # Zero command ID counter
             self.id = 0
 
-        # Check if auth required, if so send password
-        if result["type"] == "auth_required":
-            auth = self.config.auth_json
-            await ws.send_json(auth)
+            ws = await self.session.ws_connect(self.config.websocket_url)
             result = await ws.receive_json()
-            if result["type"] == "auth_ok":
-                self.logger.debug("Authenticated to Home Assistant %s", result["ha_version"])
-            else:
-                self.logger.warning("Error in authentication")
-                raise ValueError("Error in authentication")
+            self.logger.info("Connected to Home Assistant %s with aiohttp websocket", result["ha_version"])
+
+            # Check if auth required, if so send password
+            if result["type"] == "auth_required":
+                auth = self.config.auth_json
+                await ws.send_json(auth)
+                result = await ws.receive_json()
+                if result["type"] == "auth_ok":
+                    self.logger.debug("Authenticated to Home Assistant %s", result["ha_version"])
+                else:
+                    self.logger.warning("Error in authentication")
+                    raise ValueError("Error in authentication")
 
         return ws
 
@@ -431,13 +434,15 @@ class HassPlugin(PluginBase):
                 #
                 # Subscribe to event stream
                 #
-                async with self.queue_lock:
-                    self.id += 1
-                    sub = {"id": self.id, "type": "subscribe_events"}
-                    await self.ws.send_json(sub)
-                    self.event_id = self.id
+                result = await self.websocket_request("subscribe_events", result_key=None)
+                self.event_id = self.id
+                # async with self.queue_lock:
+                #     self.id += 1
+                #     sub = {"id": self.id, "type": "subscribe_events"}
+                #     await self.ws.send_json(sub)
+                #     self.event_id = self.id
 
-                result = await self.ws.receive_json()
+                # result = await self.ws.receive_json()
                 # self.logger.info(f"{result=}")
                 if not (result["id"] == self.id and result["type"] == "result" and result["success"] is True):
                     self.logger.warning(f"Unable to subscribe to HA events, response={result}")
@@ -452,7 +457,8 @@ class HassPlugin(PluginBase):
                 await self.evaluate_started(True, self.hass_booting)
 
                 while not self.stopping and self.reading_messages is False:
-                    result = await self.ws.receive_json()
+                    async with self.queue_lock:
+                        result = await self.ws.receive_json()
                     # self.logger.info(f"{result=}")
 
                     self.update_perf(bytes_recv=len(result), updates_recv=1)
@@ -466,7 +472,8 @@ class HassPlugin(PluginBase):
                 # Loop forever consuming events
                 #
                 while not self.stopping:
-                    result = await self.ws.receive_json()
+                    async with self.queue_lock:
+                        result = await self.ws.receive_json()
                     # self.logger.info(f"{result=}")
 
                     self.update_perf(bytes_recv=len(result), updates_recv=1)
@@ -614,21 +621,8 @@ class HassPlugin(PluginBase):
     async def get_hass_state(self, internal: bool = False):
         try:
             if internal is True:
-                #
                 # Internal version of get_state - must not be called with active subs on stream
-                # We need this because the Q mechanism will lock if we call this from the same thread of control
-                #
-
-                async with self.queue_lock:
-                    self.id += 1
-                    req = {"id": self.id, "type": "get_states"}
-                    await self.ws.send_json(req)
-                    result = await self.ws.receive_json()
-                    if "id" not in result or result["id"] != self.id or result["success"] is not True:
-                        self.logger.warning(f"Unexpected result from HASS: {result}")
-
-                self.update_perf(bytes_sent=len(json.dumps(req)), bytes_recv=len(json.dumps(result)), requests_sent=1)
-                return result["result"]
+                return await self.websocket_request("get_states")
 
             else:
                 #

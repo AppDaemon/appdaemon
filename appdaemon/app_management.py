@@ -19,16 +19,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Iterable, Literal, Optional, Set, Union
 
 import appdaemon.utils as utils
-from appdaemon.dependency import (
-    DependencyResolutionFail,
-    find_all_dependents,
-    get_full_module_name,
-    topo_sort,
-)
+from appdaemon.dependency import DependencyResolutionFail, find_all_dependents, get_full_module_name, topo_sort
 from appdaemon.dependency_manager import DependencyManager
 from appdaemon.models.app_config import AllAppConfig, AppConfig, GlobalModule
 from appdaemon.models.internal.file_check import FileCheck
-
 
 if TYPE_CHECKING:
     from .appdaemon import AppDaemon
@@ -107,7 +101,7 @@ class UpdateActions:
 class ManagedObject:
     type: Literal["app", "plugin", "sequence"]
     object: Any
-    id: str
+    id: str = field(default_factory=lambda: uuid.uuid4().hex)
     module_path: Optional[Path] = None
     pin_app: bool = False
     pin_thread: Optional[int] = None
@@ -242,6 +236,25 @@ class AppManagement:
     @property
     def app_config(self) -> AllAppConfig:
         return self.dependency_manager.app_deps.app_config
+
+    @property
+    def running_apps(self) -> set[str]:
+        return set(app_name for app_name, mo in self.objects.items() if mo.running)
+
+    def is_app_running(self, app_name: str) -> bool:
+        return (mo := self.objects.get(app_name, False)) and mo.running
+
+    @property
+    def loaded_globals(self) -> set[str]:
+        return set(
+            g
+            for g, cfg in self.app_config.root.items()
+            if isinstance(cfg, GlobalModule) and cfg.module_name in sys.modules
+        )
+
+    @property
+    def valid_apps(self) -> set[str]:
+        return self.running_apps | self.loaded_globals
 
     # @warning_decorator
     async def set_state(self, name: str, **kwargs):
@@ -411,19 +424,23 @@ class AppManagement:
                 await self.AD.http.terminate_app(app_name)
 
     async def start_app(self, app_name: str):
-        """Initializes a new object and runs the initialize function of the app
+        """Initializes a new object and runs the initialize function of the app.
+
+        This does not work on global module apps because they only exist as imported modules.
 
         Args:
             app (str): Name of the app to start
         """
         # first we check if running already
-        if (mo := self.objects.get(app_name)) and mo.running:
+        if self.is_app_running(app_name):
             self.logger.warning("Cannot start app %s, as it is already running", app_name)
             return
 
         # assert dependencies
-        for dep in self.app_config.root[app_name].dependencies:
-            assert self.objects[dep].running, f"Dependency on '{dep}' not met for app '{app_name}'"
+        valid_apps = self.valid_apps
+        dependencies = self.app_config.root[app_name].dependencies
+        for dep in dependencies:
+            assert dep in valid_apps, f"'{app_name}' depends on '{dep}', but it's not running or loaded"
 
         try:
             try:
@@ -441,6 +458,8 @@ class AppManagement:
                     await self.set_state(app_name, state="initialize_error")
                     self.objects[app_name].running = False
                     raise
+                else:
+                    self.objects[app_name].running = True
         except Exception:
             await self.increase_inactive_apps(app_name)
             raise
@@ -480,7 +499,9 @@ class AppManagement:
             return "None"
 
     async def create_app_object(self, app_name: str) -> None:
-        """Instantiates an app by name and stores it in ``self.objects``
+        """Instantiates an app by name and stores it in ``self.objects``.
+
+        This does not work on global module apps.
 
         Args:
             app_name (str): Name of the app, as defined in a config file
@@ -533,15 +554,12 @@ class AppManagement:
             raise AppInstantiationError(f"Error when creating class '{class_name}' for app named '{app_name}'") from e
         else:
             self.objects[app_name] = ManagedObject(
-                **{
-                    "type": "app",
-                    "object": new_obj,
-                    "id": uuid.uuid4().hex,
-                    "pin_app": self.AD.threading.app_should_be_pinned(app_name),
-                    "pin_thread": pin,
-                    "running": True,
-                    "module_path": Path(mod_obj.__file__),
-                }
+                type="app",
+                object=new_obj,
+                pin_app=self.AD.threading.app_should_be_pinned(app_name),
+                pin_thread=pin,
+                running=True,
+                module_path=Path(mod_obj.__file__),
             )
 
             # load the module path into app entity
@@ -554,35 +572,20 @@ class AppManagement:
             apps |= set(name for name, cfg in self.app_config.root.items() if isinstance(cfg, GlobalModule))
         return apps
 
-    def get_running_app_names(self) -> set[str]:
-        return set(app_name for app_name in self.get_managed_app_names() if self.objects[app_name].running)
-
     def init_plugin_object(self, name: str, object: "PluginBase", use_dictionary_unpacking: bool = False) -> None:
+        """Add the plugin object to the internal dictionary of ``ManagedObjects``"""
         self.objects[name] = ManagedObject(
-            **{
-                "type": "plugin",
-                "object": object,
-                "id": uuid.uuid4().hex,
-                "pin_app": False,
-                "pin_thread": -1,
-                "running": False,
-                "use_dictionary_unpacking": use_dictionary_unpacking,
-            }
+            type="plugin",
+            object=object,
+            pin_app=False,
+            pin_thread=-1,
+            running=False,
+            use_dictionary_unpacking=use_dictionary_unpacking,
         )
 
     def init_sequence_object(self, name: str, object):
-        """Initialize the sequence"""
-
-        self.objects[name] = ManagedObject(
-            **{
-                "type": "sequence",
-                "object": object,
-                "id": uuid.uuid4().hex,
-                "pin_app": False,
-                "pin_thread": -1,
-                "running": False,
-            }
-        )
+        """Add the sequence object to the internal dictionary of ``ManagedObjects``"""
+        self.objects[name] = ManagedObject(type="sequence", object=object, pin_app=False, pin_thread=-1, running=False)
 
     async def terminate_sequence(self, name: str) -> bool:
         """Terminate the sequence"""
@@ -679,13 +682,12 @@ class AppManagement:
             files_to_read = self.config_filecheck.new | self.config_filecheck.modified
             freshly_read_cfg = await self.read_all(files_to_read)
 
-            current_app_names = self.get_running_app_names()
-
+            valid_app_names = self.valid_apps
             for name, cfg in freshly_read_cfg.app_definitions():
                 if name in self.non_apps:
                     continue
 
-                if name not in current_app_names:
+                if name not in valid_app_names:
                     self.logger.info("New app config: %s", name)
                     update_actions.apps.init.add(name)
                 else:
@@ -694,7 +696,7 @@ class AppManagement:
                         self.logger.info("App config modified: %s", name)
                         update_actions.apps.reload.add(name)
 
-            prev_apps_from_read_files = self.app_config.apps_from_file(files_to_read) & current_app_names
+            prev_apps_from_read_files = self.app_config.apps_from_file(files_to_read) & valid_app_names
             deleted_apps = set(n for n in prev_apps_from_read_files if n not in freshly_read_cfg.app_names())
             update_actions.apps.term |= deleted_apps
             for name in deleted_apps:
@@ -1026,6 +1028,8 @@ class AppManagement:
                             raise
 
                     await safe_start(self)
+                elif isinstance(cfg, GlobalModule):
+                    assert cfg.module_name in sys.modules
 
     async def _import_modules(self, update_actions: UpdateActions) -> Set[str]:
         """Calls ``self.import_module`` for each module in the list

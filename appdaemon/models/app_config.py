@@ -1,3 +1,4 @@
+from abc import ABC
 from pathlib import Path
 from typing import Dict, Iterable, Iterator, List, Optional, Set, Tuple, Union
 
@@ -12,11 +13,23 @@ class GlobalModules(RootModel):
     root: Set[str]
 
 
-class GlobalModule(BaseModel):
-    config_path: Optional[Path] = None
-    global_: bool = Field(alias="global")
+class BaseApp(BaseModel, ABC):
+    name: Optional[str] = None  # Needs to remain optional because it gets set later
+    config_path: Optional[Path] = None  # Needs to remain optional because it gets set later
     module_name: str = Field(alias="module")
+    """Importable module name.
+    """
     dependencies: Set[str] = Field(default_factory=set)
+    """Other apps that this app depends on. They are guaranteed to be loaded and started before this one.
+    """
+    global_dependencies: Set[str] = Field(default_factory=set)
+    """Global modules that this app depends on.
+    """
+    global_: bool = Field(alias="global")
+
+
+class GlobalModule(BaseApp):
+    global_: bool = Field(default=True, alias="global")
     global_dependencies: Set[str] = Field(default_factory=set)
     """Global modules that this app depends on.
     """
@@ -34,21 +47,12 @@ class Sequence(RootModel):
     root: Dict[str, SequenceItem]
 
 
-class AppConfig(BaseModel, extra="allow"):
-    name: str
-    config_path: Optional[Path] = None
-    module_name: str = Field(alias="module")
-    """Importable module name.
-    """
+class AppConfig(BaseApp, extra="allow"):
     class_name: str = Field(alias="class")
     """Name of the class to use for the app. Must be accessible as an attribute of the imported `module_name`
     """
-    dependencies: Set[str] = Field(default_factory=set)
-    """Other apps that this app depends on. They are guaranteed to be loaded and started before this one.
-    """
-    global_dependencies: Set[str] = Field(default_factory=set)
-    """Global modules that this app depends on.
-    """
+
+    global_: bool = Field(default=True, alias="global")
     disable: bool = False
     pin_app: Optional[bool] = None
     pin_thread: Optional[int] = None
@@ -117,11 +121,13 @@ class AllAppConfig(RootModel):
         """Maps each app to the other apps that depend on it"""
         return reverse_graph(self.depedency_graph())
 
-    def app_definitions(self) -> List[Tuple[str, AppConfig]]:
-        return [(app_name, cfg) for app_name, cfg in self.root.items() if isinstance(cfg, AppConfig)]
+    def app_definitions(self):
+        """Returns the app name and associated config for user-defined apps. Does not include global module apps"""
+        yield from ((app_name, cfg) for app_name, cfg in self.root.items() if isinstance(cfg, AppConfig))
 
     def app_names(self) -> Set[str]:
-        return set(app_name for app_name, cfg in self.root.items() if isinstance(cfg, AppConfig))
+        """Returns all the app names for regular user apps and global module apps"""
+        return set(app_name for app_name, cfg in self.root.items() if isinstance(cfg, BaseApp))
 
     def apps_from_file(self, paths: Iterable[Path]):
         if not isinstance(paths, set):
