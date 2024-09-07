@@ -14,7 +14,7 @@ from appdaemon.callbacks import Callbacks
 from appdaemon.events import Events
 from appdaemon.futures import Futures
 from appdaemon.models import AppDaemonConfig
-from appdaemon.plugin_management import Plugins
+from appdaemon.plugin_management import PluginManagement
 from appdaemon.scheduler import Scheduler
 from appdaemon.sequences import Sequences
 from appdaemon.services import Services
@@ -81,16 +81,17 @@ class AppDaemon:
 
     # subsystems
     app_management: AppManagement
-    callbacks: Callbacks
-    events: Events
+    callbacks: Callbacks = None
+    events: Events = None
     futures: Futures
     logging: "Logging"
-    plugins: Plugins
+    plugins: PluginManagement
     scheduler: Scheduler
     services: Services
     sequences: Sequences
     state: State
     threading: Threading
+    thread_async: ThreadAsync = None
     utility: Utility
 
     # settings
@@ -128,13 +129,12 @@ class AppDaemon:
             self.logging.log("INFO", "Apps are disabled")
 
         # Initialize subsystems
-        # Order should be preserved because the interdependencies are unknown
+        self.callbacks = Callbacks(self)
+        self.events = Events(self)
         self.services = Services(self)
         self.sequences = Sequences(self)
         self.sched = Scheduler(self)
         self.state = State(self)
-        self.events = Events(self)
-        self.callbacks = Callbacks(self)
         self.futures = Futures(self)
 
         if self.apps is True:
@@ -164,8 +164,7 @@ class AppDaemon:
         self.executor = ThreadPoolExecutor(max_workers=self.threadpool_workers)
 
         # Initialize Plugins
-        args = self.config.model_dump(by_alias=True)["plugins"]
-        self.plugins = Plugins(self, args)
+        self.plugins = PluginManagement(self, self.config.plugins)
 
         # Create utility loop
         self.logger.debug("Starting utility loop")

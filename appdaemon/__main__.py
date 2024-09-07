@@ -28,7 +28,7 @@ from appdaemon.appdaemon import AppDaemon
 from appdaemon.exceptions import StartupAbortedException
 from appdaemon.http import HTTP
 from appdaemon.logging import Logging
-from appdaemon.models.config import AppDaemonConfig
+from appdaemon.models import AppDaemonConfig
 
 try:
     import pid

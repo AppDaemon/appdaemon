@@ -5,19 +5,19 @@ Interface with Home Assistant, send and recieve evets, state etc.
 import asyncio
 import datetime
 import json
-import os
 import ssl
 import traceback
 from copy import deepcopy
-from typing import Union
+from typing import Any, Optional, Union
 from urllib.parse import urlencode
 
 import aiohttp
-import pytz
+import aiohttp.client_ws
 from deepdiff import DeepDiff
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
+from appdaemon.models.ad_config import HASSConfig, HASSMetaData
 from appdaemon.plugin_management import PluginBase
 
 
@@ -38,68 +38,48 @@ def hass_check(func):
 
 
 class HassPlugin(PluginBase):
-    def __init__(self, ad: AppDaemon, name, args):
-        super().__init__(ad, name, args)
+    config: HASSConfig
+    id: int
+    queue_lock: asyncio.Lock
+    queues: dict[int, asyncio.Queue]
+    _session: aiohttp.ClientSession
+    """http connection pool for general use"""
+    ws: aiohttp.ClientWebSocketResponse
+    """websocket dedicated for event loop"""
+    metadata: dict[str, Any]
+    services: list[dict[str, Any]]
 
-        # Store args
-        self.AD = ad
-        self.config = args
-        self.name = name
-        self.id = 0
-        self.queue_lock = asyncio.Lock()
-        self.queues = None
+    already_notified: bool
+    first_time: bool
+    hass_booting: bool
+    hass_ready: bool
+    reading_messages: bool
+    stopping: bool = False
 
+    def __init__(self, ad: "AppDaemon", name: str, config: HASSConfig):
+        super().__init__(ad, name, config)
         self.logger.info("HASS Plugin Initializing")
 
-        # validate basic config
-        if "ha_key" in args:
-            self.logger.warning("ha_key is deprecated please use HASS Long Lived Tokens instead")
-        if "ha_url" not in args:
-            self.logger.warning("ha_url not found in HASS configuration - module not initialized")
-
-        # Locally store common args and their defaults
-        self.appdaemon_startup_conditions = args.get("appdaemon_startup_conditions", {})
-        self.cert_path = args.get("cert_path")
-        self.cert_verify = args.get("cert_verify")
-        self.commtype = args.get("commtype", "WS")
-        self.q_timeout = args.get("q_timeout", 30)
-        self.return_result = args.get("return_result", False)
-        self.suppress_log_messages = args.get("suppress_log_messages", False)
-
-        # Fixes for supervised
-        self.ha_key = args.get("ha_key", os.environ.get("SUPERVISOR_TOKEN"))
-        self.ha_url = args.get("ha_url", "http://supervisor/core").rstrip("/")
-        # End fixes for supervised
-
-        self.namespace = args.get("namespace", "default")
-        self.plugin_startup_conditions = args.get("plugin_startup_conditions", {})
-        self.retry_secs = int(args.get("retry_secs", 5))
-        self.timeout = args.get("timeout")
-        self.token = args.get("token")
-
-        # Connections to HA
-        self._session = None  # http connection pool for general use
-        self.ws = None  # websocket dedicated for event loop
-
-        # Cached state from HA
-        self.metadata = None
+        self.id = 0
+        self.queue_lock = asyncio.Lock()
+        self.queues = {}
+        self._session = None
+        self.ws = None
+        self.metadata = {}
         self.services = []
 
         # Internal state flags
         self.already_notified = False
         self.first_time = False
         self.hass_booting = False
+        self.hass_ready = False
         self.reading_messages = False
         self.stopping = False
-        self.hass_ready = False
 
         self.logger.info("HASS Plugin initialization complete")
 
     async def am_reading_messages(self):
         return self.reading_messages
-
-    def init_q(self):
-        self.queues = {}
 
     async def process_response(self, response):
         # We recieved a response from the WS, match it up with the caller
@@ -110,12 +90,30 @@ class HassPlugin(PluginBase):
             pass
             self.logger.debug(f"Unable to find Q, discarding response {response}")
 
-    async def process_command(self, command, return_result, hass_timeout=0, suppress=False):
+    async def websocket_request(self, type: str):
+        """Must not be called with active subs on stream. We need this because the Q mechanism will lock if we call this from the same thread of control"""
+        async with self.queue_lock:
+            self.id += 1
+            req = {"id": self.id, "type": type}
+
+            await self.ws.send_json(req)
+            result = await self.ws.receive_json()
+            self.update_perf(bytes_sent=len(type), bytes_recv=len(json.dumps(result)), requests_sent=1)
+
+            if result["success"]:
+                return result["result"]
+            else:
+                self.logger.warning(f"Unexpected result from websocket request '{type}': {result}")
+
+    async def process_command(
+        self, command: dict, return_result: Optional[bool] = None, hass_timeout: int = 0, suppress: bool = False
+    ):
+        return_result = return_result or self.config.return_result
         # self.logger.info(locals())
         # This routine makes websocket requests appear synchronous to the calling task
 
         if hass_timeout == 0:
-            t = self.q_timeout
+            t = self.config.q_timeout
         else:
             t = hass_timeout
 
@@ -130,7 +128,7 @@ class HassPlugin(PluginBase):
         # Send the command to the WS
         command["id"] = id
         # self.logger.info(f"send {command}")
-        # self.logger.info(f"Request: {command}")
+        self.logger.debug(f"Processing command: {command}")
         await self.ws.send_json(command)
 
         if return_result is True:
@@ -204,35 +202,27 @@ class HassPlugin(PluginBase):
     @property
     def session(self):
         if not self._session:
-            # ssl None means to use default behavior which check certs for https
-            ssl_context = None if self.cert_verify else False
-            if self.cert_verify and self.cert_path:
-                ssl_context = ssl.create_default_context(capath=self.cert_path)
-            conn = aiohttp.TCPConnector(ssl=ssl_context)
-
-            # configure auth
-            headers = {}
-            if self.token is not None:
-                headers["Authorization"] = "Bearer {}".format(self.token)
-            elif self.ha_key is not None:
-                headers["x-ha-access"] = self.ha_key
-
-            self._session = aiohttp.ClientSession(
-                connector=conn,
-                headers=headers,
-                json_serialize=utils.convert_json,
-            )
+            self._session = self.create_session()
         return self._session
+
+    def create_session(self) -> aiohttp.ClientSession:
+        ssl_context = None if self.config.cert_verify else False
+        if self.config.cert_verify and self.config.cert_path:
+            ssl_context = ssl.create_default_context(capath=self.config.cert_path)
+        conn = aiohttp.TCPConnector(ssl=ssl_context)
+        return aiohttp.ClientSession(
+            connector=conn,
+            headers=self.config.auth_headers,
+            json_serialize=utils.convert_json,
+        )
 
     #
     # Connect and return a new WebSocket to HASS instance
     #
     async def create_websocket(self):
-        self.init_q()
-
-        ws = await self.session.ws_connect(f"{self.ha_url}/api/websocket")
+        ws = await self.session.ws_connect(self.config.websocket_url)
         result = await ws.receive_json()
-        self.logger.info("Connected to Home Assistant %s with aiohttp", result["ha_version"])
+        self.logger.info("Connected to Home Assistant %s with aiohttp websocket", result["ha_version"])
 
         # Zero command ID counter
         async with self.queue_lock:
@@ -240,17 +230,12 @@ class HassPlugin(PluginBase):
 
         # Check if auth required, if so send password
         if result["type"] == "auth_required":
-            if self.token is not None:
-                auth = {"type": "auth", "access_token": self.token}
-            elif self.ha_key is not None:
-                auth = {"type": "auth", "api_password": self.ha_key}
-            else:
-                raise ValueError("HASS requires authentication and none provided in plugin config")
-
+            auth = self.config.auth_json
             await ws.send_json(auth)
-
             result = await ws.receive_json()
-            if result["type"] != "auth_ok":
+            if result["type"] == "auth_ok":
+                self.logger.debug("Authenticated to Home Assistant %s", result["ha_version"])
+            else:
                 self.logger.warning("Error in authentication")
                 raise ValueError("Error in authentication")
 
@@ -286,9 +271,9 @@ class HassPlugin(PluginBase):
             self.state_matched = False
 
         if plugin_booting is True:
-            startup_conditions = self.plugin_startup_conditions
+            startup_conditions = self.config.plugin_startup_conditions
         else:
-            startup_conditions = self.appdaemon_startup_conditions
+            startup_conditions = self.config.appdaemon_startup_conditions
 
         start_ok = True
 
@@ -365,7 +350,7 @@ class HassPlugin(PluginBase):
             self.reading_messages = True
             state = await self.get_complete_state(internal=True)
             await self.AD.plugins.notify_plugin_started(
-                self.name, self.namespace, self.metadata, state, self.first_time
+                self.name, self.config.namespace, self.metadata, state, self.first_time
             )
             self.first_time = False
             self.already_notified = False
@@ -392,10 +377,10 @@ class HassPlugin(PluginBase):
         #
         # Testing
         #
-        # await self.AD.state.add_state_callback(self.name, self.namespace, None, self.state, {})
+        # await self.AD.state.add_state_callback(self.name, self.config.namespace, None, self.state, {})
 
         # listen for service_registered event
-        # await self.AD.events.add_event_callback(self.name, self.namespace, self.event, "service_registered")
+        # await self.AD.events.add_event_callback(self.name, self.config.namespace, self.event, "service_registered")
         # exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=1)
         # await self.AD.sched.insert_schedule(
         #    self.name,
@@ -494,7 +479,7 @@ class HassPlugin(PluginBase):
                         metadata["context"] = result["event"].pop("context", None)
                         result["event"]["data"]["metadata"] = metadata
 
-                        await self.AD.events.process_event(self.namespace, result["event"])
+                        await self.AD.events.process_event(self.config.namespace, result["event"])
 
                         if result["event"].get("event_type") == "service_registered":
                             data = result["event"]["data"]
@@ -518,12 +503,12 @@ class HassPlugin(PluginBase):
                 await self.AD.callbacks.clear_callbacks(self.name)
 
                 if not self.already_notified:
-                    await self.AD.plugins.notify_plugin_stopped(self.name, self.namespace)
+                    await self.AD.plugins.notify_plugin_stopped(self.name, self.config.namespace)
                     self.already_notified = True
                 if not self.stopping:
                     self.logger.warning(
                         "Disconnected from Home Assistant, retrying in %s seconds",
-                        self.retry_secs,
+                        self.config.retry_secs,
                     )
                     # TODO: change back to logger.debug
                     self.logger.warning("-" * 60)
@@ -531,42 +516,13 @@ class HassPlugin(PluginBase):
                     self.logger.warning("-" * 60)
                     self.logger.warning(traceback.format_exc())
                     self.logger.warning("-" * 60)
-                    await asyncio.sleep(self.retry_secs)
+                    await asyncio.sleep(self.config.retry_secs)
 
         self.logger.info("Disconnecting from Home Assistant")
         await self.term_q()
 
     def get_namespace(self):
-        return self.namespace
-
-    def validate_meta(self, meta, key):
-        if key not in meta:
-            self.logger.warning("Value for '%s' not found in metadata for plugin %s", key, self.name)
-            raise ValueError
-        try:
-            float(meta[key])
-        except Exception:
-            self.logger.warning(
-                "Invalid value for '%s' ('%s') in metadata for plugin %s",
-                key,
-                meta[key],
-                self.name,
-            )
-            raise
-
-    def validate_tz(self, meta):
-        if "time_zone" not in meta:
-            self.logger.warning("Value for 'time_zone' not found in metadata for plugin %s", self.name)
-            raise ValueError
-        try:
-            pytz.timezone(meta["time_zone"])
-        except pytz.exceptions.UnknownTimeZoneError:
-            self.logger.warning(
-                "Invalid value for 'time_zone' ('%s') in metadata for plugin %s",
-                meta["time_zone"],
-                self.name,
-            )
-            raise
+        return self.config.namespace
 
     async def run_hass_service_check(self) -> None:
         """Used to re-run get hass service, at startup"""
@@ -634,7 +590,7 @@ class HassPlugin(PluginBase):
                         service,
                         self.call_plugin_service,
                         __silent=True,
-                        return_result=self.return_result,
+                        return_result=self.config.return_result,
                     )
 
         return domain_exists
@@ -655,7 +611,7 @@ class HassPlugin(PluginBase):
     # State
     #
 
-    async def get_hass_state(self, internal=False):
+    async def get_hass_state(self, internal: bool = False):
         try:
             if internal is True:
                 #
@@ -696,39 +652,16 @@ class HassPlugin(PluginBase):
 
     async def get_hass_config(self):
         try:
-            #
-            # Must not be called with active subs on stream
-            # We need this because the Q mechanism will lock if we call this from the same thread of control
-            #
-
-            async with self.queue_lock:
-                self.id += 1
-                req = {"id": self.id, "type": "get_config"}
-                await self.ws.send_json(req)
-                result = await self.ws.receive_json()
-                if "id" not in result or result["id"] != self.id or result["success"] is not True:
-                    self.logger.warning(f"Unexpected result from get_hass_config(): {result}")
-
-            meta = result["result"]
-            # self.logger.info(meta)
-            #
-            # Validate metadata is sane
-            #
-            self.validate_meta(meta, "latitude")
-            self.validate_meta(meta, "longitude")
-            self.validate_meta(meta, "elevation")
-            self.validate_tz(meta)
-
-            self.update_perf(bytes_sent=len(json.dumps(req)), bytes_recv=len(json.dumps(result)), requests_sent=1)
-            return meta
-
+            meta = await self.websocket_request("get_config")
+            HASSMetaData.model_validate(meta)
         except Exception:
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error during get_hass_config()")
             self.logger.warning("-" * 60)
             self.logger.warning(traceback.format_exc())
             self.logger.warning("-" * 60)
-            return None
+        else:
+            return meta
 
     #
     # Services
@@ -738,7 +671,7 @@ class HassPlugin(PluginBase):
     async def call_plugin_service(self, namespace, domain, service, data):
         # self.logger.info(f"call_plugin_service(): {locals()}")
         # if we get a request for not our namespace something has gone very wrong
-        assert namespace == self.namespace
+        assert namespace == self.config.namespace
 
         #
         # If data is a string just assume it's an entity_id
@@ -764,7 +697,7 @@ class HassPlugin(PluginBase):
                 return_result = data["return_result"]
                 del data["return_result"]
             else:
-                return_result = self.return_result
+                return_result = self.config.return_result
 
             if "callback" in data:
                 del data["callback"]
@@ -790,7 +723,7 @@ class HassPlugin(PluginBase):
             if hass_result is True:
                 req["return_response"] = True
 
-            suppress = data.pop("suppress_log_messages", self.suppress_log_messages)
+            suppress = data.pop("suppress_log_messages", self.config.suppress_log_messages)
 
             res = await self.process_command(req, return_result, hass_timeout, suppress)
 
@@ -819,7 +752,7 @@ class HassPlugin(PluginBase):
     async def fire_plugin_event(self, event, namespace, **kwargs):
         self.logger.info(locals())
         # if we get a request for not our namespace something has gone very wrong
-        assert namespace == self.namespace
+        assert namespace == self.config.namespace
         if "return_result" in kwargs:
             return_result = kwargs["return_result"]
             del kwargs["return_result"]
@@ -862,9 +795,9 @@ class HassPlugin(PluginBase):
         self.logger.debug("remove_entity() %s", entity_id)
 
         # if we get a request for not our namespace something has gone very wrong
-        assert namespace == self.namespace
+        assert namespace == self.config.namespace
 
-        api_url = f"{self.ha_url}/api/states/{entity_id}"
+        api_url = f"{self.config.ha_url}/api/states/{entity_id}"
 
         try:
             r = await self.session.delete(api_url)
@@ -899,13 +832,13 @@ class HassPlugin(PluginBase):
     #
 
     @hass_check
-    async def set_plugin_state(self, namespace, entity_id, **kwargs):
+    async def set_plugin_state(self, namespace: str, entity_id: str, **kwargs):
         self.logger.debug("set_plugin_state() %s %s %s", namespace, entity_id, kwargs)
 
         # if we get a request for not our namespace something has gone very wrong
-        assert namespace == self.namespace
+        assert namespace == self.config.namespace
 
-        api_url = f"{self.ha_url}/api/states/{entity_id}"
+        api_url = self.config.get_entity_api(entity_id)
 
         try:
             r = await self.session.post(api_url, json=kwargs)
@@ -1019,7 +952,7 @@ class HassPlugin(PluginBase):
 
         # Build the url
         # /api/history/period/<start_time>?filter_entity_id=<entity_id>&end_time=<end_time>
-        apiurl = f"{self.ha_url}/api/history/period"
+        apiurl = f"{self.config.ha_url}/api/history/period"
 
         if start_time:
             apiurl += "/" + utils.dt_to_str(start_time.replace(microsecond=0), self.AD.tz)
@@ -1041,9 +974,9 @@ class HassPlugin(PluginBase):
         )
 
         # if we get a request for not our namespace something has gone very wrong
-        assert namespace == self.namespace
+        assert namespace == self.config.namespace
 
-        api_url = f"{self.ha_url}/api/template"
+        api_url = f"{self.config.ha_url}/api/template"
 
         try:
             r = await self.session.post(api_url, json={"template": template})
@@ -1079,21 +1012,10 @@ class HassPlugin(PluginBase):
             self.logger.error("-" * 60)
             return None
 
-    #
-    # This one could be handled by the stream but it's complicated so leave as REST for now
-    #
     async def get_hass_services(self):
         try:
-            self.logger.debug("get_hass_services()")
-
-            api_url = f"{self.ha_url}/api/services"
-            self.logger.debug("get_hass_services: url is %s", api_url)
-            r = await self.session.get(api_url)
-
-            r.raise_for_status()
-            services = await r.json()
-
-            self.update_perf(bytes_sent=len(json.dumps(api_url)), bytes_recv=len(await r.text()), requests_sent=1)
+            services: dict[str, dict[str, dict]] = await self.websocket_request("get_services")
+            services = [{"domain": domain, "services": services} for domain, services in services.items()]
 
             # manually added HASS services
             new_services = {}

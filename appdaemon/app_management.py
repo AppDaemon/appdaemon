@@ -19,13 +19,20 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Iterable, Literal, Optional, Set, Union
 
 import appdaemon.utils as utils
-from appdaemon.dependency import DependencyResolutionFail, find_all_dependents, get_full_module_name, topo_sort
+from appdaemon.dependency import (
+    DependencyResolutionFail,
+    find_all_dependents,
+    get_full_module_name,
+    topo_sort,
+)
 from appdaemon.dependency_manager import DependencyManager
 from appdaemon.models.app_config import AllAppConfig, AppConfig, GlobalModule
 from appdaemon.models.internal.file_check import FileCheck
 
+
 if TYPE_CHECKING:
-    from appdaemon.appdaemon import AppDaemon
+    from .appdaemon import AppDaemon
+    from .plugin_management import PluginBase
 
 
 class UpdateMode(Enum):
@@ -550,7 +557,7 @@ class AppManagement:
     def get_running_app_names(self) -> set[str]:
         return set(app_name for app_name in self.get_managed_app_names() if self.objects[app_name].running)
 
-    def init_plugin_object(self, name: str, object, use_dictionary_unpacking: bool = False) -> None:
+    def init_plugin_object(self, name: str, object: "PluginBase", use_dictionary_unpacking: bool = False) -> None:
         self.objects[name] = ManagedObject(
             **{
                 "type": "plugin",
@@ -706,7 +713,7 @@ class AppManagement:
 
     @utils.executor_decorator
     def read_config_file(self, file: Path) -> AllAppConfig:
-        """Reads a single YAML or TOML file into a pydantic model. This also sets the config_path attribute of any AppConfigs.
+        """Reads a single YAML or TOML file into a pydantic model. This also sets the ``config_path`` attribute of any AppConfigs.
 
         This function is primarily used by the create/edit/remove app methods that write yaml files.
         """
@@ -715,7 +722,7 @@ class AppManagement:
             self.logger.warning(f"Loaded an empty config file: {file.relative_to(self.AD.app_dir.parent)}")
         config_model = AllAppConfig.model_validate(raw_cfg)
         for cfg in config_model.root.values():
-            if isinstance(cfg, AppConfig):
+            if isinstance(cfg, (AppConfig, GlobalModule)):
                 cfg.config_path = file
         return config_model
 

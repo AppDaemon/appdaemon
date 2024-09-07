@@ -13,6 +13,7 @@ class GlobalModules(RootModel):
 
 
 class GlobalModule(BaseModel):
+    config_path: Optional[Path] = None
     global_: bool = Field(alias="global")
     module_name: str = Field(alias="module")
     dependencies: Set[str] = Field(default_factory=set)

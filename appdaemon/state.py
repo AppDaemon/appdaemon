@@ -44,6 +44,10 @@ class State:
     def namespace_path(self) -> Path:
         return self.AD.config_dir / "namespaces"
 
+    # @property
+    # def namespace_db_path(self) -> Path:
+    #     return self.namespace_path /
+
     def namespace_db_path(self, namespace: str) -> Path:
         return self.namespace_path / f"{namespace}.db"
 
@@ -102,7 +106,6 @@ class State:
         else:
             self.logger.warning("Namespace %s doesn't exists", namespace)
 
-    @utils.executor_decorator
     def add_persistent_namespace(self, namespace: str, writeback: str) -> Path:
         """Used to add a database file for a created namespace"""
 
@@ -111,7 +114,7 @@ class State:
                 self.logger.info("Persistent namespace '%s' already initialized", namespace)
                 return
 
-            ns_db_path = self.namespace_db_path(namespace)
+            ns_db_path = self.namespace_db_path(namespace).as_posix()
             safe = bool(writeback == "safe")
             self.state[namespace] = utils.PersistentDict(ns_db_path, safe)
 
