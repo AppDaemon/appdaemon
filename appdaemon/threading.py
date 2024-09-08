@@ -826,7 +826,7 @@ class Threading:
         state = await self.AD.state.get_state("_threading", "admin", entity_id)
 
         if state in ["initializing"]:
-            self.logger.warn("Incoming event while initializing - discarding")
+            self.logger.info("Incoming event while initializing - discarding")
             return
 
         unconstrained = True
