@@ -316,16 +316,22 @@ class HassPlugin(PluginBase):
             if "value" in entry:
                 # print(entry["value"], state[entry["entity"]])
                 # print(DeepDiff(state[entry["entity"]], entry["value"]))
-                if entry["entity"] in state and "values_changed" not in DeepDiff(
-                    entry["value"], state[entry["entity"]]
-                ):
-                    if self.state_matched is False:
-                        self.logger.info(
-                            "Startup condition met: %s=%s",
-                            entry["entity"],
-                            entry["value"],
-                        )
-                        self.state_matched = True
+                if entry["entity"] in state:
+                    negate = "negate" in entry and entry["negate"] is True
+
+                    if (
+                        negate is False
+                        and "values_changed" not in DeepDiff(entry["value"], state[entry["entity"]])
+                        or negate is True
+                        and "values_changed" in DeepDiff(entry["value"], state[entry["entity"]])
+                    ):
+                        if self.state_matched is False:
+                            self.logger.info(
+                                "Startup condition met: %s=%s",
+                                entry["entity"],
+                                entry["value"],
+                            )
+                            self.state_matched = True
                 else:
                     start_ok = False
             elif entry["entity"] in state:
