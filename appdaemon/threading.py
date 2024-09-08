@@ -817,6 +817,18 @@ class Threading:
         return executed
 
     async def dispatch_worker(self, name, args):
+        #
+        # If the app isinitializing, it's not ready for this yet so discard
+        #
+        # not a fully qualified entity name
+        entity_id = "app.{}".format(name)
+
+        state = await self.AD.state.get_state("_threading", "admin", entity_id)
+
+        if state in ["initializing"]:
+            self.logger.warn("Incoming event while initializing - discarding")
+            return
+
         unconstrained = True
         #
         # Argument Constraints

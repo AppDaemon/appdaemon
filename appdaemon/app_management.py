@@ -258,6 +258,7 @@ class AppManagement:
 
         # Call its initialize function
         try:
+            await self.set_state(name, state="initializing")
             self.logger.info(f"Calling initialize() for {name}")
             if asyncio.iscoroutinefunction(init):
                 await init()
