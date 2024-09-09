@@ -180,5 +180,5 @@ websockets==13.0.1
     # via sphinx-autobuild
 wsproto==1.2.0
     # via simple-websocket
-yarl==1.9.11
+yarl==1.11.0
     # via aiohttp
