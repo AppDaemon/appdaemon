@@ -163,7 +163,7 @@ wheel==0.44.0
     # via pip-tools
 wsproto==1.2.0
     # via simple-websocket
-yarl==1.9.11
+yarl==1.11.1
     # via aiohttp
 
 # The following packages are considered to be unsafe in a requirements file:
