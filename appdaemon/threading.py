@@ -432,8 +432,7 @@ class Threading:
                 thread_name = f"thread.{thread_id}"
                 callback = await self.get_state("_threading", "admin", thread_name)
                 self.logger.warning(
-                    f"Excessive time spent in callback '{callback}', Thread '{
-                        thread_name}' - now complete after {duration} seconds (limit={self.AD.thread_duration_warning_threshold})"
+                    f"Excessive time spent in callback '{callback}', Thread '{thread_name}' - now complete after {duration} seconds (limit={self.AD.thread_duration_warning_threshold})"
                 )
             await self.add_to_state("_threading", "admin", "sensor.threads_current_busy", -1)
 
