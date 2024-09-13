@@ -88,7 +88,7 @@ multidict==6.1.0
     #   yarl
 myst-parser==4.0.0
     # via appdaemon (pyproject.toml)
-orderly-set==5.2.2
+orderly-set==5.2.3
     # via deepdiff
 packaging==24.1
     # via sphinx
