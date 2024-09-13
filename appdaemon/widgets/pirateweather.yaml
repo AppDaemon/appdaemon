@@ -60,4 +60,5 @@ icons:
   rain: mdi-umbrella
   sleet: mdi-weather-snowy-rainy
   unknown: mdi-umbrella
+  none: mdi-umbrella
 static_icons: []
