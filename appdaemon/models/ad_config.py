@@ -208,7 +208,7 @@ def plugin_discriminator(plugin):
         plugin.type
 
 
-class AppDaemonConfig(BaseModel, extra="forbid"):
+class AppDaemonConfig(BaseModel):
     latitude: float
     longitude: float
     elevation: int
