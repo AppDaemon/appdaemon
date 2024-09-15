@@ -4,21 +4,38 @@ Interface with Home Assistant, send and recieve evets, state etc.
 
 import asyncio
 import datetime
+import functools
 import json
+from multiprocessing import AuthenticationError
 import ssl
+from time import perf_counter
 import traceback
 from copy import deepcopy
-from typing import Any, Optional, Union
-from urllib.parse import urlencode
-
+from typing import Any, Literal, Optional
 import aiohttp
 import aiohttp.client_ws
+from aiohttp import WSMsgType
 from deepdiff import DeepDiff
+from pydantic import BaseModel
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
 from appdaemon.models.ad_config import HASSConfig, HASSMetaData
 from appdaemon.plugin_management import PluginBase
+
+
+def looped_coro(coro, sleep_time: int | float):
+    @functools.wraps(coro)
+    async def loop(self, *args, **kwargs):
+        while not self.stopping:
+            try:
+                await coro()
+            except Exception:
+                self.logger.error(f"Error running {coro.__name__} - retrying in {sleep_time}s")
+            finally:
+                await asyncio.sleep(sleep_time)
+
+    return loop
 
 
 async def no_func():
@@ -37,161 +54,73 @@ def hass_check(func):
     return func_wrapper
 
 
+class HAAuthenticationError(Exception):
+    pass
+
+
+class HAEventsSubError(Exception):
+    pass
+
+
+class HASSWebsocketResponse(BaseModel):
+    type: Literal["result", "auth_required", "auth_ok", "auth_invalid", "event"]
+    ha_version: Optional[str] = None
+    message: Optional[str] = None
+    id: Optional[int] = None
+    success: Optional[bool] = None
+    result: Optional[dict] = None
+
+
+class HASSWebsocketEvent(BaseModel):
+    event_type: str
+    data: dict
+
+
 class HassPlugin(PluginBase):
     config: HASSConfig
     id: int
-    queue_lock: asyncio.Lock
-    queues: dict[int, asyncio.Queue]
-    _session: aiohttp.ClientSession
+    session: aiohttp.ClientSession
     """http connection pool for general use"""
     ws: aiohttp.ClientWebSocketResponse
     """websocket dedicated for event loop"""
     metadata: dict[str, Any]
     services: list[dict[str, Any]]
 
+    _result_futures: dict[int, asyncio.Future]
+
+    first_time: bool = True
+    first_msg: bool = False
+    reading_messages: bool = False
+
     already_notified: bool
-    first_time: bool
     hass_booting: bool
     hass_ready: bool
-    reading_messages: bool
     stopping: bool = False
 
     def __init__(self, ad: "AppDaemon", name: str, config: HASSConfig):
         super().__init__(ad, name, config)
-        self.logger.info("HASS Plugin Initializing")
 
         self.id = 0
-        self.queue_lock = asyncio.Lock()
-        self.queues = {}
-        self._session = None
-        self.ws = None
         self.metadata = {}
         self.services = []
+        self._result_futures = {}
 
         # Internal state flags
         self.already_notified = False
-        self.first_time = False
         self.hass_booting = False
         self.hass_ready = False
         self.reading_messages = False
         self.stopping = False
 
         self.logger.info("HASS Plugin initialization complete")
-
-    async def am_reading_messages(self):
-        return self.reading_messages
-
-    async def process_response(self, response):
-        # We recieved a response from the WS, match it up with the caller
-        if "id" in response and response["id"] in self.queues:
-            q = self.queues[response["id"]]
-            await q.put(response)
-        else:
-            pass
-            self.logger.debug(f"Unable to find Q, discarding response {response}")
-
-    async def websocket_request(self, type: str, result_key: Optional[str] = "result"):
-        """Must not be called with active subs on stream. We need this because the Q mechanism will lock if we call this from the same thread of control"""
-        async with self.queue_lock:
-            self.id += 1
-            req = {"id": self.id, "type": type}
-
-            await self.ws.send_json(req)
-            try:
-                result = await self.ws.receive_json()
-            except RuntimeError:
-                raise
-            self.update_perf(bytes_sent=len(type), bytes_recv=len(json.dumps(result)), requests_sent=1)
-
-            if result["success"]:
-                return result[result_key] if bool(result_key) else result
-            else:
-                self.logger.warning(f"Unexpected result from websocket request '{type}': {result}")
-
-    async def process_command(
-        self, command: dict, return_result: Optional[bool] = None, hass_timeout: int = 0, suppress: bool = False
-    ):
-        return_result = return_result or self.config.return_result
-        # self.logger.info(locals())
-        # This routine makes websocket requests appear synchronous to the calling task
-
-        if hass_timeout == 0:
-            t = self.config.q_timeout
-        else:
-            t = hass_timeout
-
-        async with self.queue_lock:
-            self.id += 1
-            id = self.id
-
-        if return_result is True:
-            # Create a new Q
-            self.queues[id] = asyncio.Queue()
-
-        # Send the command to the WS
-        command["id"] = id
-        # self.logger.info(f"send {command}")
-        self.logger.debug(f"Processing command: {command}")
-        await self.ws.send_json(command)
-
-        if return_result is True:
-            start_ts = await self.AD.sched.get_now_ts()
-            # We are now waiting on our Q for a message to be returned on the websocket
-
-            get = self.queues[id].get()
-            try:
-                response = await asyncio.wait_for(get, t)
-            except asyncio.TimeoutError:
-                now = await self.AD.sched.get_now_ts()
-                if suppress is False:
-                    self.logger.warning(f"Timeout waiting for HASS response, {t}s, request={command}")
-
-                del self.queues[id]
-                return {"ad_status": "TIMEOUT", "ad_duration": now - start_ts}
-
-            if "ad_status" in response and response["ad_status"] == "TERMINATING":
-                # if we get a termination message we transfer control back
-                now = await self.AD.sched.get_now_ts()
-                response["ad_duration"] = now - start_ts
-                del self.queues[id]
-                return response
-
-            # self.logger.info(f"Response: {response}")
-            # We got a valid response
-
-            # Set the AD response code and timeing
-            response["ad_status"] = "OK"
-            now = await self.AD.sched.get_now_ts()
-
-            response["ad_duration"] = now - start_ts
-            # remove the Q
-            del self.queues[id]
-
-            # Sanity check
-            assert "id" in response and response["id"] == id
-
-            # Did we get an error code from HASS?
-            if response["success"] is False:
-                # HASS reported an error
-                if suppress is False:
-                    self.logger.warning(f"Error in HASS response: {response}")
-
-            return response
-        else:
-            # We don't care about the result
-            # Immediately return
-            return None
-
-    async def term_q(self):
-        # We are terminating so we need to send each Q a termination message then remove it
-        async with self.queue_lock:
-            for k, q in self.queues.items():
-                self.logger.info(f"id={k}")
-                q.send({"ad_status": "TERMINATING"})
+        self.start = perf_counter()
 
     def stop(self):
         self.logger.debug("stop() called for %s", self.name)
         self.stopping = True
+
+        # This will stop waiting for message on the websocket
+        self.AD.loop.create_task(self.ws.close())
 
     #
     # Placeholder for constraints
@@ -199,16 +128,10 @@ class HassPlugin(PluginBase):
     def list_constraints(self):
         return []
 
-    #
-    # Persistent HTTP Session to HASS instance
-    #
-    @property
-    def session(self):
-        if not self._session:
-            self._session = self.create_session()
-        return self._session
-
     def create_session(self) -> aiohttp.ClientSession:
+        """Handles creating an ``aiohttp.ClientSession`` with the cert information from the plugin config
+        and the authorization headers for the REST API.
+        """
         ssl_context = None if self.config.cert_verify else False
         if self.config.cert_verify and self.config.cert_path:
             ssl_context = ssl.create_default_context(capath=self.config.cert_path)
@@ -219,55 +142,249 @@ class HassPlugin(PluginBase):
             json_serialize=utils.convert_json,
         )
 
-    #
-    # Connect and return a new WebSocket to HASS instance
-    #
-    async def create_websocket(self):
-        async with self.queue_lock:
-            # Zero command ID counter
-            self.id = 0
+    async def websocket_msg_factory(self):
+        """Async generator that yields websocket messages.
 
-            ws = await self.session.ws_connect(self.config.websocket_url)
-            result = await ws.receive_json()
-            self.logger.info("Connected to Home Assistant %s with aiohttp websocket", result["ha_version"])
+        Handles creating the connection based on the HASSConfig and updates the performance counters
+        """
+        async with self.create_session() as self.session:
+            async with self.session.ws_connect(self.config.websocket_url) as self.ws:
+                self.id = 0
+                self.reading_messages = True
+                async for msg in self.ws:
+                    self.first_msg = True
+                    self.update_perf(bytes_recv=len(msg.data), updates_recv=1)
+                    yield msg
+        self.reading_messages = False
 
-            # Check if auth required, if so send password
-            if result["type"] == "auth_required":
-                auth = self.config.auth_json
-                await ws.send_json(auth)
-                result = await ws.receive_json()
-                if result["type"] == "auth_ok":
-                    self.logger.debug("Authenticated to Home Assistant %s", result["ha_version"])
-                else:
-                    self.logger.warning("Error in authentication")
-                    raise ValueError("Error in authentication")
+    async def match_ws_msg(self, msg: aiohttp.WSMessage) -> dict:
+        """Wraps a match/case statement for the ``msg.type``"""
+        msg_json = msg.json()
+        match msg.type:
+            case WSMsgType.TEXT:
+                # create a separate task for processing messages to keep the message reading task unblocked
+                self.AD.loop.create_task(self.process_websocket_json(msg_json))
+            case WSMsgType.ERROR:
+                self.logger.error("Error from aiohttp websocket: %s", msg_json)
+            case WSMsgType.CLOSE:
+                self.logger.debug("Received %s message", msg.type)
+            case _:
+                self.logger.error("Unhandled websocket message type: %s", msg.type)
+        return msg_json
 
-        return ws
+    @utils.warning_decorator(error_text="Unknown error during processing jSON", reraise=True)
+    async def process_websocket_json(self, resp: dict):
+        """Wraps a match/case statement for the ``type`` key of the JSON received from the websocket"""
+        match resp["type"]:
+            case "auth_required":
+                self.logger.info("Connected to Home Assistant %s with aiohttp websocket", resp["ha_version"])
+                await self.__post_conn__()
+            case "auth_ok":
+                self.logger.info("Authenticated to Home Assistant %s", resp["ha_version"])
+                await self.__post_auth__()
+            case "auth_invalid":
+                resp = f'Failed to authenticate to Home Assistant: {resp["message"]}'
+                self.logger.error(resp)
+                raise AuthenticationError(resp)
+            case "ping":
+                await self.ping()
+            case "pong":
+                if future := self._result_futures.get(resp["id"]):
+                    future.set_result(resp)
+            case "result":
+                await self.receive_result(resp)
+            case "event":
+                await self.receive_event(event=resp["event"])
+            case _:
+                raise NotImplementedError(resp["type"])
 
-    #
-    # Get initial state
-    #
-    async def get_complete_state(self, internal=False):
-        #
-        # This version is called by a separate task periodically
-        #
-        hass_state = await self.get_hass_state(internal)
-        states = {}
-        for state in hass_state:
-            states[state["entity_id"]] = state
-        self.logger.debug("Got state")
-        self.logger.debug("*** Sending Complete State: %s ***", hass_state)
-        return states
+    async def __post_conn__(self):
+        """Initialization to do after getting connected to the Home Assistant websocket"""
+        return await self.websocket_send_json(**self.config.auth_json)
 
-    #
-    # Get HASS Metadata
-    #
-    async def get_metadata(self):
-        return self.metadata
+    async def __post_auth__(self):
+        """Initialization to do after getting authenticated on the websocket"""
+        res = await self.websocket_send_json(type="subscribe_events")
+        match res:
+            case None:
+                raise HAEventsSubError("Unknown error in subscribe")
+            case dict():
+                match res["success"]:
+                    case False:
+                        res = res["error"]
+                        raise HAEventsSubError(f'{res["code"]}: {res["message"]}')
+                    case "timeout":
+                        raise HAEventsSubError("Timed out waiting for subscription acknowledgement")
 
-    #
-    # Handle state updates
-    #
+        config_coro = looped_coro(self.get_hass_config, self.config.config_sleep_time)
+        self.AD.loop.create_task(config_coro(self))
+
+        service_coro = looped_coro(self.get_hass_services, self.config.services_sleep_time)
+        self.AD.loop.create_task(service_coro(self))
+
+        # await self.wait_for_start()
+        self.logger.info("All startup conditions met")
+
+        state = await self.get_hass_state()
+        await self.AD.plugins.notify_plugin_started(
+            self.name, self.config.namespace, self.metadata, state, self.first_time
+        )
+        self.first_time = False
+        self.already_notified = False
+
+        self.logger.info(f"Completed initialization in {self.time_str()}")
+
+    async def ping(self):
+        """Method for testing response times over the websocket."""
+        # https://developers.home-assistant.io/docs/api/websocket/#pings-and-pongs
+        return await self.websocket_send_json(type="ping")
+
+    # @utils.warning_decorator(error_text='Unexpected error during receive_result')
+    async def receive_result(self, resp: dict):
+        if (future := self._result_futures.pop(resp["id"], None)) is not None:
+            future.set_result(resp)
+        else:
+            self.logger.warning(f"Received result without a matching future: {resp}")
+
+        match resp["success"]:
+            case False:
+                self.logger.warning(
+                    "Error with websocket result: %s: %s", resp["error"]["code"], resp["error"]["message"]
+                )
+
+    # @utils.warning_decorator(error_text='Unexpected error during receive_event')
+    async def receive_event(self, event: dict):
+        self.logger.debug(f"Received event type: {event['event_type']}")
+
+        meta_attrs = {"origin", "time_fired", "context"}
+        event["metadata"] = {a: val for a in meta_attrs if (val := event.pop(a, None)) is not None}
+
+        await self.AD.events.process_event(self.config.namespace, event)
+
+        match event["event_type"]:
+            # https://data.home-assistant.io/docs/events/#state_changed
+            case "state_changed":
+                pass
+            # https://data.home-assistant.io/docs/events/#service_registered
+            case "service_registered":
+                data = event["data"]
+                await self.check_register_service(data["domain"], data["service"], silent=True)
+            case "call_service":
+                pass
+
+    async def websocket_send_json(self, timeout: float = 1.0, **request) -> dict:
+        """
+        Sends a json request over the websocket and gets the response.
+
+        Handles incrementing the `id` parameter and appends
+        """
+        # auth requests don't have an id field assigned
+        if not request.get("type") == "auth":
+            self.id += 1
+            request["id"] = self.id
+
+            # include this in the "not auth" section so we don't accidentally put the token in the logs
+            self.logger.debug(f"Sending JSON: {request}")
+
+        send_time = perf_counter()
+        try:
+            await self.ws.send_json(request)
+        # happens when the connection closes in the middle, which could be during shutdown
+        except ConnectionResetError:
+            if self.stopping:
+                return
+            else:
+                raise
+
+        self.update_perf(bytes_sent=len(json.dumps(request)), requests_sent=1)
+
+        if request.get("type") == "auth":
+            return
+
+        future = self.AD.loop.create_future()
+        self._result_futures[self.id] = future
+
+        try:
+            result: dict = await asyncio.wait_for(future, timeout=timeout)
+        except asyncio.TimeoutError:
+            self.logger.warning(f"Timed out [{timeout:.0f}s] waiting for request: %s", request)
+            return {"success": "timeout", "ad_duration": timeout}
+        else:
+            travel_time = perf_counter() - send_time
+            # self.logger.debug(f"Receive time: {(travel_time)*10**3:.0f} ms")
+            result.update({"ad_duration": travel_time})
+            return result
+
+    async def rest_api_get(self, endpoint: str, timeout: float = 5.0, **kwargs):
+        kwargs = utils.clean_kwargs(**kwargs)
+
+        if not endpoint.startswith(self.config.ha_url):
+            url = f'{self.config.ha_url}/{endpoint.strip("/")}'
+        else:
+            url = endpoint
+
+        try:
+            self.update_perf(bytes_sent=len(url), requests_sent=1)
+            coro = self.session.get(url=url, params=kwargs)
+            resp = await asyncio.wait_for(coro, timeout=timeout)
+        except asyncio.TimeoutError:
+            self.logger.error("Timed out waiting for %s", url)
+        except aiohttp.ServerDisconnectedError:
+            self.logger.error("HASS disconnected unexpectedly during GET %s", url)
+        else:
+            self.update_perf(bytes_recv=resp.content_length, updates_recv=1)
+            match resp.status:
+                case 200 | 201:
+                    return await resp.json()
+                case 400 | 401 | 404 | 405:
+                    text = await resp.text()
+                    self.logger.error("Bad response from %s: %s", url, text)
+                case _:
+                    raise NotImplementedError
+
+    async def rest_api_post(self, endpoint: str, timeout: float = 5.0, **kwargs):
+        kwargs = utils.clean_kwargs(**kwargs)
+
+        if not endpoint.startswith(self.config.ha_url):
+            url = f'{self.config.ha_url}/{endpoint.strip("/")}'
+        else:
+            url = endpoint
+
+        try:
+            self.update_perf(bytes_sent=len(url), requests_sent=1)
+            coro = self.session.post(url=url, json=kwargs)
+            resp = await asyncio.wait_for(coro, timeout=timeout)
+        except asyncio.TimeoutError:
+            self.logger.error("Timed out waiting for %s", url)
+        except asyncio.CancelledError:
+            self.logger.debug("Task cancelled during POST")
+        except aiohttp.ServerDisconnectedError:
+            self.logger.error("HASS disconnected unexpectedly during POST %s", url)
+        else:
+            self.update_perf(bytes_recv=resp.content_length, updates_recv=1)
+            match resp.status:
+                case 200 | 201:
+                    return await resp.json()
+                case 400 | 401 | 404 | 405:
+                    text = await resp.text()
+                    self.logger.error("Bad response from %s: %s", url, text)
+                case 500:
+                    text = await resp.text()
+                    self.logger.error("Internal server error %s: %s", url, text)
+                case _:
+                    raise NotImplementedError
+
+    async def wait_for_start(self):
+        self.first_time = True
+        while not self.stopping:
+            start_ok = await self.evaluate_started(self.first_time, self.hass_booting)
+            self.first_time = False
+            if not start_ok:
+                await asyncio.sleep(2.0)
+                continue
+            else:
+                break
+
     async def evaluate_started(self, first_time, plugin_booting, event=None):  # noqa: C901
         if first_time is True:
             self.hass_ready = False
@@ -299,7 +416,7 @@ class HassPlugin(PluginBase):
                     start_ok = False
 
         if "state" in startup_conditions:
-            state = await self.get_complete_state(internal=True)
+            state = await self.get_hass_state()
             entry = startup_conditions["state"]
             if "value" in entry:
                 # print(entry["value"], state[entry["entity"]])
@@ -351,319 +468,155 @@ class HassPlugin(PluginBase):
             # We are good to go
             self.logger.info("All startup conditions met")
             self.reading_messages = True
-            state = await self.get_complete_state(internal=True)
+            state = await self.get_hass_state()
             await self.AD.plugins.notify_plugin_started(
                 self.name, self.config.namespace, self.metadata, state, self.first_time
             )
             self.first_time = False
             self.already_notified = False
 
-    #
-    # Callback Testing
-    #
-    # async def state(self, entity, attribute, old, new, kwargs):
-    #    self.logger.info("State: %s %s %s %s {}".format(kwargs), entity, attribute, old, new)
-    #
-    # async def event(self, event, data, kwargs):
-    #    self.logger.debug("Event: %s %s %s", kwargs, event, data)
-
-    # async def schedule(self, kwargs):
-    #    self.logger.info("Schedule: {}".format(kwargs))
-    #
-    #
-    #
+        return start_ok
 
     async def get_updates(self):  # noqa: C901
-        self.already_notified = False
-        self.first_time = True
-
-        #
-        # Testing
-        #
-        # await self.AD.state.add_state_callback(self.name, self.config.namespace, None, self.state, {})
-
-        # listen for service_registered event
-        # await self.AD.events.add_event_callback(self.name, self.config.namespace, self.event, "service_registered")
-        # exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=1)
-        # await self.AD.sched.insert_schedule(
-        #    self.name,
-        #    exec_time,
-        #    self.schedule,
-        #    True,
-        #    None,
-        #    interval=1
-        # )
-        #
-        #
-        #
-
         while not self.stopping:
             try:
-                #
-                # Connect to websocket interface
-                #
-                self.ws = await self.create_websocket()
-
-                #
-                # Grab Metadata
-                #
-                self.metadata = await self.get_hass_config()
-                #
-                # Register Services
-                #
-                services = await self.get_hass_services()
-                for hass_service in services:
-                    domain = hass_service["domain"]
-                    services = hass_service["services"]
-
-                    # Debug Info - dump service response flag
-                    # debug = self.AD.logging.get_diag()
-                    # for name, service in services.items():
-                    # debug.info(f"{name} -> {service}")
-                    #    if "response" in service:
-                    #        debug.info(
-                    #            f"{domain}/{name} -> {service['response']}")
-
-                    await self.check_register_service(domain, services, silent=True)
-
-                #
-                # We schedule a task to check for new services over the next 10 minutes
-                #
-                asyncio.create_task(self.run_hass_service_check())
-
-                #
-                # Subscribe to event stream
-                #
-                result = await self.websocket_request("subscribe_events", result_key=None)
-                self.event_id = self.id
-                # async with self.queue_lock:
-                #     self.id += 1
-                #     sub = {"id": self.id, "type": "subscribe_events"}
-                #     await self.ws.send_json(sub)
-                #     self.event_id = self.id
-
-                # result = await self.ws.receive_json()
-                # self.logger.info(f"{result=}")
-                if not (result["id"] == self.id and result["type"] == "result" and result["success"] is True):
-                    self.logger.warning(f"Unable to subscribe to HA events, response={result}")
-                    self.logger.warning(result)
-                    raise ValueError("Error subscribing to HA Events")
-
-                # Wait until startup conditions have been met
-
-                # Decide if we can start yet
-                # self.logger.info("Evaluating startup conditions")
-
-                await self.evaluate_started(True, self.hass_booting)
-
-                while not self.stopping and self.reading_messages is False:
-                    async with self.queue_lock:
-                        result = await self.ws.receive_json()
-                    # self.logger.info(f"{result=}")
-
-                    self.update_perf(bytes_recv=len(result), updates_recv=1)
-
-                    if result["type"] == "event":
-                        await self.evaluate_started(False, self.hass_booting, result["event"])
-                    else:
-                        await self.evaluate_started(False, self.hass_booting)
-
-                #
-                # Loop forever consuming events
-                #
-                while not self.stopping:
-                    async with self.queue_lock:
-                        result = await self.ws.receive_json()
-                    # self.logger.info(f"{result=}")
-
-                    self.update_perf(bytes_recv=len(result), updates_recv=1)
-
-                    if result["id"] == self.event_id:
-                        # Standard event update
-                        metadata = {}
-                        metadata["origin"] = result["event"].pop("origin", None)
-                        metadata["time_fired"] = result["event"].pop("time_fired", None)
-                        metadata["context"] = result["event"].pop("context", None)
-                        result["event"]["data"]["metadata"] = metadata
-
-                        await self.AD.events.process_event(self.config.namespace, result["event"])
-
-                        if result["event"].get("event_type") == "service_registered":
-                            data = result["event"]["data"]
-                            domain = data.get("domain")
-                            service = data.get("service")
-
-                            if domain is None or service is None:
-                                continue
-
-                            await self.check_register_service(domain, service)
-                    else:
-                        # It's a specific command reply
-                        await self.process_response(result)
-
-                self.reading_messages = False
-
+                async for msg in self.websocket_msg_factory():
+                    await self.match_ws_msg(msg)
+                    continue
+                raise ValueError
+            # except HAAuthenticationError:
+            #     pass
+            # except HAEventsSubError:
+            #     pass
             except Exception:
-                self.reading_messages = False
-                self.hass_booting = True
-                # remove callback from getting local events
-                await self.AD.callbacks.clear_callbacks(self.name)
-
-                if not self.already_notified:
-                    await self.AD.plugins.notify_plugin_stopped(self.name, self.config.namespace)
-                    self.already_notified = True
                 if not self.stopping:
                     self.logger.warning(
                         "Disconnected from Home Assistant, retrying in %s seconds",
                         self.config.retry_secs,
                     )
-                    # TODO: change back to logger.debug
-                    self.logger.warning("-" * 60)
-                    self.logger.warning("Unexpected error:")
-                    self.logger.warning("-" * 60)
-                    self.logger.warning(traceback.format_exc())
-                    self.logger.warning("-" * 60)
                     await asyncio.sleep(self.config.retry_secs)
 
+            # always do this block, no matter what
+            finally:
+                # notify plugin stopped
+                await self.AD.plugins.notify_plugin_stopped(self.name, self.config.namespace)
+                # remove callback from getting local events
+                await self.AD.callbacks.clear_callbacks(self.name)
+
         self.logger.info("Disconnecting from Home Assistant")
-        await self.term_q()
 
     def get_namespace(self):
         return self.config.namespace
 
-    async def run_hass_service_check(self) -> None:
-        """Used to re-run get hass service, at startup"""
-
-        count = 0
-        while count <= 10:  # it runs only a maximum of 10 times
-            count += 1
-            await asyncio.sleep(60)
-
-            # get hass services
-            hass_services = await self.get_hass_services()
-            if not isinstance(hass_services, list):
-                continue
-
-            # now check if any of the services exists
-
-            for hass_service in hass_services:
-                domain = hass_service["domain"]
-                services = hass_service["services"]
-
-                await self.check_register_service(domain, services)
-
-    async def check_register_service(self, domain: str, services: Union[dict, str], silent=False) -> bool:
+    async def check_register_service(self, domain: str, services: str | dict, silent: bool = False) -> bool:
         """Used to check and register a service if need be"""
 
-        domain_exists = False
-        service_index = -1
+        existing_domains = set(s["domain"] for s in self.services)
+        new_services = set()
+        match services:
+            case str():
+                service = services  # rename for clarity
+                if domain not in existing_domains:
+                    self.services.append({"domain": domain, "services": {service: {}}})
+                    new_services = {service}
+            case dict():
+                if domain in existing_domains:
+                    for i, s in enumerate(self.services):
+                        if domain == s["domain"]:
+                            self.services[i]["services"].update(services)
+                            new_services = set(s for s in services if s not in self.services[i]["services"])
+                else:
+                    self.services.append({"domain": domain, "services": services})
+                    new_services = services
+                    pass
 
-        # now to check if it exists already
-        for i, registered_services in enumerate(self.services):
-            if domain == registered_services["domain"]:
-                domain_exists = True
-                service_index = i
-                break
+        for service in new_services:
+            if not silent:
+                self.logger.debug("Registering new service %s/%s", domain, service)
 
-        if domain_exists is False:  # domain doesn't exist
-            self.services.append({"domain": domain, "services": {}})
-
-        domain_services = deepcopy(self.services[service_index])
-
-        if isinstance(services, str):  # its a string
-            if services not in domain_services["services"]:
-                if silent is not True:
-                    self.logger.info("Registering new Home Assistant service %s/%s", domain, services)
-
-                self.services[service_index]["services"][services] = {}
-                self.AD.services.register_service(
-                    self.get_namespace(),
-                    domain,
-                    services,
-                    self.call_plugin_service,
-                    __silent=True,
-                )
-
-        else:
-            for service, service_data in services.items():
-                if service not in domain_services["services"]:
-                    if silent is not True:
-                        self.logger.info("Registering new service %s/%s", domain, service)
-
-                    self.services[service_index]["services"][service] = service_data
-                    self.AD.services.register_service(
-                        self.get_namespace(),
-                        domain,
-                        service,
-                        self.call_plugin_service,
-                        __silent=True,
-                        return_result=self.config.return_result,
-                    )
-
-        return domain_exists
+            self.AD.services.register_service(
+                self.get_namespace(),
+                domain,
+                service,
+                self.call_plugin_service,
+                __silent=True,
+                return_result=self.config.return_result,
+            )
 
     #
     # Utility functions
     #
 
-    def utility(self):
-        self.logger.debug("Utility")
-        return None
+    # def utility(self):
+    # self.logger.debug("Utility (currently unused)")
+    # return None
 
-    #
-    # Home Assistant Stream Interactions
-    #
+    async def get_complete_state(self):
+        """This method is needed for all AppDaemon plugins"""
+        return await self.get_hass_state()
 
-    #
-    # State
-    #
+    @utils.warning_decorator(error_text="Unexpected error while getting hass state")
+    async def get_hass_state(self):
+        hass_state = (await self.websocket_send_json(type="get_states"))["result"]
+        states = {s["entity_id"]: s for s in hass_state}
+        return states
 
-    async def get_hass_state(self, internal: bool = False):
+    @utils.warning_decorator(error_text="Unexpected error while getting hass config")
+    async def get_hass_config(self) -> dict:
+        meta = (await self.websocket_send_json(type="get_config"))["result"]
+        HASSMetaData.model_validate(meta)
+        self.metadata = meta
+        return self.metadata
+
+    @utils.warning_decorator(error_text="Unexpected error while getting hass services")
+    async def get_hass_services(self):
+        """ "Gets a fresh list of services from the websocket and updates the various internal AppDaemon entries."""
+        # raise ValueError
         try:
-            if internal is True:
-                # Internal version of get_state - must not be called with active subs on stream
-                return await self.websocket_request("get_states")
+            services: dict[str, dict[str, dict]] = (await self.websocket_send_json(type="get_services"))["result"]
+            services = [{"domain": domain, "services": services} for domain, services in services.items()]
 
+            # manually added HASS services
+            new_services = {}
+            new_services["database"] = {"history": {}}
+            new_services["template"] = {"render": {}}
+
+            # now add the services
+            for i, service in enumerate(deepcopy(services)):
+                domain = service["domain"]
+                if domain in new_services:
+                    # the domain already exists
+                    services[i]["services"].update(new_services[domain])
+
+                    # remove from the list
+                    del new_services[domain]
+
+            if len(new_services) > 0:  # some have not been processed
+                for domain, service in new_services.items():
+                    services.append({"domain": domain, "services": {}})
+                    services[-1]["services"].update(service)
+
+            for s in services:
+                await self.check_register_service(s["domain"], s["services"], silent=True)
             else:
-                #
-                # External version of get_state - can be called with active subs on stream
-                #
-                req = {"type": "get_states"}
-                res = await self.process_command(req, True)
-                self.update_perf(bytes_sent=len(json.dumps(req)), bytes_recv=len(json.dumps(res)), requests_sent=1)
-                return res["result"]
-        except Exception:
-            self.logger.warning("-" * 60)
-            self.logger.warning("Unexpected error during get_hass_state()")
-            self.logger.warning("-" * 60)
-            self.logger.warning(traceback.format_exc())
-            self.logger.warning("-" * 60)
-            return None
+                self.logger.info("Updated internal service registry")
 
-    #
-    # Config
-    #
+            self.services = services
+            return services
 
-    async def get_hass_config(self):
-        try:
-            meta = await self.websocket_request("get_config")
-            HASSMetaData.model_validate(meta)
         except Exception:
-            self.logger.warning("-" * 60)
-            self.logger.warning("Unexpected error during get_hass_config()")
-            self.logger.warning("-" * 60)
-            self.logger.warning(traceback.format_exc())
-            self.logger.warning("-" * 60)
-        else:
-            return meta
+            self.logger.warning("Error getting services - retrying")
+            raise
+
+    def time_str(self, now: float | None = None) -> str:
+        return utils.time_str(self.start, now)
 
     #
     # Services
     #
 
-    @hass_check  # noqa: C901
+    @hass_check
     async def call_plugin_service(self, namespace, domain, service, data):
-        # self.logger.info(f"call_plugin_service(): {locals()}")
         # if we get a request for not our namespace something has gone very wrong
         assert namespace == self.config.namespace
 
@@ -674,69 +627,50 @@ class HassPlugin(PluginBase):
             data = {"entity_id": data}
 
         if domain == "database":
+            assert service == "history"
             return await self.get_history(**data)
 
         # Keep this just in case anyone is still using call_service() for templates
         if domain == "template" and service == "render":
             return await self.render_template(namespace, data)
 
-        try:
-            if "target" in data:
-                target = data["target"]
-                del data["target"]
-            else:
-                target = None
+        target = data.pop("target", None)
+        hass_timeout = data.pop("hass_timeout", None)
+        return_response = data.pop("return_response", self.config.return_result)
 
-            if "return_result" in data:
-                return_result = data["return_result"]
-                del data["return_result"]
-            else:
-                return_result = self.config.return_result
+        if data.pop("callback", False):
+            return_response = True
 
-            if "callback" in data:
-                del data["callback"]
-                return_result = True
+        req = {"type": "call_service", "domain": domain, "service": service, "service_data": data}
 
-            if "hass_result" in data:
-                hass_result = data["hass_result"]
-                del data["hass_result"]
-            else:
-                hass_result = False
-
-            if "hass_timeout" in data:
-                hass_timeout = data["hass_timeout"]
-                del data["hass_timeout"]
-            else:
-                hass_timeout = 0
-
-            req = {"type": "call_service", "domain": domain, "service": service, "service_data": data}
-
-            if target is not None:
-                req["target"] = target
-
-            if hass_result is True:
+        service_properties = {
+            prop: val
+            for entry in self.services
+            if domain == entry["domain"]
+            for name, info in entry["services"].items()
+            if name == service
+            for prop, val in info.items()
+        }
+        # if it has a response section
+        if resp := service_properties.get("response"):
+            # if the response section says it's not optional
+            if not resp.get("optional"):
                 req["return_response"] = True
 
-            suppress = data.pop("suppress_log_messages", self.config.suppress_log_messages)
+        if target is not None:
+            req["target"] = target
 
-            res = await self.process_command(req, return_result, hass_timeout, suppress)
+        send_coro = self.websocket_send_json(**req)
 
-            # Debug Info
-            # debug = self.AD.logging.get_diag()
-            # debug.info(f"{self.id=} {len(self.queues)=}")
-
-            self.update_perf(bytes_sent=len(json.dumps(req)), bytes_recv=len(json.dumps(res)), requests_sent=1)
-
-            return res
-
-        except Exception:
-            self.logger.warning("-" * 60)
-            self.logger.warning("Unexpected error during call_service()")
-            self.logger.warning(f"Arguments: {locals()}")
-            self.logger.warning("-" * 60)
-            self.logger.warning(traceback.format_exc())
-            self.logger.warning("-" * 60)
-            return None
+        if return_response is False:
+            self.AD.loop.create_task(send_coro)
+        else:
+            try:
+                res = await asyncio.wait_for(send_coro, timeout=hass_timeout)
+            except asyncio.TimeoutError:
+                self.logger.error(f"Timed out [{hass_timeout:.0f}s] during service call: {req}")
+            else:
+                return res
 
     #
     # Events
@@ -747,24 +681,12 @@ class HassPlugin(PluginBase):
         self.logger.info(locals())
         # if we get a request for not our namespace something has gone very wrong
         assert namespace == self.config.namespace
-        if "return_result" in kwargs:
-            return_result = kwargs["return_result"]
-            del kwargs["return_result"]
-        else:
-            return_result = False
 
-        if "timeout" in kwargs:
-            timeout = kwargs["timeout"]
-            del kwargs["timeout"]
-        else:
-            timeout = 0
+        timeout = kwargs.pop("timeout", 0)
+        req = {"type": "fire_event", "event_type": event, "event_data": kwargs}
 
         try:
-            req = {"type": "fire_event", "event_type": event, "event_data": kwargs}
-            res = await self.process_command(req, return_result, timeout)
-            self.update_perf(bytes_sent=len(json.dumps(req)), bytes_recv=len(json.dumps(res)), requests_sent=1)
-            return res
-
+            res = await self.websocket_send_json(timeout, **req)
         except Exception:
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error during fire_event()")
@@ -772,7 +694,8 @@ class HassPlugin(PluginBase):
             self.logger.warning("-" * 60)
             self.logger.warning(traceback.format_exc())
             self.logger.warning("-" * 60)
-            return None
+        else:
+            return res
 
     #
     # Home Assistant REST Interactions
@@ -825,6 +748,7 @@ class HassPlugin(PluginBase):
     # State
     #
 
+    # @utils.warning_decorator()
     @hass_check
     async def set_plugin_state(self, namespace: str, entity_id: str, **kwargs):
         self.logger.debug("set_plugin_state() %s %s %s", namespace, entity_id, kwargs)
@@ -834,131 +758,56 @@ class HassPlugin(PluginBase):
 
         api_url = self.config.get_entity_api(entity_id)
 
-        try:
-            r = await self.session.post(api_url, json=kwargs)
-            if r.status == 200 or r.status == 201:
-                state = await r.json()
-                self.logger.debug("return = %s", state)
-            else:
-                self.logger.warning(
-                    "Error setting Home Assistant state %s.%s, %s",
-                    namespace,
-                    entity_id,
-                    kwargs,
-                )
-                txt = await r.text()
-                self.logger.warning("Code: %s, error: %s", r.status, txt)
-                state = None
-                self.update_perf(bytes_sent=len(json.dumps(kwargs)), bytes_recv=len(await r.text()), requests_sent=1)
-            return state
-        except (asyncio.TimeoutError, asyncio.CancelledError):
-            self.logger.warning("Timeout in set_state(%s, %s, %s)", namespace, entity_id, kwargs)
-        except aiohttp.client_exceptions.ServerDisconnectedError:
-            self.logger.warning("HASS Disconnected unexpectedly during set_state()")
-        except Exception:
-            self.logger.warning("-" * 60)
-            self.logger.warning("Unexpected error during set_plugin_state()")
-            self.logger.warning("Arguments: %s = %s", entity_id, kwargs)
-            self.logger.warning("-" * 60)
-            self.logger.warning(traceback.format_exc())
-            self.logger.warning("-" * 60)
-            return None
+        state = await self.rest_api_post(api_url, timeout=3, **kwargs)
+
+        return state
 
     #
     # History
     #
 
-    async def get_history(self, **kwargs):
+    async def get_history(
+        self,
+        filter_entity_id: str | list[str],
+        timestamp: datetime.datetime | None = None,
+        end_time: datetime.datetime | None = None,
+        minimal_response: bool | None = None,
+        no_attributes: bool | None = None,
+        significant_changes_only: bool | None = None,
+    ) -> list[list[dict[str, Any]]]:
         """Used to get HA's History"""
+        if isinstance(filter_entity_id, str):
+            filter_entity_id = [filter_entity_id]
+
+        endpoint = "/api/history/period"
+        if timestamp is not None:
+            endpoint += f"/{timestamp.isoformat()}"
 
         try:
-            api_url = await self.get_history_api(**kwargs)
-
-            r = await self.session.get(api_url)
-
-            if r.status == 200 or r.status == 201:
-                self.bytes_recv += len(await r.text())
-                self.updates_recv += 1
-
-                result = await r.json()
-            else:
-                self.logger.warning("Error calling Home Assistant to get_history")
-                txt = await r.text()
-                self.logger.warning("Code: %s, error: %s", r.status, txt)
-                result = None
-
-            self.update_perf(bytes_sent=len(json.dumps(api_url)), bytes_recv=len(await r.text()), requests_sent=1)
-            return result
-
-        except aiohttp.client_exceptions.ServerDisconnectedError:
-            self.logger.warning("HASS Disconnected unexpectedly during get_history()")
-
-        except Exception:
-            self.logger.error("-" * 60)
-            self.logger.error("Unexpected error during get_history")
-            self.logger.error("-" * 60)
-            self.logger.error(traceback.format_exc())
-            self.logger.error("-" * 60)
-
-        return None
-
-    async def get_history_api(self, **kwargs):
-        query = {}
-        entity_id = None
-        days = None
-        start_time = None
-        end_time = None
-
-        kwargkeys = set(kwargs.keys())
-
-        if {"days", "start_time"} <= kwargkeys:
-            raise ValueError(
-                f'Can not have both days and start time. days: {kwargs["days"]} -- start_time: {kwargs["start_time"]}'
+            result: list[list[dict[str, Any]]] = await self.rest_api_get(
+                endpoint=endpoint,
+                filter_entity_id=",".join(filter_entity_id),
+                end_time=end_time,
+                minimal_response=minimal_response,
+                no_attributes=no_attributes,
+                significant_changes_only=significant_changes_only,
             )
-
-        if "end_time" in kwargkeys and {"start_time", "days"}.isdisjoint(kwargkeys):
-            raise ValueError("Can not have end_time without start_time or days")
-
-        entity_id = kwargs.get("entity_id", "").strip()
-        days = max(0, kwargs.get("days", 0))
-
-        def as_datetime(args, key):
-            if val := args.get(key):
-                if isinstance(val, str):
-                    return utils.str_to_dt(val).replace(microsecond=0)
-                elif isinstance(val, datetime.datetime):
-                    return self.AD.tz.localize(val).replace(microsecond=0)
-                else:
-                    raise ValueError(f"Invalid type for {key}")
-
-        start_time = as_datetime(kwargs, "start_time")
-        end_time = as_datetime(kwargs, "end_time")
-
-        # end_time default - now
-        now = (await self.AD.sched.get_now()).replace(microsecond=0)
-        end_time = end_time if end_time else now
-
-        # Days: Calculate start_time (now-days) and end_time (now)
-        if days:
-            now = (await self.AD.sched.get_now()).replace(microsecond=0)
-            start_time = now - datetime.timedelta(days=days)
-            end_time = now
-
-        # Build the url
-        # /api/history/period/<start_time>?filter_entity_id=<entity_id>&end_time=<end_time>
-        apiurl = f"{self.config.ha_url}/api/history/period"
-
-        if start_time:
-            apiurl += "/" + utils.dt_to_str(start_time.replace(microsecond=0), self.AD.tz)
-
-        if entity_id or end_time:
-            if entity_id:
-                query["filter_entity_id"] = entity_id
-            if end_time:
-                query["end_time"] = end_time
-            apiurl += f"?{urlencode(query)}"
-
-        return apiurl
+        except Exception:
+            raise
+        else:
+            # nested comprehension to convert the datetimes for convenience
+            result = [
+                [
+                    {
+                        k: v if not k.startswith("last_") else datetime.datetime.fromisoformat(v)
+                        for k, v in individual_result.items()
+                    }
+                    for individual_result in entity_res
+                ]
+                for entity_res in result
+            ]
+            # result = {eid: r for eid, r in zip(filter_entity_id, result)}
+            return result
 
     async def render_template(self, namespace, template):
         self.logger.debug(
@@ -1005,34 +854,3 @@ class HassPlugin(PluginBase):
             self.logger.error(traceback.format_exc())
             self.logger.error("-" * 60)
             return None
-
-    async def get_hass_services(self):
-        try:
-            services: dict[str, dict[str, dict]] = await self.websocket_request("get_services")
-            services = [{"domain": domain, "services": services} for domain, services in services.items()]
-
-            # manually added HASS services
-            new_services = {}
-            new_services["database"] = {"history": {}}
-            new_services["template"] = {"render": {}}
-
-            # now add the services
-            for i, service in enumerate(deepcopy(services)):
-                domain = service["domain"]
-                if domain in new_services:
-                    # the domain already exists
-                    services[i]["services"].update(new_services[domain])
-
-                    # remove from the list
-                    del new_services[domain]
-
-            if len(new_services) > 0:  # some have not been processed
-                for domain, service in new_services.items():
-                    services.append({"domain": domain, "services": {}})
-                    services[-1]["services"].update(service)
-
-            return services
-
-        except Exception:
-            self.logger.warning("Error getting services - retrying")
-            raise

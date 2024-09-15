@@ -15,6 +15,7 @@ from pydantic import (
     SecretStr,
     Tag,
     field_validator,
+    model_serializer,
     model_validator,
 )
 from pytz.tzinfo import DstTzInfo, StaticTzInfo
@@ -115,6 +116,10 @@ class MQTTConfig(PluginConfig):
 
         return self
 
+    @model_serializer
+    def serial(self, vals: dict):
+        return vals
+
 
 class HASSConfig(PluginConfig):
     ha_url: str = "http://supervisor/core"
@@ -128,9 +133,13 @@ class HASSConfig(PluginConfig):
     cert_verify: Optional[bool] = None
     commtype: str = "WS"
     q_timeout: int = 30
-    return_result: bool = False
+    return_result: Optional[bool] = None
     suppress_log_messages: bool = False
     retry_secs: int = 5
+    services_sleep_time: int = 60
+    """The sleep time in the background task that updates the internal list of available services every once in a while"""
+    config_sleep_time: int = 60
+    """The sleep time in the background task that updates the config metadata every once in a while"""
 
     @field_validator("ha_key", mode="after")
     @classmethod

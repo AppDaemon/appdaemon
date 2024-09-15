@@ -80,14 +80,22 @@ class AllAppConfig(RootModel):
     def set_app_names(cls, values: Dict):
         if not isinstance(values, PydanticUndefinedType):
             for app_name, cfg in values.items():
-                if app_name == "global_modules":
-                    values[app_name] = GlobalModules.model_validate(cfg)
-                elif app_name == "sequence":
-                    values[app_name] = Sequence.model_validate(cfg)
-                elif cfg.get("global"):
-                    values[app_name] = GlobalModule.model_validate(cfg)
-                else:
-                    cfg["name"] = app_name
+                match app_name:
+                    case "global_modules":
+                        values[app_name] = GlobalModules.model_validate(cfg)
+                    case "sequence":
+                        values[app_name] = Sequence.model_validate(cfg)
+                    case _:
+                        cfg["name"] = app_name
+                        values[app_name] = cfg
+
+                match cfg:
+                    case BaseApp():
+                        values[app_name]["name"] = app_name
+                    case dict():
+                        if cfg.get("global"):
+                            values[app_name] = GlobalModule.model_validate(cfg)
+
             return values
 
     def __getitem__(self, key: str):

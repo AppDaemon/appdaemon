@@ -1,4 +1,5 @@
 import asyncio
+import json
 import threading
 import traceback
 from copy import deepcopy
@@ -194,7 +195,7 @@ class Services:
                 ns = namespace
 
             funcref = self.services[namespace][domain][service]["callback"]
-            plugin_return_result = self.services[namespace][domain][service].get("return_result", False)
+            # plugin_return_result = self.services[namespace][domain][service].get("return_result", False)
 
             # Decide whether or not to call this as async
 
@@ -202,10 +203,10 @@ class Services:
             isasync = True
 
             # if to wait for results, default to False
-            return_result = data.get("return_result", False)
+            data.get("return_result", False)
 
             # if to return results via callback
-            callback = data.get("callback", None)
+            data.get("callback", None)
 
             if "__async" in self.services[namespace][domain][service]:
                 # We have a kwarg to tell us what to do
@@ -240,26 +241,17 @@ class Services:
                 else:
                     coro = utils.run_in_executor(self, funcref, ns, domain, service, data)
 
-            if return_result is True or plugin_return_result is True:
-                return await self.run_service(coro)
+            return await self.run_service_safe(coro, **data)
 
-            elif callback is not None and name is not None:
-                # results expected and it must belong to an app
-                app_object = await self.AD.app_management.get_app(name)
-                app_object.create_task(self.run_service(coro), callback=callback)
-
-            else:
-                asyncio.create_task(self.run_service(coro))
-
-    async def run_service(self, coro: Awaitable) -> Any:
-        """Used to process a service call"""
+    async def run_service_safe(self, coro: Awaitable, **kwargs) -> Any:
+        """Wraps running a service with a try/except clause to prevent any exceptions from being raised"""
         try:
             return await coro
-
         except Exception:
             self.logger.error("-" * 60)
             self.logger.error("Unexpected error in call_service()")
             self.logger.error("-" * 60)
             self.logger.error(traceback.format_exc())
             self.logger.error("-" * 60)
-            return None
+            self.logger.error(json.dumps(kwargs))
+            self.logger.error("-" * 60)

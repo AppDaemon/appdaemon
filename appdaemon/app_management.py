@@ -572,7 +572,7 @@ class AppManagement:
             apps |= set(name for name, cfg in self.app_config.root.items() if isinstance(cfg, GlobalModule))
         return apps
 
-    def init_plugin_object(self, name: str, object: "PluginBase", use_dictionary_unpacking: bool = False) -> None:
+    def add_plugin_object(self, name: str, object: "PluginBase", use_dictionary_unpacking: bool = False) -> None:
         """Add the plugin object to the internal dictionary of ``ManagedObjects``"""
         self.objects[name] = ManagedObject(
             type="plugin",

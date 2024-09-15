@@ -1,6 +1,7 @@
 from ast import literal_eval
+from datetime import datetime, timedelta
 from functools import wraps
-from typing import Any, Optional, Union
+from typing import Any, Callable, Optional, Union
 
 import requests
 from urllib3.exceptions import InsecureRequestWarning
@@ -10,6 +11,7 @@ import appdaemon.adbase as adbase
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
 
+from .hassplugin import HassPlugin
 from ...models.app_config import AppConfig
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
@@ -20,11 +22,11 @@ def hass_check(coro):
     async def coro_wrapper(*args, **kwargs):
         self = args[0]
         ns = self._get_namespace(**kwargs)
-        plugin = await self.AD.plugins.get_plugin_object(ns)
+        plugin: HassPlugin = await self.AD.plugins.get_plugin_object(ns)
         if plugin is None:
             self.logger.warning("non_existent namespace (%s) specified in call to %s", ns, coro.__name__)
             return None
-        if not await plugin.am_reading_messages():
+        if not plugin.reading_messages:
             self.logger.warning("Attempt to call Home Assistant while disconnected: %s", coro.__name__)
             return None
         else:
@@ -39,9 +41,10 @@ def hass_check(coro):
 
 
 class Hass(adbase.ADBase, adapi.ADAPI):
-    #
-    # Internal
-    #
+    """HASS API class for the users to inherit from.
+
+    This class provides an interface to the HassPlugin object that connects to Home Assistant.
+    """
 
     def __init__(self, ad: AppDaemon, config_model: AppConfig):
         # Call Super Classes
@@ -617,7 +620,18 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
     @utils.sync_decorator
     @hass_check
-    async def get_history(self, **kwargs) -> list:
+    async def get_history(
+        self,
+        entity_id: str | list[str],
+        days: int | None = None,
+        start_time: datetime | str | None = None,
+        end_time: datetime | str | None = None,
+        minimal_response: bool | None = None,
+        no_attributes: bool | None = None,
+        significant_changes_only: bool | None = None,
+        callback: Callable | None = None,
+        namespace: str | None = None,
+    ) -> list:
         """Gets access to the HA Database.
         This is a convenience function that allows accessing the HA Database, so the
         history state of a device can be retrieved. It allows for a level of flexibility
@@ -683,16 +697,27 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
         """
 
-        namespace = self._get_namespace(**kwargs)
-        plugin = await self.AD.plugins.get_plugin_object(namespace)
+        namespace = namespace or self._namespace
+        plugin: HassPlugin = await self.AD.plugins.get_plugin_object(namespace)
+
+        if days is not None:
+            end_time = end_time or self.get_now()
+            start_time = end_time - timedelta(days=days)
 
         if hasattr(plugin, "get_history"):
-            callback = kwargs.pop("callback", None)
-            if callback is not None and callable(callback):
-                self.create_task(plugin.get_history(**kwargs), callback)
+            coro = plugin.get_history(
+                filter_entity_id=entity_id,
+                timestamp=start_time,
+                end_time=end_time,
+                minimal_response=minimal_response,
+                no_attributes=no_attributes,
+                significant_changes_only=significant_changes_only,
+            )
 
+            if callback is not None and callable(callback):
+                self.create_task(coro, callback)
             else:
-                return await plugin.get_history(**kwargs)
+                return await coro
 
         else:
             self.logger.warning(
@@ -737,3 +762,8 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             return literal_eval(result)
         except (SyntaxError, ValueError):
             return result
+
+    @utils.sync_decorator
+    async def ping(self):
+        plugin: HassPlugin = await self.AD.plugins.get_plugin_object(self.namespace)
+        return await plugin.ping()

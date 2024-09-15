@@ -1,3 +1,4 @@
+import abc
 import asyncio
 import datetime
 import importlib
@@ -16,7 +17,7 @@ if TYPE_CHECKING:
     from appdaemon.appdaemon import AppDaemon
 
 
-class PluginBase:
+class PluginBase(abc.ABC):
     """
     Base class for plugins to set up _logging
     """
@@ -41,6 +42,7 @@ class PluginBase:
         self.name = name
         self.config = config
         self.logger = self.AD.logging.get_child(name)
+        self.error = self.logger
         self.stopping = False
 
         # Performance Data
@@ -79,6 +81,10 @@ class PluginBase:
         self.requests_sent += kwargs.get("requests_sent", 0)
         self.updates_recv += kwargs.get("updates_recv", 0)
 
+    @abc.abstractmethod
+    async def get_complete_state(self):
+        raise NotImplementedError
+
 
 class PluginManagement:
     """Subsystem container for managing plugins"""
@@ -103,6 +109,7 @@ class PluginManagement:
     """Dictionary storing the instantiated plugin objects
     """
     required_meta = ["latitude", "longitude", "elevation", "time_zone"]
+    last_plugin_state: dict[str, datetime.datetime]
     stopping: bool
     """Flag for if PluginManagement should be shutting down
     """
@@ -170,7 +177,7 @@ class PluginManagement:
                     #
                     # Create app entry for the plugin so we can listen_state/event
                     #
-                    self.AD.app_management.init_plugin_object(name, plugin, self.config[name].use_dictionary_unpacking)
+                    self.AD.app_management.add_plugin_object(name, plugin, self.config[name].use_dictionary_unpacking)
 
                     self.AD.loop.create_task(plugin.get_updates())
                 except Exception:
@@ -274,6 +281,16 @@ class PluginManagement:
             #     return name
 
     async def notify_plugin_started(self, name: str, ns: str, meta: dict, state, first_time: bool = False):
+        """Notifys the AD internals that the plugin has started
+
+        - sets the namespace state in self.AD.state
+        - adds the plugin entity in self.AD.state
+        - sets the pluginobject to active
+        - fires a ``plugin_started`` event
+
+        Arguments:
+            first_time: if True, then it runs ``self.AD.app_management.check_app_updates`` with UpdateMode.INIT
+        """
         self.logger.debug("Plugin started: %s", name)
         try:
             namespaces = []
@@ -325,7 +342,7 @@ class PluginManagement:
                     #
                     await self.AD.state.add_entity(
                         "admin",
-                        "plugin.{}".format(name),
+                        f"plugin.{name}",
                         "active",
                         {
                             "bytes_sent_ps": 0,
@@ -382,7 +399,8 @@ class PluginManagement:
                         self.logger.debug("Refreshing %s state", name)
 
                         with async_timeout.timeout(self.config[name].refresh_timeout):
-                            state = await self.plugin_objs[plugin]["object"].get_complete_state()
+                            obj = await self.get_plugin_object(plugin)
+                            state = await obj.get_complete_state()
 
                         if state is not None:
                             if (

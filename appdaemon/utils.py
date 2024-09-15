@@ -222,16 +222,25 @@ def check_state(logger, new_state, callback_state, name) -> bool:
 def sync_decorator(coro):  # no type hints here, so that @wraps(func) works properly
     @wraps(coro)
     def wrapper(self, *args, **kwargs):
+        self.logger.debug(f"Wrapping async function {coro.__qualname__}")
         try:
             asyncio.get_running_loop()
-            task = asyncio.create_task(coro(self, *args, **kwargs))
-            futures: Futures = self.AD.futures
-            futures.add_future(self.name, task)
-            return task
+            running_loop = True
         except RuntimeError:
-            # Maybe the async loop is not running yet
-            result = run_coroutine_threadsafe(self, coro(self, *args, **kwargs))
-            return result
+            running_loop = False
+
+        try:
+            if running_loop:
+                task = asyncio.create_task(coro(self, *args, **kwargs))
+                futures: Futures = self.AD.futures
+                futures.add_future(self.name, task)
+                return task
+            else:
+                return run_coroutine_threadsafe(self, coro(self, *args, **kwargs))
+        except Exception as e:
+            self.logger.error(f"Error running coroutine threadsafe: {e}")
+            self.logger.error(format_exception(e))
+            raise
 
     return wrapper
 
@@ -321,7 +330,11 @@ def format_exception(e):
 
 
 def warning_decorator(
-    start_text: str = None, success_text: str = None, error_text: str = None, finally_text: str = None
+    start_text: str | None = None,
+    success_text: str | None = None,
+    error_text: str | None = None,
+    finally_text: str | None = None,
+    reraise: bool = False,
 ):
     """Creates a decorator for a function that logs custom text before and after."""
 
@@ -343,11 +356,11 @@ def warning_decorator(
                 nonlocal error_text
                 error_text = error_text or f"Unexpected error running {func.__qualname__}"
                 error_logger.warning(error_text)
-                error_logger.warning("-" * 60)
                 if isinstance(e, ValidationError):
                     error_logger.warning(e)
                 else:
-                    error_logger.warning(format_exception(e))
+                    exception_text = ("-" * 60) + "\n" + format_exception(e)
+                    error_logger.warning(exception_text)
                 error_logger.warning("-" * 60)
 
                 if self.AD.logging.separate_error_log():
@@ -355,6 +368,8 @@ def warning_decorator(
                         "Logged an error to %s",
                         self.AD.logging.get_filename("error_log"),
                     )
+                if reraise:
+                    raise e
             else:
                 if success_text:
                     self.logger.debug(success_text)
@@ -866,3 +881,24 @@ class Singleton(type):
         if cls not in cls._instances:
             cls._instances[cls] = super().__call__(*args, **kwargs)
         return cls._instances[cls]
+
+
+def time_str(start: float, now: float | None = None) -> str:
+    now = now or time.perf_counter()
+    match (elapsed := now - start):
+        case _ if elapsed < 1:
+            return f"{elapsed*10**3:.0f}ms"
+        case _ if elapsed > 10:
+            return f"{elapsed:.0f}s"
+        case _:
+            return f"{elapsed:.2f}s"
+
+
+def clean_kwargs(**kwargs):
+    """Converts to datetimes when necessary and filters None values"""
+    # converts datetimes to strings where necessary
+    kwargs = {k: v.isoformat() if isinstance(v, datetime.datetime) else v for k, v in kwargs.items() if v is not None}
+
+    # filters out null values
+    kwargs = {k: str(v) if not isinstance(v, dict) else v for k, v in kwargs.items() if v is not None}
+    return kwargs
