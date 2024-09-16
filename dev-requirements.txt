@@ -59,7 +59,7 @@ h11==0.14.0
     # via wsproto
 identify==2.6.0
     # via pre-commit
-idna==3.8
+idna==3.10
     # via
     #   requests
     #   yarl
