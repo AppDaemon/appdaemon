@@ -3194,7 +3194,7 @@ class ADAPI:
         return f
 
     @staticmethod
-    async def sleep(delay: int, result=None) -> None:
+    async def sleep(delay: float, result=None) -> None:
         """Pause execution for a certain time span
         (not available in sync apps)
 
