@@ -280,7 +280,7 @@ class ADMain:
                     config_file_path = None
 
         if config_file_path is None:
-            print("FATAL: no configuration directory defined and defaults not present\n")
+            print("FATAL: unable to locate configuration path and/or configuration file\n")
             parser.print_help()
             sys.exit(1)
 
