@@ -17,13 +17,13 @@
 - Upgraded HASS plugin to use the aiohttp websocket client
 - Upgraded HASS plugin to use the Websocket API where possible
 - Implemented value return for HASS Service Calls
-- added the ``--write_toml`` as an AppDaemon startup parameter to forec AD to use the ``TOML`` format when creating new apps using the
+- added the ``--write_toml`` as an AppDaemon startup parameter to force AD to use the ``TOML`` format when creating new apps using the
 
 **Fixes**
 
 - baseicon set_service_call fix - contributed by [lancasterJ](https://github.com/lancasterJ)
 - HTTP module now correctly honors the provided host name instead of binding to 0.0.0.0, and should also now work for IPv6 - contributed by [bitstacker](https://github.com/bitstacker)
-- Fix for baseweather direcytion icon - contributed by [carawan](https://github.com/carawan)
+- Fix for baseweather direction icon - contributed by [carawan](https://github.com/carawan)
 - Fix for bug in pathname checking for hidden files and __pycache__  - contributed by [David Warde-Farley](https://github.com/dwf)
 
 **Breaking Changes**
@@ -34,8 +34,8 @@
 
 - The fix to honor the host name in the HTTP URL may cause AppDaemon to fail to start, if the hostname provided is not valid. In particular, docker users will need to switch their URL to either use localhost, explicitly, or "0.0.0.0" which will bind to any available interface, or use command line tools to discover the correct IP address and use that.
 - The timer for internal function timeouts has been increased from 10 seconds to 60 to allow for the fact that service calls to hass can now be synchronous and may take longer
-- AppDaemon will now discard any events that it attempts to process for an App that is initializing, with a warning. This is intended to prevent race conditions during App Initialization
-- The ``--toml`` flag has been deperecated. AppDaemon will now work transparently with either yaml or toml files, allowing the user to mix and match and convert from one format to another over time. In the event of a conflict, the yaml file will take precedence.
+- AppDaemon will now discard any events that it attempts to process for an App that is initializing. This is intended to prevent race conditions during App Initialization
+- The ``--toml`` flag has been deprecated. AppDaemon will now work transparently with either yaml or toml files, allowing the user to mix and match and convert from one format to another over time. In the event of a conflict, the yaml file will take precedence.
 
 
 ## 4.4.2 (2023-04-16)
