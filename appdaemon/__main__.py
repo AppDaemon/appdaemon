@@ -276,6 +276,8 @@ class ADMain:
                 if os.path.isfile(config_file_path):
                     # It exists, use it
                     break
+                else:
+                    config_file_path = None
 
         if config_file_path is None:
             print("FATAL: no configuration directory defined and defaults not present\n")
