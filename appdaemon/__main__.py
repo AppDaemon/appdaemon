@@ -271,6 +271,11 @@ class ADMain:
                     break
         else:
             # We have a config dir and a list of candidate names
+            if not os.path.isdir(config_dir):
+                print("FATAL: unable to locate configuration directory\n")
+                parser.print_help()
+                sys.exit(1)
+
             for file in file_candidates:
                 config_file_path = os.path.join(config_dir, file)
                 if os.path.isfile(config_file_path):
@@ -280,14 +285,14 @@ class ADMain:
                     config_file_path = None
 
         if config_file_path is None:
-            print("FATAL: unable to locate configuration path and/or configuration file\n")
+            print("FATAL: unable to locate configuration file\n")
             parser.print_help()
             sys.exit(1)
 
         try:
             config = utils.read_config_file(config_file_path)
         except Exception as e:
-            print(f"Unexpected error loading config file: {config_file_path}")
+            print(f"FATAL: Unexpected error loading config file: {config_file_path}")
             print(e)
             sys.exit()
 
