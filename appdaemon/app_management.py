@@ -522,8 +522,9 @@ class AppManagement:
         for root, subdirs, files in await utils.run_in_executor(self, os.walk, self.AD.app_dir):
             subdirs[:] = [d for d in subdirs if d not in self.AD.exclude_dirs and "." not in d]
             if utils.is_valid_root_path(root):
+                previous_configs = []
                 for file in files:
-                    if file[-5:] == self.ext and file[0] != ".":
+                    if self.is_valid_config(file, previous_configs):
                         path = os.path.join(root, file)
                         self.logger.debug("Reading %s", path)
                         config: Dict[str, Dict] = await utils.run_in_executor(self, self.read_config_file, path)
@@ -662,11 +663,12 @@ class AppManagement:
         later_files["files"] = []
         later_files["latest"] = last_latest
         later_files["deleted"] = []
+        previous_configs = []
         for root, subdirs, files in os.walk(self.AD.app_dir):
             subdirs[:] = [d for d in subdirs if d not in self.AD.exclude_dirs and "." not in d]
             if utils.is_valid_root_path(root):
                 for file in files:
-                    if file[-5:] == self.ext and file[0] != ".":
+                    if self.is_valid_config(file, previous_configs, quiet=True):
                         path = os.path.join(root, file)
                         app_config_files.append(path)
                         ts = os.path.getmtime(path)
@@ -691,6 +693,24 @@ class AppManagement:
             del self.app_config_files[file]
 
         return later_files
+
+    def is_valid_config(self, file, previous_configs, quiet=False):
+
+        valid_types = [".toml", ".yaml"]
+
+        filename, file_extension = os.path.splitext(file)
+
+        if file_extension not in valid_types:
+            return False
+
+        if filename in previous_configs:
+            if quiet is False:
+                self.logger.warning(f"Duplicate configuration file {file} - ignoring")
+                return False
+
+        previous_configs.append(filename)
+
+        return True
 
     # Run in executor
     def read_config_file(self, file) -> Dict[str, Dict]:

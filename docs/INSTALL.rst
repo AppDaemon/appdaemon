@@ -205,7 +205,7 @@ The following CLI arguments are available:
                             global debug level
     -m MODULEDEBUG MODULEDEBUG, --moduledebug MODULEDEBUG MODULEDEBUG
     -v, --version           show program's version number and exit
-    --toml                  use toml file format for configuration files
+    --write_toml            use toml file format for writing new configuration files when creating apps
 
 A brief description of them follows:
 
