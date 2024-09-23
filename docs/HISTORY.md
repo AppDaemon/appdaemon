@@ -24,7 +24,8 @@
 - baseicon set_service_call fix - contributed by [lancasterJ](https://github.com/lancasterJ)
 - HTTP module now correctly honors the provided host name instead of binding to 0.0.0.0, and should also now work for IPv6 - contributed by [bitstacker](https://github.com/bitstacker)
 - Fix for baseweather direction icon - contributed by [carawan](https://github.com/carawan)
-- Fix for bug in pathname checking for hidden files and __pycache__  - contributed by [David Warde-Farley](https://github.com/dwf)
+- Fix for bug in pathname checking for hidden files and __pycache__  - contributed by [David Warde-Farley](https://github.com/dwf)- contributed by [Roman Andriadi](https://github.com/nARN)
+- ADAPI Sleep now accepts a float as documented
 
 **Breaking Changes**
 
