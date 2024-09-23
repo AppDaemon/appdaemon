@@ -166,7 +166,7 @@ uvloop==0.20.0 ; sys_platform != "win32"
     # via appdaemon (pyproject.toml)
 watchfiles==0.24.0
     # via sphinx-autobuild
-websockets==13.0.1
+websockets==13.1
     # via sphinx-autobuild
 wsproto==1.2.0
     # via simple-websocket
