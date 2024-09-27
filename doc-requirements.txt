@@ -4,7 +4,7 @@
 #
 #    pip-compile --extra=doc --output-file=doc-requirements.txt pyproject.toml
 #
-aiohappyeyeballs==2.4.0
+aiohappyeyeballs==2.4.2
     # via aiohttp
 aiohttp==3.10.5
     # via
