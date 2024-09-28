@@ -28,14 +28,17 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
     Making Calls to MQTT
     --------------------
 
-    AD API's ``call_service()`` is used to carry out service calls from within an AppDaemon app. This allows the app to carry out one of the following services:
+    AD API's ``call_service()`` is used to carry out service calls from within an AppDaemon app.
+    This allows the app to carry out one of the following services:
 
       - ``Publish``
       - ``Subscribe``
       - ``Unsubscribe``
 
-    By simply specifying within the function what is to be done. It uses configuration specified in the plugin configuration which simplifies the call within the app significantly. Different brokers can be accessed within an app, as long as they are all declared
-    when the plugins are configured, and using the ``namespace`` parameter.
+    By simply specifying within the function what is to be done. It uses configuration specified in
+    the plugin configuration which simplifies the call within the app significantly. Different
+    brokers can be accessed within an app, as long as they are all declared when the plugins are
+    configured, and using the ``namespace`` parameter.
 
     Examples
     ^^^^^^^^
@@ -47,7 +50,8 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
         # if wanting to unsubscribe a topic from a broker in a different namespace
         self.call_service("unsubscribe", topic = "homeassistant/bedroom/light", namespace = "mqtt2")
 
-    The MQTT API also provides 3 convenience functions to make calling of specific functions easier an more readable. These are documented in the following section.
+    The MQTT API also provides 3 convenience functions to make calling of specific functions easier
+    an more readable. These are documented in the following section.
     """
 
     def __init__(self, ad: AppDaemon, config_model: AppConfig):

@@ -4,14 +4,12 @@ readonly REPO_DIR=$(cd $(dirname $(dirname $(readlink -f "${BASH_SOURCE[0]}"))) 
 
 rm -rf ./build ./dist
 
-git pull
-
-if command -v rye >/dev/null 2>&1; then
-    RYE_INSTALLED=true
-    rye sync
-    rye build --wheel --clean
+if command -v uv >/dev/null 2>&1; then
+    uv sync -U --all-extras
+    uv build --wheel --refresh
 else
-    RYE_INSTALLED=false
+    # uv is not installed
+    echo "uv command not found. See https://docs.astral.sh/uv/getting-started/installation/"
     python -m build
 fi
 

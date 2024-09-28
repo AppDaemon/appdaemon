@@ -36,7 +36,10 @@ class Threading:
     """
     thread_count: int
     threads: Dict[str, Dict[str, Union[Thread, Queue]]]
-    """Dictionary with keys of the thread ID (string beginning with `thread-`) and values of another dictionary with `thread` and `queue` keys that have values of :class:`~threading.Thread` and :class:`~queue.Queue` objects respectively."""
+    """Dictionary with keys of the thread ID (string beginning with `thread-`) and values of
+    another dictionary with `thread` and `queue` keys that have values of
+    :class:`~threading.Thread` and :class:`~queue.Queue` objects respectively.
+    """
 
     last_stats_time: datetime.datetime = datetime.datetime.fromtimestamp(0)
     callback_list: List[Dict]

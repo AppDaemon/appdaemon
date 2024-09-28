@@ -226,9 +226,7 @@ class HassPlugin(PluginBase):
         self.logger.info("All startup conditions met")
 
         state = await self.get_hass_state()
-        await self.AD.plugins.notify_plugin_started(
-            self.name, self.config.namespace, self.metadata, state, self.first_time
-        )
+        await self.AD.plugins.notify_plugin_started(self.name, self.config.namespace, self.metadata, state, self.first_time)
         self.first_time = False
         self.already_notified = False
 
@@ -239,20 +237,23 @@ class HassPlugin(PluginBase):
         # https://developers.home-assistant.io/docs/api/websocket/#pings-and-pongs
         return await self.websocket_send_json(type="ping")
 
-    # @utils.warning_decorator(error_text='Unexpected error during receive_result')
+    @utils.warning_decorator(error_text="Unexpected error during receive_result")
     async def receive_result(self, resp: dict):
         if (future := self._result_futures.pop(resp["id"], None)) is not None:
-            future.set_result(resp)
+            if not future.done():
+                future.set_result(resp)
+            else:
+                self.logger.warning(f'Request already timed out for {resp["id"]}')
         else:
             self.logger.warning(f"Received result without a matching future: {resp}")
 
         match resp["success"]:
+            case True:
+                self.logger.debug(f'Received successful result from ID {resp["id"]}')
             case False:
-                self.logger.warning(
-                    "Error with websocket result: %s: %s", resp["error"]["code"], resp["error"]["message"]
-                )
+                self.logger.warning("Error with websocket result: %s: %s", resp["error"]["code"], resp["error"]["message"])
 
-    # @utils.warning_decorator(error_text='Unexpected error during receive_event')
+    @utils.warning_decorator(error_text="Unexpected error during receive_event")
     async def receive_event(self, event: dict):
         self.logger.debug(f"Received event type: {event['event_type']}")
 
@@ -272,7 +273,7 @@ class HassPlugin(PluginBase):
             case "call_service":
                 pass
 
-    async def websocket_send_json(self, timeout: float = 1.0, **request) -> dict:
+    async def websocket_send_json(self, timeout: float = 5.0, **request) -> dict:
         """
         Sends a json request over the websocket and gets the response.
 
@@ -475,9 +476,7 @@ class HassPlugin(PluginBase):
             self.logger.info("All startup conditions met")
             self.reading_messages = True
             state = await self.get_hass_state()
-            await self.AD.plugins.notify_plugin_started(
-                self.name, self.config.namespace, self.metadata, state, self.first_time
-            )
+            await self.AD.plugins.notify_plugin_started(self.name, self.config.namespace, self.metadata, state, self.first_time)
             self.first_time = False
             self.already_notified = False
 
@@ -649,14 +648,7 @@ class HassPlugin(PluginBase):
 
         req = {"type": "call_service", "domain": domain, "service": service, "service_data": data}
 
-        service_properties = {
-            prop: val
-            for entry in self.services
-            if domain == entry["domain"]
-            for name, info in entry["services"].items()
-            if name == service
-            for prop, val in info.items()
-        }
+        service_properties = {prop: val for entry in self.services if domain == entry["domain"] for name, info in entry["services"].items() if name == service for prop, val in info.items()}
         # if it has a response section
         if resp := service_properties.get("response"):
             # if the response section says it's not optional
@@ -802,16 +794,7 @@ class HassPlugin(PluginBase):
             raise
         else:
             # nested comprehension to convert the datetimes for convenience
-            result = [
-                [
-                    {
-                        k: v if not k.startswith("last_") else datetime.datetime.fromisoformat(v)
-                        for k, v in individual_result.items()
-                    }
-                    for individual_result in entity_res
-                ]
-                for entity_res in result
-            ]
+            result = [[{k: v if not k.startswith("last_") else datetime.datetime.fromisoformat(v) for k, v in individual_result.items()} for individual_result in entity_res] for entity_res in result]
             # result = {eid: r for eid, r in zip(filter_entity_id, result)}
             return result
 

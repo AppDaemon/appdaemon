@@ -2,7 +2,7 @@ import logging
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Annotated, Any, Callable, Dict, List, Literal, Optional, Union
+from typing import TYPE_CHECKING, Annotated, Any, Callable, Dict, List, Literal, Union
 
 import pytz
 from pydantic import (
@@ -43,7 +43,7 @@ class PluginConfig(BaseModel, extra="allow"):
     class_name: str = None
 
     namespace: str = "default"
-    namespaces: Optional[dict[str, NamespaceConfig]] = Field(default_factory=dict)
+    namespaces: dict[str, NamespaceConfig] | None = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def custom_validator(self):
@@ -66,9 +66,9 @@ class MQTTConfig(PluginConfig):
     client_port: int = 1883
     transport: Literal["tcp", "websockets", "unix"] = "tcp"
     clean_session: bool = True
-    client_user: Optional[str] = None
-    client_password: Optional[SecretBytes] = None
-    client_id: Optional[str] = None
+    client_user: str | None = None
+    client_password: SecretBytes | None = None
+    client_id: str | None = None
     client_qos: int = 0
     client_topics: list[str] = Field(default=["#"])
     client_timeout: int = 60
@@ -77,19 +77,19 @@ class MQTTConfig(PluginConfig):
 
     status_topic: str = None
 
-    birth_topic: Optional[str] = None
+    birth_topic: str | None = None
     birth_payload: str = "online"
     birth_retain: bool = True
 
-    will_topic: Optional[str] = None
+    will_topic: str | None = None
     will_payload: str = "offline"
     will_retain: bool = True
 
     shutdown_payload: str = None
 
-    ca_cert: Optional[str] = None
-    client_cert: Optional[str] = None
-    client_key: Optional[str] = None
+    ca_cert: str | None = None
+    client_cert: str | None = None
+    client_key: str | None = None
     verify_cert: bool = True
     tls_version: Literal["auto", "1.0", "1.1", "1.2"] = "auto"
 
@@ -124,16 +124,14 @@ class MQTTConfig(PluginConfig):
 class HASSConfig(PluginConfig):
     ha_url: str = "http://supervisor/core"
     token: SecretStr
-    ha_key: Optional[
-        Annotated[SecretStr, deprecated("'ha_key' is deprecated. Please use long lived tokens instead")]
-    ] = None
+    ha_key: Annotated[SecretStr, deprecated("'ha_key' is deprecated. Please use long lived tokens instead")] | None = None
     appdaemon_startup_conditions: dict = Field(default_factory=dict)
     plugin_startup_conditions: dict = Field(default_factory=dict)
-    cert_path: Optional[Path] = None
-    cert_verify: Optional[bool] = None
+    cert_path: Path | None= None
+    cert_verify: bool  | None = None
     commtype: str = "WS"
     q_timeout: int = 30
-    return_result: Optional[bool] = None
+    return_result: bool | None = None
     suppress_log_messages: bool = False
     retry_secs: int = 5
     services_sleep_time: int = 60
@@ -186,7 +184,11 @@ class HASSConfig(PluginConfig):
             return {"x-ha-access": self.ha_key}
 
 
-class HASSMetaData(BaseModel):
+class HASSMetaData(BaseModel, extra="allow"):
+    """Represents the fields required to be returned from the ``get_config``
+    command from the websocket connection
+    """
+
     latitude: float
     longitude: float
     elevation: float
@@ -231,16 +233,16 @@ class AppDaemonConfig(BaseModel):
     module_debug: Dict = {}
     filters: List[FilterConfig] = []
 
-    starttime: Optional[datetime] = None
-    endtime: Optional[datetime] = None
+    starttime: datetime | None = None
+    endtime: datetime | None = None
     timewarp: float = 1
     max_clock_skew: int = 1
 
     loglevel: str = "INFO"
     module_debug: Dict[str, str] = Field(default_factory=dict)
 
-    api_port: Optional[int] = None
-    stop_function: Optional[Callable] = None
+    api_port: int | None = None
+    stop_function: Callable | None = None
 
     utility_delay: int = 1
     admin_delay: int = 1
@@ -264,24 +266,20 @@ class AppDaemonConfig(BaseModel):
     disable_apps: bool = False
 
     module_debug: Dict[str, str] = {}
-    pin_apps: Optional[bool] = None
+    pin_apps: bool | None = None
 
     import_method: Annotated[
-        Optional[Literal["normal", "expert"]],
+        Literal["normal", "expert"] | None,
         deprecated("Import method is no longer relevant with the new AppManagement system."),
     ] = None
 
     load_distribution: str = "roundrobbin"
-    threads: Optional[
-        Annotated[
+    threads: Annotated[
             int,
-            deprecated(
-                "Threads directive is deprecated apps - will be pinned. Use total_threads if you want to unpin your apps"
-            ),
-        ]
-    ] = None
-    total_threads: Optional[int] = None
-    pin_threads: Optional[int] = None
+            deprecated("Threads directive is deprecated apps - will be pinned. Use total_threads if you want to unpin your apps"),
+        ]  | None = None
+    total_threads: int | None = None
+    pin_threads: int | None = None
     thread_duration_warning_threshold: float = 10
     threadpool_workers: int = 10
 

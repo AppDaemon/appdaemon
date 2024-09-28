@@ -119,11 +119,7 @@ class AllAppConfig(RootModel):
 
     def depedency_graph(self) -> Dict[str, Set[str]]:
         """Maps the app names to the other apps that they depend on"""
-        return {
-            app_name: cfg.dependencies | cfg.global_dependencies
-            for app_name, cfg in self.root.items()
-            if isinstance(cfg, (AppConfig, GlobalModule))
-        }
+        return {app_name: cfg.dependencies | cfg.global_dependencies for app_name, cfg in self.root.items() if isinstance(cfg, (AppConfig, GlobalModule))}
 
     def reversed_dependency_graph(self) -> Dict[str, Set[str]]:
         """Maps each app to the other apps that depend on it"""
@@ -141,11 +137,7 @@ class AllAppConfig(RootModel):
         if not isinstance(paths, set):
             paths = set(paths)
 
-        return set(
-            app_name
-            for app_name, cfg in self.root.items()
-            if isinstance(cfg, (AppConfig, GlobalModule)) and cfg.config_path in paths
-        )
+        return set(app_name for app_name, cfg in self.root.items() if isinstance(cfg, (AppConfig, GlobalModule)) and cfg.config_path in paths)
 
     @property
     def active_app_count(self) -> int:

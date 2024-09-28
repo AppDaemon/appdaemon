@@ -137,7 +137,7 @@ exclude = [
 ]
 per-file-ignores = {}
 
-line-length = 500
+line-length = 200
 
 # Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
@@ -149,9 +149,9 @@ target-version = "py310"
 # Unlike Flake8, default to a complexity level of 10.
 max-complexity = 10
 
-[tool.rye]
+[tool.uv]
 dev-dependencies = [
-    "uv>=0.3.4",
+    "uv>=0.4.8",
     "pre-commit>=3.8.0",
     "ruff>=0.6.3",
     "pytest>=8.3.2",

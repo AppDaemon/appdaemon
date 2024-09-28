@@ -64,7 +64,14 @@ class DependencyResolutionFail(Exception):
         self.base_exception = base_exception
 
 
-def get_file_deps(file_path: Path) -> set[str]:
+def get_imports(parsed_module: ast.Module):
+    yield from (
+        n for n in parsed_module.body
+        if isinstance(n, (ast.Import, ast.ImportFrom))
+    )
+
+
+def get_file_deps(file_path: str | Path) -> set[str]:
     """Parses the content of the Python file to find which modules and/or packages it imports.
 
     Args:
@@ -80,19 +87,20 @@ def get_file_deps(file_path: Path) -> set[str]:
 
     def gen_modules():
         try:
-            tree = ast.parse(file_content, filename=file_path)
+            mod: ast.Module = ast.parse(file_content, filename=file_path)
         except Exception as e:
             logger.error(f"{e}")
         else:
-            for node in ast.walk(tree):
-                if isinstance(node, ast.Import):
-                    yield from (alias.name for alias in node.names)
-                elif isinstance(node, ast.ImportFrom):
-                    if node.level:
-                        abs_module = resolve_relative_import(node, file_path)
-                        yield abs_module
-                    else:
-                        yield node.module
+            for node in get_imports(mod):
+                match node:
+                    case ast.Import():
+                        yield from (alias.name for alias in node.names)
+                    case ast.ImportFrom():
+                        if node.level:
+                            abs_module = resolve_relative_import(node, file_path)
+                            yield abs_module
+                        else:
+                            yield node.module
 
     return set(gen_modules())
 

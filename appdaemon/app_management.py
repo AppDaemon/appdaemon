@@ -888,9 +888,12 @@ class AppManagement:
 
             self.add_to_import_path(path)
 
-    @utils.executor_decorator
-    def _init_dep_manager(self):
-        self.dependency_manager = DependencyManager(self.AD.app_dir)
+
+    async def _init_dep_manager(self):
+        self.dependency_manager = DependencyManager(
+            python_files=await self.get_python_files(),
+            config_files=await self.get_app_config_files()
+        )
         self.config_filecheck.mtimes = {}
         self.python_filecheck.mtimes = {}
 

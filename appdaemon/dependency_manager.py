@@ -1,5 +1,5 @@
 from abc import ABC
-from dataclasses import dataclass, field
+from dataclasses import InitVar, dataclass, field
 from pathlib import Path
 from typing import Iterable
 
@@ -46,10 +46,11 @@ class PythonDeps(Dependencies):
     ext: str = ".py"
 
     def update(self, new_files: Iterable[Path]):
-        """This causes the python files to get read"""
+        """This also refreshes the dependency graph"""
         return super().update(new_files)
 
     def refresh_dep_graph(self):
+        """This causes the all python files to get read from disk"""
         self.dep_graph = get_dependency_graph(self.files)
         self.rev_graph = reverse_graph(self.dep_graph)
 
@@ -102,14 +103,15 @@ class DependencyManager:
     The main purpose of breaking this out from ``AppManagement`` is to make it independently testable.
     """
 
-    app_dir: Path
+    python_files: InitVar[Iterable[Path]]
+    config_files: InitVar[Iterable[Path]]
     python_deps: PythonDeps = field(init=False)
     app_deps: AppDeps = field(init=False)
 
-    def __post_init__(self):
+    def __post_init__(self, python_files: Iterable[Path], config_files: Iterable[Path]):
         """Instantiation docstring"""
-        self.python_deps = PythonDeps.from_path(self.app_dir)
-        self.app_deps = AppDeps.from_path(self.app_dir)
+        self.python_deps = PythonDeps.from_paths(python_files)
+        self.app_deps = AppDeps.from_paths(config_files)
 
     @property
     def config_files(self) -> set[Path]:
