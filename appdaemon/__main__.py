@@ -10,6 +10,7 @@ also creates the loop and kicks everything off
 
 import argparse
 import asyncio
+import itertools
 import json
 import logging
 import os
@@ -242,25 +243,40 @@ class ADMain:
         parser.add_argument("-m", "--moduledebug", nargs=2, action="append")
         parser.add_argument("-v", "--version", action="version", version="%(prog)s " + utils.__version__)
         parser.add_argument("--profiledash", help=argparse.SUPPRESS, action="store_true")
-        parser.add_argument("--toml", help="use TOML for configuration files", action="store_true")
+        parser.add_argument("--write_toml", help="use TOML for creating new app configuration files", action="store_true")
 
         args = parser.parse_args()
 
         pidfile = args.pidfile
 
-        if args.toml is True:
-            default_config_filename = "appdaemon.toml"
-        else:
-            default_config_filename = "appdaemon.yaml"
+        default_config_files = ["appdaemon.yaml", "appdaemon.toml"]
+        default_config_paths = [
+            Path("~/.homeassistant").expanduser(),
+            Path("/etc/appdaemon"),
+            Path("/conf")
+        ]
 
-        if args.config is None:
-            config_file = (
-                Path(args.configfile) if args.configfile is not None else utils.find_path(default_config_filename)
-            ).resolve()
-            config_dir = config_file.parent
+        if args.configfile is not None:
+            config_file = Path(args.configfile).resolve()
+            if args.config is not None:
+                config_dir = Path(args.config).resolve()
+            else:
+                config_dir = config_file.parent
         else:
-            config_dir = Path(args.config).resolve()
-            config_file = config_dir / (args.configfile if args.configfile is not None else default_config_filename)
+            if args.config is not None:
+                config_dir = Path(args.config).resolve()
+                for file in default_config_files:
+                    if (config_file := (config_dir / file)).exists():
+                        break
+                else:
+                    pass # no config file
+            else:
+                all_default_config_paths = itertools.product(default_config_files, default_config_paths)
+                for file in all_default_config_paths:
+                    if (config_file := file).exists():
+                        break
+                else:
+                    pass # no config file
 
         assert config_file.exists(), f"{config_file} does not exist"
         assert os.access(config_file, os.R_OK), f"{config_file} is not readable"
@@ -270,7 +286,7 @@ class ADMain:
 
             ad_kwargs["config_dir"] = config_dir
             ad_kwargs["config_file"] = config_file
-            ad_kwargs["use_toml"] = args.toml
+            ad_kwargs["write_toml"] = args.write_toml
 
             if args.timewarp:
                 ad_kwargs["timewarp"] = args.timewarp

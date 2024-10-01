@@ -9,11 +9,10 @@ Appdaemon Configuration File Format
 ===================================
 
 The AppDaemon configuration file is usually a ``YAML`` file, however from appdaemon 4.3.0 and onwards, appdaemon's configuration file
-as well as the app configuration files can be specified in ``TOML`` rather than YAML. This behavior
-is global for all files and is turned on and off by the ``--toml`` flag when appdaemon is invoked. This behavior
-enables the user to easily switch between YAML and TOML files, although all config files muct be converted at the same time when moving from YAML to TOML.
+as well as the app configuration files can be specified in ``TOML`` rather than YAML. AppDaemon will now work transparently with either yaml or toml files,
+allowing the user to mix and match and convert from one format to another over time. In the event of a conflict, the yaml file will take precedence.
 YAML and TOML configuration files are identical in function and capabilities, it is a matter of personal preference which format is used. At this time,
-TOML configuration is not available for HADashboard.
+TOML configuration is not available for HADashboard. Note that AppDaemon expects any secrets files to have the same file extension as the configuration file that references those secrets.
 
 A useful online resource for converting from YAML to TOML and back can be found at `transform tools <https://transform.tools/yaml-to-toml>`_.
 
@@ -463,7 +462,7 @@ AppDaemon supports the use of `secrets` in the configuration file, to allow sepa
 By default AppDaemon looks for a file called ``secrets.yaml`` or ``secrets.toml`` in the configuration directory.
 You can configure AppDaemon to load a different secrets file by defining its path by defining a top-level ``secrets`` configuration.
 
-The file should be a simple list of all the secrets. The secrets can be later referred to using the ``!secret`` directive in the configuration file, this works for both YAML and TOML.
+The file should be a simple list of all the secrets. The secrets can be later referred to using the ``!secret`` directive in the configuration file, this works for both YAML and TOML, but AppDaemon expects the secrets file to have the same type as the file that references it.
 
 An example ``secrets.yaml`` might look like this:
 

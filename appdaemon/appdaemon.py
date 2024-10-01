@@ -323,8 +323,8 @@ class AppDaemon:
         return self.config.use_stream
 
     @property
-    def use_toml(self):
-        return self.config.use_toml
+    def write_toml(self):
+        return self.config.write_toml
 
     @property
     def utility_delay(self):

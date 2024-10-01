@@ -227,7 +227,7 @@ class AppDaemonConfig(BaseModel):
     config_file: Path
     app_dir: Path = "./apps"
 
-    use_toml: bool = False
+    write_toml: bool = False
     ext: Literal[".yaml", ".toml"] = ".yaml"
 
     module_debug: Dict = {}
@@ -327,7 +327,7 @@ class AppDaemonConfig(BaseModel):
         if not self.app_dir.is_absolute():
             self.app_dir = self.config_dir / self.app_dir
 
-        self.ext = ".toml" if self.use_toml else ".yaml"
+        self.ext = ".toml" if self.write_toml else ".yaml"
 
     @model_validator(mode="after")
     def warn_deprecated(self):
