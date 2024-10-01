@@ -4,7 +4,7 @@
 #
 #    pip-compile pyproject.toml
 #
-aiohappyeyeballs==2.4.0
+aiohappyeyeballs==2.4.3
     # via aiohttp
 aiohttp==3.10.5
     # via
