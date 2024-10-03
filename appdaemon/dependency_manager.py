@@ -10,6 +10,7 @@ from .models.internal.file_check import FileCheck
 
 @dataclass
 class Dependencies(ABC):
+    """Wraps an instance of ``FileCheck`` with a corresponding set of dependency graphs."""
     files: FileCheck = field(repr=False)
     ext: str = field(init=False)  # this has to be defined by the children classes
     dep_graph: dict[str, set[str]] = field(init=False)
@@ -34,7 +35,8 @@ class Dependencies(ABC):
         return cls(files=FileCheck.from_paths(paths))
 
     def get_dependents(self, items: str | Iterable[str]) -> set[str]:
-        """Uses ``find_all_dependents`` with the reversed graph to recursively find all the indirectly dependent nodes"""
+        """Uses ``find_all_dependents`` with the reversed graph to get the transitive
+        closure for the given items.."""
         items = {items} if isinstance(items, str) else set(items)
         # items = items if isinstance(items, set) else set(items)
         items |= find_all_dependents(items, self.rev_graph)
@@ -75,8 +77,25 @@ class AppDeps(Dependencies):
         super().__post_init__()
 
     def refresh_dep_graph(self):
+        """This causes the all app config files to get read from disk"""
         self.dep_graph = self.app_config.depedency_graph()
         self.rev_graph = reverse_graph(self.dep_graph)
+
+    def direct_module_deps(self, apps: str | Iterable[str] | None = None) -> set[str]:
+        """The modules that depend on the given apps. If no set of app names is given, then
+        all apps are considered.
+
+        Args:
+            apps (set[str]): Optional subset of apps to consider
+        """
+        # Convert to a set, if necessary
+        if apps is not None:
+            apps = set(apps) if not isinstance(apps, set) else apps
+
+        return set(
+            app_cfg.module_name for app_name, app_cfg in self.app_config.root.items()
+            if (apps is None or app_name in apps)
+        )
 
     def direct_app_deps(self, modules: Iterable[str]):
         """Find the apps that directly depend on any of the given modules"""
@@ -87,20 +106,21 @@ class AppDeps(Dependencies):
         )
 
     def all_app_deps(self, modules: Iterable[str]) -> set[str]:
-        """Find all the apps that depend on the given modules, even indirectly
-
-        Uses ``find_all_dependents``
-        """
-        return self.get_dependents(self.direct_app_deps(modules))
+        """Uses ``find_all_dependents`` to get the transitive closure of all the apps
+        that depend on the given modules."""
+        apps = self.direct_app_deps(modules)
+        return self.get_dependents(apps)
 
 
 @dataclass
 class DependencyManager:
     """Keeps track of all the python files and the app config files (either yaml or toml)
 
-    Instantiating this class will walk the app_directory with ``pathlib.Path.rglob`` to find all the files. This happens both for app config files and app python files.
+    Instantiating this class will walk the app_directory with ``pathlib.Path.rglob``
+    to find all the files. This happens both for app config files and app python files.
 
-    The main purpose of breaking this out from ``AppManagement`` is to make it independently testable.
+    The main purpose of breaking this out from ``AppManagement`` is to make it
+    independently testable.
     """
 
     python_files: InitVar[Iterable[Path]]
@@ -109,7 +129,6 @@ class DependencyManager:
     app_deps: AppDeps = field(init=False)
 
     def __post_init__(self, python_files: Iterable[Path], config_files: Iterable[Path]):
-        """Instantiation docstring"""
         self.python_deps = PythonDeps.from_paths(python_files)
         self.app_deps = AppDeps.from_paths(config_files)
 
@@ -125,30 +144,44 @@ class DependencyManager:
     def update_python_files(self, new_files: Iterable[Path]):
         """Updates the dependency graph of python files.
 
-        This is used to map which modules import which other modules and requires reading the contents of each python file to find the import statements.
+        This is used to map which modules import which other modules and requires
+        reading the contents of each python file to find the import statements.
         """
         return self.python_deps.update(new_files)
 
     def modules_to_import(self) -> set[str]:
         return self.python_deps.modules_to_import()
 
-    def affected_apps(self, modules: Iterable[str]) -> set[str]:
-        """All the apps that are affected by the modules being (re)imported"""
-        return self.app_deps.all_app_deps(modules)
-
-    def affected_graph(self, modules: Iterable[str]) -> dict[str, set[str]]:
-        """The dependency subgraph for the affected apps"""
-        return {app: self.app_deps.dep_graph[app] for app in self.affected_apps(modules)}
-
     def dependent_modules(self, modules: str | Iterable[str]):
-        """Uses ``find_all_dependents`` with the reversed dependency graph to recursively find all the indirectly dependent modules"""
+        """Uses ``find_all_dependents`` with the reversed dependency graph to find the
+        transitive closure of the python module dependencies."""
         return self.python_deps.get_dependents(modules)
 
-    def dependent_apps(self, modules: str | Iterable[str]) -> set[str]:
-        """Finds any apps that depend on any modules that depend on any of the given modules."""
-        return self.app_deps.all_app_deps(self.dependent_modules(modules))
+    def modules_from_apps(self, apps: str | Iterable[str], dependents: bool = True) -> set[str]:
+        """Find the importable names of all the python modules that depend on the given apps. Includes
+        the transitive closure by default.
+
+        Args:
+            apps (str | Iterable[str]):
+            dependents (bool): Whether to include the transitive closure
+        """
+        # These are the modules that are directly referenced in the app configs in the module key
+        base_modules = self.app_deps.direct_module_deps(apps)
+        if dependents:
+            # This includes all the other indirectly dependent modules
+            all_modules = self.python_deps.get_dependents(base_modules)
+            return all_modules
+        else:
+            return base_modules
+
+    def dependent_apps(self, modules: str | Iterable[str], transitive: bool = True) -> set[str]:
+        """Find the apps that are dependent on any of the modules given. This includes the
+        transitive closure of both the module and app dependencies."""
+        if transitive:
+            modules = self.dependent_modules(modules)
+        return self.app_deps.all_app_deps(modules)
 
     def apps_to_terminate(self) -> set[str]:
-        mods = self.python_deps.modules_to_delete()
-        apps = self.app_deps.all_app_deps(mods)
+        modules = self.python_deps.modules_to_delete()
+        apps = self.dependent_apps(modules, transitive=False)
         return apps

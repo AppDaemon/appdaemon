@@ -925,8 +925,8 @@ class AppManagement:
         self.dependency_manager.update_python_files(files)
 
         # We only need to init the modules necessary for the new apps
-        mods = self.dependency_manager.app_deps.direct_module_deps(update_actions.apps.init)
-        update_actions.modules.init |= self.dependency_manager.dependent_modules(mods)
+        new_apps = update_actions.apps.init
+        update_actions.modules.init |= self.dependency_manager.modules_from_apps(new_apps)
 
         if self.python_filecheck.there_were_changes:
             self.logger.debug(" Python file changes ".center(75, "="))
