@@ -263,7 +263,7 @@ class PluginManagement:
             return self.plugin_objs[namespace]["object"]
         else:
             for _, cfg in self.config.items():
-                if namespace in self.AD.namespaces:
+                if namespace in cfg.namespaces:
                     return self.plugin_objs[cfg.namespace]["object"]
 
     def get_plugin_from_namespace(self, namespace: str) -> str:

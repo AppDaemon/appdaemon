@@ -924,14 +924,12 @@ class AppManagement:
         files = await self.get_python_files()
         self.dependency_manager.update_python_files(files)
 
+        # We only need to init the modules necessary for the new apps
+        mods = self.dependency_manager.app_deps.direct_module_deps(update_actions.apps.init)
+        update_actions.modules.init |= self.dependency_manager.dependent_modules(mods)
+
         if self.python_filecheck.there_were_changes:
             self.logger.debug(" Python file changes ".center(75, "="))
-
-            if new := self.python_filecheck.new:
-                self.logger.info("New Python files: %s", len(new))
-                mods = self.dependency_manager.python_deps.modules_to_import()
-                self.logger.debug("Added to module import list: %s", mods)
-                update_actions.modules.init |= mods
 
             if mod := self.python_filecheck.modified:
                 self.logger.info("Modified Python files: %s", len(mod))
@@ -950,20 +948,6 @@ class AppManagement:
                 affected = self.dependency_manager.dependent_apps(module_names)
                 self.logger.info("Deletion affects apps %s", affected)
                 update_actions.apps.term |= affected
-
-        #     update_actions.modules.init |= self.dependency_manager.modules_to_import()
-        #     update_actions.apps.init |= self.dependency_manager.affected_apps(update_actions.modules.init)
-        #     update_actions.modules.term |= self.dependency_manager.apps_to_terminate()
-
-        # if mod := self.python_filecheck.modified:
-        #     self.logger.info("Modified Python files: %s", len(mod))
-        #     for file in mod:
-        #         self.logger.debug("  - %s", file.relative_to(self.AD.app_dir.parent))
-        #     mods = self.dependency_manager.python_deps.modules_to_import()
-        #     self.logger.debug("Full module list: %s", mods)
-
-        # if deleted := self.python_filecheck.deleted:
-        #     self.logger.info("Deleted Python files: %s", len(deleted))
 
     async def _restart_plugin(self, plugin, update_actions: UpdateActions):
         if plugin is not None:
@@ -997,7 +981,7 @@ class AppManagement:
         stop_order = update_actions.apps.term_sort(self.dependency_manager)
         # stop_order = update_actions.apps.term_sort(self.app_config.depedency_graph())
         if stop_order:
-            self.logger.debug("Stopping apps: %s", update_actions.apps.term_set)
+            self.logger.info("Stopping apps: %s", update_actions.apps.term_set)
             self.logger.debug("App stop order: %s", stop_order)
 
         failed_to_stop = set()  # stores apps that had a problem terminating
@@ -1013,7 +997,7 @@ class AppManagement:
     async def _start_apps(self, update_actions: UpdateActions):
         start_order = update_actions.apps.start_sort(self.dependency_manager)
         if start_order:
-            self.logger.debug("Starting apps: %s", update_actions.apps.init_set)
+            self.logger.info("Starting apps: %s", update_actions.apps.init_set)
             self.logger.debug("App start order: %s", start_order)
             for app_name in start_order:
                 if isinstance((cfg := self.app_config.root[app_name]), AppConfig):
