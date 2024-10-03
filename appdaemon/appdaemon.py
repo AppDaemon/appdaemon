@@ -1,5 +1,6 @@
 import os
 import os.path
+import threading
 from asyncio import BaseEventLoop
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -124,6 +125,7 @@ class AppDaemon:
         self.booted = "booting"
 
         self.global_vars = {}
+        self.main_thread_id = threading.current_thread().ident
 
         if not self.apps:
             self.logging.log("INFO", "Apps are disabled")

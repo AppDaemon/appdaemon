@@ -28,7 +28,6 @@ import tomli_w
 import yaml
 from pydantic import ValidationError
 
-from appdaemon.futures import Futures
 from appdaemon.version import __version__  # noqa: F401
 
 if TYPE_CHECKING:
@@ -219,24 +218,23 @@ def check_state(logger, new_state, callback_state, name) -> bool:
     return passed
 
 
-def sync_decorator(coro):  # no type hints here, so that @wraps(func) works properly
-    @wraps(coro)
+def sync_decorator(coro_func):  # no type hints here, so that @wraps(func) works properly
+    @wraps(coro_func)
     def wrapper(self, *args, **kwargs):
-        self.logger.debug(f"Wrapping async function {coro.__qualname__}")
-        try:
-            asyncio.get_running_loop()
-            running_loop = True
-        except RuntimeError:
-            running_loop = False
+        self.logger.debug(f"Wrapping async function {coro_func.__qualname__}")
+        ad: AppDaemon = self.AD
 
         try:
+            # Checks to see if it's being called from the main thread, which has the event loop in it
+            running_loop = ad.main_thread_id == threading.current_thread().ident
+
+            coro = coro_func(self, *args, **kwargs)
             if running_loop:
-                task = asyncio.create_task(coro(self, *args, **kwargs))
-                futures: Futures = self.AD.futures
-                futures.add_future(self.name, task)
+                task = asyncio.create_task(coro)
+                ad.futures.add_future(self.name, task)
                 return task
             else:
-                return run_coroutine_threadsafe(self, coro(self, *args, **kwargs))
+                return run_coroutine_threadsafe(self, coro)
         except Exception as e:
             self.logger.error(f"Error running coroutine threadsafe: {e}")
             self.logger.error(format_exception(e))
