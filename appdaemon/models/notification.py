@@ -25,7 +25,7 @@ class Action(BaseModel):
 
 
 class iOSAction(Action, extra='forbid'):
-    activationMode: Literal['foreground', 'background'] | None = None
+    activation_mode: Literal['foreground', 'background'] | None = Field(default=None, serialization_alias='activationMode')
     authentication_required: bool | None = Field(default=None, serialization_alias='authenticationRequired')
     destructive: bool | None = None
     behavior: str | None = None
