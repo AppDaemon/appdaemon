@@ -262,7 +262,7 @@ class HassPlugin(PluginBase):
 
         await self.AD.events.process_event(self.config.namespace, event)
 
-        match event["event_type"]:
+        match typ := event["event_type"]:
             # https://data.home-assistant.io/docs/events/#state_changed
             case "state_changed":
                 pass
@@ -272,6 +272,16 @@ class HassPlugin(PluginBase):
                 await self.check_register_service(data["domain"], data["service"], silent=True)
             case "call_service":
                 pass
+            case "mobile_app_notification_action":
+                pass
+                # action = event['data']['action']
+            case "mobile_app_notification_cleared":
+                pass
+            case _:
+                if typ.startswith('recorder'):
+                    return
+
+                self.logger.debug('Unrecognized event %s', typ)
 
     async def websocket_send_json(self, timeout: float = 5.0, **request) -> dict:
         """
