@@ -102,8 +102,8 @@ class iOSPayload(Payload, extra='forbid'):
 
 
 class NotificationData(BaseModel):
-    title: str | None = None
-    message: str | None = None
+    title: str
+    message: str
     data: Payload | None = None
 
 
