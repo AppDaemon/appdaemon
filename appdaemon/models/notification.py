@@ -26,11 +26,11 @@ class Action(BaseModel):
 
 class iOSAction(Action, extra='forbid'):
     activationMode: Literal['foreground', 'background'] | None = None
-    authenticationRequired: bool | None = None
+    authentication_required: bool | None = Field(default=None, serialization_alias='authenticationRequired')
     destructive: bool | None = None
     behavior: str | None = None
-    textInputButtonTitle: str | None = None
-    textInputPlaceholder: str | None = None
+    text_input_button_title: str | None = Field(default=None, serialization_alias='textInputButtonTitle')
+    text_input_placeholder: str | None = Field(default=None, serialization_alias='textInputPlaceholder')
     icon: str | None = None
 
     @field_validator('icon', mode='before')
@@ -61,7 +61,7 @@ class AndroidPayload(Payload, extra='forbid'):
     importance: Literal['high', 'low', 'max', 'min', 'default'] | None = None
     priority: Literal['low', 'high'] | None = None
     ttl: int | None = None
-    vibrationPattern: list[int] | None = None
+    vibration_pattern: list[int] | None = Field(default=None, serialization_alias='vibrationPattern')
     ledColor: str | None = None  # notification LED
     persistent: bool | None = None
     timeout: int | None = None
