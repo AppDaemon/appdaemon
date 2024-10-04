@@ -604,7 +604,7 @@ class HassPlugin(PluginBase):
             for s in services:
                 await self.check_register_service(s["domain"], s["services"], silent=True)
             else:
-                self.logger.info("Updated internal service registry")
+                self.logger.debug("Updated internal service registry")
 
             self.services = services
             return services
