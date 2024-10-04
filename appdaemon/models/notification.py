@@ -3,23 +3,41 @@ from typing import Literal
 from pydantic import BaseModel, Field, field_serializer, field_validator
 
 
-class iOSSound(BaseModel):
+class iOSSound(BaseModel, extra='forbid'):
     name: str
     critical: bool | None = None
     volume: int | None = None
 
 
-class iOSPush(BaseModel):
+class iOSPush(BaseModel, extra='forbid'):
     badge: int | None = None
     sound: iOSSound | None = None
     interruption_level: Literal['passive', 'active', 'time-sensitive',
                                 'critical'] | None = Field(default=None, serialization_alias='interruption-level')
-    presentation_options: list[Literal['alert', 'badge', 'sound']] | None = None
+    presentation_options: list[Literal['alert',
+                                       'badge', 'sound']] | None = None
 
 
 class Action(BaseModel):
     action: str
     title: str
+    uri: str | None = None
+
+
+class iOSAction(Action, extra='forbid'):
+    activationMode: Literal['foreground', 'background'] | None = None
+    authenticationRequired: bool | None = None
+    destructive: bool | None = None
+    behavior: str | None = None
+    textInputButtonTitle: str | None = None
+    textInputPlaceholder: str | None = None
+    icon: str | None = None
+
+    @field_validator('icon', mode='before')
+    @classmethod
+    def validate_icon(cls, v: str):
+        assert v.startswith('sfsymbols:')
+        return v
 
 
 class Payload(BaseModel):
@@ -27,11 +45,12 @@ class Payload(BaseModel):
     tag: str | None = None
 
 
-class AndroidPayload(Payload):
+class AndroidPayload(Payload, extra='forbid'):
     """Notification data specific to the Android Platform
 
     https://companion.home-assistant.io/docs/notifications/notifications-basic/#android-specific
     """
+    actions: list[Action] | None = None
     clickAction: str | None = None
     subtitle: str | None = None
 
@@ -69,14 +88,17 @@ class AndroidPayload(Payload):
         return val
 
     @field_serializer('vibrationPattern')
-    def serialize_vibration(self, vibrationPattern: list[int]) -> str:
+    def serialize_vibration(self, vibrationPattern: list[int] | None) -> str | None:
+        if vibrationPattern is None:
+            return vibrationPattern
         return ', '.join(map(str, vibrationPattern))
 
 
-class iOSPayload(Payload):
+class iOSPayload(Payload, extra='forbid'):
     url: str | None = None
     subject: str | None = None
     push: iOSPush | None = None
+    actions: list[iOSAction] | None = None
 
 
 class NotificationData(BaseModel):
@@ -85,11 +107,11 @@ class NotificationData(BaseModel):
     data: Payload | None = None
 
 
-class AndroidData(NotificationData):
+class AndroidData(NotificationData, extra='forbid'):
     data: AndroidPayload | None = None
 
 
-class iOSData(NotificationData):
+class iOSData(NotificationData, extra='forbid'):
     data: iOSPayload | None = None
 
 
