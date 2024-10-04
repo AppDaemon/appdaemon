@@ -76,7 +76,7 @@ class AndroidPayload(Payload, extra='forbid'):
     notification_icon: str | None = None
     car_ui: bool | None = None
 
-    @field_validator('vibrationPattern', mode='before')
+    @field_validator('vibration_pattern', mode='before')
     @classmethod
     def validate_vibration(cls, val: str | Iterable[int]) -> list[int]:
         if isinstance(val, str):
@@ -87,11 +87,11 @@ class AndroidPayload(Payload, extra='forbid'):
 
         return val
 
-    @field_serializer('vibrationPattern')
-    def serialize_vibration(self, vibrationPattern: list[int] | None) -> str | None:
-        if vibrationPattern is None:
-            return vibrationPattern
-        return ', '.join(map(str, vibrationPattern))
+    @field_serializer('vibration_pattern')
+    def serialize_vibration(self, vibration_pattern: list[int] | None) -> str | None:
+        if vibration_pattern is None:
+            return vibration_pattern
+        return ', '.join(map(str, vibration_pattern))
 
 
 class iOSPayload(Payload, extra='forbid'):
