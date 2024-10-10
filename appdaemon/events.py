@@ -1,9 +1,10 @@
+from collections.abc import Iterable
 import datetime
 import traceback
 import uuid
 from copy import deepcopy
 from logging import Logger
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any, Callable, Dict, overload
 
 import appdaemon.utils as utils
 
@@ -25,19 +26,43 @@ class Events:
         self.AD = ad
         self.logger = ad.logging.get_child("_events")
 
-    async def add_event_callback(self, name, namespace, cb, event, **kwargs):
+    @overload
+    async def add_event_callback(
+        self,
+        name: str,
+        namespace: str,
+        cb: Callable,
+        event: str | Iterable[str],
+        timeout: int,
+        oneshot: bool,
+        pin: bool,
+        pin_thread: int,
+        **kwargs
+    ) -> str | list[str]: ...
+
+    async def add_event_callback(
+        self,
+        name: str,
+        namespace: str,
+        cb: Callable,
+        event: str | Iterable[str],
+        **kwargs
+    ) -> str | None:
         """Adds a callback for an event which is called internally by apps.
 
         Args:
             name (str): Name of the app.
-            namespace  (str): Namespace of the event.
-            cb: Callback function.
-            event (str): Name of the event.
+            namespace (str): Namespace of the event.
+            cb (Callable): Callback function.
+            event (str | Iterable[str]): Name of the event.
+            timeout (int, optional):
+            oneshot (bool, optional):
+            pin (bool, optional):
+            pin_thread (int, optional):
             **kwargs: List of values to filter on, and additional arguments to pass to the callback.
 
         Returns:
             ``None`` or the reference to the callback handle.
-
         """
 
         if self.AD.threading.validate_pin(name, kwargs) is True:
@@ -97,8 +122,6 @@ class Events:
                 },
             )
             return handle
-        else:
-            return None
 
     async def cancel_event_callback(self, name, handle):
         """Cancels an event callback.

@@ -9,9 +9,8 @@ import json
 from multiprocessing import AuthenticationError
 import ssl
 from time import perf_counter
-import traceback
 from copy import deepcopy
-from typing import Any, Literal, Optional
+from typing import Any, Callable, Literal, Optional
 import aiohttp
 import aiohttp.client_ws
 from aiohttp import WSMsgType
@@ -43,13 +42,13 @@ async def no_func():
 
 
 def hass_check(func):
-    def func_wrapper(*args, **kwargs):
-        self = args[0]
+    @functools.wraps(func)
+    def func_wrapper(self: 'HassPlugin', *args, **kwargs):
         if not self.reading_messages:
             self.logger.warning("Attempt to call Home Assistant while disconnected: %s", func.__name__)
             return no_func()
         else:
-            return func(*args, **kwargs)
+            return func(self, *args, **kwargs)
 
     return func_wrapper
 
@@ -226,7 +225,7 @@ class HassPlugin(PluginBase):
         self.logger.info("All startup conditions met")
 
         state = await self.get_hass_state()
-        await self.AD.plugins.notify_plugin_started(self.name, self.config.namespace, self.metadata, state, self.first_time)
+        await self.AD.plugins.notify_plugin_started(self.name, self.namespace, self.metadata, state, self.first_time)
         self.first_time = False
         self.already_notified = False
 
@@ -260,27 +259,31 @@ class HassPlugin(PluginBase):
         meta_attrs = {"origin", "time_fired", "context"}
         event["metadata"] = {a: val for a in meta_attrs if (val := event.pop(a, None)) is not None}
 
-        await self.AD.events.process_event(self.config.namespace, event)
+        await self.AD.events.process_event(self.namespace, event)
 
         match typ := event["event_type"]:
-            # https://data.home-assistant.io/docs/events/#state_changed
-            case "state_changed":
-                pass
             # https://data.home-assistant.io/docs/events/#service_registered
             case "service_registered":
                 data = event["data"]
                 await self.check_register_service(data["domain"], data["service"], silent=True)
             case "call_service":
                 pass
+            case 'entity_registry_updated':
+                pass
+            # https://data.home-assistant.io/docs/events/#state_changed
+            case "state_changed":
+                pass
             case "mobile_app_notification_action":
                 pass
                 # action = event['data']['action']
             case "mobile_app_notification_cleared":
                 pass
+            case "android.zone_entered":
+                pass
             case _:
                 if typ.startswith('recorder'):
                     return
-
+            # ? 'entity_registry_updated'
                 self.logger.debug('Unrecognized event %s', typ)
 
     async def websocket_send_json(self, timeout: float = 5.0, **request) -> dict:
@@ -328,11 +331,7 @@ class HassPlugin(PluginBase):
 
     async def rest_api_get(self, endpoint: str, timeout: float = 5.0, **kwargs):
         kwargs = utils.clean_kwargs(**kwargs)
-
-        if not endpoint.startswith(self.config.ha_url):
-            url = f'{self.config.ha_url}/{endpoint.strip("/")}'
-        else:
-            url = endpoint
+        url = utils.make_endpoint(self.config.ha_url, endpoint)
 
         try:
             self.update_perf(bytes_sent=len(url), requests_sent=1)
@@ -355,11 +354,7 @@ class HassPlugin(PluginBase):
 
     async def rest_api_post(self, endpoint: str, timeout: float = 5.0, **kwargs):
         kwargs = utils.clean_kwargs(**kwargs)
-
-        if not endpoint.startswith(self.config.ha_url):
-            url = f'{self.config.ha_url}/{endpoint.strip("/")}'
-        else:
-            url = endpoint
+        url = utils.make_endpoint(self.config.ha_url, endpoint)
 
         try:
             self.update_perf(bytes_sent=len(url), requests_sent=1)
@@ -371,6 +366,34 @@ class HassPlugin(PluginBase):
             self.logger.debug("Task cancelled during POST")
         except aiohttp.ServerDisconnectedError:
             self.logger.error("HASS disconnected unexpectedly during POST %s", url)
+        else:
+            self.update_perf(bytes_recv=resp.content_length, updates_recv=1)
+            match resp.status:
+                case 200 | 201:
+                    return await resp.json()
+                case 400 | 401 | 404 | 405:
+                    text = await resp.text()
+                    self.logger.error("Bad response from %s: %s", url, text)
+                case 500:
+                    text = await resp.text()
+                    self.logger.error("Internal server error %s: %s", url, text)
+                case _:
+                    raise NotImplementedError
+
+    async def rest_api_delete(self, endpoint: str, timeout: float = 5.0, **kwargs):
+        kwargs = utils.clean_kwargs(**kwargs)
+        url = utils.make_endpoint(self.config.ha_url, endpoint)
+
+        try:
+            self.update_perf(bytes_sent=len(url), requests_sent=1)
+            coro = self.session.delete(url=url, json=kwargs)
+            resp = await asyncio.wait_for(coro, timeout=timeout)
+        except asyncio.TimeoutError:
+            self.logger.error("Timed out waiting for %s", url)
+        except asyncio.CancelledError:
+            self.logger.debug("Task cancelled during DELETE")
+        except aiohttp.ServerDisconnectedError:
+            self.logger.error("HASS disconnected unexpectedly during DELETE %s", url)
         else:
             self.update_perf(bytes_recv=resp.content_length, updates_recv=1)
             match resp.status:
@@ -486,7 +509,7 @@ class HassPlugin(PluginBase):
             self.logger.info("All startup conditions met")
             self.reading_messages = True
             state = await self.get_hass_state()
-            await self.AD.plugins.notify_plugin_started(self.name, self.config.namespace, self.metadata, state, self.first_time)
+            await self.AD.plugins.notify_plugin_started(self.name, self.namespace, self.metadata, state, self.first_time)
             self.first_time = False
             self.already_notified = False
 
@@ -514,14 +537,11 @@ class HassPlugin(PluginBase):
             # always do this block, no matter what
             finally:
                 # notify plugin stopped
-                await self.AD.plugins.notify_plugin_stopped(self.name, self.config.namespace)
+                await self.AD.plugins.notify_plugin_stopped(self.name, self.namespace)
                 # remove callback from getting local events
                 await self.AD.callbacks.clear_callbacks(self.name)
 
         self.logger.info("Disconnecting from Home Assistant")
-
-    def get_namespace(self):
-        return self.config.namespace
 
     async def check_register_service(self, domain: str, services: str | dict, silent: bool = False) -> bool:
         """Used to check and register a service if need be"""
@@ -631,9 +651,19 @@ class HassPlugin(PluginBase):
     #
 
     @hass_check
-    async def call_plugin_service(self, namespace, domain, service, data):
+    async def call_plugin_service(
+        self,
+        namespace: str,
+        domain: str,
+        service: str,
+        target: str | None = None,
+        hass_timeout: float | None = None,
+        return_response: bool | None = None,
+        callback: Callable | None = None,
+        **data
+    ):
         # if we get a request for not our namespace something has gone very wrong
-        assert namespace == self.config.namespace
+        assert namespace == self.namespace
 
         #
         # If data is a string just assume it's an entity_id
@@ -642,23 +672,27 @@ class HassPlugin(PluginBase):
             data = {"entity_id": data}
 
         if domain == "database":
-            assert service == "history"
+            assert service == "history", "Use the 'history' service with 'database'"
             return await self.get_history(**data)
 
         # Keep this just in case anyone is still using call_service() for templates
         if domain == "template" and service == "render":
             return await self.render_template(namespace, data)
 
-        target = data.pop("target", None)
-        hass_timeout = data.pop("hass_timeout", None)
-        return_response = data.pop("return_response", self.config.return_result)
-
-        if data.pop("callback", False):
-            return_response = True
-
         req = {"type": "call_service", "domain": domain, "service": service, "service_data": data}
 
-        service_properties = {prop: val for entry in self.services if domain == entry["domain"] for name, info in entry["services"].items() if name == service for prop, val in info.items()}
+        service_properties = {
+            prop: val
+            for entry in self.services
+            if domain == entry["domain"]
+            for name, info in entry["services"].items()
+            if name == service
+            for prop, val in info.items()
+        }
+
+        if return_response is None:
+            return_response = self.config.return_result
+
         # if it has a response section
         if resp := service_properties.get("response"):
             # if the response section says it's not optional
@@ -670,14 +704,33 @@ class HassPlugin(PluginBase):
 
         send_coro = self.websocket_send_json(**req)
 
+        if callback is not None:
+            error_text=f'Error in callback {callback.__name__} for service {domain}/{service}'
+            cb_safety_decorator = utils.warning_decorator(error_text=error_text)
+
         if return_response is False:
-            self.AD.loop.create_task(send_coro)
+            task = self.AD.loop.create_task(send_coro)
+            if callback is not None:
+                # @utils.warning_decorator(error_text=error_text)
+                @cb_safety_decorator
+                def cb_future(self, f: asyncio.Future):
+                    return callback(f.result())
+                task.add_done_callback(cb_future)
         else:
             try:
                 res = await asyncio.wait_for(send_coro, timeout=hass_timeout)
             except asyncio.TimeoutError:
                 self.logger.error(f"Timed out [{hass_timeout:.0f}s] during service call: {req}")
             else:
+                if callback is not None:
+                    # @utils.warning_decorator(error_text=error_text)
+                    @cb_safety_decorator
+                    async def cb_safe(self):
+                        """Includes the self parameter for the loggers in the decorator to work"""
+                        callback(res)
+                        # raise ValueError('bullshit')
+
+                    await cb_safe(self)
                 return res
 
     #
@@ -685,25 +738,17 @@ class HassPlugin(PluginBase):
     #
 
     @hass_check
-    async def fire_plugin_event(self, event, namespace, **kwargs):
-        self.logger.info(locals())
+    async def fire_plugin_event(self, event, namespace, timeout: float | None = None, **kwargs) -> dict | None:
         # if we get a request for not our namespace something has gone very wrong
-        assert namespace == self.config.namespace
+        assert namespace == self.namespace
 
-        timeout = kwargs.pop("timeout", 0)
         req = {"type": "fire_event", "event_type": event, "event_data": kwargs}
 
-        try:
-            res = await self.websocket_send_json(timeout, **req)
-        except Exception:
-            self.logger.warning("-" * 60)
-            self.logger.warning("Unexpected error during fire_event()")
-            self.logger.warning(f"Arguments: {locals()}")
-            self.logger.warning("-" * 60)
-            self.logger.warning(traceback.format_exc())
-            self.logger.warning("-" * 60)
-        else:
-            return res
+        @utils.warning_decorator('Error error firing event')
+        async def safe_event(self: 'HassPlugin', timeout, req):
+            return await self.websocket_send_json(timeout, **req)
+
+        return await safe_event(self, timeout, req)
 
     #
     # Home Assistant REST Interactions
@@ -716,59 +761,35 @@ class HassPlugin(PluginBase):
     #
 
     @hass_check
-    async def remove_entity(self, namespace, entity_id):
+    async def remove_entity(self, namespace: str, entity_id: str):
         self.logger.debug("remove_entity() %s", entity_id)
 
         # if we get a request for not our namespace something has gone very wrong
-        assert namespace == self.config.namespace
+        assert namespace == self.namespace
 
-        api_url = f"{self.config.ha_url}/api/states/{entity_id}"
+        @utils.warning_decorator(error_text=f'Error deleting entity {entity_id}')
+        async def safe_delete(self: 'HassPlugin'):
+            return await self.rest_api_delete(f'/api/states/{entity_id}')
 
-        try:
-            r = await self.session.delete(api_url)
-            if r.status == 200 or r.status == 201:
-                self.bytes_recv += len(await r.text())
-                self.updates_recv += 1
-                state = await r.json()
-                self.logger.debug("return = %s", state)
-            else:
-                self.logger.warning("Error Removing Home Assistant entity %s", entity_id)
-                txt = await r.text()
-                self.logger.warning("Code: %s, error: %s", r.status, txt)
-                state = None
-
-            self.update_perf(bytes_sent=len(json.dumps(api_url)), bytes_recv=len(await r.text()), requests_sent=1)
-            return state
-        except (asyncio.TimeoutError, asyncio.CancelledError):
-            self.logger.warning("Timeout in remove_entity(%s, %s)", namespace, entity_id)
-        except aiohttp.client_exceptions.ServerDisconnectedError:
-            self.logger.warning("HASS Disconnected unexpectedly during remove_entity()")
-        except Exception:
-            self.logger.warning("-" * 60)
-            self.logger.warning("Unexpected error during remove_entity()")
-            self.logger.warning("Arguments: %s", entity_id)
-            self.logger.warning("-" * 60)
-            self.logger.warning(traceback.format_exc())
-            self.logger.warning("-" * 60)
-            return None
+        return await safe_delete(self)
 
     #
     # State
     #
 
-    # @utils.warning_decorator()
     @hass_check
-    async def set_plugin_state(self, namespace: str, entity_id: str, **kwargs):
-        self.logger.debug("set_plugin_state() %s %s %s", namespace, entity_id, kwargs)
+    async def set_plugin_state(self, namespace: str, entity_id: str, state: Any | None = None, attributes: Any | None = None):
+        self.logger.debug("set_plugin_state() %s %s %s %s %s", namespace, entity_id, state, attributes)
 
         # if we get a request for not our namespace something has gone very wrong
-        assert namespace == self.config.namespace
+        assert namespace == self.namespace
 
-        api_url = self.config.get_entity_api(entity_id)
+        @utils.warning_decorator(error_text=f'Error setting state for {entity_id}')
+        async def safe_set_state(self: 'HassPlugin'):
+            api_url = self.config.get_entity_api(entity_id)
+            return await self.rest_api_post(api_url, state=state, attributes=attributes)
 
-        state = await self.rest_api_post(api_url, timeout=3, **kwargs)
-
-        return state
+        return await safe_set_state(self)
 
     #
     # History
@@ -791,24 +812,31 @@ class HassPlugin(PluginBase):
         if timestamp is not None:
             endpoint += f"/{timestamp.isoformat()}"
 
-        try:
-            result: list[list[dict[str, Any]]] = await self.rest_api_get(
-                endpoint=endpoint,
-                filter_entity_id=",".join(filter_entity_id),
-                end_time=end_time,
-                minimal_response=minimal_response,
-                no_attributes=no_attributes,
-                significant_changes_only=significant_changes_only,
-            )
-        except Exception:
-            raise
-        else:
-            # nested comprehension to convert the datetimes for convenience
-            result = [[{k: v if not k.startswith("last_") else datetime.datetime.fromisoformat(v) for k, v in individual_result.items()} for individual_result in entity_res] for entity_res in result]
-            # result = {eid: r for eid, r in zip(filter_entity_id, result)}
-            return result
+        result: list[list[dict[str, Any]]] = await self.rest_api_get(
+            endpoint=endpoint,
+            filter_entity_id=",".join(filter_entity_id),
+            end_time=end_time,
+            minimal_response=minimal_response,
+            no_attributes=no_attributes,
+            significant_changes_only=significant_changes_only,
+        )
+        # nested comprehension to convert the datetimes for convenience
+        result = [
+            [
+                {
+                    k: v
+                    if not k.startswith("last_") else datetime.datetime.fromisoformat(v)
+                    for k, v in individual_result.items()
+                }
+                for individual_result in entity_res
+            ]
+            for entity_res in result
+        ]
+        # result = {eid: r for eid, r in zip(filter_entity_id, result)}
+        return result
 
-    async def render_template(self, namespace, template):
+    @utils.warning_decorator(error_text='Error setting state for template')
+    async def render_template(self, namespace: str, template: str):
         self.logger.debug(
             "render_template() namespace=%s data=%s",
             namespace,
@@ -816,40 +844,6 @@ class HassPlugin(PluginBase):
         )
 
         # if we get a request for not our namespace something has gone very wrong
-        assert namespace == self.config.namespace
+        assert namespace == self.namespace
 
-        api_url = f"{self.config.ha_url}/api/template"
-
-        try:
-            r = await self.session.post(api_url, json={"template": template})
-
-            if r.status == 200 or r.status == 201:
-                result = await r.text()
-            else:
-                self.logger.warning(
-                    "Error calling render_template() (ns=%s, data=%s)",
-                    namespace,
-                    template,
-                )
-                txt = await r.text()
-                self.logger.warning("Code: %s, error: %s", r.status, txt)
-                result = None
-
-            self.update_perf(bytes_sent=len(json.dumps(template)), bytes_recv=len(await r.text()), requests_sent=1)
-            return result
-        except (asyncio.TimeoutError, asyncio.CancelledError):
-            self.logger.warning(
-                "Timeout in call_service(%s, %s)",
-                namespace,
-                template,
-            )
-        except aiohttp.client_exceptions.ServerDisconnectedError:
-            self.logger.warning("HASS Disconnected unexpectedly during render_template()")
-        except Exception:
-            self.logger.error("-" * 60)
-            self.logger.error("Unexpected error during render_template()")
-            self.logger.error("ns=%s, Arguments: %s", namespace, template)
-            self.logger.error("-" * 60)
-            self.logger.error(traceback.format_exc())
-            self.logger.error("-" * 60)
-            return None
+        return await self.rest_api_post("/api/template", json={"template": template})

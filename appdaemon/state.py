@@ -4,7 +4,7 @@ import uuid
 from copy import copy, deepcopy
 from logging import Logger
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Set, Union, overload
 
 import appdaemon.utils as utils
 
@@ -21,7 +21,7 @@ class State:
 
     AD: "AppDaemon"
     logger: Logger
-    state: Dict[str, Dict]
+    state: dict[str, dict[str, Any]]
 
     app_added_namespaces: Set[str]
 
@@ -81,8 +81,11 @@ class State:
     def namespace_exists(self, namespace: str) -> bool:
         return namespace in self.state
 
-    async def remove_namespace(self, namespace: str):
-        """Used to Remove Namespaces from Apps"""
+    async def remove_namespace(self, namespace: str) -> dict[str, Any] | None:
+        """Used to Remove Namespaces from Apps
+
+        Fires an ``__AD_NAMESPACE_REMOVED`` event in the ``admin`` namespace if it's actually removed.
+        """
 
         if result := self.state.pop(namespace, False):
             nspath_file = await self.remove_persistent_namespace(namespace)
@@ -157,7 +160,17 @@ class State:
         self.logger.info("Saving all namespaces")
         self.save_all_namespaces()
 
-    async def add_state_callback(self, name: str, namespace: str, entity: str, cb, kwargs):  # noqa: C901
+    async def add_state_callback(
+            self,
+            name: str,
+            namespace: str,
+            entity: str,
+            cb: Callable,
+            kwargs: dict[str, Any]
+    ):  # noqa: C901
+        # Filter none values, which might be present as defaults
+        kwargs = {k: v for k, v in kwargs.items() if v is not None}
+
         if self.AD.threading.validate_pin(name, kwargs) is True:
             if "pin" in kwargs:
                 pin_app = kwargs["pin"]
@@ -429,7 +442,7 @@ class State:
             self.logger.warning("Unknown namespace: %s requested by %s", namespace, name)
             return None
 
-    async def remove_entity(self, namespace: str, entity: str):
+    async def remove_entity(self, namespace: str, entity: str) -> None:
         """Removes an entity.
 
         If the namespace does not have a plugin associated with it, the entity will be removed locally only.
@@ -446,16 +459,19 @@ class State:
         # print("remove {}:{}".format(namespace, entity))
 
         self.logger.debug("remove_entity() %s %s", namespace, entity)
+        await self.remove_entity_simple(namespace, entity)
+
         plugin = await self.AD.plugins.get_plugin_object(namespace)
 
         if hasattr(plugin, "remove_entity"):
             # We assume that the event will come back to us via the plugin
-            await plugin.remove_entity(namespace, entity)
-
-        await self.remove_entity_simple(namespace, entity)
+            return await plugin.remove_entity(namespace, entity)
 
     async def remove_entity_simple(self, namespace: str, entity_id: str) -> None:
-        """Used to remove an internal AD entity"""
+        """Used to remove an internal AD entity
+
+        Fires the ``__AD_ENTITY_REMOVED`` event in a new task
+        """
 
         if entity_id in self.state[namespace]:
             self.state[namespace].pop(entity_id)
@@ -536,26 +552,34 @@ class State:
             if entity_id.split(".", 1)[0] == domain
         }
 
-    def parse_state(self, namespace: str, entity: str, **kwargs):
+    def parse_state(
+            self,
+            namespace: str,
+            entity: str,
+            state: Any | None = None,
+            attributes: dict | None = None,
+            replace: bool = False,
+            **kwargs
+    ):
         self.logger.debug(f"parse_state: {entity}, {kwargs}")
 
         if entity in self.state[namespace]:
-            new_state = self.state[namespace][entity]
+            new_state = deepcopy(self.state[namespace][entity])
         else:
             # Its a new state entry
             new_state = {"attributes": {}}
 
-        if "state" in kwargs:
-            new_state["state"] = kwargs["state"]
-            del kwargs["state"]
+        if state is not None:
+            new_state["state"] = state
 
-        if "attributes" in kwargs:
-            if kwargs.get("replace", False):
-                new_state["attributes"] = kwargs["attributes"]
+        new_attrs = attributes or dict()
+        new_attrs.update(kwargs)
+
+        if new_attrs:
+            if replace:
+                new_state['attributes'] = new_attrs
             else:
-                new_state["attributes"].update(kwargs["attributes"])
-        else:
-            new_state["attributes"].update(kwargs)
+                new_state['attributes'].update(new_attrs)
 
         # API created entities won't necessarily have entity_id set
         new_state["entity_id"] = entity
@@ -616,7 +640,26 @@ class State:
         else:
             self.logger.warning("Unknown service in state service call: %s", kwargs)
 
+    @overload
+    async def set_state(
+            self, name: str, namespace: str, entity: str, _silent: bool,
+            state: Any, attributes: dict, replace: bool, **kwargs
+    ) -> None: ...
+
     async def set_state(self, name: str, namespace: str, entity: str, _silent: bool = False, **kwargs):
+        """Sets the internal state of an entity. Uses relevant plugin objects based on namespace.
+
+        Fires the ``state_changed`` event under the namespace
+
+        Args:
+            name:
+            namespace:
+            entity:
+            __silent:
+            state:
+            attributes:
+            replace:
+        """
         self.logger.debug("set_state(): %s, %s", entity, kwargs)
         if entity in self.state[namespace]:
             old_state = deepcopy(self.state[namespace][entity])
@@ -685,12 +728,11 @@ class State:
         else:
             self.state[namespace].update(state)
 
-    async def save_namespace(self, namespace):
-        if isinstance(self.state[namespace], utils.PersistentDict):
-            self.state[namespace].sync()
+    async def save_namespace(self, namespace: str) -> None:
+        if isinstance((ns := self.state[namespace]), utils.PersistentDict):
+            ns.sync()
         else:
             self.logger.warning("Namespace: %s cannot be saved", namespace)
-        return None
 
     def save_all_namespaces(self):
         for ns, state in self.state.items():

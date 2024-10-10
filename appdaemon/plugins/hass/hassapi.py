@@ -6,13 +6,14 @@ from typing import Any, Callable, Optional, Union
 import requests
 from urllib3.exceptions import InsecureRequestWarning
 
-import appdaemon.adapi as adapi
-import appdaemon.adbase as adbase
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
 
 from .hassplugin import HassPlugin
+from ...adapi import ADAPI
+from ...adbase import ADBase
 from ...models.app_config import AppConfig
+
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
@@ -40,7 +41,7 @@ def hass_check(coro):
 #
 
 
-class Hass(adbase.ADBase, adapi.ADAPI):
+class Hass(ADBase, ADAPI):
     """HASS API class for the users to inherit from.
 
     This class provides an interface to the HassPlugin object that connects to Home Assistant.
@@ -48,8 +49,8 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
     def __init__(self, ad: AppDaemon, config_model: AppConfig):
         # Call Super Classes
-        adbase.ADBase.__init__(self, ad, config_model)
-        adapi.ADAPI.__init__(self, ad, config_model)
+        ADBase.__init__(self, ad, config_model)
+        ADAPI.__init__(self, ad, config_model)
 
         #
         # Register specific constraints
@@ -63,7 +64,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
     # Device Trackers
     #
 
-    def get_trackers(self, **kwargs) -> list:
+    def get_trackers(self, person: bool = True, namespace: str | None = None, **kwargs) -> list:
         """Returns a list of all device tracker names.
 
         Args:
@@ -85,15 +86,9 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             >>>     do something
 
         """
-        if "person" in kwargs and kwargs["person"] is True:
-            device = "person"
-            del kwargs["person"]
-        else:
-            device = "device_tracker"
+        return list(self.get_tracker_details(person, namespace, **kwargs).keys())
 
-        return (key for key, value in self.get_state(device, **kwargs).items())
-
-    def get_tracker_details(self, **kwargs) -> list:
+    def get_tracker_details(self, person: bool = True, namespace: str | None = None, **kwargs) -> list:
         """Returns a list of all device trackers and their associated state.
 
         Args:
@@ -112,26 +107,20 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             >>>     do something
 
         """
-        if "person" in kwargs and kwargs["person"] is True:
-            device = "person"
-            del kwargs["person"]
-        else:
-            device = "device_tracker"
+        namespace = namespace or self.namespace
+        device = "person" if person else "device_tracker"
+        return self.get_state(device, namespace=namespace, **kwargs)
 
-        return self.get_state(device, **kwargs)
-
-    def get_tracker_state(self, entity_id, **kwargs) -> str:
+    def get_tracker_state(self, entity_id: str, namespace: str | None = None, **kwargs) -> str:
         """Gets the state of a tracker.
 
         Args:
             entity_id (str): Fully qualified entity id of the device tracker or person to query, e.g.,
                 ``device_tracker.andrew`` or ``person.andrew``.
-            **kwargs (optional): Zero or more keyword arguments.
-
-        Keyword Args:
             namespace (str, optional): Namespace to use for the call. See the section on
                 `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
                 In most cases it is safe to ignore this parameter.
+            **kwargs (optional): Zero or more keyword arguments.
 
         Returns:
             The values returned depend in part on the
@@ -152,11 +141,11 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             >>>     self.log("state is {}".format(state))
 
         """
-        self._check_entity(self._get_namespace(**kwargs), entity_id)
-        return self.get_state(entity_id, **kwargs)
+        namespace = namespace or self._namespace
+        self._check_entity(namespace, entity_id)
+        return self.get_state(entity_id, namespace=namespace, **kwargs)
 
-    @utils.sync_decorator
-    async def anyone_home(self, **kwargs) -> bool:
+    def anyone_home(self, person: bool = True, namespace: str | None = None, **kwargs) -> bool:
         """Determines if the house/apartment is occupied.
 
         A convenience function to determine if one or more person is home. Use
@@ -165,14 +154,12 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         trackers.
 
         Args:
-            **kwargs (optional): Zero or more keyword arguments.
-
-        Keyword Args:
             person (boolean, optional): If set to True, use person rather than device_tracker
                 as the device type to query
             namespace (str, optional): Namespace to use for the call. See the section on
                 `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
                 In most cases it is safe to ignore this parameter.
+            **kwargs (optional): Zero or more keyword arguments.
 
         Returns:
             Returns ``True`` if anyone is at home, ``False`` otherwise.
@@ -184,22 +171,10 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             >>>     do something
 
         """
-        if "person" in kwargs and kwargs["person"] is True:
-            device = "person"
-            del kwargs["person"]
-        else:
-            device = "device_tracker"
+        details = self.get_tracker_details(person, namespace, **kwargs)
+        return any(state['state'] == 'home' for state in details.values())
 
-        state = await self.get_state(**kwargs)
-        for entity_id in state.keys():
-            thisdevice, thisentity = await self.split_entity(entity_id)
-            if thisdevice == device:
-                if state[entity_id]["state"] == "home":
-                    return True
-        return False
-
-    @utils.sync_decorator
-    async def everyone_home(self, **kwargs) -> bool:
+    def everyone_home(self, person: bool = True, namespace: str | None = None, **kwargs) -> bool:
         """Determine if all family's members at home.
 
         A convenience function to determine if everyone is home. Use this in
@@ -207,14 +182,12 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         a race condition when using state change callbacks for device trackers.
 
         Args:
-            **kwargs (optional): Zero or more keyword arguments.
-
-        Keyword Args:
             person (boolean, optional): If set to True, use person rather than device_tracker
                 as the device type to query
             namespace (str, optional): Namespace to use for the call. See the section on
                 `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
                 In most cases it is safe to ignore this parameter.
+            **kwargs (optional): Zero or more keyword arguments.
 
         Returns:
             Returns ``True`` if everyone is at home, ``False`` otherwise.
@@ -226,22 +199,10 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             >>>    do something
 
         """
-        if "person" in kwargs and kwargs["person"] is True:
-            device = "person"
-            del kwargs["person"]
-        else:
-            device = "device_tracker"
+        details = self.get_tracker_details(person, namespace, **kwargs)
+        return all(state['state'] == 'home' for state in details.values())
 
-        state = await self.get_state(**kwargs)
-        for entity_id in state.keys():
-            thisdevice, thisentity = await self.split_entity(entity_id)
-            if thisdevice == device:
-                if state[entity_id]["state"] != "home":
-                    return False
-        return True
-
-    @utils.sync_decorator
-    async def noone_home(self, **kwargs) -> bool:
+    def noone_home(self, person: bool = True, namespace: str | None = None, **kwargs) -> bool:
         """Determines if the house/apartment is empty.
 
         A convenience function to determine if no people are at home. Use this
@@ -249,14 +210,12 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         a race condition when using state change callbacks for device trackers.
 
         Args:
-            **kwargs (optional): Zero or more keyword arguments.
-
-        Keyword Args:
             person (boolean, optional): If set to True, use person rather than device_tracker
                 as the device type to query
             namespace (str, optional): Namespace to use for the call. See the section on
                 `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
                 In most cases it is safe to ignore this parameter.
+            **kwargs (optional): Zero or more keyword arguments.
 
         Returns:
             Returns ``True`` if no one is home, ``False`` otherwise.
@@ -268,19 +227,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             >>>     do something
 
         """
-        if "person" in kwargs and kwargs["person"] is True:
-            device = "person"
-            del kwargs["person"]
-        else:
-            device = "device_tracker"
-
-        state = await self.get_state(**kwargs)
-        for entity_id in state.keys():
-            thisdevice, thisentity = await self.split_entity(entity_id)
-            if thisdevice == device:
-                if state[entity_id]["state"] == "home":
-                    return False
-        return True
+        return not self.anyone_home(person, namespace)
 
     #
     # Built in constraints
@@ -345,7 +292,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
     @utils.sync_decorator
     @hass_check
-    async def turn_on(self, entity_id: str, **kwargs) -> None:
+    async def turn_on(self, entity_id: str, namespace: str | None = None, **kwargs) -> None:
         """Turns `on` a Home Assistant entity.
 
         This is a convenience function for the ``homeassistant.turn_on``
@@ -356,12 +303,10 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         Args:
             entity_id (str): Fully qualified id of the thing to be turned ``on`` (e.g.,
                 `light.office_lamp`, `scene.downstairs_on`).
-            **kwargs (optional): Zero or more keyword arguments.
-
-         Keyword Args:
              namespace (str, optional): Namespace to use for the call. See the section on
                 `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
                 In most cases it is safe to ignore this parameter.
+            **kwargs (optional): Zero or more keyword arguments.
 
         Returns:
             Result of the `turn_on` function if any, see `service call notes <APPGUIDE.html#some-notes-on-service-calls>`__ for more details.
@@ -381,11 +326,9 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             >>> self.turn_on("light.office_1", color_name = "green")
 
         """
-        namespace = self._get_namespace(**kwargs)
-        await self._check_entity(namespace, entity_id)
-        kwargs["entity_id"] = entity_id
-
-        return await self.call_service("homeassistant/turn_on", **kwargs)
+        namespace = namespace or self.namespace
+        self._check_entity(namespace, entity_id)
+        return await self.call_service("homeassistant/turn_on", entity_id=entity_id **kwargs)
 
     @utils.sync_decorator
     @hass_check
@@ -407,7 +350,8 @@ class Hass(adbase.ADBase, adapi.ADAPI):
                 In most cases it is safe to ignore this parameter.
 
         Returns:
-                        Result of the `turn_off` function if any, see `service call notes <APPGUIDE.html#some-notes-on-service-calls>`__ for more details.
+            Result of the `turn_off` function if any, see `service call notes
+            <APPGUIDE.html#some-notes-on-service-calls>`__ for more details.
 
         Examples:
             Turn `off` a switch.
@@ -419,13 +363,12 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             >>> self.turn_off("scene.bedroom_on")
 
         """
-        domain, _ = await self.split_entity(entity_id)
-        kwargs["entity_id"] = entity_id
-
+        domain, _ = entity_id.split(".")
+        # TODO: What is this about?
         if domain == "scene":
-            return await self.call_service("homeassistant/turn_on", **kwargs)
+            return await self.call_service("homeassistant/turn_on", entity_id=entity_id, **kwargs)
         else:
-            return await self.call_service("homeassistant/turn_off", **kwargs)
+            return await self.call_service("homeassistant/turn_off", entity_id=entity_id, **kwargs)
 
     @utils.sync_decorator
     @hass_check
@@ -441,8 +384,8 @@ class Hass(adbase.ADBase, adapi.ADAPI):
                 `light.office_lamp`, `scene.downstairs_on`).
             **kwargs (optional): Zero or more keyword arguments.
 
-         Keyword Args:
-             namespace (str, optional): Namespace to use for the call. See the section on
+        Keyword Args:
+            namespace (str, optional): Namespace to use for the call. See the section on
                 `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
                 In most cases it is safe to ignore this parameter.
 
@@ -454,15 +397,11 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             >>> self.toggle("light.office_1", color_name = "green")
 
         """
-        namespace = self._get_namespace(**kwargs)
-        await self._check_entity(namespace, entity_id)
-        kwargs["entity_id"] = entity_id
-
-        return await self.call_service("homeassistant/toggle", **kwargs)
+        return await self.call_service("homeassistant/toggle", entity_id=entity_id, **kwargs)
 
     @utils.sync_decorator
     @hass_check
-    async def set_value(self, entity_id: str, value: Union[int, float], **kwargs) -> None:
+    async def set_value(self, entity_id: str, value: int | float, **kwargs) -> None:
         """Sets the value of an `input_number`.
 
         This is a convenience function for the ``input_number.set_value``
@@ -474,10 +413,11 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             value (int or float): The new value to set the `input_number` to.
             **kwargs (optional): Zero or more keyword arguments.
 
-         Keyword Args:
-             namespace (str, optional): Namespace to use for the call. See the section on
+        Keyword Args:
+            namespace (str, optional): Namespace to use for the call. See the section on
                 `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
                 In most cases it is safe to ignore this parameter.
+
 
         Returns:
             Result of the `set_value` function if any, see `service call notes <APPGUIDE.html#some-notes-on-service-calls>`__ for more details.
@@ -486,11 +426,9 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             >>> self.set_value("input_number.alarm_hour", 6)
 
         """
-        namespace = self._get_namespace(**kwargs)
-        await self._check_entity(namespace, entity_id)
-
-        kwargs.update({"value": value})
-        return await self.get_entity_api(namespace, entity_id).call_service("set_value", **kwargs)
+        domain, _ = entity_id.split('.')
+        assert domain == 'input_number'
+        return await self.call_service("input_number/set_value", entity_id=entity_id, value=value, **kwargs)
 
     @utils.sync_decorator
     @hass_check
@@ -518,11 +456,9 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             >>> self.set_textvalue("input_text.text1", "hello world")
 
         """
-        namespace = self._get_namespace(**kwargs)
-        await self._check_entity(namespace, entity_id)
-
-        kwargs.update({"value": value})
-        return await self.get_entity_api(namespace, entity_id).call_service("set_value", **kwargs)
+        domain, _ = entity_id.split('.')
+        assert domain == 'input_text'
+        return await self.call_service("input_text/set_value", entity_id=entity_id, value=value, **kwargs)
 
     @utils.sync_decorator
     @hass_check
@@ -550,11 +486,9 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             >>> self.select_option("input_select.mode", "Day")
 
         """
-        namespace = self._get_namespace(**kwargs)
-        await self._check_entity(namespace, entity_id)
-
-        kwargs.update({"option": option})
-        return await self.get_entity_api(namespace, entity_id).call_service("select_option", **kwargs)
+        domain, _ = entity_id.split('.')
+        assert domain == 'input_option'
+        return await self.call_service("input_option/select_option", entity_id=entity_id, option=option, **kwargs)
 
     @utils.sync_decorator
     @hass_check
@@ -577,7 +511,8 @@ class Hass(adbase.ADBase, adapi.ADAPI):
                 In most cases it is safe to ignore this parameter.
 
         Returns:
-            Result of the `notify` function if any, see `service call notes <APPGUIDE.html#some-notes-on-service-calls>`__ for more details.
+            Result of the `notify` function if any, see `service call notes
+            <APPGUIDE.html#some-notes-on-service-calls>`__ for more details.
 
         Examples:
             >>> self.notify("Switching mode to Evening")
@@ -631,7 +566,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         significant_changes_only: bool | None = None,
         callback: Callable | None = None,
         namespace: str | None = None,
-    ) -> list:
+    ) -> list[list[dict[str, Any]]]:
         """Gets access to the HA Database.
         This is a convenience function that allows accessing the HA Database, so the
         history state of a device can be retrieved. It allows for a level of flexibility
@@ -639,10 +574,10 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         taken when using this, as depending on the size of the database, it can take
         a long time to process.
 
-        Args:
-            **kwargs (optional): Zero or more keyword arguments.
+        Hits the ``/api/history/period/<timestamp>`` endpoint. See
+        https://developers.home-assistant.io/docs/api/rest for more information
 
-        Keyword Args:
+        Args:
             entity_id (str, optional): Fully qualified id of the device to be querying, e.g.,
                 ``light.office_lamp`` or ``scene.downstairs_on`` This can be any entity_id
                 in the database. If this is left empty, the state of all entities will be
@@ -665,6 +600,9 @@ class Hass(adbase.ADBase, adapi.ADAPI):
                 is declared without ``start_time`` or ``days``, it will revert to default to the latest
                 history state. When ``end_time`` is specified, it is not possible to declare ``entity_id``.
                 If ``entity_id`` is specified, ``end_time`` will be ignored.
+            minimal_response (bool, optional):
+            no_attributes (bool, optional):
+            significant_changes_only (bool, optional):
             callback (callable, optional): If wanting to access the database to get a large amount of data,
                 using a direct call to this function will take a long time to run and lead to AD cancelling the task.
                 To get around this, it is better to pass a function, which will be responsible of receiving the result
@@ -701,7 +639,7 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         plugin: HassPlugin = await self.AD.plugins.get_plugin_object(namespace)
 
         if days is not None:
-            end_time = end_time or self.get_now()
+            end_time = end_time or await self.get_now()
             start_time = end_time - timedelta(days=days)
 
         if hasattr(plugin, "get_history"):
@@ -764,6 +702,6 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             return result
 
     @utils.sync_decorator
-    async def ping(self):
+    async def ping(self) -> float:
         plugin: HassPlugin = await self.AD.plugins.get_plugin_object(self.namespace)
-        return await plugin.ping()
+        return (await plugin.ping())['ad_duration']

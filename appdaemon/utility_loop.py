@@ -248,7 +248,7 @@ class Utility:
             if self.AD.http is not None:
                 await self.AD.http.stop_server()
 
-    async def set_production_mode(self, mode=True):
+    async def set_production_mode(self, mode: bool = True):
         if mode is True:
             self.logger.info("AD Production Mode Activated")
         else:

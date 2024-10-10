@@ -123,11 +123,9 @@ class MqttPlugin(PluginBase):
                 #
                 # Register MQTT Services
                 #
-                self.AD.services.register_service(self.config.namespace, "mqtt", "subscribe", self.call_plugin_service)
-                self.AD.services.register_service(
-                    self.config.namespace, "mqtt", "unsubscribe", self.call_plugin_service
-                )
-                self.AD.services.register_service(self.config.namespace, "mqtt", "publish", self.call_plugin_service)
+                self.AD.services.register_service(self.namespace, "mqtt", "subscribe", self.call_plugin_service)
+                self.AD.services.register_service(self.namespace, "mqtt", "unsubscribe", self.call_plugin_service)
+                self.AD.services.register_service(self.namespace, "mqtt", "publish", self.call_plugin_service)
 
                 client_topics = copy.deepcopy(self.config.client_topics)
 
@@ -400,7 +398,7 @@ class MqttPlugin(PluginBase):
         return self.mqtt_connected
 
     async def send_ad_event(self, data):
-        await self.AD.events.process_event(self.config.namespace, data)
+        await self.AD.events.process_event(self.namespace, data)
 
     #
     # Get initial state
@@ -471,7 +469,7 @@ class MqttPlugin(PluginBase):
                 # meaning the client has connected to the broker
                 if self.mqtt_connected:
                     await self.AD.plugins.notify_plugin_started(
-                        self.name, self.config.namespace, meta, state, first_time
+                        self.name, self.namespace, meta, state, first_time
                     )
                     already_notified = False
                     already_initialized = True
@@ -479,7 +477,7 @@ class MqttPlugin(PluginBase):
                     self.initialized = True
                 else:
                     if not already_notified and already_initialized:
-                        await self.AD.plugins.notify_plugin_stopped(self.name, self.config.namespace)
+                        await self.AD.plugins.notify_plugin_stopped(self.name, self.namespace)
                         self.logger.critical("MQTT Plugin Stopped Unexpectedly")
                         already_notified = True
                         already_initialized = False
@@ -496,7 +494,7 @@ class MqttPlugin(PluginBase):
             await asyncio.sleep(5)
 
     def get_namespace(self):
-        return self.config.namespace
+        return self.namespace
 
     def start_mqtt_service(self, first_time: bool):
         try:

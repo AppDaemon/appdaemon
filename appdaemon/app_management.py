@@ -13,7 +13,7 @@ from collections import OrderedDict
 from copy import copy
 from dataclasses import dataclass, field
 from enum import Enum
-from functools import reduce, wraps
+from functools import partial, reduce, wraps
 from logging import Logger
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Iterable, Literal, Optional, Set, Union
@@ -200,15 +200,24 @@ class AppManagement:
         #
         # Register App Services
         #
-        self.AD.services.register_service("admin", "app", "start", self.manage_services)
-        self.AD.services.register_service("admin", "app", "stop", self.manage_services)
-        self.AD.services.register_service("admin", "app", "restart", self.manage_services)
-        self.AD.services.register_service("admin", "app", "disable", self.manage_services)
-        self.AD.services.register_service("admin", "app", "enable", self.manage_services)
-        self.AD.services.register_service("admin", "app", "reload", self.manage_services)
-        self.AD.services.register_service("admin", "app", "create", self.manage_services)
-        self.AD.services.register_service("admin", "app", "edit", self.manage_services)
-        self.AD.services.register_service("admin", "app", "remove", self.manage_services)
+        register = partial(
+            self.AD.services.register_service,
+            namespace="admin",
+            domain="app",
+            callback=self.manage_services
+        )
+        services = {"start", "stop", "restart", "disable", "enable", "reload", "create", "edit", "remove"}
+        for service in services:
+            register(service=service)
+        # self.AD.services.register_service("admin", "app", "start", self.manage_services)
+        # self.AD.services.register_service("admin", "app", "stop", self.manage_services)
+        # self.AD.services.register_service("admin", "app", "restart", self.manage_services)
+        # self.AD.services.register_service("admin", "app", "disable", self.manage_services)
+        # self.AD.services.register_service("admin", "app", "enable", self.manage_services)
+        # self.AD.services.register_service("admin", "app", "reload", self.manage_services)
+        # self.AD.services.register_service("admin", "app", "create", self.manage_services)
+        # self.AD.services.register_service("admin", "app", "edit", self.manage_services)
+        # self.AD.services.register_service("admin", "app", "remove", self.manage_services)
 
         self.mtimes_python = FileCheck()
 
@@ -328,7 +337,7 @@ class AppManagement:
             self.diag.info("%s: %s", object_, self.objects[object_])
         self.diag.info("--------------------------------------------------")
 
-    async def get_app(self, name: str):
+    def get_app(self, name: str):
         if obj := self.objects.get(name):
             return obj.object
 
@@ -494,9 +503,7 @@ class AppManagement:
     def get_app_debug_level(self, name: str):
         if obj := self.objects.get(name):
             logger: Logger = obj.object.logger
-            return self.AD.logging.get_level_from_int(logger.getEffectiveLevel())
-        else:
-            return "None"
+            return logging._levelToName[logger.getEffectiveLevel()]
 
     async def create_app_object(self, app_name: str) -> None:
         """Instantiates an app by name and stores it in ``self.objects``.
@@ -1238,58 +1245,58 @@ class AppManagement:
         app_file = utils.run_coroutine_threadsafe(self, self.get_state(app, attribute="config_path"))
         return app_file
 
-    async def manage_services(self, namespace, domain, service, kwargs):
-        app = kwargs.pop("app", None)
-        __name = kwargs.pop("__name", None)
+    async def manage_services(self,
+                              namespace: str,
+                              domain: str,
+                              service: str,
+                              app: str | None = None,
+                              __name: str | None = None,
+                              **kwargs):
+        assert namespace == 'admin' and domain == 'app'
 
-        if service in ["reload", "create"]:
-            pass
-
-        elif app is None:
+        if app is None and service != "reload":
             self.logger.warning("App not specified when calling '%s' service from %s. Specify App", service, __name)
-            return None
+            return
 
-        if service not in ["reload", "create"] and app not in self.app_config:
-            self.logger.warning("Specified App '%s' is not a valid App from %s", app, __name)
-            return None
+        match service:
+            case "reload" | "create":
+                pass
+            case _:
+                if app not in self.app_config:
+                    self.logger.warning("Specified App '%s' is not a valid App from %s", app, __name)
+                    return
 
-        if service == "start":
-            asyncio.ensure_future(self.start_app(app))
+        match service:
+            case "start":
+                asyncio.ensure_future(self.start_app(app))
+            case "stop":
+                asyncio.ensure_future(self.stop_app(app, delete=False))
+            case "restart":
+                asyncio.ensure_future(self.restart_app(app))
+            case "reload":
+                asyncio.ensure_future(self.check_app_updates(mode=UpdateMode.INIT))
+            case _:
+                # first the check app updates needs to be stopped if on
+                mode = copy.deepcopy(self.AD.production_mode)
 
-        elif service == "stop":
-            asyncio.ensure_future(self.stop_app(app, delete=False))
+                if mode is False:  # it was off
+                    self.AD.production_mode = True
+                    await asyncio.sleep(0.5)
 
-        elif service == "restart":
-            asyncio.ensure_future(self.restart_app(app))
+                match service:
+                    case "enable":
+                        result = await self.edit_app(app, disable=False)
+                    case "disable":
+                        result = await self.edit_app(app, disable=True)
+                    case "create":
+                        result = await self.create_app(app, **kwargs)
+                    case "edit":
+                        result = await self.edit_app(app, **kwargs)
+                    case "remove":
+                        result = await self.remove_app(app, **kwargs)
 
-        elif service == "reload":
-            asyncio.ensure_future(self.check_app_updates(mode=UpdateMode.INIT))
+                if mode is False:  # meaning it was not in production mode
+                    await asyncio.sleep(1)
+                    self.AD.production_mode = mode
 
-        elif service in ["enable", "disable", "create", "edit", "remove"]:
-            # first the check app updates needs to be stopped if on
-            mode = copy.deepcopy(self.AD.production_mode)
-
-            if mode is False:  # it was off
-                self.AD.production_mode = True
-                await asyncio.sleep(0.5)
-
-            if service == "enable":
-                result = await self.edit_app(app, disable=False)
-
-            elif service == "disable":
-                result = await self.edit_app(app, disable=True)
-
-            elif service == "create":
-                result = await self.create_app(app, **kwargs)
-
-            elif service == "edit":
-                result = await self.edit_app(app, **kwargs)
-
-            elif service == "remove":
-                result = await self.remove_app(app, **kwargs)
-
-            if mode is False:  # meaning it was not in production mode
-                await asyncio.sleep(1)
-                self.AD.production_mode = mode
-
-            return result
+                return result

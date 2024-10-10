@@ -7,6 +7,7 @@ import functools
 import inspect
 import io
 import json
+from logging import Logger
 import os
 import platform
 import pstats
@@ -20,7 +21,7 @@ from collections.abc import Iterable
 from datetime import timedelta
 from functools import wraps
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Dict
+from typing import TYPE_CHECKING, Any, Callable, Coroutine, Dict
 
 import dateutil.parser
 import tomli
@@ -32,6 +33,7 @@ from appdaemon.version import __version__  # noqa: F401
 
 if TYPE_CHECKING:
     from appdaemon.appdaemon import AppDaemon
+    from appdaemon.adbase import ADBase
 
 
 if platform.system() != "Windows":
@@ -153,49 +155,6 @@ class PersistentDict(shelve.DbfilenameShelf):
                 super().__setitem__(key, value)
                 if self.safe and save:
                     self.sync()
-
-
-class AttrDict(dict):
-    """Dictionary subclass whose entries can be accessed by attributes
-    (as well as normally).
-    """
-
-    def __init__(self, *args, **kwargs):
-        super(AttrDict, self).__init__(*args, **kwargs)
-        self.__dict__ = self
-
-    @staticmethod
-    def from_nested_dict(data):
-        """Construct nested AttrDicts from nested dictionaries."""
-        if not isinstance(data, dict):
-            return data
-        else:
-            return AttrDict({key: AttrDict.from_nested_dict(data[key]) for key in data})
-
-
-class StateAttrs(dict):
-    def __init__(self, dict):
-        device_dict = {}
-        devices = set()
-        for entity in dict:
-            if "." in entity:
-                device, name = entity.split(".")
-                devices.add(device)
-        for device in devices:
-            entity_dict = {}
-            for entity in dict:
-                if "." in entity:
-                    thisdevice, name = entity.split(".")
-                    if device == thisdevice:
-                        entity_dict[name] = dict[entity]
-            device_dict[device] = AttrDict.from_nested_dict(entity_dict)
-
-        self.__dict__ = device_dict
-
-
-class EntityStateAttrs(dict):
-    def __init__(self, dict):
-        self.__dict__ = AttrDict.from_nested_dict(dict)
 
 
 def check_state(logger, new_state, callback_state, name) -> bool:
@@ -339,17 +298,18 @@ def warning_decorator(
     def decorator(func):
         @wraps(func)
         async def wrapper(self, *args, **kwargs):
+            logger: Logger = self.logger
             try:
                 nonlocal start_text
                 if start_text is not None:
-                    self.logger.debug(start_text)
+                    logger.debug(start_text)
 
                 if asyncio.iscoroutinefunction(func):
                     result = await func(self, *args, **kwargs)
                 else:
                     result = func(self, *args, **kwargs)
             except Exception as e:
-                error_logger = self.error
+                error_logger: Logger = self.error
                 error_logger.warning("-" * 60)
                 nonlocal error_text
                 error_text = error_text or f"Unexpected error running {func.__qualname__}"
@@ -362,7 +322,7 @@ def warning_decorator(
                 error_logger.warning("-" * 60)
 
                 if self.AD.logging.separate_error_log():
-                    self.logger.warning(
+                    logger.warning(
                         "Logged an error to %s",
                         self.AD.logging.get_filename("error_log"),
                     )
@@ -370,12 +330,12 @@ def warning_decorator(
                     raise e
             else:
                 if success_text:
-                    self.logger.debug(success_text)
+                    logger.debug(success_text)
                 return result
             finally:
                 nonlocal finally_text
                 if finally_text:
-                    self.logger.debug(finally_text)
+                    logger.debug(finally_text)
 
         return wrapper
 
@@ -400,23 +360,18 @@ async def run_in_executor(self, fn, *args, **kwargs) -> Any:
     return await future
 
 
-def run_coroutine_threadsafe(self, coro, timeout=0):
-    result = None
-    if timeout == 0:
-        t = self.AD.internal_function_timeout
-    else:
-        t = timeout
+def run_coroutine_threadsafe(self: 'ADBase', coro: Coroutine, timeout: float | None = None):
+    timeout = timeout or self.AD.internal_function_timeout
 
     if self.AD.loop.is_running():
         future = asyncio.run_coroutine_threadsafe(coro, self.AD.loop)
         try:
-            result = future.result(t)
+            return future.result(timeout)
         except (asyncio.TimeoutError, concurrent.futures.TimeoutError):
             if hasattr(self, "logger"):
                 self.logger.warning(
                     "Coroutine (%s) took too long (%s seconds), cancelling the task...",
-                    coro,
-                    t,
+                    coro, timeout,
                 )
             else:
                 print("Coroutine ({}) took too long, cancelling the task...".format(coro))
@@ -424,7 +379,6 @@ def run_coroutine_threadsafe(self, coro, timeout=0):
     else:
         self.logger.warning("LOOP NOT RUNNING. Returning NONE.")
 
-    return result
 
 
 async def run_async_sync_func(self, method, *args, **kwargs):
@@ -666,12 +620,13 @@ def get_object_size(obj, seen=None):
 def write_config_file(file: Path, **kwargs):
     """Writes a single YAML or TOML file."""
     file = Path(file) if not isinstance(file, Path) else file
-    if file.suffix == ".yaml":
-        write_yaml_config(file, **kwargs)
-    elif file.suffix == ".toml":
-        write_toml_config(file, **kwargs)
-    else:
-        raise ValueError(f"ERROR: unknown file extension: {file.suffix}")
+    match file.suffix:
+        case ".yaml":
+            return write_yaml_config(file, **kwargs)
+        case ".toml":
+            return write_toml_config(file, **kwargs)
+        case _:
+            raise ValueError(f"ERROR: unknown file extension: {file.suffix}")
 
 
 def write_yaml_config(path, **kwargs):
@@ -691,12 +646,13 @@ def read_config_file(file: Path) -> Dict[str, Dict]:
     This includes all the mechanics for including secrets and environment variables.
     """
     file = Path(file) if not isinstance(file, Path) else file
-    if file.suffix == ".yaml":
-        return read_yaml_config(file)
-    elif file.suffix == ".toml":
-        return read_toml_config(file)
-    else:
-        raise ValueError(f"ERROR: unknown file extension: {file.suffix}")
+    match file.suffix:
+        case ".yaml":
+            return read_yaml_config(file)
+        case ".toml":
+            return read_toml_config(file)
+        case _:
+            raise ValueError(f"ERROR: unknown file extension: {file.suffix}")
 
 
 def read_toml_config(path: Path):
@@ -897,6 +853,44 @@ def clean_kwargs(**kwargs):
     # converts datetimes to strings where necessary
     kwargs = {k: v.isoformat() if isinstance(v, datetime.datetime) else v for k, v in kwargs.items() if v is not None}
 
-    # filters out null values
-    kwargs = {k: str(v) if not isinstance(v, dict) else v for k, v in kwargs.items() if v is not None}
+    # filters out null values and converts to strings
+    kwargs = {
+        k: str(v) if not isinstance(v, dict) else v
+        for k, v in kwargs.items()
+        if v is not None
+    }
     return kwargs
+
+
+def make_endpoint(base: str, endpoint: str) -> str:
+    if not endpoint.startswith(base):
+        result = f'{base}/{endpoint.strip("/")}'
+    else:
+        result = endpoint
+    return result.strip("/")
+
+
+def unwrapped(func: Callable) -> Callable:
+    while hasattr(func, '__wrapped__'):
+        func = func.__wrapped__
+    return func
+
+
+def has_expanded_kwargs(func):
+    """Determines whether or not to use keyword argument expansion on this function by
+    finding if there's a **kwargs expansion somewhere.
+
+    Handles unwrapping (removing decorators) if necessary.
+    """
+    func = unwrapped(func)
+    return any(
+        param.kind == param.VAR_KEYWORD
+        for param in inspect.signature(func).parameters.values()
+    )
+
+
+def has_collapsed_kwargs(func):
+    func = unwrapped(func)
+    params = inspect.signature(func).parameters
+    p = list(params.values())[-1]
+    return p.kind == p.POSITIONAL_OR_KEYWORD

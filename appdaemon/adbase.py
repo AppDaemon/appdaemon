@@ -11,20 +11,9 @@ from appdaemon.logging import Logging
 from appdaemon.models.app_config import AppConfig
 
 
-class Entities:  # @todo
-    def __init__(self):
-        pass
-
-    def __get__(self, instance, owner):
-        stateattrs = utils.StateAttrs(instance.get_state())
-        return stateattrs
-
-
 #
 # Locking decorator
 #
-
-
 def app_lock(f):
     """Synchronization decorator."""
 
@@ -70,7 +59,6 @@ class ADBase:
 
     name: str
     namespace: str
-    entities: Entities
 
     app_dir: Path
     config_dir: Path
@@ -93,8 +81,6 @@ class ADBase:
         self.namespace = "default"
         self.dashboard_dir = None
 
-        self.entities = Entities()
-
         if self.AD.http is not None:
             self.dashboard_dir = self.AD.http.dashboard_dir
 
@@ -109,7 +95,15 @@ class ADBase:
 
         self.lock = threading.RLock()
 
-        self.constraints = []
+        self.constraints = list()
+
+    @property
+    def namespace(self) -> str:
+        return self._namespace
+
+    @namespace.setter
+    def namespace(self, new: str):
+        self._namespace = new
 
     @property
     def app_config(self):

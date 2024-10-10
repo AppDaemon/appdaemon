@@ -8,7 +8,7 @@ import uuid
 from collections import OrderedDict
 from datetime import time, timedelta, timezone
 from logging import Logger
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable, overload
 
 import pytz
 from astral import SunDirection
@@ -90,7 +90,31 @@ class Scheduler:
         self.logger.debug("stop() called for scheduler")
         self.stopping = True
 
-    async def insert_schedule(self, name, aware_dt, callback, repeat, type_, **kwargs):
+
+    @overload
+    async def insert_schedule(
+        self,
+        name: str,
+        aware_dt: datetime.datetime,
+        callback: Callable,
+        repeat: bool,
+        type_: str | None,
+        interval: int,
+        pin: bool,
+        pin_thread: int,
+        **kwargs
+    ) -> str | None: ...
+
+    async def insert_schedule(
+        self,
+        name: str,
+        aware_dt: datetime.datetime,
+        callback: Callable,
+        repeat: bool = False,
+        type_: str | None = None,
+        interval: int = 0,
+        **kwargs
+    ) -> str | None:
         # aware_dt will include a timezone of some sort - convert to utc timezone
         utc = aware_dt.astimezone(pytz.utc)
 
@@ -120,7 +144,6 @@ class Scheduler:
         handle = uuid.uuid4().hex
         c_offset = self.get_offset({"kwargs": kwargs})
         ts = utc + timedelta(seconds=c_offset)
-        interval = kwargs.get("interval", 0)
         basetime_interval = (ts - now).seconds
 
         self.schedule[name][handle] = {
@@ -167,7 +190,7 @@ class Scheduler:
 
         return handle
 
-    async def cancel_timer(self, name, handle, silent):
+    async def cancel_timer(self, name: str, handle: str, silent: bool) -> bool:
         executed = False
         self.logger.debug("Canceling timer for %s", name)
         if self.timer_running(name, handle):
@@ -178,7 +201,7 @@ class Scheduler:
         if name in self.schedule and self.schedule[name] == {}:
             del self.schedule[name]
 
-        if not executed and silent is False:
+        if not executed and not silent:
             self.logger.warning(f"Invalid callback handle '{handle}' in cancel_timer() from app {name}")
 
         return executed
@@ -676,7 +699,7 @@ class Scheduler:
     async def sun_down(self):
         return await self.now_is_between("sunset", "sunrise")
 
-    async def info_timer(self, handle, name):
+    async def info_timer(self, handle, name) -> tuple[datetime.datetime, int, dict] | None:
         if self.timer_running(name, handle):
             callback = self.schedule[name][handle]
             return (
@@ -684,9 +707,6 @@ class Scheduler:
                 callback["interval"],
                 self.sanitize_timer_kwargs(self.AD.app_management.objects[name].object, callback["kwargs"]),
             )
-        else:
-            # self.logger.warning("Invalid timer handle given as: %s", handle)
-            return None
 
     async def get_scheduler_entries(self):
         schedule = {}
@@ -760,15 +780,15 @@ class Scheduler:
         else:
             return self.now
 
-    async def get_now_ts(self):
+    async def get_now_ts(self) -> float:
         return (await self.get_now()).timestamp()
 
     async def get_now_naive(self):
         return self.make_naive(await self.get_now())
 
-    async def now_is_between(self, start_time_str, end_time_str, name=None, now=None):
-        start_time = (await self._parse_time(start_time_str, name, today=True, days_offset=0))["datetime"]
-        end_time = (await self._parse_time(end_time_str, name, today=True, days_offset=0))["datetime"]
+    async def now_is_between(self, start_time: str, end_time: str, name: str | None = None, now: str | None = None):
+        start_time = (await self._parse_time(start_time, name, today=True, days_offset=0))["datetime"]
+        end_time = (await self._parse_time(end_time, name, today=True, days_offset=0))["datetime"]
         if now is not None:
             now = (await self._parse_time(now, name))["datetime"]
         else:
@@ -784,7 +804,7 @@ class Scheduler:
             # Spans midnight
             # Lets start by assuming end_time is wrong and should be tomorrow
             # This will be true if we are currently after start_time
-            end_time = (await self._parse_time(end_time_str, name, today=True, days_offset=1))["datetime"]
+            end_time = (await self._parse_time(end_time, name, today=True, days_offset=1))["datetime"]
             # self.logger.info(
             #    f"\nMidnight transition detected\nstart = {start_time}\nnow   = {now}\nend   = {end_time}\n" + "-" * 80
             # )
@@ -793,8 +813,8 @@ class Scheduler:
                 # We crossed into a new day and things changed.
                 # Now all times have shifted relative to the new day, so we need to look at it differently
                 # If both times are now in the future, we now actually want to set start time back a day and keep end_time as today
-                start_time = (await self._parse_time(start_time_str, name, today=True, days_offset=-1))["datetime"]
-                end_time = (await self._parse_time(end_time_str, name, today=True, days_offset=0))["datetime"]
+                start_time = (await self._parse_time(start_time, name, today=True, days_offset=-1))["datetime"]
+                end_time = (await self._parse_time(end_time, name, today=True, days_offset=0))["datetime"]
                 # self.logger.info(f"\nReverse\nstart = {start_time}\nnow   = {now}\nend   = {end_time}\n" + "=" * 80)
 
         # self.logger.info(f"\nFinal\nstart = {start_time}\nnow   = {now}\nend   = {end_time}\n" + "-" * 80)
@@ -826,7 +846,14 @@ class Scheduler:
             else:
                 return self.make_naive(self.next_sunrise().astimezone(self.AD.tz))
 
-    async def parse_time(self, time_str, name=False, aware=False, today=False, days_offset=0):
+    async def parse_time(
+        self,
+        time_str: str,
+        name: str | None = None,
+        aware: bool = False,
+        today: bool = False,
+        days_offset: int = 0
+    ):
         if aware is True:
             return (
                 (await self._parse_time(time_str, name, today=today, days_offset=days_offset))["datetime"]
@@ -838,7 +865,14 @@ class Scheduler:
                 (await self._parse_time(time_str, name, today=today, days_offset=days_offset))["datetime"]
             ).time()
 
-    async def parse_datetime(self, time_str, name=None, aware=False, today=False, days_offset=0):
+    async def parse_datetime(
+            self,
+            time_str: str,
+            name: str | None = None,
+            aware: bool = False,
+            today: bool = False,
+            days_offset: int = 0
+    ):
         if aware is True:
             return (await self._parse_time(time_str, name, today=today, days_offset=days_offset))[
                 "datetime"
@@ -848,7 +882,13 @@ class Scheduler:
                 (await self._parse_time(time_str, name, today=today, days_offset=days_offset))["datetime"]
             )
 
-    async def _parse_time(self, time_str, name=None, today=False, days_offset=0):
+    async def _parse_time(
+        self,
+        time_str: str,
+        name: str | None = None,
+        today: bool = False,
+        days_offset: int = 0
+    ):
         sun = None
         offset = 0
 

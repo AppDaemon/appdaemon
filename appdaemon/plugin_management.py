@@ -55,6 +55,14 @@ class PluginBase(abc.ABC):
     def get_namespace(self):
         return self.config.namespace
 
+    @property
+    def namespace(self) -> str:
+        return self.config.namespace
+
+    @namespace.setter
+    def namespace(self, new: str):
+        self.config.namespace = new
+
     def set_log_level(self, level):
         self.logger.setLevel(self.AD.logging.log_levels[level])
 
@@ -82,7 +90,23 @@ class PluginBase(abc.ABC):
         self.updates_recv += kwargs.get("updates_recv", 0)
 
     @abc.abstractmethod
+    async def get_updates(self):
+        raise NotImplementedError
+
+    @abc.abstractmethod
     async def get_complete_state(self):
+        raise NotImplementedError
+
+    # @abc.abstractmethod
+    async def remove_entity(self, namespace: str, entity: str) -> None:
+        pass
+
+    # @abc.abstractmethod
+    async def set_plugin_state(self):
+        raise NotImplementedError
+
+    # @abc.abstractmethod
+    async def fire_plugin_event(self):
         raise NotImplementedError
 
 

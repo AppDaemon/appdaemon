@@ -7,13 +7,15 @@ import uuid
 from collections import OrderedDict
 from logging import Logger, StreamHandler
 from logging.handlers import RotatingFileHandler
-from typing import Any, Callable, Dict, List, Optional, Union
-
+from typing import Any, Callable, Dict, List, Optional, Union, overload
+from typing import TYPE_CHECKING
 import pytz
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
 
+if TYPE_CHECKING:
+    from appdaemon.adapi import ADAPI
 
 class DuplicateFilter(logging.Filter):
     """:class:`logging.Filter` that filters duplicate messages"""
@@ -370,12 +372,6 @@ class Logging(metaclass=utils.Singleton):
     def set_tz(self, tz):
         self.tz = tz
 
-    def get_level_from_int(self, level):
-        for lvl in self.log_levels:
-            if self.log_levels[lvl] == level:
-                return lvl
-        return "UNKNOWN"
-
     def separate_error_log(self) -> bool:
         return (
             self.config["error_log"]["filename"] != "STDERR"
@@ -430,7 +426,7 @@ class Logging(metaclass=utils.Singleton):
     def get_filename(self, log: str):
         return self.config[log]["filename"]
 
-    def get_user_log(self, app, log):
+    def get_user_log(self, app: 'ADAPI', log: str) -> Logger | None:
         if log not in self.config:
             app.err.error("User defined log %s not found", log)
             return None
@@ -504,18 +500,37 @@ class Logging(metaclass=utils.Singleton):
             return True
         return False
 
-    async def add_log_callback(self, namespace: str, name: str, cb: Callable, level, **kwargs):
+    @overload
+    async def add_log_callback(
+        self,
+        namespace: str,
+        name: str,
+        callback: Callable,
+        level: str | int,
+        pin: bool | None = None,
+        pin_thread: int | None = None,
+        **kwargs
+    ) -> list[str] | None: ...
+
+    async def add_log_callback(
+        self,
+        namespace: str,
+        name: str,
+        callback: Callable,
+        level: str | int,
+        **kwargs
+    ) -> list[str] | None:
         """Adds a callback for log which is called internally by apps.
 
         Args:
             namespace  (str): Namespace of the log event.
             name (str): Name of the app.
-            cb: Callback function.
-            event (str): Name of the event.
+            callback (Callable): Callback function.
+            level (str | int): Log level
             **kwargs: List of values to filter on, and additional arguments to pass to the callback.
 
         Returns:
-            ``None`` or the reference to the callback handle.
+            ``None`` or a list of the callback handles, 1 for each logging level above the one given
 
         """
         if self.AD.threading.validate_pin(name, kwargs) is True:
@@ -549,7 +564,7 @@ class Logging(metaclass=utils.Singleton):
                             "name": name,
                             "id": self.AD.app_management.objects[name].id,
                             "type": "log",
-                            "function": cb,
+                            "function": callback,
                             "namespace": namespace,
                             "pin_app": pin_app,
                             "pin_thread": pin_thread,
@@ -581,7 +596,7 @@ class Logging(metaclass=utils.Singleton):
                             "active",
                             {
                                 "app": name,
-                                "function": cb.__name__,
+                                "function": callback.__name__,
                                 "pinned": pin_app,
                                 "pinned_thread": pin_thread,
                                 "fired": 0,

@@ -42,6 +42,9 @@ except ImportError:
     uvloop = None
 
 
+class NoADConfig(Exception):
+    pass
+
 class ADMain:
     """
     Class to encapsulate all main() functionality.
@@ -269,14 +272,14 @@ class ADMain:
                     if (config_file := (config_dir / file)).exists():
                         break
                 else:
-                    pass # no config file
+                    raise NoADConfig
             else:
                 all_default_config_paths = itertools.product(default_config_files, default_config_paths)
                 for file in all_default_config_paths:
                     if (config_file := file).exists():
                         break
                 else:
-                    pass # no config file
+                    raise NoADConfig
 
         assert config_file.exists(), f"{config_file} does not exist"
         assert os.access(config_file, os.R_OK), f"{config_file} is not readable"
