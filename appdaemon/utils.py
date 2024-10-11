@@ -890,7 +890,7 @@ def unwrapped(func: Callable) -> Callable:
 
 def has_expanded_kwargs(func):
     """Determines whether or not to use keyword argument expansion on this function by
-    finding if there's a **kwargs expansion somewhere.
+    finding if there's a ``**kwargs`` expansion somewhere.
 
     Handles unwrapping (removing decorators) if necessary.
     """

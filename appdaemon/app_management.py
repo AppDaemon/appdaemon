@@ -906,7 +906,7 @@ class AppManagement:
 
     @utils.executor_decorator
     def get_python_files(self) -> Iterable[Path]:
-        """Iterates through *.py in the app directory. Excludes directory names defined in exclude_dirs and with a "." character. Also excludes files that aren't readable."""
+        """Iterates through ``*.py`` in the app directory. Excludes directory names defined in exclude_dirs and with a "." character. Also excludes files that aren't readable."""
         return set(
             f
             for f in self.AD.app_dir.resolve().rglob("*.py")
