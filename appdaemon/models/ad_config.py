@@ -256,7 +256,7 @@ class AppDaemonConfig(BaseModel):
     qsize_warning_step: int = 60
     qsize_warning_iterations: int = 10
     internal_function_timeout: int = 10
-    use_dictionary_unpacking: bool = False
+    use_dictionary_unpacking: Annotated[bool, deprecated('This option is no longer necessary')] = False
     uvloop: bool = False
     use_stream: bool = False
     import_paths: List[Path] = Field(default_factory=list)

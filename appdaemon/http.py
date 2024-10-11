@@ -926,7 +926,6 @@ class HTTP:
     async def dispatch_app_endpoint(self, endpoint, request):
         callback = None
         rargs = {"request": request}
-        appname = None
 
         for name in self.app_endpoints:
             if callback is not None:  # a callback has been collected
@@ -938,15 +937,11 @@ class HTTP:
                 if app_endpoint == endpoint:
                     callback = self.app_endpoints[name][handle]["callback"]
                     rargs.update(self.app_endpoints[name][handle]["kwargs"])
-                    appname = name
                     break
 
         if callback is not None:
-            app_args = self.AD.app_management.app_config[appname]
-            if "use_dictionary_unpacking" in app_args:
-                use_dictionary_unpacking = app_args["use_dictionary_unpacking"]
-            else:
-                use_dictionary_unpacking = self.AD.use_dictionary_unpacking
+            use_dictionary_unpacking = utils.has_expanded_kwargs(callback)
+
             if request.method == "POST":
                 try:
                     args = await request.json()

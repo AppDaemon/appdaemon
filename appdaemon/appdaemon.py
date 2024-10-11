@@ -317,10 +317,6 @@ class AppDaemon:
         return self.config.time_zone
 
     @property
-    def use_dictionary_unpacking(self):
-        return self.config.use_dictionary_unpacking
-
-    @property
     def use_stream(self):
         return self.config.use_stream
 
