@@ -1,7 +1,7 @@
 from ast import literal_eval
 from datetime import datetime, timedelta
 from functools import wraps
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Union, overload
 
 import requests
 from urllib3.exceptions import InsecureRequestWarning
@@ -23,7 +23,7 @@ def hass_check(coro):
     async def coro_wrapper(*args, **kwargs):
         self = args[0]
         ns = self._get_namespace(**kwargs)
-        plugin: HassPlugin = await self.AD.plugins.get_plugin_object(ns)
+        plugin: HassPlugin = self.AD.plugins.get_plugin_object(ns)
         if plugin is None:
             self.logger.warning("non_existent namespace (%s) specified in call to %s", ns, coro.__name__)
             return None
@@ -47,6 +47,8 @@ class Hass(ADBase, ADAPI):
     This class provides an interface to the HassPlugin object that connects to Home Assistant.
     """
 
+    _plugin: HassPlugin
+
     def __init__(self, ad: AppDaemon, config_model: AppConfig):
         # Call Super Classes
         ADBase.__init__(self, ad, config_model)
@@ -60,17 +62,26 @@ class Hass(ADBase, ADAPI):
         self.register_constraint("constrain_input_boolean")
         self.register_constraint("constrain_input_select")
 
+
+    @property
+    def namespace(self) -> str:
+        return self._namespace
+
+    @namespace.setter
+    def namespace(self, new: str):
+        # NOTE: This gets called as a side effect of the __init__ method, so the
+        # self._plugin attribute should always be available
+        self._namespace = new
+        self._plugin = self.AD.plugins.get_plugin_object(self.namespace)
+
     #
     # Device Trackers
     #
 
-    def get_trackers(self, person: bool = True, namespace: str | None = None, **kwargs) -> list:
+    def get_trackers(self, person: bool = True, namespace: str | None = None) -> list[str]:
         """Returns a list of all device tracker names.
 
         Args:
-            **kwargs (optional): Zero or more keyword arguments.
-
-        Keyword Args:
             person (boolean, optional): If set to True, use person rather than device_tracker
                 as the device type to query
             namespace (str, optional): Namespace to use for the call. See the section on
@@ -86,20 +97,20 @@ class Hass(ADBase, ADAPI):
             >>>     do something
 
         """
-        return list(self.get_tracker_details(person, namespace, **kwargs).keys())
+        return list(self.get_tracker_details(person, namespace, copy=False).keys())
 
-    def get_tracker_details(self, person: bool = True, namespace: str | None = None, **kwargs) -> list:
+    def get_tracker_details(self, person: bool = True, namespace: str | None = None, copy: bool = True) -> dict[str, Any]:
         """Returns a list of all device trackers and their associated state.
 
         Args:
-            **kwargs (optional): Zero or more keyword arguments.
-
-        Keyword Args:
             person (boolean, optional): If set to True, use person rather than device_tracker
                 as the device type to query
             namespace (str, optional): Namespace to use for the call. See the section on
                 `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
                 In most cases it is safe to ignore this parameter.
+            copy (bool, optional): Whether to return a copy of the state dictionary. This is usually
+                the desired behavior because it prevents accidental modification of the internal AD
+                data structures. Defaults to True.
 
         Examples:
             >>> trackers = self.get_tracker_details()
@@ -107,20 +118,33 @@ class Hass(ADBase, ADAPI):
             >>>     do something
 
         """
-        namespace = namespace or self.namespace
         device = "person" if person else "device_tracker"
-        return self.get_state(device, namespace=namespace, **kwargs)
+        return self.get_state(device, namespace=namespace, copy=copy)
 
-    def get_tracker_state(self, entity_id: str, namespace: str | None = None, **kwargs) -> str:
+    @overload
+    def get_tracker_state(
+        self,
+        entity_id: str,
+        attribute: str | None = None,
+        default: Any | None = None,
+        namespace: str | None = None,
+        copy: bool = True,
+    ) -> str: ...
+
+    def get_tracker_state(self, *args, **kwargs) -> str:
         """Gets the state of a tracker.
 
         Args:
             entity_id (str): Fully qualified entity id of the device tracker or person to query, e.g.,
                 ``device_tracker.andrew`` or ``person.andrew``.
+            attribute (str, optional): Name of the attribute to return
+            default (Any, optional): Default value to return when the attribute isn't found
             namespace (str, optional): Namespace to use for the call. See the section on
                 `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
                 In most cases it is safe to ignore this parameter.
-            **kwargs (optional): Zero or more keyword arguments.
+            copy (bool, optional): Whether to return a copy of the state dictionary. This is usually
+                the desired behavior because it prevents accidental modification of the internal AD
+                data structures. Defaults to True.
 
         Returns:
             The values returned depend in part on the
@@ -136,16 +160,14 @@ class Hass(ADBase, ADAPI):
 
         Examples:
             >>> state = self.get_tracker_state("device_tracker.andrew")
-            >>>     self.log("state is {}".format(state))
+            >>>     self.log(f"state is {state}")
             >>> state = self.get_tracker_state("person.andrew")
-            >>>     self.log("state is {}".format(state))
+            >>>     self.log(f"state is {state}")
 
         """
-        namespace = namespace or self._namespace
-        self._check_entity(namespace, entity_id)
-        return self.get_state(entity_id, namespace=namespace, **kwargs)
+        return self.get_state(*args, **kwargs)
 
-    def anyone_home(self, person: bool = True, namespace: str | None = None, **kwargs) -> bool:
+    def anyone_home(self, person: bool = True, namespace: str | None = None) -> bool:
         """Determines if the house/apartment is occupied.
 
         A convenience function to determine if one or more person is home. Use
@@ -171,10 +193,10 @@ class Hass(ADBase, ADAPI):
             >>>     do something
 
         """
-        details = self.get_tracker_details(person, namespace, **kwargs)
+        details = self.get_tracker_details(person, namespace, copy=False)
         return any(state['state'] == 'home' for state in details.values())
 
-    def everyone_home(self, person: bool = True, namespace: str | None = None, **kwargs) -> bool:
+    def everyone_home(self, person: bool = True, namespace: str | None = None) -> bool:
         """Determine if all family's members at home.
 
         A convenience function to determine if everyone is home. Use this in
@@ -199,10 +221,10 @@ class Hass(ADBase, ADAPI):
             >>>    do something
 
         """
-        details = self.get_tracker_details(person, namespace, **kwargs)
+        details = self.get_tracker_details(person, namespace, copy=False)
         return all(state['state'] == 'home' for state in details.values())
 
-    def noone_home(self, person: bool = True, namespace: str | None = None, **kwargs) -> bool:
+    def noone_home(self, person: bool = True, namespace: str | None = None) -> bool:
         """Determines if the house/apartment is empty.
 
         A convenience function to determine if no people are at home. Use this
@@ -311,7 +333,6 @@ class Hass(ADBase, ADAPI):
         Returns:
             Result of the `turn_on` function if any, see `service call notes <APPGUIDE.html#some-notes-on-service-calls>`__ for more details.
 
-
         Examples:
             Turn `on` a switch.
 
@@ -328,11 +349,11 @@ class Hass(ADBase, ADAPI):
         """
         namespace = namespace or self.namespace
         self._check_entity(namespace, entity_id)
-        return await self.call_service("homeassistant/turn_on", entity_id=entity_id **kwargs)
+        return await self.call_service("homeassistant/turn_on", entity_id=entity_id, **kwargs)
 
     @utils.sync_decorator
     @hass_check
-    async def turn_off(self, entity_id: str, **kwargs) -> None:
+    async def turn_off(self, entity_id: str, namespace: str | None = None, **kwargs) -> dict:
         """Turns `off` a Home Assistant entity.
 
         This is a convenience function for the ``homeassistant.turn_off``
@@ -363,12 +384,9 @@ class Hass(ADBase, ADAPI):
             >>> self.turn_off("scene.bedroom_on")
 
         """
-        domain, _ = entity_id.split(".")
-        # TODO: What is this about?
-        if domain == "scene":
-            return await self.call_service("homeassistant/turn_on", entity_id=entity_id, **kwargs)
-        else:
-            return await self.call_service("homeassistant/turn_off", entity_id=entity_id, **kwargs)
+        namespace = namespace or self.namespace
+        self._check_entity(namespace, entity_id)
+        return await self.call_service("homeassistant/turn_off", entity_id=entity_id, **kwargs)
 
     @utils.sync_decorator
     @hass_check
@@ -636,14 +654,13 @@ class Hass(ADBase, ADAPI):
         """
 
         namespace = namespace or self._namespace
-        plugin: HassPlugin = await self.AD.plugins.get_plugin_object(namespace)
 
         if days is not None:
             end_time = end_time or await self.get_now()
             start_time = end_time - timedelta(days=days)
 
-        if hasattr(plugin, "get_history"):
-            coro = plugin.get_history(
+        if self._plugin is not None:
+            coro = self._plugin.get_history(
                 filter_entity_id=entity_id,
                 timestamp=start_time,
                 end_time=end_time,
@@ -662,11 +679,10 @@ class Hass(ADBase, ADAPI):
                 "Wrong Namespace selected, as %s has no database plugin attached to it",
                 namespace,
             )
-            return None
 
     @utils.sync_decorator
     @hass_check
-    async def render_template(self, template: str, **kwargs: Optional[Any]):
+    async def render_template(self, template: str):
         """Renders a Home Assistant Template
 
         Args:
@@ -689,13 +705,7 @@ class Hass(ADBase, ADAPI):
             Returns (float) 97.2
 
         """
-        namespace = self._get_namespace(**kwargs)
-        plugin = await self.AD.plugins.get_plugin_object(namespace)
-
-        if "namespace" in kwargs:
-            del kwargs["namespace"]
-
-        result = await plugin.render_template(namespace, template)
+        result = await self._plugin.render_template(self.namespace, template)
         try:
             return literal_eval(result)
         except (SyntaxError, ValueError):
@@ -703,5 +713,6 @@ class Hass(ADBase, ADAPI):
 
     @utils.sync_decorator
     async def ping(self) -> float:
-        plugin: HassPlugin = await self.AD.plugins.get_plugin_object(self.namespace)
-        return (await plugin.ping())['ad_duration']
+        """Gets the number of seconds """
+        if (plugin := self._plugin) is not None:
+            return (await plugin.ping())['ad_duration']

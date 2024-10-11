@@ -360,7 +360,18 @@ async def run_in_executor(self, fn, *args, **kwargs) -> Any:
     return await future
 
 
-def run_coroutine_threadsafe(self: 'ADBase', coro: Coroutine, timeout: float | None = None):
+def run_coroutine_threadsafe(self: 'ADBase', coro: Coroutine, timeout: float | None = None) -> Any:
+    """This runs an instantiated coroutine (async) from sync code.
+
+    Args:
+        self (ADBase): Needs to have a ``self.AD`` attribute with the ``AppDaemon`` object.
+        coro (Coroutine): An instantiated coroutine that hasn't been awaited.
+        timeout (float | None, optional): Optional timeout. Defaults to None,
+            which will block indefinitely
+
+    Returns:
+        Result from the coroutine
+    """
     timeout = timeout or self.AD.internal_function_timeout
 
     if self.AD.loop.is_running():
@@ -863,6 +874,7 @@ def clean_kwargs(**kwargs):
 
 
 def make_endpoint(base: str, endpoint: str) -> str:
+    """Formats a URL appropriately with slashes"""
     if not endpoint.startswith(base):
         result = f'{base}/{endpoint.strip("/")}'
     else:

@@ -194,7 +194,7 @@ class Events:
         """
 
         self.logger.debug("fire_plugin_event() %s %s %s", namespace, event, kwargs)
-        plugin = await self.AD.plugins.get_plugin_object(namespace)
+        plugin = self.AD.plugins.get_plugin_object(namespace)
 
         if hasattr(plugin, "fire_plugin_event"):
             # We assume that the event will come back to us via the plugin

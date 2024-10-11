@@ -6,12 +6,12 @@ import asyncio
 import datetime
 import functools
 import json
-from multiprocessing import AuthenticationError
 import ssl
 from time import perf_counter
 from copy import deepcopy
 from typing import Any, Callable, Literal, Optional
 import aiohttp
+import aiohttp.client_exceptions
 import aiohttp.client_ws
 from aiohttp import WSMsgType
 from deepdiff import DeepDiff
@@ -24,8 +24,9 @@ from appdaemon.plugin_management import PluginBase
 
 
 def looped_coro(coro, sleep_time: int | float):
+    """Repeatedly runs a coroutine, sleeping between runs"""
     @functools.wraps(coro)
-    async def loop(self, *args, **kwargs):
+    async def loop(self: 'HassPlugin', *args, **kwargs):
         while not self.stopping:
             try:
                 await coro()
@@ -58,6 +59,10 @@ class HAAuthenticationError(Exception):
 
 
 class HAEventsSubError(Exception):
+    pass
+
+
+class HAFailedAuthentication(Exception):
     pass
 
 
@@ -171,7 +176,7 @@ class HassPlugin(PluginBase):
                 self.logger.error("Unhandled websocket message type: %s", msg.type)
         return msg_json
 
-    @utils.warning_decorator(error_text="Unknown error during processing jSON", reraise=True)
+    @utils.warning_decorator(error_text="Error during processing jSON", reraise=True)
     async def process_websocket_json(self, resp: dict):
         """Wraps a match/case statement for the ``type`` key of the JSON received from the websocket"""
         match resp["type"]:
@@ -182,9 +187,8 @@ class HassPlugin(PluginBase):
                 self.logger.info("Authenticated to Home Assistant %s", resp["ha_version"])
                 await self.__post_auth__()
             case "auth_invalid":
-                resp = f'Failed to authenticate to Home Assistant: {resp["message"]}'
-                self.logger.error(resp)
-                raise AuthenticationError(resp)
+                self.logger.error(f'Failed to authenticate to Home Assistant: {resp["message"]}')
+                await self.ws.close()
             case "ping":
                 await self.ping()
             case "pong":
@@ -231,10 +235,10 @@ class HassPlugin(PluginBase):
 
         self.logger.info(f"Completed initialization in {self.time_str()}")
 
-    async def ping(self):
+    async def ping(self, timeout: float = 1.0):
         """Method for testing response times over the websocket."""
         # https://developers.home-assistant.io/docs/api/websocket/#pings-and-pongs
-        return await self.websocket_send_json(type="ping")
+        return await self.websocket_send_json(timeout=timeout, type="ping")
 
     @utils.warning_decorator(error_text="Unexpected error during receive_result")
     async def receive_result(self, resp: dict):
@@ -325,88 +329,71 @@ class HassPlugin(PluginBase):
             return {"success": "timeout", "ad_duration": timeout}
         else:
             travel_time = perf_counter() - send_time
-            # self.logger.debug(f"Receive time: {(travel_time)*10**3:.0f} ms")
             result.update({"ad_duration": travel_time})
             return result
 
-    async def rest_api_get(self, endpoint: str, timeout: float = 5.0, **kwargs):
+    async def http_method(
+            self,
+            method: Literal['get', 'post', 'delete'],
+            endpoint: str,
+            timeout: float = 5.0,
+            **kwargs
+    ) -> dict | None:
+        """
+
+        https://developers.home-assistant.io/docs/api/rest
+
+        Args:
+            typ (Literal['get', 'post', 'delete']): Type of HTTP method to use
+            endpoint (str): Home Assistant REST endpoint to use. For example '/api/states'
+            timeout (float, optional): Timeout for the method in seconds. Defaults to 5.0.
+            **kwargs (optional): Zero or more keyword arguments. These get used as the data
+                for the method, as appropriate.
+
+        Raises:
+            NotImplementedError: _description_
+
+        Returns:
+            dict | None: _description_
+        """
         kwargs = utils.clean_kwargs(**kwargs)
         url = utils.make_endpoint(self.config.ha_url, endpoint)
 
         try:
-            self.update_perf(bytes_sent=len(url), requests_sent=1)
-            coro = self.session.get(url=url, params=kwargs)
-            resp = await asyncio.wait_for(coro, timeout=timeout)
-        except asyncio.TimeoutError:
-            self.logger.error("Timed out waiting for %s", url)
-        except aiohttp.ServerDisconnectedError:
-            self.logger.error("HASS disconnected unexpectedly during GET %s", url)
-        else:
-            self.update_perf(bytes_recv=resp.content_length, updates_recv=1)
-            match resp.status:
-                case 200 | 201:
-                    return await resp.json()
-                case 400 | 401 | 404 | 405:
-                    text = await resp.text()
-                    self.logger.error("Bad response from %s: %s", url, text)
-                case _:
-                    raise NotImplementedError
-
-    async def rest_api_post(self, endpoint: str, timeout: float = 5.0, **kwargs):
-        kwargs = utils.clean_kwargs(**kwargs)
-        url = utils.make_endpoint(self.config.ha_url, endpoint)
-
-        try:
-            self.update_perf(bytes_sent=len(url), requests_sent=1)
-            coro = self.session.post(url=url, json=kwargs)
-            resp = await asyncio.wait_for(coro, timeout=timeout)
-        except asyncio.TimeoutError:
-            self.logger.error("Timed out waiting for %s", url)
-        except asyncio.CancelledError:
-            self.logger.debug("Task cancelled during POST")
-        except aiohttp.ServerDisconnectedError:
-            self.logger.error("HASS disconnected unexpectedly during POST %s", url)
-        else:
-            self.update_perf(bytes_recv=resp.content_length, updates_recv=1)
-            match resp.status:
-                case 200 | 201:
-                    return await resp.json()
-                case 400 | 401 | 404 | 405:
-                    text = await resp.text()
-                    self.logger.error("Bad response from %s: %s", url, text)
-                case 500:
-                    text = await resp.text()
-                    self.logger.error("Internal server error %s: %s", url, text)
-                case _:
-                    raise NotImplementedError
-
-    async def rest_api_delete(self, endpoint: str, timeout: float = 5.0, **kwargs):
-        kwargs = utils.clean_kwargs(**kwargs)
-        url = utils.make_endpoint(self.config.ha_url, endpoint)
-
-        try:
-            self.update_perf(bytes_sent=len(url), requests_sent=1)
-            coro = self.session.delete(url=url, json=kwargs)
+            self.update_perf(
+                bytes_sent=len(url) + len(json.dumps(kwargs).encode('utf-8')),
+                requests_sent=1
+            )
+            match method.lower():
+                case 'get':
+                    coro = self.session.get(url=url, params=kwargs)
+                case 'post':
+                    coro = self.session.post(url=url, json=kwargs)
+                case 'delete':
+                    coro = self.session.delete(url=url, json=kwargs)
             resp = await asyncio.wait_for(coro, timeout=timeout)
         except asyncio.TimeoutError:
             self.logger.error("Timed out waiting for %s", url)
         except asyncio.CancelledError:
-            self.logger.debug("Task cancelled during DELETE")
+            self.logger.debug("Task cancelled during %s", method.upper())
         except aiohttp.ServerDisconnectedError:
-            self.logger.error("HASS disconnected unexpectedly during DELETE %s", url)
+            self.logger.error("HASS disconnected unexpectedly during %s to %s", method.upper(), url)
         else:
             self.update_perf(bytes_recv=resp.content_length, updates_recv=1)
             match resp.status:
                 case 200 | 201:
-                    return await resp.json()
-                case 400 | 401 | 404 | 405:
+                    if endpoint.endswith('template'):
+                        return await resp.text()
+                    else:
+                        return await resp.json()
+                case 400 | 401 | 403| 404 | 405:
                     text = await resp.text()
                     self.logger.error("Bad response from %s: %s", url, text)
-                case 500:
+                case 500 | 502:
                     text = await resp.text()
                     self.logger.error("Internal server error %s: %s", url, text)
                 case _:
-                    raise NotImplementedError
+                    raise NotImplementedError('Unhandled error: HTTP %s', resp.status)
 
     async def wait_for_start(self):
         self.first_time = True
@@ -586,16 +573,6 @@ class HassPlugin(PluginBase):
     # self.logger.debug("Utility (currently unused)")
     # return None
 
-    async def get_complete_state(self):
-        """This method is needed for all AppDaemon plugins"""
-        return await self.get_hass_state()
-
-    @utils.warning_decorator(error_text="Unexpected error while getting hass state")
-    async def get_hass_state(self):
-        hass_state = (await self.websocket_send_json(type="get_states"))["result"]
-        states = {s["entity_id"]: s for s in hass_state}
-        return states
-
     @utils.warning_decorator(error_text="Unexpected error while getting hass config")
     async def get_hass_config(self) -> dict:
         meta = (await self.websocket_send_json(type="get_config"))["result"]
@@ -711,9 +688,9 @@ class HassPlugin(PluginBase):
         if return_response is False:
             task = self.AD.loop.create_task(send_coro)
             if callback is not None:
-                # @utils.warning_decorator(error_text=error_text)
                 @cb_safety_decorator
                 def cb_future(self, f: asyncio.Future):
+                    # Includes the self parameter for the loggers in the decorator to work
                     return callback(f.result())
                 task.add_done_callback(cb_future)
         else:
@@ -723,12 +700,10 @@ class HassPlugin(PluginBase):
                 self.logger.error(f"Timed out [{hass_timeout:.0f}s] during service call: {req}")
             else:
                 if callback is not None:
-                    # @utils.warning_decorator(error_text=error_text)
                     @cb_safety_decorator
                     async def cb_safe(self):
-                        """Includes the self parameter for the loggers in the decorator to work"""
+                        # Includes the self parameter for the loggers in the decorator to work
                         callback(res)
-                        # raise ValueError('bullshit')
 
                     await cb_safe(self)
                 return res
@@ -769,7 +744,7 @@ class HassPlugin(PluginBase):
 
         @utils.warning_decorator(error_text=f'Error deleting entity {entity_id}')
         async def safe_delete(self: 'HassPlugin'):
-            return await self.rest_api_delete(f'/api/states/{entity_id}')
+            return await self.http_method('delete', f'/api/states/{entity_id}')
 
         return await safe_delete(self)
 
@@ -777,9 +752,25 @@ class HassPlugin(PluginBase):
     # State
     #
 
+    async def get_complete_state(self):
+        """This method is needed for all AppDaemon plugins"""
+        return await self.get_hass_state()
+
+    @utils.warning_decorator(error_text="Unexpected error while getting hass state")
+    async def get_hass_state(self):
+        hass_state = (await self.websocket_send_json(type="get_states"))["result"]
+        states = {s["entity_id"]: s for s in hass_state}
+        return states
+
     @hass_check
-    async def set_plugin_state(self, namespace: str, entity_id: str, state: Any | None = None, attributes: Any | None = None):
-        self.logger.debug("set_plugin_state() %s %s %s %s %s", namespace, entity_id, state, attributes)
+    async def set_plugin_state(
+        self,
+        namespace: str,
+        entity_id: str,
+        state: Any | None = None,
+        attributes: Any | None = None
+    ):
+        self.logger.debug("set_plugin_state() %s %s %s %s", namespace, entity_id, state, attributes)
 
         # if we get a request for not our namespace something has gone very wrong
         assert namespace == self.namespace
@@ -787,7 +778,7 @@ class HassPlugin(PluginBase):
         @utils.warning_decorator(error_text=f'Error setting state for {entity_id}')
         async def safe_set_state(self: 'HassPlugin'):
             api_url = self.config.get_entity_api(entity_id)
-            return await self.rest_api_post(api_url, state=state, attributes=attributes)
+            return await self.http_method('post', api_url, state=state, attributes=attributes)
 
         return await safe_set_state(self)
 
@@ -812,8 +803,8 @@ class HassPlugin(PluginBase):
         if timestamp is not None:
             endpoint += f"/{timestamp.isoformat()}"
 
-        result: list[list[dict[str, Any]]] = await self.rest_api_get(
-            endpoint=endpoint,
+        result: list[list[dict[str, Any]]] = await self.http_method(
+            "get", endpoint,
             filter_entity_id=",".join(filter_entity_id),
             end_time=end_time,
             minimal_response=minimal_response,
@@ -824,8 +815,7 @@ class HassPlugin(PluginBase):
         result = [
             [
                 {
-                    k: v
-                    if not k.startswith("last_") else datetime.datetime.fromisoformat(v)
+                    k: datetime.datetime.fromisoformat(v) if k.startswith("last_") else v
                     for k, v in individual_result.items()
                 }
                 for individual_result in entity_res
@@ -846,4 +836,4 @@ class HassPlugin(PluginBase):
         # if we get a request for not our namespace something has gone very wrong
         assert namespace == self.namespace
 
-        return await self.rest_api_post("/api/template", json={"template": template})
+        return await self.http_method("post", "/api/template", template=template)

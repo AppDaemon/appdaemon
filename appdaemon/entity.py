@@ -48,7 +48,7 @@ class Entity:
             >>> self.my_entity.set_state(**entity_data)
 
         """
-        self._namespace = namespace
+        self.namespace = namespace
 
     @overload
     async def set_state(
@@ -92,7 +92,7 @@ class Entity:
         self.logger.debug("set state: %s, %s from %s", self.entity_id, kwargs, self.name)
         return await self.AD.state.set_state(
             name=self.name,
-            namespace=self._namespace,
+            namespace=self.namespace,
             entity=self.entity_id,
             state=state,
             **kwargs
@@ -143,10 +143,9 @@ class Entity:
             >>> state = self.my_entity.get_state(attribute="all")
 
         """
-        self.logger.debug("get state: %s, %s from %s", self.entity_id, self._namespace, self.name)
+        self.logger.debug("get state: %s, %s from %s", self.entity_id, self.namespace, self.name)
+        return await self.AD.state.get_state(self.name, self.namespace, self.entity_id, attribute, default, copy)
 
-
-        return await self.AD.state.get_state(self.name, self._namespace, self.entity_id, attribute, default, copy)
     @overload
     async def listen_state(
         self,
@@ -277,7 +276,7 @@ class Entity:
 
         return await self.AD.state.add_state_callback(
             name=self.name,
-            namespace=self._namespace,
+            namespace=self.namespace,
             entity=self.entity_id,
             cb=callback,
             kwargs=kwargs
@@ -306,7 +305,7 @@ class Entity:
 
         """
 
-        namespace = self._namespace
+        namespace = self.namespace
         entity_id = self.entity_id
 
         if self.exists():
@@ -317,7 +316,7 @@ class Entity:
 
     def exists(self) -> bool:
         """Checks the existence of the entity in AD."""
-        return self.AD.state.entity_exists(self._namespace, self.entity_id)
+        return self.AD.state.entity_exists(self.namespace, self.entity_id)
 
     @overload
     async def call_service(
@@ -355,14 +354,9 @@ class Entity:
             >>> self.my_entity.call_service("turn_on", color_name="red")
 
         """
-
-        entity_id = self.entity_id
-        namespace = namespace or self._namespace
-
-        kwargs["entity_id"] = entity_id
-
+        namespace = namespace or self.namespace
+        kwargs["entity_id"] = self.entity_id
         self.logger.debug("call_service: %s/%s, %s", self.domain, service, kwargs)
-
         return await self.AD.services.call_service(namespace, self.domain, service, self.name, kwargs)
 
     async def wait_state(
@@ -374,15 +368,15 @@ class Entity:
     ) -> None:
         """Used to wait for the state of an entity's attribute
 
-        This API call is only functional within an async function. It should be noted that when instanciated,
-        the api checks immediately if its already on the required state, and if it is, it will continue.
+        This API call should only be used async. It should be noted that when instantiated,
+        the api checks immediately if it's already in the required state and will continue if it is.
 
         Args:
             state (Any): The state to wait for, for the entity to be in before continuing
             attribute (str): The entity's attribute to use, if not using the entity's state
             duration (int|float): How long the state is to hold, before continuing
             timeout (int|float): How long to wait for the state to be achieved, before timing out.
-                                When it times out, a appdaemon.exceptions.TimeOutException is raised
+                When it times out, a appdaemon.exceptions.TimeOutException is raised
 
         Returns:
             None
@@ -402,7 +396,6 @@ class Entity:
 
         wait_id = uuid.uuid4().hex
         async_event = asyncio.Event()
-        async_event.clear()
         self._async_events[wait_id] = async_event
 
         try:
@@ -418,17 +411,14 @@ class Entity:
             )
             await asyncio.wait_for(async_event.wait(), timeout=timeout)
 
-        except asyncio.TimeoutError:
+        except asyncio.TimeoutError as e:
             await self.AD.state.cancel_state_callback(handle, self.name)
             self.logger.warning(f"State Wait for {self.entity_id} Timed Out")
-            raise TimeOutException("The entity timed out")
+            raise TimeOutException("The entity timed out") from e
 
-    async def entity_state_changed(self, *args: list, **kwargs: dict) -> None:
+    async def entity_state_changed(self, *args, wait_id: str, **kwargs) -> None:
         """The entity state changed"""
-
-        wait_id = args[4]["wait_id"]
         async_event = self._async_events.pop(wait_id)
-
         # now release the wait
         async_event.set()
 
@@ -478,6 +468,9 @@ class Entity:
                 return entity_state in state
             case _:
                 return entity_state == state
+
+    def is_on(self) -> bool:
+        return self.is_state("on")
 
     @utils.sync_decorator
     async def turn_on(self, **kwargs) -> Any:
@@ -553,7 +546,11 @@ class Entity:
     def entity_id(self, new: str) -> str:
         """Get the entity's entity_id"""
         self._entity_id = new
-        self.domain, self.entity_name = self._entity_id.split('.')
+        try:
+            self.domain, self.entity_name = self._entity_id.split('.')
+        except ValueError:
+            # The entity_id could actually be just a domain
+            self.domain = self._entity_id
 
     @property
     def state(self) -> Any:
@@ -586,11 +583,20 @@ class Entity:
         return self._simple_state.get("last_changed")
 
     @property
-    def last_changed_delta(self) -> timedelta:
+    def last_changed_delta(self) -> timedelta | None:
+        """The timedelta formatted as a string, with the fractional seconds truncated"""
         if time_str := self.last_changed:
             utc = datetime.fromisoformat(time_str)
             now = self.AD.sched.get_now_sync()
             return (now - utc)
+
+    @property
+    def last_changed_delta_str(self) -> str:
+        """The timedelta formatted as a string, with the fractional seconds truncated"""
+        if (td := self.last_changed_delta) is not None:
+            return str(td)[:7]
+        else:
+            return ''
 
     @property
     def last_changed_seconds(self) -> float:

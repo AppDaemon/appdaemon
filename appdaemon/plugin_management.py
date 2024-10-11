@@ -282,13 +282,16 @@ class PluginManagement:
     def get_plugin_cfg(self, plugin: str) -> PluginConfig:
         return self.config[plugin]
 
-    async def get_plugin_object(self, namespace: str) -> PluginBase:
-        if namespace in self.plugin_objs:
-            return self.plugin_objs[namespace]["object"]
-        else:
+    def get_plugin_object(self, namespace: str) -> PluginBase:
+        if not (plugin := self.plugin_objs.get(namespace)):
             for _, cfg in self.config.items():
                 if namespace in cfg.namespaces:
-                    return self.plugin_objs[cfg.namespace]["object"]
+                    plugin = self.plugin_objs[namespace]
+                    break
+            else:
+                plugin = {}
+
+        return plugin.get("object")
 
     def get_plugin_from_namespace(self, namespace: str) -> str:
         for name, cfg in self.config.items():
@@ -423,7 +426,7 @@ class PluginManagement:
                         self.logger.debug("Refreshing %s state", name)
 
                         with async_timeout.timeout(self.config[name].refresh_timeout):
-                            obj = await self.get_plugin_object(plugin)
+                            obj = self.get_plugin_object(plugin)
                             state = await obj.get_complete_state()
 
                         if state is not None:

@@ -152,7 +152,7 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
         """
 
         namespace = self._get_namespace(**kwargs)
-        plugin: MqttPlugin = await self.AD.plugins.get_plugin_object(namespace)
+        plugin: MqttPlugin = self.AD.plugins.get_plugin_object(namespace)
         topic = kwargs.get("topic", kwargs.get("wildcard"))
 
         if plugin is not None:
@@ -354,5 +354,5 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
 
         """
         namespace = self._get_namespace(**kwargs)
-        plugin = await self.AD.plugins.get_plugin_object(namespace)
+        plugin = self.AD.plugins.get_plugin_object(namespace)
         return await plugin.mqtt_client_state()

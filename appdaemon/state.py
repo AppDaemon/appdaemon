@@ -461,7 +461,7 @@ class State:
         self.logger.debug("remove_entity() %s %s", namespace, entity)
         await self.remove_entity_simple(namespace, entity)
 
-        plugin = await self.AD.plugins.get_plugin_object(namespace)
+        plugin = self.AD.plugins.get_plugin_object(namespace)
 
         if hasattr(plugin, "remove_entity"):
             # We assume that the event will come back to us via the plugin
@@ -675,7 +675,7 @@ class State:
 
         # Fire the plugin's state update if it has one
 
-        plugin = await self.AD.plugins.get_plugin_object(namespace)
+        plugin = self.AD.plugins.get_plugin_object(namespace)
 
         if set_plugin_state := getattr(plugin, "set_plugin_state", False):
             # We assume that the state change will come back to us via the plugin

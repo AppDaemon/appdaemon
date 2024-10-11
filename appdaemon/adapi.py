@@ -703,10 +703,8 @@ class ADAPI:
         return self.AD.app_management.get_app(name)
 
     def _check_entity(self, namespace: str, entity_id: str):
-        """Ensures that there is a '.' character in the entity and that it exists in the given namespace"""
-        # if "." not in entity_id:
-        #     raise ValueError(f"{self.name}: Invalid entity ID: {entity_id}")
-        if not self.AD.state.entity_exists(namespace, entity_id):
+        """Ensures that the entity exists in the given namespace"""
+        if "." in entity_id and not self.AD.state.entity_exists(namespace, entity_id):
             self.logger.warning("%s: Entity %s not found in namespace %s", self.name, entity_id, namespace)
 
     @staticmethod
@@ -1897,7 +1895,12 @@ class ADAPI:
         namespace = namespace or self.namespace
 
         if eid := data.get('entity_id'):
-            self._check_entity(namespace, eid)
+            match eid:
+                case str():
+                    self._check_entity(namespace, eid)
+                case Iterable():
+                    for e in eid:
+                        self._check_entity(namespace, e)
 
         return await self.AD.services.call_service(namespace, *service.split("/"), name=self.name, data=data)
 
