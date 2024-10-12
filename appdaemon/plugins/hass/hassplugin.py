@@ -639,6 +639,10 @@ class HassPlugin(PluginBase):
         callback: Callable | None = None,
         **data
     ):
+        """Used by ``self.check_register_service`` when calling ``self.AD.services.register_service``.
+
+        This causes ``self.call_plugin_service`` to be called when a service is called in this plugin's namespace.
+        """
         # if we get a request for not our namespace something has gone very wrong
         assert namespace == self.namespace
 

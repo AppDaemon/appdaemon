@@ -13,6 +13,7 @@ from .hassplugin import HassPlugin
 from ...adapi import ADAPI
 from ...adbase import ADBase
 from ...models.app_config import AppConfig
+from ...models.notification.android import AndroidData
 
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
@@ -716,3 +717,12 @@ class Hass(ADBase, ADAPI):
         """Gets the number of seconds """
         if (plugin := self._plugin) is not None:
             return (await plugin.ping())['ad_duration']
+
+    def notify_android(self, device: str, tag: str = 'appdaemon', **data):
+        """Convenience method for quickly creating mobile Android notifications"""
+        model = AndroidData.model_validate(data)
+        model.data.tag = model.data.tag or tag # Fills in the tag if it's blank
+        return self.call_service(
+            service=f'notify/mobile_app_{device}',
+            **model.model_dump(mode='json', exclude_none=True, by_alias=True)
+        )
