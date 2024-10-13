@@ -1,7 +1,7 @@
 from ast import literal_eval
 from datetime import datetime, timedelta
 from functools import wraps
-from typing import Any, Callable, Union, overload
+from typing import Any, Callable, Literal, Union, overload
 
 import requests
 from urllib3.exceptions import InsecureRequestWarning
@@ -9,6 +9,7 @@ from urllib3.exceptions import InsecureRequestWarning
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
 
+from .notifications import AndroidNotification
 from .hassplugin import HassPlugin
 from ...adapi import ADAPI
 from ...adbase import ADBase
@@ -718,7 +719,18 @@ class Hass(ADBase, ADAPI):
         if (plugin := self._plugin) is not None:
             return (await plugin.ping())['ad_duration']
 
-    def notify_android(self, device: str, tag: str = 'appdaemon', **data):
+    @overload
+    def notify_android(
+        self,
+        device: str,
+        tag: str,
+        title: str,
+        message: str,
+        target: str,
+        **data
+    ) -> dict: ...
+
+    def notify_android(self, device: str, tag: str = 'appdaemon', **data) -> dict:
         """Convenience method for quickly creating mobile Android notifications"""
         model = AndroidData.model_validate(data)
         model.data.tag = model.data.tag or tag # Fills in the tag if it's blank
@@ -726,3 +738,17 @@ class Hass(ADBase, ADAPI):
             service=f'notify/mobile_app_{device}',
             **model.model_dump(mode='json', exclude_none=True, by_alias=True)
         )
+
+    def android_tts(
+        self,
+        device: str,
+        tts_text: str,
+        media_stream: Literal['music_stream', 'alarm_stream', 'alarm_stream_max'] | None = 'music_stream',
+        critical: bool = False,
+    ) -> dict:
+        return self.call_service(
+            **AndroidNotification.tts(device, tts_text, media_stream, critical).to_service_call()
+        )
+
+    def listen_notification_action(self, callback: Callable, action: str) -> str:
+        return self.listen_event(callback, 'mobile_app_notification_action', action=action)
