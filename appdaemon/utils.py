@@ -180,7 +180,7 @@ def check_state(logger, new_state, callback_state, name) -> bool:
 def sync_decorator(coro_func):  # no type hints here, so that @wraps(func) works properly
     @wraps(coro_func)
     def wrapper(self, *args, **kwargs):
-        self.logger.debug(f"Wrapping async function {coro_func.__qualname__}")
+        # self.logger.debug(f"Wrapping async function {coro_func.__qualname__}")
         ad: AppDaemon = self.AD
 
         try:

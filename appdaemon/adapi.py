@@ -1530,7 +1530,7 @@ class ADAPI:
 
         """
         self.logger.debug("Canceling listen_state for %s", self.name)
-        return await self.AD.state.cancel_state_callback(handle, self.name, silent)
+        return bool(await self.AD.state.cancel_state_callback(handle, self.name, silent))
 
     @utils.sync_decorator
     async def info_listen_state(self, handle: str) -> dict:
@@ -3326,11 +3326,9 @@ class ADAPI:
             "pin_thread": self.get_pin_thread(),
         }
 
-        def callback_inner(f):
+        def callback_inner(f: Future):
             try:
-                rargs = {}
-                rargs["result"] = f.result()
-                sched_data["kwargs"] = rargs
+                sched_data["kwargs"] = {'result': f.result()}
                 self.create_task(self.AD.threading.dispatch_worker(self.name, sched_data))
 
                 # callback(f.result(), kwargs)
@@ -3495,6 +3493,9 @@ class ADAPI:
 
         """
         return await self.AD.callbacks.get_callback_entries()
+
+    def get_entity_callbacks(self, entity_id: str) -> dict[str, dict[str, Any]]:
+        return self.get_entity(entity_id).get_callbacks()
 
     @utils.sync_decorator
     async def depends_on_module(self, *modules: List[str]) -> None:

@@ -1,7 +1,7 @@
 from ast import literal_eval
 from datetime import datetime, timedelta
 from functools import wraps
-from typing import Any, Callable, Literal, Union, overload
+from typing import Any, Callable, Literal, Type, Union, overload
 
 import requests
 from urllib3.exceptions import InsecureRequestWarning
@@ -15,7 +15,8 @@ from ...adapi import ADAPI
 from ...adbase import ADBase
 from ...models.app_config import AppConfig
 from ...models.notification.android import AndroidData
-
+from ...models.notification.iOS import iOSData
+from ...models.notification.base import NotificationData
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
@@ -730,9 +731,24 @@ class Hass(ADBase, ADAPI):
         **data
     ) -> dict: ...
 
-    def notify_android(self, device: str, tag: str = 'appdaemon', **data) -> dict:
+    def notify_android(self, device: str, tag: str = 'appdaemon', **kwargs) -> dict:
         """Convenience method for quickly creating mobile Android notifications"""
-        model = AndroidData.model_validate(data)
+        return self._notify_mobile_app(device, AndroidData, tag, **kwargs)
+
+    def notify_ios(self, device: str, tag: str = 'appdaemon', **kwargs) -> dict:
+        """Convenience method for quickly creating mobile iOS notifications"""
+        return self._notify_mobile_app(device, iOSData, tag, **kwargs)
+
+    def _notify_mobile_app(self, device: str , model: str | Type[NotificationData], tag: str = 'appdaemon', **kwargs) -> dict:
+        match model:
+            case NotificationData():
+                pass
+            case 'android':
+                model = AndroidData
+            case 'iOS' | 'ios':
+                model = iOSData
+
+        model = model.model_validate(kwargs)
         model.data.tag = model.data.tag or tag # Fills in the tag if it's blank
         return self.call_service(
             service=f'notify/mobile_app_{device}',

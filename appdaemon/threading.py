@@ -11,7 +11,7 @@ from logging import Logger
 from queue import Queue
 from random import randint
 from threading import Thread
-from typing import TYPE_CHECKING, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 
 import iso8601
 
@@ -668,18 +668,18 @@ class Threading:
 
     async def check_and_dispatch_state(
         self,
-        name,
-        funcref,
-        entity,
-        attribute,
-        new_state,
-        old_state,
-        cold,
-        cnew,
-        kwargs,
-        uuid_,
-        pin_app,
-        pin_thread,
+        name: str,
+        funcref: Callable,
+        entity: str,
+        attribute: str,
+        new_state: dict[str, Any],
+        old_state: dict[str, Any],
+        cold: Any,
+        cnew: Any,
+        kwargs: dict[str, Any],
+        uuid_: str,
+        pin_app: bool,
+        pin_thread: int | None,
     ):
         executed = False
         # kwargs["handle"] = uuid_

@@ -271,7 +271,9 @@ class HassPlugin(PluginBase):
                 data = event["data"]
                 await self.check_register_service(data["domain"], data["service"], silent=True)
             case "call_service":
-                pass
+                service_name = f'{event["data"]["domain"]}.{event["data"]["service"]}'
+                entity_id = event["data"]["service_data"].get('entity_id')
+                self.logger.debug(f'{service_name}, {entity_id}')
             case 'entity_registry_updated':
                 pass
             # https://data.home-assistant.io/docs/events/#state_changed
