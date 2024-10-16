@@ -152,7 +152,7 @@ sphinxcontrib-qthelp==2.0.0
     # via sphinx
 sphinxcontrib-serializinghtml==2.0.0
     # via sphinx
-starlette==0.38.5
+starlette==0.41.0
     # via sphinx-autobuild
 tomli==2.0.1
     # via appdaemon (pyproject.toml)
