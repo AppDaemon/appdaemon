@@ -768,3 +768,30 @@ class Hass(ADBase, ADAPI):
 
     def listen_notification_action(self, callback: Callable, action: str) -> str:
         return self.listen_event(callback, 'mobile_app_notification_action', action=action)
+
+    # Labels
+    # https://www.home-assistant.io/docs/configuration/templating/#labels
+
+    def _label_command(self, command: str, input: str) -> str | list[str]:
+        return self.render_template(f'{{{{ {command}("{input}") }}}}')
+
+    def labels(self, input: str = None) -> list[str]:
+        if input is None:
+            return self.render_template('{{ labels() }}')
+        else:
+            return self._label_command('labels', input)
+
+    def label_id(self, lookup_value: str) -> str:
+        return self._label_command('label_id', lookup_value)
+
+    def label_name(self, lookup_value: str):
+        return self._label_command('label_name', lookup_value)
+
+    def label_areas(self, label_name_or_id: str) -> list[str]:
+        return self._label_command('label_areas', label_name_or_id)
+
+    def label_devices(self, label_name_or_id: str) -> list[str]:
+        return self._label_command('label_devices', label_name_or_id)
+
+    def label_entities(self, label_name_or_id: str) -> list[str]:
+        return self._label_command('label_entities', label_name_or_id)
