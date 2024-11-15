@@ -6,7 +6,7 @@
 #
 aiohappyeyeballs==2.4.0
     # via aiohttp
-aiohttp==3.10.5
+aiohttp==3.11.2
     # via
     #   aiohttp-jinja2
     #   appdaemon (pyproject.toml)
