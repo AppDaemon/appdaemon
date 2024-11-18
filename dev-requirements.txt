@@ -128,7 +128,7 @@ pyyaml==6.0.2
     #   pre-commit
 requests==2.32.3
     # via appdaemon (pyproject.toml)
-ruff==0.6.5
+ruff==0.7.4
     # via appdaemon (pyproject.toml)
 sgmllib3k==1.0.0
     # via feedparser
