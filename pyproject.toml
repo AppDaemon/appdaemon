@@ -150,7 +150,7 @@ max-complexity = 10
 
 [tool.codespell]
 # Ref: https://github.com/codespell-project/codespell#using-a-config-file
-skip = '.git*,*.svg,*.css,*.min.*'
+skip = '.git*,*.svg,*.css,*.min.*,*.map,assets'
 check-hidden = true
 # ignore-regex = ''
-# ignore-words-list = ''
+ignore-words-list = 'hass,noone,dependee,dependees'
