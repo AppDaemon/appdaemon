@@ -1754,7 +1754,7 @@ class ADAPI:
             return_result(str, option): If `return_result` is provided and set to `True` AD will attempt
                 to wait for the result, and return it after execution. In the case of Home Assistant calls that do not
                 return values this may seem pointless, but it does force the call to be synchronous with respect to Home Assistant
-                whcih can in turn highlight slow performing services if they timeout or trigger thread warnings.
+                which can in turn highlight slow performing services if they timeout or trigger thread warnings.
             callback: The non-async callback to be executed when complete.
             hass_result (False, Home Assistant Specific): Mark the service call to Home Assistant as returnng a
                 value. If set to ``True``, the call to Home Assistant will specifically request a return result.
@@ -1765,7 +1765,7 @@ class ADAPI:
             hass_timeout (Home Assistant Specific): time in seconds to wait for Home Assistant's response for this specific service call. If not specified
                 defaults to the value of the ``q_timeout`` parameter in the HASS plugin configuration, which itself defaults to 30 seconds. See `Some Notes on Service Calls <APPGUIDE.html#some-notes-on-service-calls>`__
             suppress_log_messages (Home Assistant Specific, False): if set to ``True`` Appdaemon will suppress logging of warnings for service calls to Home Assistant, specifically timeouts and non OK statuses. Use this flag and set it to ``True``
-                to supress these log messages if you are performing your own error checking as described `here <APPGUIDE.html#some-notes-on-service-calls>`__
+                to suppress these log messages if you are performing your own error checking as described `here <APPGUIDE.html#some-notes-on-service-calls>`__
 
 
 
@@ -2406,7 +2406,7 @@ class ADAPI:
 
         Args:
             handle: A valid handle value returned from the original call to create the timer.
-                The timer must be actively running, and not a Sun related one like sunrise/sunset for it to be resetted.
+                The timer must be actively running, and not a Sun related one like sunrise/sunset for it to be reset.
 
         Returns:
             Boolean, true if the reset succeeded.

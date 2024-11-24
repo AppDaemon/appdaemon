@@ -384,7 +384,7 @@ class HTTP:
             await site.start()
         except gaierror:
             self.logger.error("Invalid host specified in URL for HTTP component")
-            self.logger.error("As of AppDaemon 4.5 the host name specificed in the URL must resolve to a known host")
+            self.logger.error("As of AppDaemon 4.5 the host name specified in the URL must resolve to a known host")
             self.logger.error("You can restore previous behavior by using `0.0.0.0` as the host portion of the URL")
             self.logger.error("For instance: `http://0.0.0.0:5050`")
             raise StartupAbortedException("Invalid host specified in URL for HTTP component")
@@ -899,7 +899,7 @@ class HTTP:
             return self.get_response(request, code, "App Not Found")
 
         elif code == 500:
-            return self.get_response(request, code, "An Error occured while processing request")
+            return self.get_response(request, code, "An Error occurred while processing request")
 
         response = "OK"
         self.access.info("API Call to %s: status: %s %s", endpoint, code, response)

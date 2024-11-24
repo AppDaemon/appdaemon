@@ -54,8 +54,8 @@ class Formatter(object):
     def __call__(self, value, **args):
         for key in args:
             setattr(self, key, args[key])
-        formater = self.types[type(value) if type(value) in self.types else object]
-        return formater(self, value, self.indent)
+        formatter = self.types[type(value) if type(value) in self.types else object]
+        return formatter(self, value, self.indent)
 
     @staticmethod
     def format_object(value, indent):
@@ -709,7 +709,7 @@ def _secret_yaml(loader, node):
 def _env_var_yaml(loader, node):
     env_var = node.value
     if env_var not in os.environ:
-        raise ValueError("{} not found in as environment varibale".format(env_var))
+        raise ValueError("{} not found in as environment variable".format(env_var))
 
     return os.environ[env_var]
 

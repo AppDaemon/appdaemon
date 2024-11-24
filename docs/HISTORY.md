@@ -7,7 +7,7 @@
 - Added Pirateweather widget - contributed by [Dave Dixon](https://github.com/DaveDixon)
 - Added ability to know the topic associated with an MQTT message decode error
 - Added `expert` mode for python imports via the `import_method` directive
-- Added `import_path` directive to enable python imports from arbitary paths
+- Added `import_path` directive to enable python imports from arbitrary paths
 - Added access to the request object for both async and non-async http callbacks - contributed by [Eric Severance](https://github.com/esev)
 - Added option for N deg rising|setting to Scheduler._parse_time
 - Added `silent` parameter to `cancel_listen_state()` - contributed by [Daniel Rocha](https://github.com/danroc)
@@ -127,12 +127,12 @@ None
     Moreno](https://github.com/xaviml)
 - Added the ability to reset a running timer via api
 - Removed a warning from info_timer() for stale handles
-- Added the ability to supress invalid timer handle warnings in
+- Added the ability to suppress invalid timer handle warnings in
     cancel_timer()
 - All scheduler calls and helper functions now support fractional
     timestamps. including parse_time() and now_is_between()
 - sunrise(), sunset(), parse_time() and parse_datetime() now allow you
-    to select today\'s sunrise/sunset, rather than the next occuring,
+    to select today\'s sunrise/sunset, rather than the next occurring,
     and specify a number of offset days
 - now_is_between() now supports specification of a timethat can be
     used for testing rather than using the current time
@@ -445,7 +445,7 @@ None
     example if wanting to persist entities within MQTT namespace
 - Moved the `appdaemon` reladed services to the `admin` namespace. So
     no more `appdaemon` namespace
-- Added services for creating, editting, removing, enabling, disabling
+- Added services for creating, editing, removing, enabling, disabling
     apps
 - Added ability to receive binary payload from MQTT broker
 - Added [cchardet](https://pypi.org/project/cchardet) and
@@ -477,7 +477,7 @@ None
     [event/state/log/timer]{.title-ref}, it gives no warning its invalid
 - Fixed an issue with stream api using [get_state]{.title-ref} api
     call
-- Fixed Azure packages by droping deprecated packages - contributed by
+- Fixed Azure packages by dropping deprecated packages - contributed by
     [freezeboy](https://github.com/freezeboy)
 - Prevent the ability for apps to register services in non-existent
     namespaces
@@ -560,7 +560,7 @@ None
 - If using user defined namespace, there is need to delete the present
     ones in the `namespaces` directory.
 - Due to the removal of the [appdaemon]{.title-ref} namespace, if
-    anyone was manaully making a service call using it, will need to be
+    anyone was manually making a service call using it, will need to be
     updated
 - `binary` is now a reserved keyword argument used when listening to
     MQTT events

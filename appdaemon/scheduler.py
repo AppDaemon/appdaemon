@@ -596,7 +596,7 @@ class Scheduler:
                     next_entries = self.get_next_entries()
 
                 elif self.timer_resetted is True:
-                    # a timer was resetted, so need to recalculate next entries
+                    # a timer was reset, so need to recalculate next entries
                     next_entries = self.get_next_entries()
                     self.timer_resetted = False
 

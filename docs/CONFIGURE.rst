@@ -188,11 +188,11 @@ The following options are available under the ``appdaemon`` section:
     - No
 
   * - import_method
-    - By default, AppDaemon will add all subdirectories of appdir to the python interpreters path. This is intended to simplfy imports for simple applications. There is also an expert mode that will add just the top level appdir dircetory to the path allowing the user to use a more traditional hierarchical approach to imports. The default value for this directive is `normal`, set it to `expert` to enable the expert mode.
+    - By default, AppDaemon will add all subdirectories of appdir to the python interpreters path. This is intended to simplify imports for simple applications. There is also an expert mode that will add just the top level appdir directory to the path allowing the user to use a more traditional hierarchical approach to imports. The default value for this directive is `normal`, set it to `expert` to enable the expert mode.
     - No
 
   * - import_paths
-    - Use this directive to add additional arbitary directories to the python interpreter's search path. Directories must be fully qualified.
+    - Use this directive to add additional arbitrary directories to the python interpreter's search path. Directories must be fully qualified.
     - No
 
 
@@ -499,7 +499,7 @@ Plugins also support some optional parameters:
 
 - ``refresh_delay`` - How often the complete state of the plugin is refreshed, in seconds. Default is 600 seconds.
 - ``refresh_timeout`` - How long to wait for the state refresh before cancelling it, in seconds. Default is 30 seconds.
-- ``persist_entities`` - If `True` all entities created within the plugin's namespace will be persitent within AD. So in the event of a restart, the entities will be recreated in the same namespace
+- ``persist_entities`` - If `True` all entities created within the plugin's namespace will be persistent within AD. So in the event of a restart, the entities will be recreated in the same namespace
 
 The rest will vary depending upon which plugin type is in use.
 

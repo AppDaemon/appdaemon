@@ -432,7 +432,7 @@ For example:
         - label(2x2),clock(2x2)
 
 In this example of a header, we reference a clock and a label in the
-layout. We can re-use this header, but in order to make the label change
+layout. We can reuse this header, but in order to make the label change
 for every page we use it on we actually define it in the dashboard file
 itself, and include the header in the layout:
 
@@ -625,7 +625,7 @@ the dashboard url, for instance:
 ``http://192.168.1.20:5050/mypanel?deviceid=kitchentablet``
 
 HADashboard will try to store the deviceid on the device so you don't need
-to use this parameter everytime. You may use it again if you want to set
+to use this parameter every time. You may use it again if you want to set
 a new deviceid or if you cleaned device's cookies or the device doesnt
 support it.
 
@@ -2036,7 +2036,7 @@ Mandatory Arguments:
 -  ``entity`` - the entity\_id of the alarm to be monitored
 - ``settings`` - a list if values describing the gauge with the following entries:
 
-- title - title of the guage
+- title - title of the gauge
 - minValue - minimum value to display
 - maxValue - maximum value to display
 - majorTicks - Where to mark major values, a list
@@ -2204,7 +2204,7 @@ Optional Arguments:
 -  ``title2`` - a second line of title text
 -  ``state_text``
 -  ``state_map``
--  ``enabled`` - if set to 0 the switch cant be pressed but only shows status
+-  ``enabled`` - if set to 0 the switch can't be pressed but only shows status
 -  ``momentary`` - after the set amount of milliseconds the old state returns (momentary button)
 
 Style Arguments:
@@ -2328,7 +2328,7 @@ Optional Arguments:
 -  ``title2`` - a second line of title text
 -  ``state_text``
 -  ``state_map``
--  ``enabled`` - if set to 0 the switch cant be pressed but only shows status
+-  ``enabled`` - if set to 0 the switch can't be pressed but only shows status
 -  ``momentary`` - after the set amount of milliseconds the old state returns (momentary button)
 
 Style Arguments:
@@ -2659,11 +2659,11 @@ to the head includes or body includes.
 Custom widgets require their own special .js files, but to trigger a function
 from the javascript widget or from the body includes you can create a
 ``custom_javascript`` directory in the configuration directory.
-All files that are placed in that directory will automaticly included in
+All files that are placed in that directory will automatically included in
 Dashboard.
 All functions you place in a .js file inside that directory will be
 available everywhere in dashboard.
-Remember that you do this on your own responsibility. javscript code in
+Remember that you do this on your own responsibility. javascript code in
 those files can break Dashboards, and create vulnerabilities.
 
 Example Dashboards

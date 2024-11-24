@@ -168,7 +168,7 @@ To configure a new App you need a minimum of two directives:
 -  ``class`` - the name of the class as defined within the module for
    the App's code
 
-Although the section/App name must be unique, it is possible to re-use a
+Although the section/App name must be unique, it is possible to reuse a
 class as many times as you want, and conversely to put as many classes
 in a module as you want. A sample definition for a new App might look as
 follows in YAML:
@@ -179,7 +179,7 @@ follows in YAML:
       module: new
       class: NewApp
 
-The TOML equivqlent would look like this:
+The TOML equivalent would look like this:
 
 .. code:: toml
 
@@ -455,7 +455,7 @@ In the App, the app_users can be accessed like every other argument the App can 
 App Dependencies
 ----------------
 
-It is possible for apps to be dependant upon other apps. Some
+It is possible for apps to be dependent upon other apps. Some
 examples where this might be the case are:
 
 -  A global App that defines constants for use in other apps
@@ -593,7 +593,7 @@ as global can be achieved creating an entry for each module:
         module: other_globals
         global: true
 
-Once we have marked the global modules, the next step is to configure any apps that are dependant upon them. This is done by adding them to the standard  ``dependencies`` field to the App description, e.g.:
+Once we have marked the global modules, the next step is to configure any apps that are dependent upon them. This is done by adding them to the standard  ``dependencies`` field to the App description, e.g.:
 
 .. code:: yaml
 
@@ -615,7 +615,7 @@ Or for multiple dependencies:
 
 With this in place, whenever a global module changes that apps depend upon, all dependent apps will be reloaded.
 This also works well with the App level dependencies. If a change to a global module forces an App to reload
-that other apps are dependant upon, the dependant apps will also be reloaded in sequence.
+that other apps are dependent upon, the dependent apps will also be reloaded in sequence.
 Using this mechanism, it is also possible to mark global modules as being dependent on other global modules.
 
 Note: the old ``global_modules`` directive used to be used for this function but has been deprecated.
@@ -626,7 +626,7 @@ Plugin Reloads
 --------------
 
 When a plugin reloads e.g., due to the underlying system restarting, or a network issue,
-AppDaemon's default assumption is that all apps could potentially be dependant on that system,
+AppDaemon's default assumption is that all apps could potentially be dependent on that system,
 and it will force a restart of every App. It is possible to modify this behavior at the
 individual App level, using the ``plugin`` parameter in apps.yaml.
 Specifying a specific plugin or list of plugins will force the App to reload after the named plugin restarts.
@@ -1461,7 +1461,7 @@ callbacks vis the ``**`` operator rather than passing a dictionary containing th
     def motion(self, entity, attribute, old, new, **kwargs):
         self.log("Arg1 is {}".format(kwargs["arg1"]))
 
-It now makes more sense to rewite the callback's method signature to the following if desired:
+It now makes more sense to rewrite the callback's method signature to the following if desired:
 
 .. code:: python
 
@@ -1898,7 +1898,7 @@ AppDaemon uses 2 separate logs - the general log and the error log. An
 App can write to either of these using the supplied
 convenience methods ``log()`` and ``error()``, which are provided as
 part of parent ``AppDaemon`` class, and the call will automatically
-pre-pend the name of the App making the call.
+prepend the name of the App making the call.
 
 The functions are based on the Python ``logging`` module and are able to pass through parameters for interpolation, and additional parameters such as ``exc_info`` just as with the usual style of invocation. Use of loggers interpolation method over the use of ``format()`` is recommended for performance reasons, as logger will only interpolate of the line is actually written whereas ``format()`` will always do the substitution.
 
@@ -2777,7 +2777,7 @@ You can use this with 2 separate constraints like so:
 Sequences
 ---------
 
-AppDaemon supports `sequences` as a simple way of re-using predefined steps of commands. The initial usecase for sequences
+AppDaemon supports `sequences` as a simple way of reusing predefined steps of commands. The initial usecase for sequences
 is to allow users to create scenes within AppDaemon, however they are useful for many other things. Sequences
 are fairly simple and allow the user to define 3 types of activities:
 
@@ -2897,7 +2897,7 @@ Defining a Sequence Call Namespace
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 By default, a sequence will run on entities in the current namespace, however , the namespace can be specified on a per call
-basis if required. Also it can be specifed at the top tier level, allowing for all service calls in the sequence to use the same namespace
+basis if required. Also it can be specified at the top tier level, allowing for all service calls in the sequence to use the same namespace
 
 .. code:: yaml
 
@@ -2992,7 +2992,7 @@ Keeping Your IDE Happy
 Although it is possible to develop AppDaemon apps using a straight forward text editor, most users prefer to use some flavor of IDE.
 In order to simplify App development however, AppDaemon hides some of the complexity of import paths which makes for simpler coding
 but does have the side effect of confusing modern IDEs that are much stricter with import paths, and will show errors for modules
-that don't conform to these rules, and will not unserstand enough about the import paths to supply helpful information about AppDaemon's
+that don't conform to these rules, and will not understand enough about the import paths to supply helpful information about AppDaemon's
 API. Fortunately however, with a few simple steps, the IDE can be persuaded to work as desired. In addition, AppDaemon's APIs now
 have full type hints to make use of a modern IDE a lot easier and more helpful. This capability has been tested in Microsoft's VS Code but these
 steps should apply equally to other IDEs such as PyCharm.
@@ -3047,7 +3047,7 @@ With these preparations in place your IDE should give you correct error reportin
 Some Notes on Service Calls
 ---------------------------
 
-Service calls within AppDaemon are used to make something happen. For instance, instructing Home Assitant to turn a light on, or instructing AppDaemon itself
+Service calls within AppDaemon are used to make something happen. For instance, instructing Home Assistant to turn a light on, or instructing AppDaemon itself
 to reload an App. The Home Assistant plugin provides AppDaemon apps with a number of services that can be called, dependent upon what devices are configured,
 and what integrations have been added. While entities and state tell you what the current situation is, service calls will usually make some sort of change
 to the current situation, and the results will often be propagated back to the app via a state change callback, for instance, a light's state changing from
@@ -3055,7 +3055,7 @@ to the current situation, and the results will often be propagated back to the a
 
 Most service calls to date have been "fire and forget" - the service call is made and control is returned to the App immediately. This has the benefit of keeping
 things moving along which AppDaemon likes, but the downside of this is that you have to hope that the service call went through OK, and your app won't
-be given information on any errors that may have occured. Also, sometimes we may want to get specific information back from a service call, as the use
+be given information on any errors that may have occurred. Also, sometimes we may want to get specific information back from a service call, as the use
 of AppDaemon internal service calls is a powerful way of modularizing and communicating between apps.
 
 With the above in mind, service calls have recently had a few enhancements to improve this aspect of operation.
@@ -3128,18 +3128,18 @@ called when the service call returns with data:
 
 The return value of the service will be in the ``result`` entry of the kwargs dictionary.
 
-Note that you may use the ``return_result`` or the ``calback`` option in a single call, but not both.
+Note that you may use the ``return_result`` or the ``callback`` option in a single call, but not both.
 
 Returning Results from Home Assistant
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Home Assistant recently added the ability to return data from specific service calls. Not very many calls support this yet, but as of release 4.5 AppDaemon is now able
-to propagate return values from Home Assitant service calls to the App. As a result of this support, it is also now possible to wait for return statuses for Home Assistant
+to propagate return values from Home Assistant service calls to the App. As a result of this support, it is also now possible to wait for return statuses for Home Assistant
 service calls even if no return data is requested, this is beneficial as it is now possible to detect errors that were previously unreported. In addition, waiting for the
 response also allows the app and AppDaemon to identify poorly performing Home Assistant services (such as ZWave communication slowdowns) that previously would have gone unnoticed.
 
 To tell AppDaemon that you are expecting Home Assistant to return a value, set the ``hass_result`` parameter to True. In addition, you should also set either the ``callback`` or ``return_result``
-flags depending on how you want to recieve the result - both methods are supported. In order to force the call to be synchronous for a Home Assistant service that does not return a value, simply set ``return_result``
+flags depending on how you want to receive the result - both methods are supported. In order to force the call to be synchronous for a Home Assistant service that does not return a value, simply set ``return_result``
 to ``True`` but don't set ``hass_result`` to anything.
 
 Note that Home Assistant requires that you tell it explicitly whether or not you want a result. If you ask for a result from a service that doesn't return one, you will get an error.
@@ -3152,7 +3152,7 @@ app with an error. There are a couple of other timers already in AppDaemon that 
 * The callback tracking timer will issue warnings if a callback takes longer than 10 seconds to return
 * The internal function timer will cancel any task that takes longer than 60 seconds.
 
-With the above in mind, the default timeout for the Home Assitant service call has been set to 30 seconds to fall in between these 2 values so that in most cases for a slow service call
+With the above in mind, the default timeout for the Home Assistant service call has been set to 30 seconds to fall in between these 2 values so that in most cases for a slow service call
 you will get warnings from the callback tracking, but the call will cleanly timeout before AppDaemon is forced to cancel it for it's own internal housekeeping. If you set the timeout value higher,
 the internal function timer is the upper limit (this can be changed as part of the appdamon config if required).
 
@@ -3195,7 +3195,7 @@ It is also possible to force all calls to be synchronous by setting the ``return
 Home Assistant Return Data Format
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Return Data from internal AppDaemon service calls is arbitary and returned as is from the return statement of the called service. and can be of any time just as you would expect with a regular Python ```return`` statement.
+Return Data from internal AppDaemon service calls is arbitrary and returned as is from the return statement of the called service. and can be of any time just as you would expect with a regular Python ```return`` statement.
 
 The return format from Home Assistant service calls is more complex and includes additional data as well as the requested data.
 The return data wil be a dictionary, and AppDaemon starts with the data returned directly
@@ -3203,8 +3203,8 @@ from HomeAssistant and adds a couple of additional fields that can be used to ch
 
 * ``ad_status`` - the status of the call from AppDaemon's perspective. Possible values are:
 
-    * ``OK`` - everything went as planned from AppDaemon's perspective, a call was made to Home Assistant and a Response was obtained, and the response from Home Assistant is also contained within the results dictionary. This does not mean Home Assistant didn't produce an error, just that AppDaemon succesfully obtained a response from Home Assistant
-    * ``TIMEOUT`` - the call to Home Assistant did not return a value before a timeout occured (either the default 30 second timeout, or a per call timeout specified by the user)
+    * ``OK`` - everything went as planned from AppDaemon's perspective, a call was made to Home Assistant and a Response was obtained, and the response from Home Assistant is also contained within the results dictionary. This does not mean Home Assistant didn't produce an error, just that AppDaemon successfully obtained a response from Home Assistant
+    * ``TIMEOUT`` - the call to Home Assistant did not return a value before a timeout occurred (either the default 30 second timeout, or a per call timeout specified by the user)
     * ``TERMINATING`` - the service call was terminated as AppDaemon is shutting down
 
 * ``ad_duration`` - the amount of time in seconds the round trip took from AppDaemon to Home Assistant and back, useful for timing service calls.

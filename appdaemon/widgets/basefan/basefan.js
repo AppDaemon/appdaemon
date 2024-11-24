@@ -107,7 +107,7 @@ function basefan(widget_id, url, skin, parameters)
         else
         //Fan is on
         {
-            //turn main icon on & dispay speed selector
+            //turn main icon on & display speed selector
             self.set_icon(self, "icon", self.icons.icon_active)
             self.set_field(self, "icon_style", self.css.icon_style_active)
 

@@ -1039,7 +1039,7 @@ class AppManagement:
             - Marks the apps for reloading or removal as necessary
             - Restarts the plugin, if specified
             - Terminates apps as necessary
-            - Loads or reloads modules/pacakges as necessary
+            - Loads or reloads modules/packages as necessary
             - Loads apps from the modules/packages
         """
         async with self.check_updates_lock:
@@ -1111,7 +1111,7 @@ class AppManagement:
                 module_file: dir.stem for dir in top_packages_dirs for module_file in dir.rglob("*.py")
             }
 
-        # Add any aditional import paths
+        # Add any additional import paths
         for path in self.AD.import_paths:
             if os.path.isdir(path):
                 self.add_to_import_path(path)
@@ -1282,7 +1282,7 @@ class AppManagement:
         if apps is not None and apps.term:
             prio_apps = self.get_app_deps_and_prios(apps.term, mode)
 
-            # Mark dependant global modules for reload
+            # Mark dependent global modules for reload
             for app_name in sorted(prio_apps, key=prio_apps.get):
                 app_path = self.get_path_from_app(app_name)
 

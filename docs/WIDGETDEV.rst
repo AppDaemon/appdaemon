@@ -297,7 +297,7 @@ Widget HTML Files
 
 The HTML files exist to provide a basic layout for the widget and insert the styles. They are usually fairly simple.
 
-By convention, the various tag types have styling suitable for some common elements although that can be overidden in
+By convention, the various tag types have styling suitable for some common elements although that can be overridden in
 the css file or the skin:
 
 - <h1> is styled for small text such as titles or state text
@@ -539,7 +539,7 @@ The next step is to set up the widget to respond to various events such as butto
 
 
 There could be occasions when it is desirable to register for an event, and get the whole event data.
-This is possible by registering and passing "DOMEventData" and boolen `true`, so that dashboard is aware of the fact the entire
+This is possible by registering and passing "DOMEventData" and boolean `true`, so that dashboard is aware of the fact the entire
 event data is required. Below is an example
 
 .. code:: javascript

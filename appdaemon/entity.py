@@ -375,7 +375,7 @@ class Entity:
     ) -> None:
         """Used to wait for the state of an entity's attribute
 
-        This API call is only functional within an async function. It should be noted that when instanciated,
+        This API call is only functional within an async function. It should be noted that when instantiated,
         the api checks immediately if its already on the required state, and if it is, it will continue.
 
         Args:

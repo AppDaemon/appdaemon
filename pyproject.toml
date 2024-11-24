@@ -5,7 +5,7 @@ readme = "README.md"
 authors = [
     {name = "Andrew I Cockburn", email = "appdaemon@acockburn.com"},
 ]
-dynamic = ["version"] # The verison is computed dynamically. See `tool.setuptools.dynamic` section below.
+dynamic = ["version"] # The version is computed dynamically. See `tool.setuptools.dynamic` section below.
 license= { file = "LICENSE.md" }
 requires-python = ">=3.10"
 keywords=[ "appdaemon", "home", "automation" ]
