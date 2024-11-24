@@ -153,4 +153,4 @@ max-complexity = 10
 skip = '.git*,*.svg,*.css,*.min.*,*.map,assets'
 check-hidden = true
 # ignore-regex = ''
-ignore-words-list = 'hass,noone,dependee,dependees'
+ignore-words-list = 'hass,noone,dependee,dependees,whet'
