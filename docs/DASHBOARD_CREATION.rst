@@ -626,7 +626,7 @@ the dashboard url, for instance:
 
 HADashboard will try to store the deviceid on the device so you don't need
 to use this parameter every time. You may use it again if you want to set
-a new deviceid or if you cleaned device's cookies or the device doesnt
+a new deviceid or if you cleaned device's cookies or the device doesn't
 support it.
 
 

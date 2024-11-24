@@ -183,7 +183,7 @@ These could be different in another skin.
 
 In the base widget, there is code to change the icon from the on icon to the off icon in response to a
 touch or a state change triggered elsewhere.
-The Base Widget has access to theses icon names when executing that code.
+The Base Widget has access to these icon names when executing that code.
 
 Static Icons
 ~~~~~~~~~~~~

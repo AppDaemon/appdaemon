@@ -153,7 +153,7 @@ None
 - Fixed issue with the inability to know which app\'s callback failed
     [constrain_state]{.title-ref} check
 - Fixed issue with AD giving messed up error messages
-- Fixed an issue with scheduler.now_is_between() where it wasn\'t
+- Fixed an issue with scheduler.now_is_between() where it wasn't\'t
     zeroing out microseconds leading to race conditions
 - Fixed another issue with now_is_between() relating to sunrise &
     sunset periods spanning midnight
@@ -814,7 +814,7 @@ None
 - Added callback locking decorators
 - Rearchitected the work Q to allow App pinning and avoid re-entrant
     and concurrent code if desired
-- Implemented multiple worker Ques to avoid Head of Line blocking
+- Implemented multiple worker Queues to avoid Head of Line blocking
 - API Calls to control app pinning
 - Added the `run_in_thread()` api call - with assistance from
     [Odianosen Ejale](https://github.com/Odianosen25)

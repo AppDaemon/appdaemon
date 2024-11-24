@@ -6,7 +6,7 @@
 #                      state can be last time updated or time gone by since last update   #
 #  check_last_update_time: checks when the last time was that a sensor was updated        #
 #  save_last_update_time: saves the time that an object is updated to a file in a dir     #
-#                         you can define. the file wil have the name: lut_entity_id.py    #
+#                         you can define. the file will have the name: lut_entity_id.py    #
 #  reformat_time: changed a timeformat from H:M:S to %H:%M:%S                             #
 #                                                                                         #
 #  Rene Tode ( hass@reot.org )                                                            #

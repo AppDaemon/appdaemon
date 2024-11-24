@@ -177,7 +177,7 @@ The following options are available under the ``appdaemon`` section:
     - No
 
   * - thread_duration_warning_threshold
-    - AppDaemon monitors the time that each tread spends in an App.
+    - AppDaemon monitors the time that each thread spends in an App.
       If a thread is taking too long to finish a callback, it may impact other apps.
       AppDaemon will log a warning if any thread is over the duration specified in seconds. The default is ``10`` seconds, setting this value to ``00`` will disable this check.
     - No

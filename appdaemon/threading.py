@@ -1027,7 +1027,7 @@ class Threading:
                 error_logger.warning("-" * 60)
                 error_logger.warning(
                     "Unexpected error in worker for App %s:", name)
-                error_logger.warning("Worker Ags: %s", args)
+                error_logger.warning("Worker Args: %s", args)
                 error_logger.warning("-" * 60)
                 error_logger.warning(traceback.format_exc())
                 error_logger.warning("-" * 60)
@@ -1176,7 +1176,7 @@ class Threading:
                     error_logger.warning("-" * 60)
                     error_logger.warning(
                         "Unexpected error in worker for App %s:", name)
-                    error_logger.warning("Worker Ags: %s", args)
+                    error_logger.warning("Worker Args: %s", args)
                     error_logger.warning("-" * 60)
                     error_logger.warning(traceback.format_exc())
                     error_logger.warning("-" * 60)
@@ -1250,7 +1250,7 @@ class Threading:
                 error_logger.warning("-" * 60)
                 error_logger.warning(
                     "Unexpected error in worker for App %s:", name)
-                error_logger.warning("Worker Ags: %s", args)
+                error_logger.warning("Worker Args: %s", args)
                 error_logger.warning("-" * 60)
                 error_logger.warning(traceback.format_exc())
                 error_logger.warning("-" * 60)

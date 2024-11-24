@@ -3198,7 +3198,7 @@ Home Assistant Return Data Format
 Return Data from internal AppDaemon service calls is arbitrary and returned as is from the return statement of the called service. and can be of any time just as you would expect with a regular Python ```return`` statement.
 
 The return format from Home Assistant service calls is more complex and includes additional data as well as the requested data.
-The return data wil be a dictionary, and AppDaemon starts with the data returned directly
+The return data will be a dictionary, and AppDaemon starts with the data returned directly
 from HomeAssistant and adds a couple of additional fields that can be used to check status and gather information. The AppDaemon specific fields are guaranteed to exist and are:
 
 * ``ad_status`` - the status of the call from AppDaemon's perspective. Possible values are:

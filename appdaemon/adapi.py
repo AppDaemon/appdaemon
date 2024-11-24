@@ -1617,7 +1617,7 @@ class ADAPI:
         This will automatically make it available to other apps using the `call_service()` API call, as well as publish
         it as a service in the REST API and make it available to the `call_service` command in the event stream.
         It should be noted that registering services within a plugin's namespace is a bad idea. It could work, but not always reliable
-        It is recommended to make use of this api, within a user definded namespace, or one not tied to a plugin.
+        It is recommended to make use of this api, within a user defined namespace, or one not tied to a plugin.
 
         Args:
             service: Name of the service, in the format `domain/service`. If the domain does not exist it will be created

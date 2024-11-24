@@ -82,7 +82,7 @@ if [ -n "$ELEVATION" ]; then
 fi
 
 # Install packages specified by the end-user.
-# - Recusively traverse $CONF directory, searching for non-empty system_packages.txt files
+# - Recursively traverse $CONF directory, searching for non-empty system_packages.txt files
 # - Use cat to read all the file contents, use echo to append whtespace " " char to the file content (to guard against the corner case where the user does not put a newline after the package name)
 # - Use tr to substitute all newlines with " " char, to concatenate the name of all packages in a single line
 # - Pipe to xargs, printing the executed command (-t), invoking `apk add` with the list of required packages. Do nothing if no system_packages.txt files is present (--no-run-if-empty)
