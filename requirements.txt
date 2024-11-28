@@ -79,7 +79,7 @@ six==1.16.0
     # via python-dateutil
 sockjs==0.13.0
     # via appdaemon (pyproject.toml)
-tomli==2.0.1
+tomli==2.2.1
     # via appdaemon (pyproject.toml)
 tomli-w==1.0.0
     # via appdaemon (pyproject.toml)
