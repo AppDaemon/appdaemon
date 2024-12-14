@@ -20,7 +20,7 @@ from collections.abc import Iterable
 from datetime import timedelta
 from functools import wraps
 from types import ModuleType
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, ParamSpec, TypeVar, Awaitable, Union
 
 import dateutil.parser
 import tomli
@@ -214,8 +214,9 @@ def check_state(logger, new_state, callback_state, name) -> bool:
 
     return passed
 
-
-def sync_wrapper(coro) -> Callable:
+T = ParamSpec('T') # Arguments to the function
+R = TypeVar('R') # Return type of the function
+def sync_wrapper(coro: Callable[T, Awaitable[R]]) -> Callable[T, Union[R, Awaitable[R]]]:
     @wraps(coro)
     def inner_sync_wrapper(self, *args, **kwargs):
         is_async = None
@@ -229,14 +230,14 @@ def sync_wrapper(coro) -> Callable:
 
         if is_async is True:
             # don't use create_task. It's python3.7 only
-            f = asyncio.ensure_future(coro(self, *args, **kwargs))
+            f = asyncio.ensure_future(coro(self, *args, **kwargs)) # type: ignore
             self.AD.futures.add_future(self.name, f)
         else:
-            f = run_coroutine_threadsafe(self, coro(self, *args, **kwargs))
+            f = run_coroutine_threadsafe(self, coro(self, *args, **kwargs)) # type: ignore
 
         return f
 
-    return inner_sync_wrapper
+    return inner_sync_wrapper  # type: ignore
 
 
 def _timeit(func):
