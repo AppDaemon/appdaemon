@@ -103,7 +103,7 @@ class Entity:
 
     @utils.sync_wrapper
     async def get_state(
-        self, attribute: str = None, default: Any = None, copy: bool = True, **kwargs: Optional[Any]
+        self, attribute: str | None = None, default: Any = None, copy: bool = True, **kwargs: Optional[Any]
     ) -> Any:
         """Gets the state of any entity within AD.
 
@@ -280,7 +280,7 @@ class Entity:
         return await self.AD.state.add_state_callback(name, namespace, entity_id, callback, kwargs)
 
     @utils.sync_wrapper
-    async def add(self, state: Union[str, int, float] = None, attributes: dict = None) -> None:
+    async def add(self, state: Union[str, int, float] | None = None, attributes: dict | None = None) -> None:
         """Adds a non-existent entity, by creating it within a namespaces.
 
         It should be noted that this api call, is mainly for creating AD internal entities.
@@ -369,9 +369,9 @@ class Entity:
     async def wait_state(
         self,
         state: Any,
-        attribute: Union[str, int] = None,
+        attribute: Union[str, int] | None = None,
         duration: Union[int, float] = 0,
-        timeout: Union[int, float] = None,
+        timeout: Union[int, float] | None = None,
     ) -> None:
         """Used to wait for the state of an entity's attribute
 
