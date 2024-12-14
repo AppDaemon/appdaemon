@@ -20,7 +20,7 @@ from collections.abc import Iterable
 from datetime import timedelta
 from functools import wraps
 from types import ModuleType
-from typing import Any, Callable, Dict, ParamSpec, TypeVar, Awaitable, Union
+from typing import Any, Callable, Dict, ParamSpec
 
 import dateutil.parser
 import tomli
