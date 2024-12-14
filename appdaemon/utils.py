@@ -215,7 +215,7 @@ def check_state(logger, new_state, callback_state, name) -> bool:
     return passed
 
 T = ParamSpec('T') # Arguments to the function
-def sync_wrapper(coro: Callable[T]) -> Callable[T]:
+def sync_wrapper(coro: Callable[T, Any]) -> Callable[T, Any]:
     @wraps(coro)
     def inner_sync_wrapper(self, *args, **kwargs):
         is_async = None
