@@ -20,7 +20,7 @@ from collections.abc import Iterable
 from datetime import timedelta
 from functools import wraps
 from types import ModuleType
-from typing import Any, Callable, Dict, ParamSpec
+from typing import Any, Callable, Dict, ParamSpec, TypeVar
 
 import dateutil.parser
 import tomli
@@ -214,8 +214,16 @@ def check_state(logger, new_state, callback_state, name) -> bool:
 
     return passed
 
-T = ParamSpec('T') # Arguments to the function
-def sync_wrapper(coro: Callable[T, Any]) -> Callable[T, Any]:
+
+T = ParamSpec("T")  # Arguments to the function
+# Get return type inferred by pyright to be `Unknown` by using this only as return type (but not as argument).
+# This enables to benefit from the `reportUnknownParameterType` lint and similar other unknown-related lints.
+MakeReturnTypeUnknown = TypeVar("MakeReturnTypeUnknown")
+
+
+def sync_wrapper(
+    coro: Callable[T, Any]
+) -> Callable[T, MakeReturnTypeUnknown]:  # pyright: ignore[reportInvalidTypeVarUse]
     @wraps(coro)
     def inner_sync_wrapper(self, *args, **kwargs):
         is_async = None
@@ -229,14 +237,14 @@ def sync_wrapper(coro: Callable[T, Any]) -> Callable[T, Any]:
 
         if is_async is True:
             # don't use create_task. It's python3.7 only
-            f = asyncio.ensure_future(coro(self, *args, **kwargs)) # type: ignore
+            f = asyncio.ensure_future(coro(self, *args, **kwargs))  # type: ignore
             self.AD.futures.add_future(self.name, f)
         else:
-            f = run_coroutine_threadsafe(self, coro(self, *args, **kwargs)) # type: ignore
+            f = run_coroutine_threadsafe(self, coro(self, *args, **kwargs))  # type: ignore
 
         return f
 
-    return inner_sync_wrapper
+    return inner_sync_wrapper  # pyright: ignore[reportReturnType]
 
 
 def _timeit(func):
