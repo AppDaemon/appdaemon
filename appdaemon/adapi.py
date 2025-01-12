@@ -57,6 +57,8 @@ class ADAPI:
     err: Logger
     user_logs: dict[str, Logger]
 
+    constraints: list[dict]
+
     def __init__(self, ad: AppDaemon, config_model: AppConfig):
         self.AD = ad
         self.config_model = config_model
@@ -82,6 +84,7 @@ class ADAPI:
             if user_log := self.get_user_log(log_name):
                 self.logger = user_log
 
+        self.constraints = []
         self.dialogflow_v = 2
 
     @staticmethod
@@ -128,7 +131,7 @@ class ADAPI:
     @property
     def name(self) -> str:
         return self.config_model.name
-
+    
     #
     # Logging
     #
