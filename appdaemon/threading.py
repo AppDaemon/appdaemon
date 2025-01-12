@@ -31,6 +31,9 @@ class Threading:
     logger: Logger
     """Standard python logger named ``AppDaemon._threading``
     """
+    log_lock: threading.Lock
+    """Threadsafe lock that helps prevent blocks of log output from different threads being mixed together
+    """
     diag: Logger
     """Standard python logger named ``Diag``
     """
@@ -55,6 +58,7 @@ class Threading:
     def __init__(self, ad: "AppDaemon"):
         self.AD = ad
         self.logger = ad.logging.get_child("_threading")
+        self.log_lock = threading.Lock()
         self.diag = ad.logging.get_diag()
 
         self.thread_count = 0
@@ -999,13 +1003,14 @@ class Threading:
                         self.report_callback_sig(name, "event", funcref, args)
 
             except Exception:
-                error_logger.warning("-" * 60)
-                error_logger.warning(
-                    "Unexpected error in worker for App %s:", name)
-                error_logger.warning("Worker Ags: %s", args)
-                error_logger.warning("-" * 60)
-                error_logger.warning(traceback.format_exc())
-                error_logger.warning("-" * 60)
+                with self.log_lock:
+                    error_logger.warning("-" * 60)
+                    error_logger.warning(
+                        "Unexpected error in worker for App %s:", name)
+                    error_logger.warning("Worker Ags: %s", args)
+                    error_logger.warning("-" * 60)
+                    error_logger.warning(traceback.format_exc())
+                    error_logger.warning("-" * 60)
                 if self.AD.logging.separate_error_log() is True:
                     self.logger.warning(
                         "Logged an error to %s",
@@ -1142,18 +1147,19 @@ class Threading:
                                 name, "event", funcref, args)
 
                 except Exception:
-                    error_logger.warning("-" * 60)
-                    error_logger.warning(
-                        "Unexpected error in worker for App %s:", name)
-                    error_logger.warning("Worker Ags: %s", args)
-                    error_logger.warning("-" * 60)
-                    error_logger.warning(traceback.format_exc())
-                    error_logger.warning("-" * 60)
-                    if self.AD.logging.separate_error_log() is True:
-                        self.logger.warning(
-                            "Logged an error to %s",
-                            self.AD.logging.get_filename("error_log"),
-                        )
+                    with self.log_lock:
+                        error_logger.warning("-" * 60)
+                        error_logger.warning(
+                            "Unexpected error in worker for App %s:", name)
+                        error_logger.warning("Worker Ags: %s", args)
+                        error_logger.warning("-" * 60)
+                        error_logger.warning(traceback.format_exc())
+                        error_logger.warning("-" * 60)
+                        if self.AD.logging.separate_error_log() is True:
+                            self.logger.warning(
+                                "Logged an error to %s",
+                                self.AD.logging.get_filename("error_log"),
+                            )
                 finally:
                     utils.run_coroutine_threadsafe(
                         self,
@@ -1208,14 +1214,15 @@ class Threading:
                         name,
                         callback_args[type]["signature"][use_dictionary_unpacking],
                     )
-                error_logger = logging.getLogger("Error.{}".format(name))
-                error_logger.warning("-" * 60)
-                error_logger.warning(
-                    "Unexpected error in worker for App %s:", name)
-                error_logger.warning("Worker Ags: %s", args)
-                error_logger.warning("-" * 60)
-                error_logger.warning(traceback.format_exc())
-                error_logger.warning("-" * 60)
+                with self.log_lock:
+                    error_logger = logging.getLogger("Error.{}".format(name))
+                    error_logger.warning("-" * 60)
+                    error_logger.warning(
+                        "Unexpected error in worker for App %s:", name)
+                    error_logger.warning("Worker Ags: %s", args)
+                    error_logger.warning("-" * 60)
+                    error_logger.warning(traceback.format_exc())
+                    error_logger.warning("-" * 60)
                 if self.AD.logging.separate_error_log() is True:
                     self.logger.warning(
                         "Logged an error to %s", self.AD.logging.get_filename("error_log"))
@@ -1227,12 +1234,13 @@ class Threading:
             self.logger.error(
                 "Error in callback signature in %s, for App=%s", funcref, name)
         except BaseException:
-            error_logger.warning("-" * 60)
-            error_logger.warning(
-                "Unexpected error validating callback format in %s, for App=%s", funcref, name)
-            error_logger.warning("-" * 60)
-            error_logger.warning(traceback.format_exc())
-            error_logger.warning("-" * 60)
+            with self.log_lock:
+                error_logger.warning("-" * 60)
+                error_logger.warning(
+                    "Unexpected error validating callback format in %s, for App=%s", funcref, name)
+                error_logger.warning("-" * 60)
+                error_logger.warning(traceback.format_exc())
+                error_logger.warning("-" * 60)
             if self.AD.logging.separate_error_log() is True:
                 self.logger.warning(
                     "Logged an error to %s",
