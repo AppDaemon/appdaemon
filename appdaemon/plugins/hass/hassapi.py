@@ -49,6 +49,10 @@ class Hass(ADBase, ADAPI):
         self._namespace = new
         self._plugin = self.AD.plugins.get_plugin_object(self.namespace)
 
+    @utils.sync_decorator
+    async def check_for_entity(self, entity_id: str) -> bool:
+        return await self._plugin.check_for_entity(entity_id)
+
     #
     # Helpers
     #

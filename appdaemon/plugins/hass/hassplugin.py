@@ -14,7 +14,7 @@ from typing import Any, Callable, Literal, Optional
 import aiohttp
 import aiohttp.client_exceptions
 import aiohttp.client_ws
-from aiohttp import WSMsgType
+from aiohttp import ClientResponse, WSMsgType
 from pydantic import BaseModel
 
 import appdaemon.utils as utils
@@ -370,6 +370,7 @@ class HassPlugin(PluginBase):
                     self.logger.error("Internal server error %s: %s", url, text)
                 case _:
                     raise NotImplementedError('Unhandled error: HTTP %s', resp.status)
+            return resp
 
     async def wait_for_start_conditions(self):
         condition_tasks = []
@@ -697,6 +698,14 @@ class HassPlugin(PluginBase):
 
     async def get_plugin_state(self, entity_id: str, timeout: float | None = None):
         return await self.http_method('get', f'/api/states/{entity_id}', timeout)
+
+    async def check_for_entity(self, entity_id: str, timeout: float | None = None):
+        """Tries to get the state of an entity ID to see if it exists"""
+        resp = await self.get_plugin_state(entity_id, timeout)
+        if isinstance(resp, dict):
+            return True
+        elif isinstance(resp, ClientResponse) and resp.status == 404:
+            return False
 
     #
     # History
