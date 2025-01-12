@@ -2,14 +2,10 @@ from ast import literal_eval
 from datetime import datetime, timedelta
 from typing import Any, Callable, Literal, Type, Union, overload
 
-import requests
-from urllib3.exceptions import InsecureRequestWarning
-
-import appdaemon.utils as utils
-from appdaemon.appdaemon import AppDaemon
-
+from ... import utils
 from ...adapi import ADAPI
 from ...adbase import ADBase
+from ...appdaemon import AppDaemon
 from ...models.app_config import AppConfig
 from ...models.notification.android import AndroidData
 from ...models.notification.base import NotificationData
@@ -17,14 +13,9 @@ from ...models.notification.iOS import iOSData
 from .hassplugin import HassPlugin
 from .notifications import AndroidNotification
 
-requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
-
-
 #
 # Define an entities class as a descriptor to enable read only access of HASS state
 #
-
-
 class Hass(ADBase, ADAPI):
     """HASS API class for the users to inherit from.
 
