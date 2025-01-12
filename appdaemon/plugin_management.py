@@ -4,11 +4,10 @@ import datetime
 import importlib
 import sys
 import traceback
+from collections.abc import Generator, Iterable
 from logging import Logger
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, Type, Union
-
-import async_timeout
 
 from .app_management import UpdateMode
 from .models.ad_config import PluginConfig
@@ -33,7 +32,9 @@ class PluginBase(abc.ABC):
     bytes_recv: int
     requests_sent: int
     updates_recv: int
-    last_check_ts: int
+    last_check_ts: float
+
+    ready_event: asyncio.Event
 
     stopping: bool
 
@@ -43,6 +44,7 @@ class PluginBase(abc.ABC):
         self.config = config
         self.logger = self.AD.logging.get_child(name)
         self.error = self.logger
+        self.ready_event = asyncio.Event()
         self.stopping = False
 
         # Performance Data
@@ -62,6 +64,10 @@ class PluginBase(abc.ABC):
     @namespace.setter
     def namespace(self, new: str):
         self.config.namespace = new
+
+    @property
+    def is_ready(self) -> bool:
+        return self.ready_event.is_set()
 
     def set_log_level(self, level):
         self.logger.setLevel(self.AD.logging.log_levels[level])
@@ -130,7 +136,8 @@ class PluginManagement:
     """Dictionary storing the metadata for the loaded plugins
     """
     plugin_objs: Dict[str, Any]
-    """Dictionary storing the instantiated plugin objects
+    """Dictionary storing the instantiated plugin objects. Has namespaces as 
+    keys and the instantiated plugin objects as values.
     """
     required_meta = ["latitude", "longitude", "elevation", "time_zone"]
     last_plugin_state: dict[str, datetime.datetime]
@@ -155,14 +162,14 @@ class PluginManagement:
         # Add built in plugins to path
         for plugin in self.plugin_paths:
             sys.path.insert(0, plugin.as_posix())
-            assert (plugin / f"{plugin.name}plugin.py").exists(), "Plugin module does not exist"
+            plugin_file = plugin / f"{plugin.name}plugin.py"
+            if not plugin_file.exists():
+                self.logger.warning(f"Plugin module {plugin_file} does not exist")
 
         # Now custom plugins
         custom_plugin_dir = self.AD.config_dir / "custom_plugins"
         if custom_plugin_dir.exists() and custom_plugin_dir.is_dir():
-            custom_plugins = [
-                p for p in custom_plugin_dir.iterdir() if p.is_dir(follow_symlinks=True) and not p.name.startswith("_")
-            ]
+            custom_plugins = [p for p in custom_plugin_dir.iterdir() if p.is_dir(follow_symlinks=True) and not p.name.startswith("_")]
         else:
             custom_plugins = []
         for plugin in custom_plugins:
@@ -294,6 +301,10 @@ class PluginManagement:
         return plugin.get("object")
 
     def get_plugin_from_namespace(self, namespace: str) -> str:
+        """Gets the name of the plugin that's associated with the given namespace.
+
+        This function is needed because plugins can have multiple namespaces associated with them.
+        """
         for name, cfg in self.config.items():
             if namespace == cfg.namespace or namespace in cfg.namespaces:
                 return name
@@ -329,7 +340,7 @@ class PluginManagement:
             else:
                 namespace = ns
 
-            self.last_plugin_state[namespace] = datetime.datetime.now()
+            self.refresh_update_time(name)
 
             self.logger.debug("Plugin started meta: %s = %s", name, meta)
 
@@ -341,9 +352,7 @@ class PluginManagement:
                 if namespaces != []:  # there are multiple namesapces
                     for namesp in namespaces:
                         if state[namesp] is not None:
-                            await self.AD.state.set_namespace_state(
-                                namesp, state[namesp], self.config[name].persist_entities
-                            )
+                            await self.AD.state.set_namespace_state(namesp, state[namesp], self.config[name].persist_entities)
 
                     # now set the main namespace
                     await self.AD.state.set_namespace_state(
@@ -360,9 +369,7 @@ class PluginManagement:
                     )
 
                 if not first_time:
-                    await self.AD.app_management.check_app_updates(
-                        self.get_plugin_from_namespace(namespace), mode=UpdateMode.INIT
-                    )
+                    await self.AD.app_management.check_app_updates(self.get_plugin_from_namespace(namespace), mode=UpdateMode.INIT)
                 else:
                     #
                     # Create plugin entity
@@ -396,7 +403,10 @@ class PluginManagement:
 
     async def notify_plugin_stopped(self, name, namespace):
         self.plugin_objs[namespace]["active"] = False
-        await self.AD.events.process_event(namespace, {"event_type": "plugin_stopped", "data": {"name": name}})
+        await self.AD.events.process_event(
+            namespace,
+            {"event_type": "plugin_stopped", "data": {"name": name}}
+        )
 
     async def get_plugin_meta(self, namespace: str):
         try:
@@ -406,55 +416,61 @@ class PluginManagement:
                 return cfg.namespace
 
     async def wait_for_plugins(self):
-        initialized = False
-        while not initialized and self.stopping is False:
-            initialized = True
-            for plugin in self.plugin_objs:
-                if self.plugin_objs[plugin]["active"] is False:
-                    initialized = False
-                    break
-            await asyncio.sleep(1)
+        self.logger.info('Waiting for plugins to be ready')
+        events: Iterable[asyncio.Event] = (
+            plugin['object'].ready_event for plugin in self.plugin_objs.values()
+        )
+        tasks = (self.AD.loop.create_task(e.wait()) for e in events)
+        await asyncio.wait(tasks)
+        self.logger.info('All plugins ready')
+
+    def get_config_for_namespace(self, namespace: str) -> PluginConfig:
+        plugin_name = self.get_plugin_from_namespace(namespace)
+        return self.config[plugin_name]
+
+    @property
+    def active_plugins(self) -> Generator[tuple[PluginBase, PluginConfig], None, None]:
+        for namespace, plugin_cfg in self.plugin_objs.items():
+            if plugin_cfg["active"]:
+                cfg = self.get_config_for_namespace(namespace)
+                yield plugin_cfg["object"], cfg
+
+    def refresh_update_time(self, plugin_name: str):
+        self.last_plugin_state[plugin_name] = datetime.datetime.now()
+
+    def time_since_plugin_update(self, plugin_name: str) -> datetime.timedelta:
+        return datetime.datetime.now() - self.last_plugin_state[plugin_name]
 
     async def update_plugin_state(self):
-        for plugin in self.plugin_objs:
-            if self.plugin_objs[plugin]["active"] is True:
-                name = self.get_plugin_from_namespace(plugin)
-                if datetime.datetime.now() - self.last_plugin_state[plugin] > datetime.timedelta(
-                    seconds=self.config[name].refresh_delay
-                ):
-                    try:
-                        self.logger.debug("Refreshing %s state", name)
-
-                        with async_timeout.timeout(self.config[name].refresh_timeout):
-                            obj = self.get_plugin_object(plugin)
-                            state = await obj.get_complete_state()
-
-                        if state is not None:
-                            if (
-                                "namespaces" in self.config[name]
-                            ):  # its a plugin using namespace mapping like adplugin so expecting a list
-                                namespace = self.config[name].namespaces
-                                # add the main namespace
-                                namespace.append(self.config[name].namespace)
-                            else:
-                                namespace = plugin
-
-                            self.AD.state.update_namespace_state(namespace, state)
-
-                    except asyncio.TimeoutError:
-                        self.logger.warning(
-                            "Timeout refreshing %s state - retrying in %s seconds",
-                            plugin,
-                            self.config[name].refresh_delay,
-                        )
-                    except Exception:
-                        self.logger.warning(
-                            "Timeout refreshing %s state - retrying in %s seconds",
-                            plugin,
-                            self.config[name].refresh_delay,
-                        )
-                    finally:
-                        self.last_plugin_state[plugin] = datetime.datetime.now()
+        for plugin, cfg in self.active_plugins:
+            if self.time_since_plugin_update(plugin.name) > cfg.refresh_delay:
+                self.logger.debug(f"Refreshing {plugin.name}[{cfg.type}] state")
+                try:
+                    state = await asyncio.wait_for(
+                        plugin.get_complete_state(),
+                        timeout=cfg.refresh_timeout
+                    )
+                except asyncio.TimeoutError:
+                    self.logger.warning(
+                        "Timeout refreshing %s state - retrying in %s seconds",
+                        plugin.name,
+                        cfg.refresh_delay.total_seconds(),
+                    )
+                except Exception:
+                    self.logger.warning(
+                        "Unexpected error refreshing %s state - retrying in in %s seconds",
+                        plugin.name,
+                        cfg.refresh_delay.total_seconds(),
+                    )
+                else:
+                    if state is not None:
+                        if cfg.namespaces:
+                            ns = [cfg.namespace] + cfg.namespaces
+                        else:
+                            ns = cfg.namespace
+                        self.AD.state.update_namespace_state(ns, state)
+                finally:
+                    self.refresh_update_time(plugin)
 
     def required_meta_check(self):
         OK = True

@@ -9,6 +9,7 @@ Dockerfile
 .pre-commit-config.yaml
 
 *.md
+!LICENSE.md
 !README*.md
 MANIFEST.in
 *.rst

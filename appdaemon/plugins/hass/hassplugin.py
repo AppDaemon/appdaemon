@@ -4,17 +4,17 @@ Interface with Home Assistant, send and recieve evets, state etc.
 
 import asyncio
 import datetime
-import functools
 import json
 import ssl
-from time import perf_counter
 from copy import deepcopy
+from dataclasses import dataclass, field
+from time import perf_counter
 from typing import Any, Callable, Literal, Optional
+
 import aiohttp
 import aiohttp.client_exceptions
 import aiohttp.client_ws
 from aiohttp import WSMsgType
-from deepdiff import DeepDiff
 from pydantic import BaseModel
 
 import appdaemon.utils as utils
@@ -22,48 +22,8 @@ from appdaemon.appdaemon import AppDaemon
 from appdaemon.models.ad_config import HASSConfig, HASSMetaData
 from appdaemon.plugin_management import PluginBase
 
-
-def looped_coro(coro, sleep_time: int | float):
-    """Repeatedly runs a coroutine, sleeping between runs"""
-    @functools.wraps(coro)
-    async def loop(self: 'HassPlugin', *args, **kwargs):
-        while not self.stopping:
-            try:
-                await coro()
-            except Exception:
-                self.logger.error(f"Error running {coro.__name__} - retrying in {sleep_time}s")
-            finally:
-                await asyncio.sleep(sleep_time)
-
-    return loop
-
-
-async def no_func():
-    pass
-
-
-def hass_check(func):
-    @functools.wraps(func)
-    def func_wrapper(self: 'HassPlugin', *args, **kwargs):
-        if not self.reading_messages:
-            self.logger.warning("Attempt to call Home Assistant while disconnected: %s", func.__name__)
-            return no_func()
-        else:
-            return func(self, *args, **kwargs)
-
-    return func_wrapper
-
-
-class HAAuthenticationError(Exception):
-    pass
-
-
-class HAEventsSubError(Exception):
-    pass
-
-
-class HAFailedAuthentication(Exception):
-    pass
+from .exceptions import HAEventsSubError
+from .utils import hass_check, looped_coro
 
 
 class HASSWebsocketResponse(BaseModel):
@@ -80,6 +40,25 @@ class HASSWebsocketEvent(BaseModel):
     data: dict
 
 
+@dataclass
+class StartupWaitCondition:
+    """Class to wrap a startup condition.
+    
+    Includes the logic to check an event (dict) against the conditions.
+    """
+
+    conditions: dict[str, Any]
+    event: asyncio.Event = field(default_factory=asyncio.Event, init=False)
+
+    @property
+    def conditions_met(self) -> bool:
+        return self.event.is_set()
+    
+    def check_received_event(self, event: dict):
+        if not self.conditions_met and utils.deep_compare(self.conditions, event):
+            self.event.set()
+
+
 class HassPlugin(PluginBase):
     config: HASSConfig
     id: int
@@ -91,14 +70,9 @@ class HassPlugin(PluginBase):
     services: list[dict[str, Any]]
 
     _result_futures: dict[int, asyncio.Future]
+    startup_conditions: list[StartupWaitCondition]
 
     first_time: bool = True
-    first_msg: bool = False
-    reading_messages: bool = False
-
-    already_notified: bool
-    hass_booting: bool
-    hass_ready: bool
     stopping: bool = False
 
     def __init__(self, ad: "AppDaemon", name: str, config: HASSConfig):
@@ -108,12 +82,9 @@ class HassPlugin(PluginBase):
         self.metadata = {}
         self.services = []
         self._result_futures = {}
+        self.startup_conditions = []
 
         # Internal state flags
-        self.already_notified = False
-        self.hass_booting = False
-        self.hass_ready = False
-        self.reading_messages = False
         self.stopping = False
 
         self.logger.info("HASS Plugin initialization complete")
@@ -154,12 +125,9 @@ class HassPlugin(PluginBase):
         async with self.create_session() as self.session:
             async with self.session.ws_connect(self.config.websocket_url) as self.ws:
                 self.id = 0
-                self.reading_messages = True
                 async for msg in self.ws:
-                    self.first_msg = True
                     self.update_perf(bytes_recv=len(msg.data), updates_recv=1)
                     yield msg
-        self.reading_messages = False
 
     async def match_ws_msg(self, msg: aiohttp.WSMessage) -> dict:
         """Wraps a match/case statement for the ``msg.type``"""
@@ -185,7 +153,8 @@ class HassPlugin(PluginBase):
                 await self.__post_conn__()
             case "auth_ok":
                 self.logger.info("Authenticated to Home Assistant %s", resp["ha_version"])
-                await self.__post_auth__()
+                # Creating a task here allows the plugin to still receive events as it waits for the startup conditions
+                self.AD.loop.create_task(self.__post_auth__())
             case "auth_invalid":
                 self.logger.error(f'Failed to authenticate to Home Assistant: {resp["message"]}')
                 await self.ws.close()
@@ -225,13 +194,13 @@ class HassPlugin(PluginBase):
         service_coro = looped_coro(self.get_hass_services, self.config.services_sleep_time)
         self.AD.loop.create_task(service_coro(self))
 
-        # await self.wait_for_start()
+        await self.wait_for_start_conditions()
         self.logger.info("All startup conditions met")
+        self.ready_event.set()
 
-        state = await self.get_hass_state()
+        state = await self.get_complete_state()
         await self.AD.plugins.notify_plugin_started(self.name, self.namespace, self.metadata, state, self.first_time)
         self.first_time = False
-        self.already_notified = False
 
         self.logger.info(f"Completed initialization in {self.time_str()}")
 
@@ -255,6 +224,8 @@ class HassPlugin(PluginBase):
                 self.logger.debug(f'Received successful result from ID {resp["id"]}')
             case False:
                 self.logger.warning("Error with websocket result: %s: %s", resp["error"]["code"], resp["error"]["message"])
+            case None:
+                self.logger.error(f"Invalid response success value: {resp['success']}")
 
     @utils.warning_decorator(error_text="Unexpected error during receive_event")
     async def receive_event(self, event: dict):
@@ -264,6 +235,11 @@ class HassPlugin(PluginBase):
         event["metadata"] = {a: val for a in meta_attrs if (val := event.pop(a, None)) is not None}
 
         await self.AD.events.process_event(self.namespace, event)
+
+        # check startup conditions
+        if not self.is_ready:
+            for condition in self.startup_conditions:
+                condition.check_received_event(event)
 
         match typ := event["event_type"]:
             # https://data.home-assistant.io/docs/events/#service_registered
@@ -278,14 +254,14 @@ class HassPlugin(PluginBase):
                 pass
             # https://data.home-assistant.io/docs/events/#state_changed
             case "state_changed":
-                pass
+                ...
             case "mobile_app_notification_action":
-                pass
+                ...
                 # action = event['data']['action']
             case "mobile_app_notification_cleared":
-                pass
+                ...
             case "android.zone_entered":
-                pass
+                ...
             case _:
                 if typ.startswith('recorder'):
                     return
@@ -373,6 +349,8 @@ class HassPlugin(PluginBase):
                     coro = self.session.post(url=url, json=kwargs)
                 case 'delete':
                     coro = self.session.delete(url=url, json=kwargs)
+                case _:
+                    raise ValueError(f'Invalid method: {method}')
             resp = await asyncio.wait_for(coro, timeout=timeout)
         except asyncio.TimeoutError:
             self.logger.error("Timed out waiting for %s", url)
@@ -397,114 +375,50 @@ class HassPlugin(PluginBase):
                 case _:
                     raise NotImplementedError('Unhandled error: HTTP %s', resp.status)
 
-    async def wait_for_start(self):
-        self.first_time = True
-        while not self.stopping:
-            start_ok = await self.evaluate_started(self.first_time, self.hass_booting)
-            self.first_time = False
-            if not start_ok:
-                await asyncio.sleep(2.0)
-                continue
+    async def wait_for_start_conditions(self):
+        condition_tasks = []
+        if delay := self.config.plugin_startup_conditions.get('delay'):
+            self.logger.info(f'Adding a {delay:.0f}s delay to the {self.name} startup')
+            condition_tasks.append(
+                self.AD.loop.create_task(
+                    asyncio.sleep(delay)
+                )
+            )
+
+        if event := self.config.plugin_startup_conditions.get('event'):
+            self.logger.info(f'Adding startup event condition: {event}')
+            condition = StartupWaitCondition(event)
+            self.startup_conditions.append(condition)
+            condition_tasks.append(
+                self.AD.loop.create_task(
+                    condition.event.wait()
+                )
+            )
+
+        if cond := self.config.plugin_startup_conditions.get('state'):
+            state = await self.get_plugin_state(cond['entity'])
+            if utils.deep_compare(cond['value'], state):
+                self.logger.info(f'Startup state condition already met: {cond}')
             else:
-                break
+                self.logger.info(f'Adding startup state condition: {cond}')
+                condition = StartupWaitCondition({
+                    'event_type': 'state_changed',
+                    'data': {
+                        'entity_id': cond['entity'],
+                        'new_state': cond['value']
+                    }
+                })
+                self.startup_conditions.append(condition)
+                condition_tasks.append(
+                    self.AD.loop.create_task(
+                        condition.event.wait()
+                    )
+                )
+    
+        self.logger.info(f'Waiting for {len(condition_tasks)} startup condition tasks after {self.time_str()}')
+        await asyncio.wait(condition_tasks)
 
-    async def evaluate_started(self, first_time, plugin_booting, event=None):  # noqa: C901
-        if first_time is True:
-            self.hass_ready = False
-            self.state_matched = False
-
-        if plugin_booting is True:
-            startup_conditions = self.config.plugin_startup_conditions
-        else:
-            startup_conditions = self.config.appdaemon_startup_conditions
-
-        start_ok = True
-
-        if "hass_state" not in startup_conditions:
-            startup_conditions["hass_state"] = "RUNNING"
-
-        if "delay" in startup_conditions:
-            if first_time is True:
-                self.logger.info("Delaying startup for %s seconds", startup_conditions["delay"])
-                await asyncio.sleep(int(startup_conditions["delay"]))
-
-        if "hass_state" in startup_conditions:
-            self.metadata = await self.get_hass_config()
-            if "state" in self.metadata:
-                if self.metadata["state"] == startup_conditions["hass_state"]:
-                    if self.hass_ready is False:
-                        self.logger.info("Startup condition met: hass state=RUNNING")
-                        self.hass_ready = True
-                else:
-                    start_ok = False
-
-        if "state" in startup_conditions:
-            state = await self.get_hass_state()
-            entry = startup_conditions["state"]
-            if "value" in entry:
-                # print(entry["value"], state[entry["entity"]])
-                # print(DeepDiff(state[entry["entity"]], entry["value"]))
-                if entry["entity"] in state:
-                    negate = "negate" in entry and entry["negate"] is True
-
-                    if (
-                        negate is False
-                        and "values_changed" not in DeepDiff(entry["value"], state[entry["entity"]])
-                        or negate is True
-                        and "values_changed" in DeepDiff(entry["value"], state[entry["entity"]])
-                    ):
-                        if self.state_matched is False:
-                            self.logger.info(
-                                "Startup condition met: %s=%s",
-                                entry["entity"],
-                                entry["value"],
-                            )
-                            self.state_matched = True
-                else:
-                    start_ok = False
-            elif entry["entity"] in state:
-                if self.state_matched is False:
-                    self.logger.info("Startup condition met: %s exists", entry["entity"])
-                    self.state_matched = True
-                else:
-                    start_ok = False
-
-        if "event" in startup_conditions:
-            if event is not None:
-                entry = startup_conditions["event"]
-                if "data" not in entry:
-                    if entry["event_type"] == event["event_type"]:
-                        self.logger.info(
-                            "Startup condition met: event type %s fired",
-                            event["event_type"],
-                        )
-                    else:
-                        start_ok = False
-                else:
-                    if entry["event_type"] == event["event_type"]:
-                        if "values_changed" not in DeepDiff(event["data"], entry["data"]):
-                            self.logger.info(
-                                "Startup condition met: event type %s, data = %s fired",
-                                event["event_type"],
-                                entry["data"],
-                            )
-                    else:
-                        start_ok = False
-            else:
-                start_ok = False
-
-        if start_ok is True:
-            # We are good to go
-            self.logger.info("All startup conditions met")
-            self.reading_messages = True
-            state = await self.get_hass_state()
-            await self.AD.plugins.notify_plugin_started(self.name, self.namespace, self.metadata, state, self.first_time)
-            self.first_time = False
-            self.already_notified = False
-
-        return start_ok
-
-    async def get_updates(self):  # noqa: C901
+    async def get_updates(self):
         while not self.stopping:
             try:
                 async for msg in self.websocket_msg_factory():
@@ -521,6 +435,7 @@ class HassPlugin(PluginBase):
                         "Disconnected from Home Assistant, retrying in %s seconds",
                         self.config.retry_secs,
                     )
+                    self.ready_event.clear()
                     await asyncio.sleep(self.config.retry_secs)
 
             # always do this block, no matter what
@@ -533,7 +448,7 @@ class HassPlugin(PluginBase):
         self.logger.info("Disconnecting from Home Assistant")
 
     async def check_register_service(self, domain: str, services: str | dict, silent: bool = False) -> bool:
-        """Used to check and register a service if need be"""
+        """Used to check and register a service with AppDaemon if need be"""
 
         existing_domains = set(s["domain"] for s in self.services)
         new_services = set()
@@ -758,12 +673,9 @@ class HassPlugin(PluginBase):
     # State
     #
 
+    @utils.warning_decorator(error_text="Unexpected error while getting hass state")
     async def get_complete_state(self):
         """This method is needed for all AppDaemon plugins"""
-        return await self.get_hass_state()
-
-    @utils.warning_decorator(error_text="Unexpected error while getting hass state")
-    async def get_hass_state(self):
         hass_state = (await self.websocket_send_json(type="get_states"))["result"]
         states = {s["entity_id"]: s for s in hass_state}
         return states
@@ -787,6 +699,10 @@ class HassPlugin(PluginBase):
             return await self.http_method('post', api_url, state=state, attributes=attributes)
 
         return await safe_set_state(self)
+    
+    @hass_check
+    async def get_plugin_state(self, entity_id: str, timeout: float | None = None):
+        return await self.http_method('get', f'/api/states/{entity_id}', timeout)
 
     #
     # History

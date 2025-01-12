@@ -2,7 +2,7 @@ import logging
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Annotated, Any, Callable, Dict, List, Literal, Union
+from typing import TYPE_CHECKING, Annotated, Any, Callable, Dict, List, Literal, Optional, Union
 
 import pytz
 from pydantic import (
@@ -11,6 +11,7 @@ from pydantic import (
     ConfigDict,
     Discriminator,
     Field,
+    RootModel,
     SecretBytes,
     SecretStr,
     Tag,
@@ -21,43 +22,14 @@ from pydantic import (
 from pytz.tzinfo import DstTzInfo, StaticTzInfo
 from typing_extensions import deprecated
 
-from appdaemon.version import __version__
+from .. import utils
+from ..version import __version__
+from .config.namespace import NamespaceConfig
+from .config.plugin import PluginConfig
+from .internal.cli import AppDaemonCLIKwargs
 
 if TYPE_CHECKING:
     pass
-
-
-class NamespaceConfig(BaseModel):
-    writeback: Literal["safe", "hybrid"] = "safe"
-    persist: bool = False
-
-
-class PluginConfig(BaseModel, extra="allow"):
-    type: str
-    disable: bool = False
-    persist_entities: bool = False
-    refresh_delay: int = 600
-    refresh_timeout: int = 30
-    use_dictionary_unpacking: bool = True
-    module_name: str = None
-    class_name: str = None
-
-    namespace: str = "default"
-    namespaces: dict[str, NamespaceConfig] | None = Field(default_factory=dict)
-
-    @model_validator(mode="after")
-    def custom_validator(self):
-        if "module_name" not in self.model_fields_set:
-            self.module_name = f"{self.type}plugin"
-
-        if "class_name" not in self.model_fields_set:
-            self.class_name = f"{self.type.capitalize()}Plugin"
-
-        return self
-
-    @property
-    def disabled(self) -> bool:
-        return self.disable
 
 
 class MQTTConfig(PluginConfig):
@@ -127,8 +99,8 @@ class HASSConfig(PluginConfig):
     ha_key: Annotated[SecretStr, deprecated("'ha_key' is deprecated. Please use long lived tokens instead")] | None = None
     appdaemon_startup_conditions: dict = Field(default_factory=dict)
     plugin_startup_conditions: dict = Field(default_factory=dict)
-    cert_path: Path | None= None
-    cert_verify: bool  | None = None
+    cert_path: Path | None = None
+    cert_verify: bool | None = None
     commtype: str = "WS"
     q_timeout: int = 30
     return_result: bool | None = None
@@ -210,6 +182,10 @@ def plugin_discriminator(plugin):
         plugin.type
 
 
+class ModuleLoggingLevels(RootModel):
+    root: dict[str, str] = {"_events": "WARNING"}
+
+
 class AppDaemonConfig(BaseModel):
     latitude: float
     longitude: float
@@ -230,7 +206,6 @@ class AppDaemonConfig(BaseModel):
     write_toml: bool = False
     ext: Literal[".yaml", ".toml"] = ".yaml"
 
-    module_debug: Dict = {}
     filters: List[FilterConfig] = []
 
     starttime: datetime | None = None
@@ -239,13 +214,15 @@ class AppDaemonConfig(BaseModel):
     max_clock_skew: int = 1
 
     loglevel: str = "INFO"
-    module_debug: Dict[str, str] = Field(default_factory=dict)
+    module_debug: ModuleLoggingLevels = Field(default_factory=dict)
 
     api_port: int | None = None
     stop_function: Callable | None = None
 
     utility_delay: int = 1
     admin_delay: int = 1
+    plugin_performance_update: int = 10
+    """How often in seconds to update the admin entities with the plugin performance data"""
     max_utility_skew: float = 2
     check_app_updates_profile: bool = False
     production_mode: bool = False
@@ -256,7 +233,7 @@ class AppDaemonConfig(BaseModel):
     qsize_warning_step: int = 60
     qsize_warning_iterations: int = 10
     internal_function_timeout: int = 10
-    use_dictionary_unpacking: Annotated[bool, deprecated('This option is no longer necessary')] = False
+    use_dictionary_unpacking: Annotated[bool, deprecated("This option is no longer necessary")] = False
     uvloop: bool = False
     use_stream: bool = False
     import_paths: List[Path] = Field(default_factory=list)
@@ -265,7 +242,6 @@ class AppDaemonConfig(BaseModel):
     cert_verify: bool = True
     disable_apps: bool = False
 
-    module_debug: Dict[str, str] = {}
     pin_apps: bool | None = None
 
     import_method: Annotated[
@@ -274,10 +250,13 @@ class AppDaemonConfig(BaseModel):
     ] = None
 
     load_distribution: str = "roundrobbin"
-    threads: Annotated[
+    threads: (
+        Annotated[
             int,
             deprecated("Threads directive is deprecated apps - will be pinned. Use total_threads if you want to unpin your apps"),
-        ]  | None = None
+        ]
+        | None
+    ) = None
     total_threads: int | None = None
     pin_threads: int | None = None
     thread_duration_warning_threshold: float = 10
@@ -329,6 +308,14 @@ class AppDaemonConfig(BaseModel):
 
         self.ext = ".toml" if self.write_toml else ".yaml"
 
+    @model_validator(mode="before")
+    @classmethod
+    def validate_ad_cfg(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            if (file := data.get("config_file")) and not data.get("config_dir"):
+                data["config_dir"] = Path(file).parent
+        return data
+
     @model_validator(mode="after")
     def warn_deprecated(self):
         for field in self.model_fields_set:
@@ -336,3 +323,40 @@ class AppDaemonConfig(BaseModel):
             if info.deprecated:
                 print(f"Deprecated field: {field}")
         return self
+
+
+class MainConfig(BaseModel):
+    appdaemon: AppDaemonConfig
+    hadashboard: Optional[dict] = None
+    admin: Optional[dict] = None
+    api: Optional[dict] = None
+    http: Optional[dict] = None
+    log: Optional[dict] = None
+    logs: Optional[dict] = None
+
+    @classmethod
+    def from_config_file(cls, file: str | Path):
+        config = utils.read_config_file(file)
+        config["appdaemon"]["config_file"] = file
+        return cls.model_validate(config)
+
+    @classmethod
+    def from_cli_kwargs(cls, cli_kwargs: AppDaemonCLIKwargs):
+        cfg = cls.from_config_file(cli_kwargs.configfile)
+        cfg.appdaemon.config_dir = cli_kwargs.config
+
+        if cli_kwargs.debug:
+            cfg.appdaemon.loglevel = cli_kwargs.debug
+
+        if cli_kwargs.moduledebug:
+            cfg.appdaemon.module_debug = cli_kwargs.moduledebug
+
+        return cfg
+
+    @model_validator(mode="before")
+    @classmethod
+    def validate_ad_cfg(cls, data: Any) -> Any:
+        # replace None values with empty dictionaries
+        if isinstance(data, dict):
+            data = {key: val if val is not None else {} for key, val in data.items()}
+        return data

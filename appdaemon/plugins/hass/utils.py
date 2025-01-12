@@ -1,0 +1,38 @@
+import asyncio
+import functools
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .hassplugin import HassPlugin
+
+
+def looped_coro(coro, sleep_time: int | float):
+    """Repeatedly runs a coroutine, sleeping between runs"""
+
+    @functools.wraps(coro)
+    async def loop(self: "HassPlugin", *args, **kwargs):
+        while not self.stopping:
+            try:
+                await coro()
+            except Exception:
+                self.logger.error(f"Error running {coro.__name__} - retrying in {sleep_time}s")
+            finally:
+                await asyncio.sleep(sleep_time)
+
+    return loop
+
+
+async def no_func():
+    pass
+
+
+def hass_check(func):
+    @functools.wraps(func)
+    def func_wrapper(self: "HassPlugin", *args, **kwargs):
+        if not self.is_ready:
+            self.logger.warning("Attempt to call Home Assistant while disconnected: %s", func.__name__)
+            return no_func()
+        else:
+            return func(self, *args, **kwargs)
+
+    return func_wrapper

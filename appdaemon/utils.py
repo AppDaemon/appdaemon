@@ -241,6 +241,40 @@ def format_seconds(secs):
     return str(timedelta(seconds=secs))
 
 
+def convert_timedelta(s: str | int | float) -> timedelta:
+    match s:
+        case int() | float():
+            return timedelta(seconds=s)
+        case str():
+            parts = tuple(float(p) for p in s.split(':'))
+            match len(parts):
+                case 1:
+                    return timedelta(seconds=parts[0])
+                case 2:
+                    min, sec = parts
+                    return timedelta(minutes=min, seconds=sec)
+                case 3:
+                    hour, min, sec = parts
+                    return timedelta(hours=hour, minutes=min, seconds=sec)
+                case 4:
+                    day, hour, min, sec = parts
+                    return timedelta(days=day, hours=hour, minutes=min, seconds=sec)
+
+
+def deep_compare(check: dict, data: dict) -> bool:
+    """Compares 2 nested dictionaries of values"""
+    for k, v in tuple(check.items()):
+        if isinstance(v, dict) and isinstance(data[k], dict):
+            if deep_compare(v, data[k]):
+                continue
+            else:
+                return False
+        elif v != data.get(k):
+            return False
+    else:
+        return True
+
+
 def get_kwargs(kwargs):
     result = ""
     for kwarg in kwargs:

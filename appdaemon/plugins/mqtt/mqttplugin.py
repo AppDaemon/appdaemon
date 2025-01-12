@@ -475,6 +475,7 @@ class MqttPlugin(PluginBase):
                     already_initialized = True
                     self.logger.info("MQTT Plugin initialization complete")
                     self.initialized = True
+                    self.ready_event.set()
                 else:
                     if not already_notified and already_initialized:
                         await self.AD.plugins.notify_plugin_stopped(self.name, self.namespace)

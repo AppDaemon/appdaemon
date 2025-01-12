@@ -8,137 +8,25 @@ import pstats
 import subprocess
 import sys
 import traceback
-import uuid
 from collections import OrderedDict
 from copy import copy
-from dataclasses import dataclass, field
-from enum import Enum
 from functools import partial, reduce, wraps
 from logging import Logger
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Iterable, Literal, Optional, Set, Union
+from typing import TYPE_CHECKING, Iterable, Literal, Set, Union
 
-import appdaemon.utils as utils
-from appdaemon.dependency import DependencyResolutionFail, find_all_dependents, get_full_module_name, topo_sort
+from appdaemon.dependency import DependencyResolutionFail, get_full_module_name
 from appdaemon.dependency_manager import DependencyManager
 from appdaemon.models.app_config import AllAppConfig, AppConfig, GlobalModule
 from appdaemon.models.internal.file_check import FileCheck
 
+from . import exceptions as ade
+from . import utils
+from .models.internal.app_management import LoadingActions, ManagedObject, UpdateActions, UpdateMode
+
 if TYPE_CHECKING:
     from .appdaemon import AppDaemon
     from .plugin_management import PluginBase
-
-
-class UpdateMode(Enum):
-    """Used as an argument for :meth:`AppManagement.check_app_updates` to set the mode of the check.
-
-    INIT
-        Triggers AppManagement._init_update_mode to run during check_app_updates
-    NORMAL
-        Normal update mode, for when :meth:`AppManagement.check_app_updates` is called by :meth:`.utility_loop.Utility.loop`
-    TERMINATE
-        Terminate all apps
-    """
-
-    INIT = 0
-    NORMAL = 1
-    TERMINATE = 2
-
-
-@dataclass
-class LoadingActions:
-    """Stores what's going to happen to apps/modules during check_app_updates.
-
-    Attributes:
-        init: Which apps/modules are new
-        reload: Which apps/modules need to be reloaded or restarted
-        term: Which apps/modules need to be stopped and removed
-        failed: Which apps/modules failed be started and/or removed
-    """
-
-    init: Set[str] = field(default_factory=set)
-    reload: Set[str] = field(default_factory=set)
-    term: Set[str] = field(default_factory=set)
-    failed: Set[str] = field(default_factory=set)
-
-    @property
-    def init_set(self) -> set[str]:
-        return (self.init | self.reload) - self.failed
-
-    def import_sort(self, dm: DependencyManager) -> list[str]:
-        """Uses a dependency graph to sort the internal ``init`` and ``reload`` sets together"""
-        items = copy(self.init_set)
-        items |= find_all_dependents(items, dm.python_deps.rev_graph)
-        order = [n for n in topo_sort(dm.python_deps.dep_graph) if n in items]
-        return order
-
-    def start_sort(self, dm: DependencyManager) -> list[str]:
-        """Uses a dependency graph to sort the internal ``init`` and ``reload`` sets together"""
-        items = copy(self.init_set)
-        items |= find_all_dependents(items, dm.app_deps.rev_graph)
-        order = [n for n in topo_sort(dm.app_deps.dep_graph) if n in items]
-        return order
-
-    @property
-    def term_set(self) -> set[str]:
-        return self.reload | self.term
-
-    def term_sort(self, dm: DependencyManager):
-        """Uses a dependency graph to sort the internal ``reload`` and ``term`` sets together"""
-        items = copy(self.term_set)
-        items |= find_all_dependents(items, dm.app_deps.rev_graph)
-        order = [n for n in topo_sort(dm.app_deps.rev_graph) if n in items]
-        return order
-
-
-@dataclass
-class UpdateActions:
-    modules: LoadingActions = field(init=False, default_factory=LoadingActions)
-    apps: LoadingActions = field(init=False, default_factory=LoadingActions)
-
-
-@dataclass
-class ManagedObject:
-    type: Literal["app", "plugin", "sequence"]
-    object: Any
-    id: str = field(default_factory=lambda: uuid.uuid4().hex)
-    module_path: Optional[Path] = None
-    pin_app: bool = False
-    pin_thread: Optional[int] = None
-    running: bool = False
-    use_dictionary_unpacking: bool = False
-
-
-class AppClassNotFound(Exception):
-    pass
-
-
-class PinOutofRange(Exception):
-    pass
-
-
-class AppClassSignatureError(Exception):
-    pass
-
-
-class AppInstantiationError(Exception):
-    pass
-
-
-class AppInitializeError(Exception):
-    pass
-
-
-class NoObject(Exception):
-    pass
-
-
-class NoInitializeMethod(Exception):
-    pass
-
-
-class BadInitializeMethod(Exception):
-    pass
 
 
 class AppManagement:
@@ -352,16 +240,16 @@ class AppManagement:
         try:
             init_func = self.objects[app_name].object.initialize
         except KeyError:
-            raise NoObject(f"No internal object for '{app_name}'")
+            raise ade.NoObject(f"No internal object for '{app_name}'")
         except AttributeError:
             app_cfg = self.app_config[app_name]
             module_path = Path(sys.modules[app_cfg.module_name].__file__)
             rel_path = module_path.relative_to(self.AD.app_dir.parent)
-            raise NoInitializeMethod(f"Class {app_cfg.class_name} in {rel_path} does not have an initialize method")
+            raise ade.NoInitializeMethod(f"Class {app_cfg.class_name} in {rel_path} does not have an initialize method")
 
         if utils.count_positional_arguments(init_func) != 0:
             class_name = self.app_config[app_name].class_name
-            raise BadInitializeMethod(f"Wrong number of arguments for initialize method of {class_name}")
+            raise ade.BadInitializeMethod(f"Wrong number of arguments for initialize method of {class_name}")
 
         # Call its initialize function
         self.logger.info(f"Calling initialize() for {app_name}")
@@ -534,7 +422,7 @@ class AppManagement:
         )
 
         if (pin := cfg.pin_thread) and pin >= self.AD.threading.total_threads:
-            raise PinOutofRange()
+            raise ade.PinOutofRange()
         elif (obj := self.objects.get(app_name)) and obj.pin_thread is not None:
             pin = obj.pin_thread
         else:
@@ -545,20 +433,20 @@ class AppManagement:
 
         try:
             app_class = getattr(mod_obj, class_name)
-        except AttributeError as e:
-            raise AppClassNotFound(
+        except AttributeError as exc:
+            raise ade.AppClassNotFound(
                 f"Unable to find '{class_name}' in module '{mod_obj.__file__}' as defined in app '{app_name}'"
-            ) from e
+            ) from exc
 
         if utils.count_positional_arguments(app_class.__init__) != 3:
-            raise AppClassSignatureError(
+            raise ade.AppClassSignatureError(
                 f"Class '{class_name}' takes the wrong number of arguments. Check the inheritance"
             )
 
         try:
             new_obj = app_class(self.AD, cfg)
-        except Exception as e:
-            raise AppInstantiationError(f"Error when creating class '{class_name}' for app named '{app_name}'") from e
+        except Exception as exc:
+            raise ade.AppInstantiationError(f"Error when creating class '{class_name}' for app named '{app_name}'") from exc
         else:
             self.objects[app_name] = ManagedObject(
                 type="app",
@@ -840,8 +728,8 @@ class AppManagement:
 
             try:
                 await self.check_app_python_files(update_actions)
-            except DependencyResolutionFail as e:
-                self.logger.error(f"Error reading python files: {utils.format_exception(e.base_exception)}")
+            except DependencyResolutionFail as exc:
+                self.logger.error(f"Error reading python files: {utils.format_exception(exc.base_exception)}")
                 return
 
             if mode == UpdateMode.TERMINATE:

@@ -720,11 +720,17 @@ class State:
             await self.remove_persistent_namespace(namespace)
             self.state[namespace] = state
 
-    def update_namespace_state(self, namespace, state):
+    def update_namespace_state(self, namespace: str | list[str], state: dict):
+        """Uses the update method of dict
+
+        If the namespace argument is a list, then the state is expected to be a dictionary with each
+        """
         if isinstance(namespace, list):  # if its a list, meaning multiple namespaces to be updated
             for ns in namespace:
-                if state.get(ns) is not None:
-                    self.state[ns].update(state[ns])
+                if s := state.get(ns):
+                    self.state[ns].update(s)
+                else:
+                    self.logger.warning(f'Attempted to update namespace without data: {ns}')
         else:
             self.state[namespace].update(state)
 

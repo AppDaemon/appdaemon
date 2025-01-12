@@ -81,3 +81,7 @@ venv
 # Docs
 
 .docs_build
+
+
+# Nix devenv
+.devenv

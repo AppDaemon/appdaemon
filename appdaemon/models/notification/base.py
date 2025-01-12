@@ -16,6 +16,7 @@ class Payload(BaseModel, ABC):
 
 class NotificationData(BaseModel, ABC):
     """https://www.home-assistant.io/integrations/notify/#action"""
+
     title: str | None = None
     message: str | None = None
     target: str | None = None
@@ -28,6 +29,7 @@ class NotifyAction(BaseModel, ABC):
 
     # def to_kwargs(self) -> dict:
     #     return self.model_dump(mode='json', exclude_none=True)
+
 
 class Automation(BaseModel):
     alias: str | None = None

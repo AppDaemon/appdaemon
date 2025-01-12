@@ -34,3 +34,35 @@ class TimeOutException(Exception):
 
 class StartupAbortedException(Exception):
     pass
+
+
+class AppClassNotFound(Exception):
+    pass
+
+
+class PinOutofRange(Exception):
+    pass
+
+
+class AppClassSignatureError(Exception):
+    pass
+
+
+class AppInstantiationError(Exception):
+    pass
+
+
+class AppInitializeError(Exception):
+    pass
+
+
+class NoObject(Exception):
+    pass
+
+
+class NoInitializeMethod(Exception):
+    pass
+
+
+class BadInitializeMethod(Exception):
+    pass
