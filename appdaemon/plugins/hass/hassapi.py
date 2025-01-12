@@ -766,7 +766,13 @@ class Hass(ADBase, ADAPI):
         """Convenience method for quickly creating mobile iOS notifications"""
         return self._notify_mobile_app(device, iOSData, tag, **kwargs)
 
-    def _notify_mobile_app(self, device: str , model: str | Type[NotificationData], tag: str = 'appdaemon', **kwargs) -> dict:
+    def _notify_mobile_app(
+        self,
+        device: str,
+        model: str | Type[NotificationData],
+        tag: str = 'appdaemon',
+        **kwargs
+    ) -> dict:
         match model:
             case NotificationData():
                 pass
