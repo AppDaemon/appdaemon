@@ -72,7 +72,6 @@ class Hass(ADBase, ADAPI):
     async def _domain_service_call(
         self,
         service: str,
-        domain:str,
         entity_id: str,
         namespace: str | None = None,
         **kwargs
@@ -83,7 +82,7 @@ class Hass(ADBase, ADAPI):
             - Asserts that the entity is in the right domain.
             - Displays a warning if the entity doesn't exist in the namespace.
         """
-        assert domain == entity_id.split('.', 2)[0]
+        assert service.split('/')[0] == entity_id.split('.')[0], f'{entity_id} does not match domain for {service}'
         namespace = namespace or self.namespace
         self._check_entity(namespace, entity_id)
         return await self.call_service(
@@ -469,7 +468,6 @@ class Hass(ADBase, ADAPI):
         """
         return await self._domain_service_call(
             service="input_number/set_value",
-            domain="input_number",
             entity_id=entity_id,
             value=value,
             namespace=namespace
@@ -500,7 +498,6 @@ class Hass(ADBase, ADAPI):
         # https://www.home-assistant.io/integrations/input_text/
         return await self._domain_service_call(
             service="input_text/set_value",
-            domain="input_text",
             entity_id=entity_id,
             value=value,
             namespace=namespace
@@ -532,7 +529,6 @@ class Hass(ADBase, ADAPI):
         """
         return await self._domain_service_call(
             service="input_select/select_option",
-            domain="input_select",
             entity_id=entity_id,
             option=option,
             namespace=namespace,
@@ -543,7 +539,6 @@ class Hass(ADBase, ADAPI):
         # https://www.home-assistant.io/integrations/input_select/#action-input_selectselect_next
         return await self._domain_service_call(
             service="input_select/select_next",
-            domain="input_select",
             entity_id=entity_id,
             cycle=cycle,
             namespace=namespace,
@@ -554,7 +549,6 @@ class Hass(ADBase, ADAPI):
         # https://www.home-assistant.io/integrations/input_select/#action-input_selectselect_previous
         return await self._domain_service_call(
             service="input_select/select_previous",
-            domain="input_select",
             entity_id=entity_id,
             cycle=cycle,
             namespace=namespace,
@@ -565,9 +559,17 @@ class Hass(ADBase, ADAPI):
         # https://www.home-assistant.io/integrations/input_select/#actions
         return await self._domain_service_call(
             service="input_select/set_options",
-            domain="input_select",
             entity_id=entity_id,
             options=options,
+            namespace=namespace,
+        )
+
+    @utils.sync_decorator
+    async def press_button(self, entity_id: str, namespace: str | None = None) -> None:
+        # https://www.home-assistant.io/integrations/input_button/#actions
+        return await self._domain_service_call(
+            service="input_button/press",
+            entity_id=entity_id,
             namespace=namespace,
         )
 
