@@ -262,6 +262,7 @@ class HassPlugin(PluginBase):
             # ? 'entity_registry_updated'
                 self.logger.debug('Unrecognized event %s', typ)
 
+    @hass_check
     async def websocket_send_json(self, timeout: float = 5.0, **request) -> dict:
         """
         Sends a json request over the websocket and gets the response.
@@ -304,12 +305,13 @@ class HassPlugin(PluginBase):
             result.update({"ad_duration": travel_time})
             return result
 
+    @hass_check
     async def http_method(
-            self,
-            method: Literal['get', 'post', 'delete'],
-            endpoint: str,
-            timeout: float = 5.0,
-            **kwargs
+        self,
+        method: Literal['get', 'post', 'delete'],
+        endpoint: str,
+        timeout: float = 5.0,
+        **kwargs
     ) -> dict | None:
         """
 
@@ -468,7 +470,7 @@ class HassPlugin(PluginBase):
                 self.logger.debug("Registering new service %s/%s", domain, service)
 
             self.AD.services.register_service(
-                self.get_namespace(),
+                self.namespace,
                 domain,
                 service,
                 self.call_plugin_service,
@@ -538,7 +540,6 @@ class HassPlugin(PluginBase):
     # Services
     #
 
-    @hass_check
     async def call_plugin_service(
         self,
         namespace: str,
@@ -627,7 +628,6 @@ class HassPlugin(PluginBase):
     # Events
     #
 
-    @hass_check
     async def fire_plugin_event(self, event, namespace, timeout: float | None = None, **kwargs) -> dict | None:
         # if we get a request for not our namespace something has gone very wrong
         assert namespace == self.namespace
@@ -650,7 +650,6 @@ class HassPlugin(PluginBase):
     # Entities
     #
 
-    @hass_check
     async def remove_entity(self, namespace: str, entity_id: str):
         self.logger.debug("remove_entity() %s", entity_id)
 
@@ -674,7 +673,6 @@ class HassPlugin(PluginBase):
         states = {s["entity_id"]: s for s in hass_state}
         return states
 
-    @hass_check
     async def set_plugin_state(
         self,
         namespace: str,
@@ -694,7 +692,6 @@ class HassPlugin(PluginBase):
 
         return await safe_set_state(self)
 
-    @hass_check
     async def get_plugin_state(self, entity_id: str, timeout: float | None = None):
         return await self.http_method('get', f'/api/states/{entity_id}', timeout)
 

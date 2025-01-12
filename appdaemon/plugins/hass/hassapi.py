@@ -1,6 +1,5 @@
 from ast import literal_eval
 from datetime import datetime, timedelta
-from functools import wraps
 from typing import Any, Callable, Literal, Type, Union, overload
 
 import requests
@@ -9,34 +8,16 @@ from urllib3.exceptions import InsecureRequestWarning
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
 
-from .notifications import AndroidNotification
-from .hassplugin import HassPlugin
 from ...adapi import ADAPI
 from ...adbase import ADBase
 from ...models.app_config import AppConfig
 from ...models.notification.android import AndroidData
-from ...models.notification.iOS import iOSData
 from ...models.notification.base import NotificationData
+from ...models.notification.iOS import iOSData
+from .hassplugin import HassPlugin
+from .notifications import AndroidNotification
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
-
-
-def hass_check(coro):
-    @wraps(coro)
-    async def coro_wrapper(*args, **kwargs):
-        self = args[0]
-        ns = self._get_namespace(**kwargs)
-        plugin: HassPlugin = self.AD.plugins.get_plugin_object(ns)
-        if plugin is None:
-            self.logger.warning("non_existent namespace (%s) specified in call to %s", ns, coro.__name__)
-            return None
-        if not plugin.reading_messages:
-            self.logger.warning("Attempt to call Home Assistant while disconnected: %s", coro.__name__)
-            return None
-        else:
-            return await coro(*args, **kwargs)
-
-    return coro_wrapper
 
 
 #
@@ -76,6 +57,50 @@ class Hass(ADBase, ADAPI):
         # self._plugin attribute should always be available
         self._namespace = new
         self._plugin = self.AD.plugins.get_plugin_object(self.namespace)
+
+    #
+    # Helpers
+    #
+
+    async def _entity_service_call(self, service: str, entity_id: str, namespace: str | None = None, **kwargs):
+        """Wraps up a common pattern in methods that use a service call with an entity_id
+
+        Namespace defaults to that of the plugin
+
+        Displays a warning if the entity doesn't exist in the namespace.
+        """
+        namespace = namespace or self.namespace
+        self._check_entity(namespace, entity_id)
+        return await self.call_service(
+            service=service,
+            namespace=namespace,
+            entity_id=entity_id,
+            **kwargs
+        )
+
+    async def _domain_service_call(
+        self,
+        service: str,
+        domain:str,
+        entity_id: str,
+        namespace: str | None = None,
+        **kwargs
+    ):
+        """Wraps up a common pattern in methods that have to use a certain domain.
+
+            - Namespace defaults to that of the plugin.
+            - Asserts that the entity is in the right domain.
+            - Displays a warning if the entity doesn't exist in the namespace.
+        """
+        assert domain == entity_id.split('.', 2)[0]
+        namespace = namespace or self.namespace
+        self._check_entity(namespace, entity_id)
+        return await self.call_service(
+            service=service,
+            namespace=namespace,
+            entity_id=entity_id,
+            **kwargs
+        )
 
     #
     # Device Trackers
@@ -316,7 +341,6 @@ class Hass(ADBase, ADAPI):
     #
 
     @utils.sync_decorator
-    @hass_check
     async def turn_on(self, entity_id: str, namespace: str | None = None, **kwargs) -> None:
         """Turns `on` a Home Assistant entity.
 
@@ -331,7 +355,8 @@ class Hass(ADBase, ADAPI):
              namespace (str, optional): Namespace to use for the call. See the section on
                 `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
                 In most cases it is safe to ignore this parameter.
-            **kwargs (optional): Zero or more keyword arguments.
+            **kwargs (optional): Zero or more keyword arguments that get passed to the 
+                service call.
 
         Returns:
             Result of the `turn_on` function if any, see `service call notes <APPGUIDE.html#some-notes-on-service-calls>`__ for more details.
@@ -350,12 +375,14 @@ class Hass(ADBase, ADAPI):
             >>> self.turn_on("light.office_1", color_name = "green")
 
         """
-        namespace = namespace or self.namespace
-        self._check_entity(namespace, entity_id)
-        return await self.call_service("homeassistant/turn_on", entity_id=entity_id, **kwargs)
+        return await self._entity_service_call(
+            service="homeassistant/turn_on",
+            entity_id=entity_id,
+            namespace=namespace,
+            **kwargs
+        )
 
     @utils.sync_decorator
-    @hass_check
     async def turn_off(self, entity_id: str, namespace: str | None = None, **kwargs) -> dict:
         """Turns `off` a Home Assistant entity.
 
@@ -366,12 +393,11 @@ class Hass(ADBase, ADAPI):
         Args:
             entity_id (str): Fully qualified id of the thing to be turned ``off`` (e.g.,
                 `light.office_lamp`, `scene.downstairs_on`).
-            **kwargs (optional): Zero or more keyword arguments.
-
-         Keyword Args:
-             namespace (str, optional): Namespace to use for the call. See the section on
+            namespace (str, optional): Namespace to use for the call. See the section on
                 `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
                 In most cases it is safe to ignore this parameter.
+            **kwargs (optional): Zero or more keyword arguments that get passed to the 
+                service call.
 
         Returns:
             Result of the `turn_off` function if any, see `service call notes
@@ -387,13 +413,15 @@ class Hass(ADBase, ADAPI):
             >>> self.turn_off("scene.bedroom_on")
 
         """
-        namespace = namespace or self.namespace
-        self._check_entity(namespace, entity_id)
-        return await self.call_service("homeassistant/turn_off", entity_id=entity_id, **kwargs)
+        return await self._entity_service_call(
+            service="homeassistant/turn_off",
+            entity_id=entity_id,
+            namespace=namespace,
+            **kwargs
+        )
 
     @utils.sync_decorator
-    @hass_check
-    async def toggle(self, entity_id: str, **kwargs) -> None:
+    async def toggle(self, entity_id: str, namespace: str | None = None, **kwargs) -> None:
         """Toggles between ``on`` and ``off`` for the selected entity.
 
         This is a convenience function for the ``homeassistant.toggle`` function.
@@ -403,12 +431,11 @@ class Hass(ADBase, ADAPI):
         Args:
             entity_id (str): Fully qualified id of the thing to be turned ``off`` (e.g.,
                 `light.office_lamp`, `scene.downstairs_on`).
-            **kwargs (optional): Zero or more keyword arguments.
-
-        Keyword Args:
             namespace (str, optional): Namespace to use for the call. See the section on
                 `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
                 In most cases it is safe to ignore this parameter.
+            **kwargs (optional): Zero or more keyword arguments that get passed to the 
+                service call.
 
         Returns:
             Result of the `toggle` function if any, see `service call notes <APPGUIDE.html#some-notes-on-service-calls>`__ for more details.
@@ -418,11 +445,15 @@ class Hass(ADBase, ADAPI):
             >>> self.toggle("light.office_1", color_name = "green")
 
         """
-        return await self.call_service("homeassistant/toggle", entity_id=entity_id, **kwargs)
+        return await self._entity_service_call(
+            service="homeassistant/toggle",
+            entity_id=entity_id,
+            namespace=namespace,
+            **kwargs
+        )
 
     @utils.sync_decorator
-    @hass_check
-    async def set_value(self, entity_id: str, value: int | float, **kwargs) -> None:
+    async def set_value(self, entity_id: str, value: int | float, namespace: str | None = None, **kwargs) -> None:
         """Sets the value of an `input_number`.
 
         This is a convenience function for the ``input_number.set_value``
@@ -432,13 +463,11 @@ class Hass(ADBase, ADAPI):
             entity_id (str): Fully qualified id of `input_number` to be changed (e.g.,
                 `input_number.alarm_hour`).
             value (int or float): The new value to set the `input_number` to.
-            **kwargs (optional): Zero or more keyword arguments.
-
-        Keyword Args:
             namespace (str, optional): Namespace to use for the call. See the section on
                 `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
                 In most cases it is safe to ignore this parameter.
-
+            **kwargs (optional): Zero or more keyword arguments that get passed to the 
+                service call.
 
         Returns:
             Result of the `set_value` function if any, see `service call notes <APPGUIDE.html#some-notes-on-service-calls>`__ for more details.
@@ -447,13 +476,17 @@ class Hass(ADBase, ADAPI):
             >>> self.set_value("input_number.alarm_hour", 6)
 
         """
-        domain, _ = entity_id.split('.')
-        assert domain == 'input_number'
-        return await self.call_service("input_number/set_value", entity_id=entity_id, value=value, **kwargs)
+        return await self._domain_service_call(
+            service="input_number/set_value",
+            domain="input_number",
+            entity_id=entity_id,
+            value=value,
+            namespace=namespace,
+            **kwargs
+        )
 
     @utils.sync_decorator
-    @hass_check
-    async def set_textvalue(self, entity_id: str, value: str, **kwargs) -> None:
+    async def set_textvalue(self, entity_id: str, value: str, namespace: str | None = None, **kwargs) -> None:
         """Sets the value of an `input_text`.
 
         This is a convenience function for the ``input_text.set_value``
@@ -463,13 +496,12 @@ class Hass(ADBase, ADAPI):
             entity_id (str): Fully qualified id of `input_text` to be changed (e.g.,
                 `input_text.text1`).
             value (str): The new value to set the `input_text` to.
-            **kwargs (optional): Zero or more keyword arguments.
-
-         Keyword Args:
-             namespace (str, optional): Namespace to use for the call. See the section on
+            namespace (str, optional): Namespace to use for the call. See the section on
                 `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
                 In most cases it is safe to ignore this parameter.
-
+            **kwargs (optional): Zero or more keyword arguments that get passed to the 
+                service call.
+        
         Returns:
             Result of the `set_textvalue` function if any, see `service call notes <APPGUIDE.html#some-notes-on-service-calls>`__ for more details.
 
@@ -477,13 +509,17 @@ class Hass(ADBase, ADAPI):
             >>> self.set_textvalue("input_text.text1", "hello world")
 
         """
-        domain, _ = entity_id.split('.')
-        assert domain == 'input_text'
-        return await self.call_service("input_text/set_value", entity_id=entity_id, value=value, **kwargs)
-
+        return await self._domain_service_call(
+            service="input_text/set_value",
+            domain="input_text",
+            entity_id=entity_id,
+            value=value,
+            namespace=namespace,
+            **kwargs
+        )
+        
     @utils.sync_decorator
-    @hass_check
-    async def select_option(self, entity_id: str, option: str, **kwargs) -> None:
+    async def select_option(self, entity_id: str, option: str, namespace: str | None = None, **kwargs) -> None:
         """Sets the value of an `input_option`.
 
         This is a convenience function for the ``input_select.select_option``
@@ -493,12 +529,11 @@ class Hass(ADBase, ADAPI):
             entity_id (str): Fully qualified id of `input_select` to be changed (e.g.,
                 `input_select.mode`).
             option (str): The new value to set the `input_select` to.
-            **kwargs (optional): Zero or more keyword arguments.
-
-         Keyword Args:
-             namespace (str, optional): Namespace to use for the call. See the section on
+            namespace (str, optional): Namespace to use for the call. See the section on
                 `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
                 In most cases it is safe to ignore this parameter.
+            **kwargs (optional): Zero or more keyword arguments that get passed to the 
+                service call.
 
         Returns:
             Result of the `select_option` function if any, see `service call notes <APPGUIDE.html#some-notes-on-service-calls>`__ for more details.
@@ -507,13 +542,23 @@ class Hass(ADBase, ADAPI):
             >>> self.select_option("input_select.mode", "Day")
 
         """
-        domain, _ = entity_id.split('.')
-        assert domain == 'input_option'
-        return await self.call_service("input_option/select_option", entity_id=entity_id, option=option, **kwargs)
+        return await self._domain_service_call(
+            service="input_option/set_value",
+            domain="input_option",
+            entity_id=entity_id,
+            option=option,
+            namespace=namespace,
+            **kwargs
+        )
 
     @utils.sync_decorator
-    @hass_check
-    async def notify(self, message: str, **kwargs) -> None:
+    async def notify(
+        self,
+        message: str,
+        title: str = None,
+        name: str = None,
+        namespace: str | None = None,
+    ) -> None:
         """Sends a notification.
 
         This is a convenience function for the ``notify.notify`` service. It
@@ -522,12 +567,9 @@ class Hass(ADBase, ADAPI):
 
         Args:
             message (str): Message to be sent to the notification service.
-            **kwargs (optional): Zero or more keyword arguments.
-
-        Keyword Args:
-             title (str, optional): Title of the notification.
-             name (str, optional): Name of the notification service.
-             namespace (str, optional): Namespace to use for the call. See the section on
+            title (str, optional): Title of the notification.
+            name (str, optional): Name of the notification service.
+            namespace (str, optional): Namespace to use for the call. See the section on
                 `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
                 In most cases it is safe to ignore this parameter.
 
@@ -541,18 +583,14 @@ class Hass(ADBase, ADAPI):
                 # will send a message through notify.smtp instead of the default notify.notify
 
         """
-
-        kwargs["message"] = message
-        if "name" in kwargs:
-            service = "notify/{}".format(kwargs["name"])
-            del kwargs["name"]
-        else:
-            service = "notify/notify"
-
-        return await self.call_service(service, **kwargs)
+        return await self.call_service(
+            service=f'notify/{name}' if name is not None else 'notify/notify',
+            namespace=namespace,
+            title=title,
+            message=message,
+        )
 
     @utils.sync_decorator
-    @hass_check
     async def persistent_notification(self, message: str, title=None, id=None) -> None:
         """
 
@@ -575,7 +613,6 @@ class Hass(ADBase, ADAPI):
         await self.call_service("persistent_notification/create", **kwargs)
 
     @utils.sync_decorator
-    @hass_check
     async def get_history(
         self,
         entity_id: str | list[str],
@@ -684,7 +721,6 @@ class Hass(ADBase, ADAPI):
             )
 
     @utils.sync_decorator
-    @hass_check
     async def render_template(self, template: str):
         """Renders a Home Assistant Template
 
