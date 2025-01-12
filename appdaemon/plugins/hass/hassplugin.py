@@ -412,7 +412,8 @@ class HassPlugin(PluginBase):
                 )
 
         self.logger.info(f'Waiting for {len(condition_tasks)} startup condition tasks after {self.time_str()}')
-        await asyncio.wait(condition_tasks)
+        if condition_tasks:
+            await asyncio.wait(condition_tasks)
 
     async def get_updates(self):
         while not self.stopping:
