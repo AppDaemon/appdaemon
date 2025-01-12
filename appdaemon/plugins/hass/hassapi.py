@@ -345,7 +345,7 @@ class Hass(ADBase, ADAPI):
              namespace (str, optional): Namespace to use for the call. See the section on
                 `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
                 In most cases it is safe to ignore this parameter.
-            **kwargs (optional): Zero or more keyword arguments that get passed to the 
+            **kwargs (optional): Zero or more keyword arguments that get passed to the
                 service call.
 
         Returns:
@@ -386,7 +386,7 @@ class Hass(ADBase, ADAPI):
             namespace (str, optional): Namespace to use for the call. See the section on
                 `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
                 In most cases it is safe to ignore this parameter.
-            **kwargs (optional): Zero or more keyword arguments that get passed to the 
+            **kwargs (optional): Zero or more keyword arguments that get passed to the
                 service call.
 
         Returns:
@@ -424,7 +424,7 @@ class Hass(ADBase, ADAPI):
             namespace (str, optional): Namespace to use for the call. See the section on
                 `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
                 In most cases it is safe to ignore this parameter.
-            **kwargs (optional): Zero or more keyword arguments that get passed to the 
+            **kwargs (optional): Zero or more keyword arguments that get passed to the
                 service call.
 
         Returns:
@@ -456,7 +456,7 @@ class Hass(ADBase, ADAPI):
             namespace (str, optional): Namespace to use for the call. See the section on
                 `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
                 In most cases it is safe to ignore this parameter.
-            **kwargs (optional): Zero or more keyword arguments that get passed to the 
+            **kwargs (optional): Zero or more keyword arguments that get passed to the
                 service call.
 
         Returns:
@@ -487,7 +487,7 @@ class Hass(ADBase, ADAPI):
             namespace (str, optional): Namespace to use for the call. See the section on
                 `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
                 In most cases it is safe to ignore this parameter.
-        
+
         Returns:
             Result of the `set_textvalue` function if any, see `service call notes <APPGUIDE.html#some-notes-on-service-calls>`__ for more details.
 
@@ -502,7 +502,7 @@ class Hass(ADBase, ADAPI):
             value=value,
             namespace=namespace
         )
-        
+
     @utils.sync_decorator
     async def select_option(self, entity_id: str, option: str, namespace: str | None = None) -> None:
         """Sets the value of an `input_option`.
@@ -517,7 +517,7 @@ class Hass(ADBase, ADAPI):
             namespace (str, optional): Namespace to use for the call. See the section on
                 `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
                 In most cases it is safe to ignore this parameter.
-            **kwargs (optional): Zero or more keyword arguments that get passed to the 
+            **kwargs (optional): Zero or more keyword arguments that get passed to the
                 service call.
 
         Returns:
@@ -533,7 +533,7 @@ class Hass(ADBase, ADAPI):
             option=option,
             namespace=namespace,
         )
-    
+
     @utils.sync_decorator
     async def select_next(self, entity_id: str, cycle: bool = True, namespace: str | None = None) -> dict:
         # https://www.home-assistant.io/integrations/input_select/#action-input_selectselect_next
@@ -543,7 +543,7 @@ class Hass(ADBase, ADAPI):
             cycle=cycle,
             namespace=namespace,
         )
-    
+
     @utils.sync_decorator
     async def select_previous(self, entity_id: str, cycle: bool = True, namespace: str | None = None) -> dict:
         # https://www.home-assistant.io/integrations/input_select/#action-input_selectselect_previous
@@ -553,7 +553,7 @@ class Hass(ADBase, ADAPI):
             cycle=cycle,
             namespace=namespace,
         )
-    
+
     @utils.sync_decorator
     async def set_options(self, entity_id: str, options: list[str], namespace: str | None = None) -> dict:
         # https://www.home-assistant.io/integrations/input_select/#actions
@@ -573,7 +573,7 @@ class Hass(ADBase, ADAPI):
         if button_id is None:
             cleaned_name = friendly_name.lower().replace(' ', '_').replace('-', '_')
             button_id = f'input_button.{cleaned_name}'
-        
+
         assert button_id.startswith('input_button.')
 
         if not (await self.entity_exists(button_id, namespace)):
@@ -596,14 +596,14 @@ class Hass(ADBase, ADAPI):
             entity_id=button_id,
             namespace=namespace,
         )
-    
+
     @utils.sync_decorator
     async def last_pressed(self, button_id: str, namespace: str | None = None) -> datetime:
         assert button_id.split('.')[0] == 'input_button'
         state = await self.get_state(button_id, namespace=namespace)
         last_pressed = datetime.fromisoformat(state).astimezone(self.AD.tz)
         return last_pressed
-    
+
     @utils.sync_decorator
     async def time_since_last_press(self, button_id: str, namespace: str | None = None) -> timedelta:
         return (await self.get_now()) - (await self.last_pressed(button_id, namespace))
