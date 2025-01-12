@@ -198,6 +198,7 @@ class HassPlugin(PluginBase):
 
         self.logger.info(f"Completed initialization in {self.time_str()}")
 
+    @hass_check
     async def ping(self, timeout: float = 1.0):
         """Method for testing response times over the websocket."""
         # https://developers.home-assistant.io/docs/api/websocket/#pings-and-pongs
@@ -262,7 +263,6 @@ class HassPlugin(PluginBase):
             # ? 'entity_registry_updated'
                 self.logger.debug('Unrecognized event %s', typ)
 
-    @hass_check
     async def websocket_send_json(self, timeout: float = 5.0, **request) -> dict:
         """
         Sends a json request over the websocket and gets the response.
@@ -540,6 +540,7 @@ class HassPlugin(PluginBase):
     # Services
     #
 
+    @hass_check
     async def call_plugin_service(
         self,
         namespace: str,
@@ -628,6 +629,7 @@ class HassPlugin(PluginBase):
     # Events
     #
 
+    @hass_check
     async def fire_plugin_event(self, event, namespace, timeout: float | None = None, **kwargs) -> dict | None:
         # if we get a request for not our namespace something has gone very wrong
         assert namespace == self.namespace
