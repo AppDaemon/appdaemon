@@ -535,7 +535,7 @@ class Hass(ADBase, ADAPI):
         )
     
     @utils.sync_decorator
-    async def select_next(self, entity_id: str, cycle: bool = True, namespace: str | None = None) -> None:
+    async def select_next(self, entity_id: str, cycle: bool = True, namespace: str | None = None) -> dict:
         # https://www.home-assistant.io/integrations/input_select/#action-input_selectselect_next
         return await self._domain_service_call(
             service="input_select/select_next",
@@ -545,7 +545,7 @@ class Hass(ADBase, ADAPI):
         )
     
     @utils.sync_decorator
-    async def select_previous(self, entity_id: str, cycle: bool = True, namespace: str | None = None) -> None:
+    async def select_previous(self, entity_id: str, cycle: bool = True, namespace: str | None = None) -> dict:
         # https://www.home-assistant.io/integrations/input_select/#action-input_selectselect_previous
         return await self._domain_service_call(
             service="input_select/select_previous",
@@ -555,7 +555,7 @@ class Hass(ADBase, ADAPI):
         )
     
     @utils.sync_decorator
-    async def set_options(self, entity_id: str, options: list[str], namespace: str | None = None) -> None:
+    async def set_options(self, entity_id: str, options: list[str], namespace: str | None = None) -> dict:
         # https://www.home-assistant.io/integrations/input_select/#actions
         return await self._domain_service_call(
             service="input_select/set_options",
@@ -565,13 +565,24 @@ class Hass(ADBase, ADAPI):
         )
 
     @utils.sync_decorator
-    async def press_button(self, entity_id: str, namespace: str | None = None) -> None:
+    async def press_button(self, entity_id: str, namespace: str | None = None) -> dict:
         # https://www.home-assistant.io/integrations/input_button/#actions
         return await self._domain_service_call(
             service="input_button/press",
             entity_id=entity_id,
             namespace=namespace,
         )
+    
+    @utils.sync_decorator
+    async def last_pressed(self, entity_id: str, namespace: str | None = None) -> datetime:
+        assert entity_id.split('.')[0] == 'input_button'
+        state = await self.get_state(entity_id, namespace=namespace)
+        last_pressed = datetime.fromisoformat(state).astimezone(self.AD.tz)
+        return last_pressed
+    
+    @utils.sync_decorator
+    async def time_since_last_press(self, entity_id: str, namespace: str | None = None) -> timedelta:
+        return (await self.get_now()) - (await self.last_pressed(entity_id, namespace))
 
     @utils.sync_decorator
     async def notify(
