@@ -200,7 +200,6 @@ class Hass(ADBase, ADAPI):
             namespace (str, optional): Namespace to use for the call. See the section on
                 `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
                 In most cases it is safe to ignore this parameter.
-            **kwargs (optional): Zero or more keyword arguments.
 
         Returns:
             Returns ``True`` if anyone is at home, ``False`` otherwise.
@@ -228,7 +227,6 @@ class Hass(ADBase, ADAPI):
             namespace (str, optional): Namespace to use for the call. See the section on
                 `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
                 In most cases it is safe to ignore this parameter.
-            **kwargs (optional): Zero or more keyword arguments.
 
         Returns:
             Returns ``True`` if everyone is at home, ``False`` otherwise.
@@ -340,6 +338,8 @@ class Hass(ADBase, ADAPI):
         that can be turned ``on`` or ``run`` (e.g., `Lights`, `Switches`,
         `Scenes`, `Scripts`, etc.).
 
+        Note that Home Assistant will return a success even if the entity name is invalid.
+
         Args:
             entity_id (str): Fully qualified id of the thing to be turned ``on`` (e.g.,
                 `light.office_lamp`, `scene.downstairs_on`).
@@ -433,7 +433,7 @@ class Hass(ADBase, ADAPI):
 
         Examples:
             >>> self.toggle("switch.backyard_lights")
-            >>> self.toggle("light.office_1", color_name = "green")
+            >>> self.toggle("light.office_1", color_name="green")
 
         """
         return await self._entity_service_call(
@@ -444,7 +444,7 @@ class Hass(ADBase, ADAPI):
         )
 
     @utils.sync_decorator
-    async def set_value(self, entity_id: str, value: int | float, namespace: str | None = None, **kwargs) -> None:
+    async def set_value(self, entity_id: str, value: int | float, namespace: str | None = None) -> None:
         """Sets the value of an `input_number`.
 
         This is a convenience function for the ``input_number.set_value``
@@ -472,12 +472,11 @@ class Hass(ADBase, ADAPI):
             domain="input_number",
             entity_id=entity_id,
             value=value,
-            namespace=namespace,
-            **kwargs
+            namespace=namespace
         )
 
     @utils.sync_decorator
-    async def set_textvalue(self, entity_id: str, value: str, namespace: str | None = None, **kwargs) -> None:
+    async def set_textvalue(self, entity_id: str, value: str, namespace: str | None = None) -> None:
         """Sets the value of an `input_text`.
 
         This is a convenience function for the ``input_text.set_value``
@@ -490,8 +489,6 @@ class Hass(ADBase, ADAPI):
             namespace (str, optional): Namespace to use for the call. See the section on
                 `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
                 In most cases it is safe to ignore this parameter.
-            **kwargs (optional): Zero or more keyword arguments that get passed to the 
-                service call.
         
         Returns:
             Result of the `set_textvalue` function if any, see `service call notes <APPGUIDE.html#some-notes-on-service-calls>`__ for more details.
@@ -500,17 +497,17 @@ class Hass(ADBase, ADAPI):
             >>> self.set_textvalue("input_text.text1", "hello world")
 
         """
+        # https://www.home-assistant.io/integrations/input_text/
         return await self._domain_service_call(
             service="input_text/set_value",
             domain="input_text",
             entity_id=entity_id,
             value=value,
-            namespace=namespace,
-            **kwargs
+            namespace=namespace
         )
         
     @utils.sync_decorator
-    async def select_option(self, entity_id: str, option: str, namespace: str | None = None, **kwargs) -> None:
+    async def select_option(self, entity_id: str, option: str, namespace: str | None = None) -> None:
         """Sets the value of an `input_option`.
 
         This is a convenience function for the ``input_select.select_option``
@@ -534,12 +531,44 @@ class Hass(ADBase, ADAPI):
 
         """
         return await self._domain_service_call(
-            service="input_option/set_value",
-            domain="input_option",
+            service="input_select/select_option",
+            domain="input_select",
             entity_id=entity_id,
             option=option,
             namespace=namespace,
-            **kwargs
+        )
+    
+    @utils.sync_decorator
+    async def select_next(self, entity_id: str, cycle: bool = True, namespace: str | None = None) -> None:
+        # https://www.home-assistant.io/integrations/input_select/#action-input_selectselect_next
+        return await self._domain_service_call(
+            service="input_select/select_next",
+            domain="input_select",
+            entity_id=entity_id,
+            cycle=cycle,
+            namespace=namespace,
+        )
+    
+    @utils.sync_decorator
+    async def select_previous(self, entity_id: str, cycle: bool = True, namespace: str | None = None) -> None:
+        # https://www.home-assistant.io/integrations/input_select/#action-input_selectselect_previous
+        return await self._domain_service_call(
+            service="input_select/select_previous",
+            domain="input_select",
+            entity_id=entity_id,
+            cycle=cycle,
+            namespace=namespace,
+        )
+    
+    @utils.sync_decorator
+    async def set_options(self, entity_id: str, options: list[str], namespace: str | None = None) -> None:
+        # https://www.home-assistant.io/integrations/input_select/#actions
+        return await self._domain_service_call(
+            service="input_select/set_options",
+            domain="input_select",
+            entity_id=entity_id,
+            options=options,
+            namespace=namespace,
         )
 
     @utils.sync_decorator
