@@ -447,6 +447,30 @@ class Hass(ADBase, ADAPI):
         )
 
     @utils.sync_decorator
+    async def create_input_number(self, friendly_name: str, entity_id: str = None, initial_val: int | float = 0, namespace: str | None = None) -> dict:
+        """Creates a new input number entity by using ``set_state`` on a non-existent one with the right format
+
+        Entities created this way do not persist after Home Assistant restarts.
+        """
+        if entity_id is None:
+            cleaned_name = friendly_name.lower().replace(' ', '_').replace('-', '_')
+            entity_id = f'input_number.{cleaned_name}'
+
+        assert entity_id.startswith('input_number.')
+
+        if not (await self.entity_exists(entity_id, namespace)):
+            return await self.set_state(
+                entity_id=entity_id,
+                state=initial_val,
+                friendly_name=friendly_name,
+                namespace=namespace,
+                check_existence=False,
+            )
+        else:
+            self.log(f'Button already exists: {friendly_name}')
+            return await self.get_state(entity_id, 'all')
+
+    @utils.sync_decorator
     async def set_value(self, entity_id: str, value: int | float, namespace: str | None = None) -> None:
         """Sets the value of an `input_number`.
 
