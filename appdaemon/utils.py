@@ -263,6 +263,8 @@ def convert_timedelta(s: str | int | float) -> timedelta:
 
 def deep_compare(check: dict, data: dict) -> bool:
     """Compares 2 nested dictionaries of values"""
+    data = data or {} # Replaces a None value with an empty dict
+
     for k, v in tuple(check.items()):
         if isinstance(v, dict) and isinstance(data[k], dict):
             if deep_compare(v, data[k]):

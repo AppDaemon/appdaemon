@@ -1,4 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
+set -e
 
 readonly REPO_DIR=$(cd $(dirname $(dirname $(readlink -f "${BASH_SOURCE[0]}"))) && pwd)
 

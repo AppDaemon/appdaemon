@@ -14,11 +14,11 @@ import pytz
 from astral import SunDirection
 from astral.location import Location, LocationInfo
 
-from appdaemon.adbase import ADBase
 import appdaemon.utils as utils
 
 if TYPE_CHECKING:
     from appdaemon.appdaemon import AppDaemon
+    from appdaemon.adbase import ADBase
 
 
 time_regex_str = r"(?P<hour>\d+):(?P<minute>\d+):(?P<second>\d+)(?:\.(?P<microsecond>\d+))?"
@@ -1001,7 +1001,7 @@ class Scheduler:
     # Utilities
     #
     @staticmethod
-    def sanitize_timer_kwargs(app: ADBase, kwargs):
+    def sanitize_timer_kwargs(app: "ADBase", kwargs):
         kwargs_copy = kwargs.copy()
         return utils._sanitize_kwargs(
             kwargs_copy,

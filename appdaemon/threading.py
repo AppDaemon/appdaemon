@@ -16,12 +16,11 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 import iso8601
 
 from appdaemon import utils as utils
-from appdaemon.adbase import ADBase
 from appdaemon.models.app_config import AllAppConfig, AppConfig
 
 if TYPE_CHECKING:
+    from appdaemon.adbase import ADBase
     from appdaemon.appdaemon import AppDaemon
-
 
 class Threading:
     """Subsystem container for managing :class:`~threading.Thread` objects"""
@@ -609,7 +608,7 @@ class Threading:
     # Constraints
     #
 
-    async def check_constraint(self, key, value, app: ADBase):
+    async def check_constraint(self, key, value, app: "ADBase"):
         """Used to check Constraint"""
 
         unconstrained = True

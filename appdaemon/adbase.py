@@ -2,14 +2,15 @@ import threading
 from functools import wraps
 from logging import Logger
 from pathlib import Path
-from typing import Callable, Dict, List
+from typing import TYPE_CHECKING, Callable, Dict, List
 
 import appdaemon.adapi as adapi
 import appdaemon.utils as utils
-from appdaemon.appdaemon import AppDaemon
 from appdaemon.logging import Logging
 from appdaemon.models.app_config import AppConfig
 
+if TYPE_CHECKING:
+    from appdaemon.appdaemon import AppDaemon
 
 #
 # Locking decorator
@@ -47,7 +48,7 @@ def global_lock(f):
 
 
 class ADBase:
-    AD: AppDaemon
+    AD: "AppDaemon"
     config_model: AppConfig
 
     config: Dict
@@ -71,7 +72,7 @@ class ADBase:
     user_logs: Dict
     constraints: List
 
-    def __init__(self, ad: AppDaemon, config_model: AppConfig):
+    def __init__(self, ad: "AppDaemon", config_model: AppConfig):
         self.AD = ad
         self.config_model = config_model
 
