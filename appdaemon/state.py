@@ -6,6 +6,7 @@ from logging import Logger
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Set, Union, overload
 
+from appdaemon.adbase import ADBase
 import appdaemon.utils as utils
 
 if TYPE_CHECKING:
@@ -754,7 +755,7 @@ class State:
     # Utilities
     #
     @staticmethod
-    def sanitize_state_kwargs(app, kwargs):
+    def sanitize_state_kwargs(app: ADBase, kwargs):
         kwargs_copy = kwargs.copy()
         return utils._sanitize_kwargs(
             kwargs_copy,
@@ -775,5 +776,5 @@ class State:
                 "__silent",
                 "attribute",
             ]
-            + app.list_constraints(),
+            + app.constraints,
         )

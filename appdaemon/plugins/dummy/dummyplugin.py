@@ -50,12 +50,6 @@ class DummyPlugin(PluginBase):
         self.stopping = True
 
     #
-    # Placeholder for constraints
-    #
-    def list_constraints(self):
-        return []
-
-    #
     # Get initial state
     #
 

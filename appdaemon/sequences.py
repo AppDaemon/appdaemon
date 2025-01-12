@@ -261,9 +261,3 @@ class Sequences:
             self.logger.error("-" * 60)
             self.logger.error(traceback.format_exc())
             self.logger.error("-" * 60)
-
-    #
-    # Placeholder for constraints
-    #
-    def list_constraints(self):
-        return []

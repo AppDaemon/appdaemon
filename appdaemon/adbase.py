@@ -157,6 +157,3 @@ class ADBase:
 
     def deregister_constraint(self, name: str) -> None:
         self.constraints.remove(name)
-
-    def list_constraints(self) -> list:
-        return self.constraints

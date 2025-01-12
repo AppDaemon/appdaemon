@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 import iso8601
 
 from appdaemon import utils as utils
+from appdaemon.adbase import ADBase
 from appdaemon.models.app_config import AllAppConfig, AppConfig
 
 if TYPE_CHECKING:
@@ -608,11 +609,11 @@ class Threading:
     # Constraints
     #
 
-    async def check_constraint(self, key, value, app):
+    async def check_constraint(self, key, value, app: ADBase):
         """Used to check Constraint"""
 
         unconstrained = True
-        if hasattr(app, "list_constraints") and key in app.list_constraints():
+        if hasattr(app, "constraints") and key in app.constraints:
             method = getattr(app, key)
             unconstrained = await utils.run_async_sync_func(self, method, value)
 

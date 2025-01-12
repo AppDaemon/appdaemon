@@ -14,6 +14,7 @@ import pytz
 from astral import SunDirection
 from astral.location import Location, LocationInfo
 
+from appdaemon.adbase import ADBase
 import appdaemon.utils as utils
 
 if TYPE_CHECKING:
@@ -1000,12 +1001,12 @@ class Scheduler:
     # Utilities
     #
     @staticmethod
-    def sanitize_timer_kwargs(app, kwargs):
+    def sanitize_timer_kwargs(app: ADBase, kwargs):
         kwargs_copy = kwargs.copy()
         return utils._sanitize_kwargs(
             kwargs_copy,
             ["interval", "constrain_days", "constrain_input_boolean", "_pin_app", "_pin_thread", "__silent"]
-            + app.list_constraints(),
+            + app.constraints,
         )
 
     @staticmethod

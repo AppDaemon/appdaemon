@@ -97,12 +97,6 @@ class HassPlugin(PluginBase):
         # This will stop waiting for message on the websocket
         self.AD.loop.create_task(self.ws.close())
 
-    #
-    # Placeholder for constraints
-    #
-    def list_constraints(self):
-        return []
-
     def create_session(self) -> aiohttp.ClientSession:
         """Handles creating an ``aiohttp.ClientSession`` with the cert information from the plugin config
         and the authorization headers for the REST API.

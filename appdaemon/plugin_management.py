@@ -36,6 +36,8 @@ class PluginBase(abc.ABC):
 
     ready_event: asyncio.Event
 
+    constraints: list
+
     stopping: bool
 
     def __init__(self, ad: "AppDaemon", name: str, config: PluginConfig):
@@ -45,6 +47,7 @@ class PluginBase(abc.ABC):
         self.logger = self.AD.logging.get_child(name)
         self.error = self.logger
         self.ready_event = asyncio.Event()
+        self.constraints = []
         self.stopping = False
 
         # Performance Data
