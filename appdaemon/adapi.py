@@ -1894,6 +1894,7 @@ class ADAPI:
         self._check_service(service)
         namespace = namespace or self.namespace
 
+        # Check the entity_id if it exists
         if eid := data.get('entity_id'):
             match eid:
                 case str():
@@ -1902,7 +1903,7 @@ class ADAPI:
                     for e in eid:
                         self._check_entity(namespace, e)
 
-        return await self.AD.services.call_service(namespace, *service.split("/"), name=self.name, data=data)
+        return await self.AD.services.call_service(namespace, *service.split("/", 2), name=self.name, data=data)
 
     @utils.sync_decorator
     async def run_sequence(self, sequence: str | list[str], namespace: str | None = None) -> Any:
