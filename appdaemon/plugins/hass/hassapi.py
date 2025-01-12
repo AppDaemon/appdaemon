@@ -565,24 +565,39 @@ class Hass(ADBase, ADAPI):
         )
 
     @utils.sync_decorator
-    async def press_button(self, entity_id: str, namespace: str | None = None) -> dict:
+    async def create_button(self, friendly_name: str, button_id: str = None, namespace: str | None = None) -> dict:
+        """Creates a new button entity by using ``set_state`` on a non-existent button with the right format
+
+        Buttons created this way do not persist after Home Assistant restarts
+        """
+        button_id = button_id or f'input_button.{friendly_name.lower().replace(' ', '_')}'
+        assert button_id.startswith('input_button.')
+        return await self.set_state(
+            entity_id=button_id,
+            state=(await self.get_now()).isoformat(),
+            friendly_name=friendly_name,
+            namespace=namespace,
+        )
+
+    @utils.sync_decorator
+    async def press_button(self, button_id: str, namespace: str | None = None) -> dict:
         # https://www.home-assistant.io/integrations/input_button/#actions
         return await self._domain_service_call(
             service="input_button/press",
-            entity_id=entity_id,
+            entity_id=button_id,
             namespace=namespace,
         )
     
     @utils.sync_decorator
-    async def last_pressed(self, entity_id: str, namespace: str | None = None) -> datetime:
-        assert entity_id.split('.')[0] == 'input_button'
-        state = await self.get_state(entity_id, namespace=namespace)
+    async def last_pressed(self, button_id: str, namespace: str | None = None) -> datetime:
+        assert button_id.split('.')[0] == 'input_button'
+        state = await self.get_state(button_id, namespace=namespace)
         last_pressed = datetime.fromisoformat(state).astimezone(self.AD.tz)
         return last_pressed
     
     @utils.sync_decorator
-    async def time_since_last_press(self, entity_id: str, namespace: str | None = None) -> timedelta:
-        return (await self.get_now()) - (await self.last_pressed(entity_id, namespace))
+    async def time_since_last_press(self, button_id: str, namespace: str | None = None) -> timedelta:
+        return (await self.get_now()) - (await self.last_pressed(button_id, namespace))
 
     @utils.sync_decorator
     async def notify(
