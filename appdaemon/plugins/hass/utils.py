@@ -22,11 +22,12 @@ def looped_coro(coro, sleep_time: int | float):
     return loop
 
 
-async def no_func():
-    pass
-
-
 def hass_check(func):
+    """Essentially swallows the function call if the Home Assistant plugin isn't ready, in which case the function will return None.
+    """
+    async def no_func():
+        pass
+
     @functools.wraps(func)
     def func_wrapper(self: "HassPlugin", *args, **kwargs):
         if not self.is_ready:
