@@ -568,16 +568,25 @@ class Hass(ADBase, ADAPI):
     async def create_button(self, friendly_name: str, button_id: str = None, namespace: str | None = None) -> dict:
         """Creates a new button entity by using ``set_state`` on a non-existent button with the right format
 
-        Buttons created this way do not persist after Home Assistant restarts
+        Buttons created this way do not persist after Home Assistant restarts.
         """
-        button_id = button_id or f'input_button.{friendly_name.lower().replace(' ', '_')}'
+        if button_id is None:
+            cleaned_name = friendly_name.lower().replace(' ', '_').replace('-', '_')
+            button_id = f'input_button.{cleaned_name}'
+        
         assert button_id.startswith('input_button.')
-        return await self.set_state(
-            entity_id=button_id,
-            state=(await self.get_now()).isoformat(),
-            friendly_name=friendly_name,
-            namespace=namespace,
-        )
+
+        if not (await self.entity_exists(button_id, namespace)):
+            return await self.set_state(
+                entity_id=button_id,
+                state='unknown',
+                friendly_name=friendly_name,
+                namespace=namespace,
+                check_existence=False,
+            )
+        else:
+            self.log(f'Button already exists: {friendly_name}')
+            return await self.get_state(button_id, 'all')
 
     @utils.sync_decorator
     async def press_button(self, button_id: str, namespace: str | None = None) -> dict:
