@@ -630,73 +630,92 @@ A real token will be a lot longer than this and will consist of a string of rand
 .. figure:: images/list.png
    :alt: List
 
-Startup conditions
-^^^^^^^^^^^^^^^^^^
+HASS Startup Conditions
+^^^^^^^^^^^^^^^^^^^^^^^
 
-The HASS plugin has the ability to pause startup until various criteria have been met. This can be useful to avoid running apps that require certain entities to exist or to wait for an event to happen before the apps are started. There are 2 types of startup criteria, and they are added :
+The HASS plugin has the ability to pause startup until various criteria have been met. This can be useful to avoid running apps that require certain entities to exist or to wait for an event to happen before the apps are started. These conditions are checked whenever the HASS plugin is started, including after restarts.  AppDaemon will not start the HASS plugin until all of these conditions are met.
 
-- appdaemon_startup_conditions - These conditions are checked when AppDaemon starts.  AppDaemon will not start the HASS plugin until all of these conditions are met.
-- plugin_startup_conditions - These conditions are checked if HASS restarts while AppDaemon is up.  AppDaemon will not start the HASS plugin until all of these conditions are met.
+When AppDaemon starts, it waits for all the loaded plugins to become ready before starting any apps. The ``plugin_startup_conditions`` prevent the HASS plugin from becoming ready until the conditions are met. Therefore, no apps will have their ``initialize`` method ran until the conditions are met.
 
+Each condition only has to be met once in order to be completed. If while waiting for an event, a state condition goes from unmet to met and back again, the associated condition will still be considered met.
 
+Example placement in ``appdaemon.yaml``:
 
-AppDamon will pause the startup of the plugin until the conditions have been met. In particular, apps will not have their ``initialize()`` functions run until the conditions have been met. **These two sets of conditions operate independently.  If you want the same behavior during both startup scenarios then you need to include both sets of conditions in the configuration file and make them the same. Each set of conditions takes the same format, and there are 3 types of conditions. Currently each condition block supports only one of each type of condition.**
+.. code:: yaml
+
+    appdaemon:
+      plugins:
+        hass:
+          type: hass
+          plugin_startup_conditions:
+            delay: ...
+            state: ...
+            event: ...
 
 delay
 '''''
 
-Delay startup for a number of seconds, e.g.:
+Delay startup for a number of seconds, for example:
 
-    ``delay:10``
+.. code:: yaml
+
+    delay: 10 # delays for 10s
 
 state
 '''''
 
-
-Wait until a specific state exists or has a specific value or set of values. The values are specified as an inline dictionary as follows:
+Wait until a specific state exists or has a specific value or set of values. The values can be specified as an inline dictionary as follows:
 
 - wait until an entity exists - ``state: {entity: <entity id>}``
 - wait until an entity exists and has a specific value for its state: ``state: {entity: <entity id>, value: {state: "on"}}``
 - wait until an entity exists and has a specific value for an attribute: ``state: {entity: <entity id>, value: {attributes: {attribute: value}}}``
 
-States and values can be mixed, and they must all match with the state at a point in time for the condition to be satisfied, for instance:
+Example to wait for an input boolean:
 
-.. code:: YAML
+.. code:: yaml
 
-    state: {entity: light.office_1, value: {state: "on", attributes: {brightness: 254}}}
+    state:
+      entity: input_boolean.appdaemon_enable # example entity name
+      value:
+        state: "on" # on needs to be in quotes
+
+Example to wait for a light to be on full brightness:
+
+.. code:: yaml
+
+    state:
+      entity: light.office_1 # example entity
+      value:
+        state: "on" # on needs to be in quotes
+        attributes:
+          brightness: 255 # full brightness
 
 event
 '''''
 
-Wait for a specific event.
+Wait for an event or an event with specific data
 
-- wait for a specific event of a given type: ``{event_type: <event name>}``
-- wait for a specific event with specific data: ``{event_type: <event name>, data:{service_data:{entity_id: <some entity>}, service: <some service>}}``
+- wait for an event of a given type: ``{event_type: <event name>}``
+- wait for an event with specific data: ``{event_type: <event name>, data: {service_data: {entity_id: <some entity>}, service: <some service>}}``
 
-Different condition types may be specified in combination with the following caveats:
+Example to wait for ZWave to complete initialization upon a HASS restart:
 
-- The delay event always executes immediately upon startup, only once. No other checking is performed while the delay is in progress
-- State events will be evaluated after any delay every time a new state change event comes in
-- Events will be evaluated at the time the event arrives. If there is an additional state event, and it does not match, the event will be discarded, and the plugin will continue to wait until all conditions have been met. This is true even if the state event has previously matched but has reverted to a non-matching state.
+.. code:: yaml
 
-Examples
-''''''''
+    event:
+      event_type: zwave.network_ready
 
-Wait for ZWave to complete initialization upon a HASS restart:
+Example to wait for an input button before starting AppDaemon
 
-.. code:: YAML
+.. code:: yaml
 
-    plugin_startup_conditions:
-        event: {event_type: zwave.network_ready}
-
-
-Wait for a specific input boolean to be triggered when AppDaemon restarts:
-
-.. code:: YAML
-
-    appdaemon_startup_conditions:
-        event: {event_type: call_service, data:{domain: homeassistant, service_data:{entity_id: input_boolean.heating}, service: turn_on}}
-
+    event:
+      event_type: call_service
+      data:
+        domain: input_button
+        service: press
+        service_data:
+          entity_id: input_button.start_appdaemon # example entity
 
 MQTT
 ----
