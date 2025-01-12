@@ -131,7 +131,7 @@ class ADAPI:
     @property
     def name(self) -> str:
         return self.config_model.name
-    
+
     #
     # Logging
     #
@@ -792,7 +792,7 @@ class ADAPI:
             >>>    #do something
         """
         namespace = namespace or self.namespace
-        return self.get_entity_api(namespace, entity_id).exists()
+        return self.AD.state.entity_exists(namespace, entity_id)
 
     @utils.sync_decorator
     async def split_entity(self, entity_id: str, namespace: str | None = None) -> list:
@@ -1641,6 +1641,7 @@ class ADAPI:
         entity_id: str,
         state: Any | None = None,
         namespace: str | None = None,
+        check_existence: bool = True,
         **kwargs
     ) -> dict:
         """Updates the state of the specified entity.
@@ -1660,6 +1661,8 @@ class ADAPI:
                 which are no longer needed. Do take note this is only possible for internal entity state.
                 For plugin based entities, this is not recommended, as the plugin will mostly replace
                 the new values, when next it updates.
+            check_existence(bool, optional): Set to False to suppress a warning about the entity not
+                existing when using set_state to create an entity. Defaults to True.
             **kwargs (optional): Zero or more keyword arguments. Extra keyword arguments will be assigned as attributes.
 
         Returns:
@@ -1681,8 +1684,7 @@ class ADAPI:
         """
 
         namespace = namespace or self.namespace
-        self._check_entity(namespace, entity_id)
-        entity_api = self.get_entity_api(namespace, entity_id)
+        entity_api = self.get_entity_api(namespace, entity_id, check_existence=check_existence)
         return await entity_api.set_state(state=state, **kwargs)
 
     #
@@ -3435,9 +3437,12 @@ class ADAPI:
         self._check_entity(namespace, entity)
         return Entity(self.logger, self.AD, self.name, namespace, entity)
 
-    def get_entity_api(self, namespace: str, entity_id: str) -> Entity:
+    def get_entity_api(self, namespace: str, entity_id: str, check_existence: bool = True) -> Entity:
+        """Sometimes this gets called when creating a new entity, so the check needs to be suppressed
+        """
         namespace = namespace or self.namespace
-        self._check_entity(namespace, entity_id)
+        if check_existence:
+            self._check_entity(namespace, entity_id)
         return Entity.entity_api(self.logger, self.AD, self.name, namespace, entity_id)
 
     def run_in_thread(self, callback: Callable, thread: int, **kwargs) -> None:
