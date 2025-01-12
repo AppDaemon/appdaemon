@@ -138,6 +138,3 @@ class DummyPlugin(PluginBase):
     def set_plugin_state(self, entity, state, **kwargs):
         self.logger.debug("*** Setting State: %s = %s ***", entity, state)
         self.state[entity] = state
-
-    def get_namespace(self):
-        return self.namespace

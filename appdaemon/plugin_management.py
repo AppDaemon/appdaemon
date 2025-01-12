@@ -56,10 +56,7 @@ class PluginBase(abc.ABC):
         self.requests_sent = 0
         self.updates_recv = 0
         self.last_check_ts = 0
-
-    def get_namespace(self):
-        return self.config.namespace
-
+    
     @property
     def namespace(self) -> str:
         return self.config.namespace

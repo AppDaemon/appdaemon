@@ -488,9 +488,6 @@ class MqttPlugin(PluginBase):
                     await asyncio.sleep(5)
             await asyncio.sleep(5)
 
-    def get_namespace(self):
-        return self.namespace
-
     def start_mqtt_service(self, first_time: bool):
         try:
             # used to wait for connection
