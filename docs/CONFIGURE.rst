@@ -519,8 +519,7 @@ To configure the HASS plugin, in addition to the required parameters above, you 
    on. If not specified, the RESTFul API will be turned off.
 -  ``app_init_delay`` (optional) - If specified, when AppDaemon connects to HASS each time, it will wait for this number of seconds before initializing apps and listening for events. This is useful for HASS instances that have subsystems that take time to initialize (e.g., zwave).
 -  ``retry_secs`` (optional) - If specified, AD will wait for this many seconds in between retries to connect to HASS (default 5 seconds)
--  ``appdaemon_startup_conditions`` - see `HASS Plugin Startup Conditions <#hass-plugin-startup-conditions>`__
--  ``plugin_startup_conditions`` - see `HASS Plugin Startup Conditions <#hass-plugin-startup-conditions>`__
+-  ``plugin_startup_conditions`` - see `HASS Plugin Startup Conditions <#startup-conditions>`__
 -  ``q_timeout`` (optional, 30 seconds) - amount of time to wait for a response from Home Assistant before returning an error
 -  ``return_result`` (optional, false) - if set to true, all service calls to Home Assistant will wait for a response. Whether or not this returns data,
    it can also provide error checking, and accurate timing for how long service calls take. Will be overridden by the ``return_result`` argument in ``call_service()``
@@ -630,7 +629,7 @@ A real token will be a lot longer than this and will consist of a string of rand
 .. figure:: images/list.png
    :alt: List
 
-HASS Startup Conditions
+Startup Conditions
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 The HASS plugin has the ability to pause startup until various criteria have been met. This can be useful to avoid running apps that require certain entities to exist or to wait for an event to happen before the apps are started. These conditions are checked whenever the HASS plugin is started, including after restarts.  AppDaemon will not start the HASS plugin until all of these conditions are met.
