@@ -95,6 +95,38 @@ class Hass(ADBase, ADAPI):
             entity_id=entity_id,
             **kwargs
         )
+    
+    async def _create_helper(
+        self,
+        friendly_name: str,
+        initial_val: Any,
+        type: str,
+        entity_id: str = None,
+        namespace: str | None = None
+    ) -> dict:
+        """Creates a new input number entity by using ``set_state`` on a non-existent one with the right format
+
+        Entities created this way do not persist after Home Assistant restarts.
+        """
+        assert type.startswith('input')
+
+        if entity_id is None:
+            cleaned_name = friendly_name.lower().replace(' ', '_').replace('-', '_')
+            entity_id = f'{type}.{cleaned_name}'
+
+        assert entity_id.startswith(f'{type}.')
+
+        if not (await self.entity_exists(entity_id, namespace)):
+            return await self.set_state(
+                entity_id=entity_id,
+                state=initial_val,
+                friendly_name=friendly_name,
+                namespace=namespace,
+                check_existence=False,
+            )
+        else:
+            self.log(f'Entity already exists: {friendly_name}')
+            return await self.get_state(entity_id, 'all')
 
     #
     # Device Trackers
@@ -447,28 +479,24 @@ class Hass(ADBase, ADAPI):
         )
 
     @utils.sync_decorator
-    async def create_input_number(self, friendly_name: str, entity_id: str = None, initial_val: int | float = 0, namespace: str | None = None) -> dict:
+    async def create_input_number(
+        self,
+        friendly_name: str,
+        entity_id: str = None,
+        initial_val: int | float = 0,
+        namespace: str | None = None
+    ) -> dict:
         """Creates a new input number entity by using ``set_state`` on a non-existent one with the right format
 
         Entities created this way do not persist after Home Assistant restarts.
         """
-        if entity_id is None:
-            cleaned_name = friendly_name.lower().replace(' ', '_').replace('-', '_')
-            entity_id = f'input_number.{cleaned_name}'
-
-        assert entity_id.startswith('input_number.')
-
-        if not (await self.entity_exists(entity_id, namespace)):
-            return await self.set_state(
-                entity_id=entity_id,
-                state=initial_val,
-                friendly_name=friendly_name,
-                namespace=namespace,
-                check_existence=False,
-            )
-        else:
-            self.log(f'Button already exists: {friendly_name}')
-            return await self.get_state(entity_id, 'all')
+        return await self._create_helper(
+            friendly_name=friendly_name,
+            entity_id=entity_id,
+            type='input_number',
+            initial_val=initial_val,
+            namespace=namespace,
+        )
 
     @utils.sync_decorator
     async def set_value(self, entity_id: str, value: int | float, namespace: str | None = None) -> None:
@@ -593,28 +621,23 @@ class Hass(ADBase, ADAPI):
         )
 
     @utils.sync_decorator
-    async def create_button(self, friendly_name: str, button_id: str = None, namespace: str | None = None) -> dict:
-        """Creates a new button entity by using ``set_state`` on a non-existent button with the right format
+    async def create_input_button(
+        self,
+        friendly_name: str,
+        entity_id: str = None,
+        namespace: str | None = None
+    ) -> dict:
+        """Creates a new input number entity by using ``set_state`` on a non-existent one with the right format
 
-        Buttons created this way do not persist after Home Assistant restarts.
+        Entities created this way do not persist after Home Assistant restarts.
         """
-        if button_id is None:
-            cleaned_name = friendly_name.lower().replace(' ', '_').replace('-', '_')
-            button_id = f'input_button.{cleaned_name}'
-
-        assert button_id.startswith('input_button.')
-
-        if not (await self.entity_exists(button_id, namespace)):
-            return await self.set_state(
-                entity_id=button_id,
-                state='unknown',
-                friendly_name=friendly_name,
-                namespace=namespace,
-                check_existence=False,
-            )
-        else:
-            self.log(f'Button already exists: {friendly_name}')
-            return await self.get_state(button_id, 'all')
+        return await self._create_helper(
+            friendly_name=friendly_name,
+            entity_id=entity_id,
+            type='input_button',
+            initial_val='unknown',
+            namespace=namespace,
+        )
 
     @utils.sync_decorator
     async def press_button(self, button_id: str, namespace: str | None = None) -> dict:
