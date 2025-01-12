@@ -139,7 +139,7 @@ class PluginManagement:
     """Dictionary storing the metadata for the loaded plugins
     """
     plugin_objs: Dict[str, Any]
-    """Dictionary storing the instantiated plugin objects. Has namespaces as 
+    """Dictionary storing the instantiated plugin objects. Has namespaces as
     keys and the instantiated plugin objects as values.
     """
     required_meta = ["latitude", "longitude", "elevation", "time_zone"]

@@ -43,7 +43,7 @@ class HASSWebsocketEvent(BaseModel):
 @dataclass
 class StartupWaitCondition:
     """Class to wrap a startup condition.
-    
+
     Includes the logic to check an event (dict) against the conditions.
     """
 
@@ -53,7 +53,7 @@ class StartupWaitCondition:
     @property
     def conditions_met(self) -> bool:
         return self.event.is_set()
-    
+
     def check_received_event(self, event: dict):
         if not self.conditions_met and utils.deep_compare(self.conditions, event):
             self.event.set()
@@ -408,7 +408,7 @@ class HassPlugin(PluginBase):
                         condition.event.wait()
                     )
                 )
-    
+
         self.logger.info(f'Waiting for {len(condition_tasks)} startup condition tasks after {self.time_str()}')
         await asyncio.wait(condition_tasks)
 
@@ -693,7 +693,7 @@ class HassPlugin(PluginBase):
             return await self.http_method('post', api_url, state=state, attributes=attributes)
 
         return await safe_set_state(self)
-    
+
     @hass_check
     async def get_plugin_state(self, entity_id: str, timeout: float | None = None):
         return await self.http_method('get', f'/api/states/{entity_id}', timeout)

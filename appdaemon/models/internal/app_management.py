@@ -48,7 +48,7 @@ class LoadingActions:
 
     def import_sort(self, dm: DependencyManager) -> list[str]:
         """Finds the python files that need to be imported.
-        
+
         Uses a dependency graph to sort the internal ``init`` and ``reload`` sets together
         """
         items = copy(self.init_set)
@@ -58,7 +58,7 @@ class LoadingActions:
 
     def start_sort(self, dm: DependencyManager) -> list[str]:
         """Finds the apps that need to be started.
-        
+
         Uses a dependency graph to sort the internal ``init`` and ``reload`` sets together
         """
         items = copy(self.init_set)
@@ -72,7 +72,7 @@ class LoadingActions:
 
     def term_sort(self, dm: DependencyManager):
         """Finds all the apps that need to be terminated.
-        
+
         Uses a dependency graph to sort the internal ``reload`` and ``term`` sets together
         """
         items = copy(self.term_set)
