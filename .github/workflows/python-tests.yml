@@ -17,14 +17,14 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.11'
+        python-version: '3.12'
         cache: 'pip' # caching pip dependencies
         # Manually set pyproject.toml as the file to use for dependencies
         # Workaround while waiting for https://github.com/actions/setup-python/issues/529
         cache-dependency-path: 'pyproject.toml'
     - name: Run pre-commit
       uses: pre-commit/action@v3.0.1
-    - uses: pre-commit-ci/lite-action@v1.0.3
+    - uses: pre-commit-ci/lite-action@v1.1.0
       if: always()
 
   test:
