@@ -213,11 +213,11 @@ class State:
                 exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=int(timeout))
 
                 kwargs["__timeout"] = await self.AD.sched.insert_schedule(
-                    name,
-                    exec_time,
-                    None,
-                    False,
-                    None,
+                    name=name,
+                    aware_dt=exec_time,
+                    callback=None,
+                    repeat=False,
+                    type_=None,
                     __state_handle=handle,
                 )
             #
@@ -263,11 +263,11 @@ class State:
                         kwargs["__handle"] = handle
 
                     __scheduler_handle = await self.AD.sched.insert_schedule(
-                        name,
-                        exec_time,
-                        cb,
-                        False,
-                        None,
+                        name=name,
+                        aware_dt=exec_time,
+                        callback=cb,
+                        repeat=False,
+                        type_=None,
                         __entity=entity,
                         __attribute=__attribute,
                         __old_state=None,

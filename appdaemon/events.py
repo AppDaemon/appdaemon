@@ -98,11 +98,11 @@ class Events:
                 exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=int(timeout))
 
                 kwargs["__timeout"] = await self.AD.sched.insert_schedule(
-                    name,
-                    exec_time,
-                    None,
-                    False,
-                    None,
+                    name=name,
+                    aware_dt=exec_time,
+                    callback=None,
+                    repeat=False,
+                    type_=None,
                     __event_handle=handle,
                 )
 

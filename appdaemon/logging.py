@@ -582,11 +582,11 @@ class Logging(metaclass=utils.Singleton):
                             )
 
                             cb_kwargs["__timeout"] = await self.AD.sched.insert_schedule(
-                                name,
-                                exec_time,
-                                None,
-                                False,
-                                None,
+                                name=name,
+                                aware_dt=exec_time,
+                                callback=None,
+                                repeat=False,
+                                type_=None,
                                 __log_handle=handle,
                             )
 
