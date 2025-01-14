@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import functools
 import logging
 import random
 import re
@@ -22,7 +23,7 @@ if TYPE_CHECKING:
 
 
 time_regex_str = r"(?P<hour>\d+):(?P<minute>\d+):(?P<second>\d+)(?:\.(?P<microsecond>\d+))?"
-date_regex_str = r"^(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})" + f"(?:\s+{time_regex_str})?"
+date_regex_str = r"^(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})" + f"(?:{r"\s"}+{time_regex_str})?"
 DATE_REGEX = re.compile(date_regex_str)
 TIME_REGEX = re.compile(f"^{time_regex_str}")
 SUN_REGEX = re.compile(
@@ -166,7 +167,10 @@ class Scheduler:
         if callback is None:
             function_name = "cancel_callback"
         else:
-            function_name = callback.__name__
+            if isinstance(callback, functools.partial):
+                function_name = callback.func.__name__
+            else:
+                function_name = callback.__name__
 
         await self.AD.state.add_entity(
             "admin",
@@ -746,7 +750,10 @@ class Scheduler:
                 schedule[name][str(entry)]["kwargs"] = ""
                 for kwarg in self.schedule[name][entry]["kwargs"]:
                     schedule[name][str(entry)]["kwargs"] = utils.get_kwargs(self.schedule[name][entry]["kwargs"])
-                schedule[name][str(entry)]["callback"] = self.schedule[name][entry]["callback"].__name__
+                if isinstance(self.schedule[name][entry]["callback"], functools.partial):
+                    schedule[name][str(entry)]["callback"] = self.schedule[name][entry]["callback"].func.__name__
+                else:
+                    schedule[name][str(entry)]["callback"] = self.schedule[name][entry]["callback"].__name__
                 schedule[name][str(entry)]["pin_thread"] = (
                     self.schedule[name][entry]["pin_thread"]
                     if self.schedule[name][entry]["pin_thread"] != -1

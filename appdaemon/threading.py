@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import functools
 import inspect
 import logging
 import re
@@ -782,11 +783,11 @@ class Threading:
                         #
 
                         kwargs["__duration"] = await self.AD.sched.insert_schedule(
-                            name,
-                            exec_time,
-                            funcref,
-                            False,
-                            None,
+                            name=name,
+                            aware_dt=exec_time,
+                            callback=funcref,
+                            repeat=False,
+                            type_=None,
                             __entity=entity,
                             __attribute=attribute,
                             __old_state=old,
@@ -911,7 +912,12 @@ class Threading:
         name = args["name"]
         error_logger = logging.getLogger("Error.{}".format(name))
         args["kwargs"]["__thread_id"] = thread_id
-        callback = "{}() in {}".format(funcref.__name__, name)
+
+        if isinstance(funcref, functools.partial):
+            callback = f'{funcref.func.__name__}() in {name}'
+        else:
+            callback = f'{funcref.__name__}() in {name}'
+
         silent = False
         if "__silent" in args["kwargs"]:
             silent = args["kwargs"]["__silent"]
@@ -1036,9 +1042,18 @@ class Threading:
             _id = args["id"]
             objectid = args["objectid"]
             name = args["name"]
-            error_logger = logging.getLogger("Error.{}".format(name))
+            error_logger = logging.getLogger(f"Error.{name}")
             args["kwargs"]["__thread_id"] = thread_id
-            callback = "{}() in {}".format(funcref.__name__, name)
+
+            # if funcref is None:
+            #     self.logger.error(f'funcref is None: {args}')
+            #     continue
+
+            if isinstance(funcref, functools.partial):
+                callback = f'{funcref.func.__name__}() in {name}'
+            else:
+                callback = f'{funcref.__name__}() in {name}'
+
             silent = False
             if "__silent" in args["kwargs"]:
                 silent = args["kwargs"]["__silent"]
