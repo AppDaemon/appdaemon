@@ -2645,7 +2645,7 @@ class ADAPI:
                 string that specifies when the callback will occur. If the time
                 specified is in the past, the callback will occur the ``next day`` at
                 the specified time.
-            *args: Arbitrary positional arguments to be provided to the callback function 
+            *args: Arbitrary positional arguments to be provided to the callback function
                 when it is invoked.
             random_start (int): Start of range of the random time.
             random_end (int): End of range of the random time.
@@ -2711,7 +2711,7 @@ class ADAPI:
                 `here <APPGUIDE.html#about-schedule-callbacks>`__.
             start: Should be either a Python ``datetime`` object or a ``parse_time()`` formatted
                 string that specifies when the callback will occur.
-            *args: Arbitrary positional arguments to be provided to the callback function 
+            *args: Arbitrary positional arguments to be provided to the callback function
                 when it is invoked.
             random_start (int): Start of range of the random time.
             random_end (int): End of range of the random time.
@@ -2766,7 +2766,7 @@ class ADAPI:
                 ...
             case _:
                 raise ValueError("Invalid type for start")
-        
+
         self.logger.debug("Registering run_at at %s for %s", start, self.name)
 
         return await self.AD.sched.insert_schedule(
@@ -2802,7 +2802,7 @@ class ADAPI:
                 time specified is in the past, the callback will occur the ``next minute`` at
                 the specified time. If time is not supplied, the callback will start a
                 minute from the time that ``run_daily()`` was executed.
-            *args: Arbitrary positional arguments to be provided to the callback function 
+            *args: Arbitrary positional arguments to be provided to the callback function
                 when it is invoked.
             random_start (int): Start of range of the random time.
             random_end (int): End of range of the random time.
@@ -2911,7 +2911,7 @@ class ADAPI:
                 time specified is in the past, the callback will occur the ``next minute`` at
                 the specified time. If time is not supplied, the callback will start a
                 minute from the time that ``run_hourly()`` was executed.
-            *args: Arbitrary positional arguments to be provided to the callback function 
+            *args: Arbitrary positional arguments to be provided to the callback function
                 when it is invoked.
             random_start (int): Start of range of the random time.
             random_end (int): End of range of the random time.
@@ -2971,7 +2971,7 @@ class ADAPI:
                 time specified is in the past, the callback will occur the ``next minute`` at
                 the specified time. If time is not supplied, the callback will start a
                 minute from the time that ``run_minutely()`` was executed.
-            *args: Arbitrary positional arguments to be provided to the callback function 
+            *args: Arbitrary positional arguments to be provided to the callback function
                 when it is invoked.
             random_start (int): Start of range of the random time.
             random_end (int): End of range of the random time.
@@ -3031,7 +3031,7 @@ class ADAPI:
                 will occur, or can take the `now` string alongside an added offset. If given
                 in the past, it will be executed in the next interval time.
             interval (int): Frequency (expressed in seconds) in which the callback should be executed.
-            *args: Arbitrary positional arguments to be provided to the callback function 
+            *args: Arbitrary positional arguments to be provided to the callback function
                 when it is invoked.
             random_start (int, optional): Start of range of the random time.
             random_end (int, optional): End of range of the random time.
@@ -3070,7 +3070,7 @@ class ADAPI:
                 ...
             case _:
                 raise ValueError(f'Bad value for interval: {interval}')
-        
+
         assert isinstance(interval, dt.timedelta)
 
         aware_start = await self.AD.sched.get_next_period(interval, start)
@@ -3112,7 +3112,7 @@ class ADAPI:
         Args:
             callback: Function to be invoked at or around sunset. It must conform to the
                 standard Scheduler Callback format documented `here <APPGUIDE.html#about-schedule-callbacks>`__.
-            *args: Arbitrary positional arguments to be provided to the callback function 
+            *args: Arbitrary positional arguments to be provided to the callback function
                 when it is invoked.
             offset (int, optional): The time in seconds that the callback should be delayed after
                 sunset. A negative value will result in the callback occurring before sunset.
@@ -3185,7 +3185,7 @@ class ADAPI:
         Args:
             callback: Function to be invoked at or around sunrise. It must conform to the
                 standard Scheduler Callback format documented `here <APPGUIDE.html#about-schedule-callbacks>`__.
-            *args: Arbitrary positional arguments to be provided to the callback function 
+            *args: Arbitrary positional arguments to be provided to the callback function
                 when it is invoked.
             offset (int, optional): The time in seconds that the callback should be delayed after
                 sunrise. A negative value will result in the callback occurring before sunrise.

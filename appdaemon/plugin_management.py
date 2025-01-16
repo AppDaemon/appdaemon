@@ -318,7 +318,7 @@ class PluginManagement:
             # elif "namespace" not in self.config[name] and namespace == "default":
             #     return name
 
-    async def notify_plugin_started(self, name: str, ns: str, meta: dict, state, first_time: bool = False):
+    async def notify_plugin_started(self, name: str, ns: str, meta: dict, state: Any, first_time: bool = False):
         """Notifys the AD internals that the plugin has started
 
         - sets the namespace state in self.AD.state
@@ -327,7 +327,11 @@ class PluginManagement:
         - fires a ``plugin_started`` event
 
         Arguments:
-            first_time: if True, then it runs ``self.AD.app_management.check_app_updates`` with UpdateMode.INIT
+            name (str): Plugin name, which is the key directly under ``plugins`` in ``appdaemon.yaml``
+            ns (str): Namespace
+            meta (dict):
+            state (Any):
+            first_time (bool): if True, then it runs ``self.AD.app_management.check_app_updates`` with UpdateMode.INIT
         """
         self.logger.debug("Plugin started: %s", name)
         try:

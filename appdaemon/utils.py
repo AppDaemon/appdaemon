@@ -329,7 +329,16 @@ def warning_decorator(
     finally_text: str | None = None,
     reraise: bool = False,
 ):
-    """Creates a decorator for a function that logs custom text before and after."""
+    """Creates a decorator for a function that logs custom text before and after,
+    depending on whether it succeeds.
+
+    By default this does not reraise any exceptions that occur during the execution
+    of the wrapped function.
+
+    Only works on methods of AppDaemon subsystems because it uses the attributes:
+        - self.logger
+        - self.AD
+    """
 
     def decorator(func):
         @wraps(func)
@@ -365,6 +374,7 @@ def warning_decorator(
                 if reraise:
                     raise e
             else:
+                nonlocal success_text
                 if success_text:
                     logger.debug(success_text)
                 return result
