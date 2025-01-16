@@ -8,6 +8,7 @@ import traceback
 import uuid
 from collections import OrderedDict
 from datetime import time, timedelta, timezone
+from itertools import count
 from logging import Logger
 from typing import TYPE_CHECKING, Callable, overload
 
@@ -92,29 +93,19 @@ class Scheduler:
         self.logger.debug("stop() called for scheduler")
         self.stopping = True
 
-
-    @overload
     async def insert_schedule(
         self,
         name: str,
         aware_dt: datetime.datetime,
-        callback: Callable,
-        repeat: bool,
-        type_: str | None,
-        interval: int,
-        pin: bool,
-        pin_thread: int,
-        **kwargs
-    ) -> str | None: ...
-
-    async def insert_schedule(
-        self,
-        name: str,
-        aware_dt: datetime.datetime,
-        callback: Callable,
+        callback: Callable | None,
         repeat: bool = False,
         type_: str | None = None,
         interval: int = 0,
+        offset: int | None = None,
+        random_start: int | None = None,
+        random_end: int | None = None,
+        pin: bool | None = None,
+        pin_thread: int | None = None,
         **kwargs
     ) -> str | None:
         # aware_dt will include a timezone of some sort - convert to utc timezone
@@ -129,22 +120,22 @@ class Scheduler:
         #
         # utc = self.my_dt_round(utc, base=1)
 
-        if "pin" in kwargs:
-            pin_app = kwargs["pin"]
-        else:
-            pin_app = self.AD.app_management.objects[name].pin_app
-
-        if "pin_thread" in kwargs:
-            pin_thread = kwargs["pin_thread"]
+        if pin_thread is not None:
             pin_app = True
         else:
-            pin_thread = self.AD.app_management.objects[name].pin_thread
+            pin_app = pin or self.AD.app_management.objects[name].pin_app
+        
+        pin_thread = pin_thread or self.AD.app_management.objects[name].pin_thread
 
         if name not in self.schedule:
             self.schedule[name] = {}
 
         handle = uuid.uuid4().hex
-        c_offset = self.get_offset({"kwargs": kwargs})
+        c_offset = self.get_offset(
+            offset=offset,
+            random_start=random_start,
+            random_end=random_end
+        )
         ts = utc + timedelta(seconds=c_offset)
         basetime_interval = (ts - now).seconds
 
@@ -215,8 +206,8 @@ class Scheduler:
         """Used to restart a timer"""
 
         if args["type"] == "next_rising" or args["type"] == "next_setting":
-            c_offset = self.get_offset(args)
-            args["timestamp"] = self.sun(args["type"], c_offset)
+            c_offset = self.get_offset(**args['kwargs'])
+            args["timestamp"] = await self.sun(args["type"], c_offset)
             args["offset"] = c_offset
 
         else:
@@ -229,7 +220,7 @@ class Scheduler:
 
             else:
                 args["basetime"] += timedelta(seconds=args["interval"])
-                args["timestamp"] = args["basetime"] + timedelta(seconds=self.get_offset(args))
+                args["timestamp"] = args["basetime"] + timedelta(seconds=self.get_offset(**args['kwargs']))
 
         # Update entity
 
@@ -405,77 +396,131 @@ class Scheduler:
 
         self.location = Location(LocationInfo("", "", self.AD.tz.zone, latitude, longitude))
 
-    def sun(self, type: str, secs_offset: int):
-        return self.get_next_sun_event(type, secs_offset) + datetime.timedelta(seconds=secs_offset)
+    async def sun(self, type: str, secs_offset: int) -> datetime.datetime:
+        return (await self.get_next_sun_event(type, secs_offset)) + datetime.timedelta(seconds=secs_offset)
 
-    def get_next_sun_event(self, type: str, day_offset: int):
+    async def get_next_sun_event(self, type: str, day_offset: int) -> datetime.datetime:
         if type == "next_rising":
-            return self.next_sunrise(day_offset)
+            return await self.next_sunrise(day_offset)
         else:
-            return self.next_sunset(day_offset)
+            return await self.next_sunset(day_offset)
 
-    def todays_sunrise(self, days_offset):
-        candidate_date = (self.now.astimezone(self.AD.tz) + datetime.timedelta(days=days_offset)).date()
-        # self.logger.info(f"{self.now.astimezone(self.AD.tz)=}, {candidate_date=}")
-        sunrise = self.location.sunrise(date=candidate_date, local=True, observer_elevation=self.AD.elevation)
+    async def todays_sunrise(self, days_offset: int = 0) -> datetime.datetime:
+        return self.location.sunrise(
+            date=(await self.get_now()) + timedelta(days=days_offset),
+            local=True,
+            observer_elevation=self.AD.config.elevation
+        )
 
-        return sunrise
+    async def todays_sunset(self, days_offset: int = 0) -> datetime.datetime:
+        return self.location.sunset(
+            date=(await self.get_now()) + timedelta(days=days_offset),
+            local=True,
+            observer_elevation=self.AD.config.elevation
+        )
 
-    def next_sunrise(self, offset: int = 0):
-        day_offset = 0
-        while True:
-            try:
-                candidate_date = (self.now + datetime.timedelta(days=day_offset)).astimezone(self.AD.tz).date()
-                next_rising_dt = self.location.sunrise(
-                    date=candidate_date, local=False, observer_elevation=self.AD.elevation
-                )
-                if next_rising_dt + datetime.timedelta(seconds=offset) > (self.now + datetime.timedelta(seconds=1)):
-                    break
-            except ValueError:
-                pass
-            day_offset += 1
+    async def next_sunrise(self, days_offset: int = 0) -> datetime:
+        """Returns a tz-aware datetime object for the sunrise that's in the future.
+        
+        The days_offset is applied to the first day that sunrise is in the future
+        """
+        now = await self.get_now()
+        for i in count():
+            dt = self.location.sunrise(
+                date=(now.date() + timedelta(days=i)),
+                local=True,
+                observer_elevation=self.AD.config.elevation
+            )
+            if dt >= now:
+                break
+        
+        if days_offset == 0:
+            return dt
+        else:
+            return self.location.sunrise(
+                date=(dt.date() + timedelta(days=days_offset)),
+                local=True,
+                observer_elevation=self.AD.config.elevation
+            )
 
-        return next_rising_dt
-
-    def next_sunset(self, offset: int = 0):
-        day_offset = 0
-        while True:
-            try:
-                candidate_date = (self.now + datetime.timedelta(days=day_offset)).astimezone(self.AD.tz).date()
-                next_setting_dt = self.location.sunset(
-                    date=candidate_date, local=False, observer_elevation=self.AD.elevation
-                )
-                if next_setting_dt + datetime.timedelta(seconds=offset) > (self.now + datetime.timedelta(seconds=1)):
-                    break
-            except ValueError:
-                pass
-            day_offset += 1
-
-        return next_setting_dt
-
-    def todays_sunset(self, days_offset):
-        candidate_date = (self.now.astimezone(self.AD.tz) + datetime.timedelta(days=days_offset)).date()
-        # self.logger.info(f"{self.now.astimezone(self.AD.tz)=}, {candidate_date=}")
-        sunset = self.location.sunset(date=candidate_date, local=True, observer_elevation=self.AD.elevation)
-
-        return sunset
-
+    async def next_sunset(self, days_offset: int = 0) -> datetime:
+        """Returns a tz-aware datetime object for the sunset that's in the future.
+        
+        The days_offset is applied to the first day that sunset is in the future
+        """
+        now = await self.get_now()
+        for i in count():
+            dt = self.location.sunset(
+                date=(now.date() + timedelta(days=i)),
+                local=True,
+                observer_elevation=self.AD.config.elevation
+            )
+            if dt >= now:
+                break
+        
+        if days_offset == 0:
+            return dt
+        else:
+            return self.location.sunset(
+                date=(dt.date() + timedelta(days=days_offset)),
+                local=True,
+                observer_elevation=self.AD.config.elevation
+            )
+    
     @staticmethod
-    def get_offset(kwargs: dict):
-        if "offset" in kwargs["kwargs"]:
-            if "random_start" in kwargs["kwargs"] or "random_end" in kwargs["kwargs"]:
+    def get_offset(**kwargs):
+        kwargs = {k:v for k, v in kwargs.items() if v is not None}
+        if kwargs.get("offset"):
+            if "random_start" in kwargs or "random_end" in kwargs:
                 raise ValueError(
                     "Can't specify offset as well as 'random_start' or "
                     "'random_end' in 'run_at_sunrise()' or 'run_at_sunset()'"
                 )
             else:
-                offset = kwargs["kwargs"]["offset"]
+                offset = kwargs["offset"]
         else:
-            rbefore = kwargs["kwargs"].get("random_start", 0)
-            rafter = kwargs["kwargs"].get("random_end", 0)
+            rbefore = kwargs.get("random_start", 0)
+            rafter = kwargs.get("random_end", 0)
             offset = random.randint(rbefore, rafter)
             # self.logger.debug("get_offset(): offset = %s", offset)
         return offset
+
+    async def get_next_period(
+        self,
+        interval: int | float | datetime.timedelta,
+        start: datetime.time | datetime.datetime | str | None = None,
+    ) -> datetime:
+        match interval:
+            case int() | float():
+                interval = datetime.timedelta(seconds=interval)
+            case datetime.timedelta():
+                ...
+            case _:
+                raise ValueError(f'Bad value for interval: {interval}')
+
+        now = (await self.get_now()).astimezone(self.AD.tz)
+
+        match start:
+            case str() if start.startswith('now'):
+                now_offset = 0
+                if "+" in start and (m := re.search(r'\d+', start)):  # meaning time to be added
+                    now_offset = int(m.group())
+                aware_start = now + interval + timedelta(seconds=now_offset)
+            case datetime.time():
+                aware_start = datetime.datetime.combine(now.date(), start).astimezone(self.AD.tz)
+            case datetime.datetime():
+                aware_start = self.AD.sched.convert_naive(start)
+            case None:
+                aware_start = now + interval
+            case _:
+                raise ValueError(f'Bad value for start: {start}')
+        assert isinstance(aware_start, datetime.datetime) and aware_start.tzinfo is not None
+
+        while True:
+            if aware_start >= now:
+                return aware_start
+            else:
+                aware_start += interval
 
     async def terminate_app(self, name):
         if name in self.schedule:
@@ -830,29 +875,21 @@ class Scheduler:
 
         return start_time <= now <= end_time
 
-    async def sunset(self, aware, today=False, days_offset=0):
-        if aware is True:
-            if today is True:
-                return self.todays_sunset(days_offset).astimezone(self.AD.tz)
-            else:
-                return self.next_sunset().astimezone(self.AD.tz)
+    async def sunset(self, aware: bool = True, today: bool = False, days_offset: int = 0) -> datetime.datetime:
+        if today:
+            dt = await self.todays_sunset(days_offset)
         else:
-            if today is True:
-                return self.make_naive(self.todays_sunset(days_offset).astimezone(self.AD.tz))
-            else:
-                return self.make_naive(self.next_sunset().astimezone(self.AD.tz))
+            dt = await self.next_sunset(days_offset)
 
-    async def sunrise(self, aware, today=False, days_offset=0):
-        if aware is True:
-            if today is True:
-                return self.todays_sunrise(days_offset).astimezone(self.AD.tz)
-            else:
-                return self.next_sunrise().astimezone(self.AD.tz)
+        return dt if aware else dt.replace(tzinfo=None)
+
+    async def sunrise(self, aware: bool = True, today: bool = False, days_offset: int = 0) -> datetime.datetime:
+        if today:
+            dt = await self.todays_sunrise(days_offset)
         else:
-            if today is True:
-                return self.make_naive(self.todays_sunrise(days_offset).astimezone(self.AD.tz))
-            else:
-                return self.make_naive(self.next_sunrise().astimezone(self.AD.tz))
+            dt = await self.next_sunrise(days_offset)
+
+        return dt if aware else dt.replace(tzinfo=None)
 
     async def parse_time(
         self,
@@ -896,7 +933,7 @@ class Scheduler:
         name: str | None = None,
         today: bool = False,
         days_offset: int = 0
-    ):
+    ) -> dict:
         sun = None
         offset = 0
 
@@ -924,21 +961,25 @@ class Scheduler:
         elif match := SUN_REGEX.match(time_str):
             match_dict = match.groupdict()
             sun = match_dict.pop("dir")
+
+            match sun:
+                case "sunrise":
+                    dt = await self.sunrise(True, today, days_offset)
+                case "sunset":
+                    dt = await self.sunset(True, today, days_offset)
+                case _:
+                    raise ValueError(f"Invalid sun event: {sun}")
+
             kwargs = {k: int(v) for k, v in match_dict.items() if v is not None}
+            
+            if "microsecond" in kwargs:
+                kwargs["microsecond"] = int(float(f"0.{kwargs['microsecond']}") * 10**6)
+
             td = timedelta(**kwargs)
             offset = td.total_seconds()
             if "-" in time_str:
                 td *= -1
                 offset *= -1
-
-            if "microsecond" in kwargs:
-                kwargs["microsecond"] = int(float(f"0.{kwargs['microsecond']}") * 10**6)
-
-            if sun == "sunrise":
-                dt = await self.sunrise(True, today, days_offset)
-            else:
-                assert sun == "sunset", "Invalid sun event"
-                dt = await self.sunset(True, today, days_offset)
 
             dt += td
 
@@ -978,10 +1019,10 @@ class Scheduler:
         self.diag.info("--------------------------------------------------")
         self.diag.info("Sun")
         self.diag.info("--------------------------------------------------")
-        self.diag.info("Next Sunrise: %s", self.next_sunrise())
-        self.diag.info("Today's Sunrise: %s", self.todays_sunrise(days_offset=0))
-        self.diag.info("Next Sunset: %s", self.next_sunset())
-        self.diag.info("Today's Sunset: %s", self.todays_sunset(days_offset=0))
+        self.diag.info("Next Sunrise: %s", (await self.next_sunrise()))
+        self.diag.info("Today's Sunrise: %s", (await self.todays_sunrise()))
+        self.diag.info("Next Sunset: %s", (await self.next_sunset()))
+        self.diag.info("Today's Sunset: %s", (await self.todays_sunset()))
         self.diag.info("--------------------------------------------------")
 
     async def dump_schedule(self):

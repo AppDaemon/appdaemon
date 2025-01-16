@@ -1,18 +1,18 @@
 import asyncio
 import datetime as dt
+import functools
 import inspect
 import logging
 import re
-
-from concurrent.futures import Future
+import uuid
 from collections.abc import Coroutine, Iterable, Mapping
+from concurrent.futures import Future
 from datetime import timedelta
 from logging import Logger
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, overload
 
 import iso8601
-import uuid
 
 from appdaemon import utils
 from appdaemon.appdaemon import AppDaemon
@@ -2314,7 +2314,7 @@ class ADAPI:
         return await self.AD.sched.parse_datetime(time_str, name, *args, **kwargs)
 
     @utils.sync_decorator
-    async def get_now(self) -> dt.datetime:
+    async def get_now(self, aware: bool = True) -> dt.datetime:
         """Returns the current Local Date and Time.
 
         Examples:
@@ -2323,10 +2323,13 @@ class ADAPI:
 
         """
         now = await self.AD.sched.get_now()
-        return now.astimezone(self.AD.tz)
+        now = now.astimezone(self.AD.tz)
+        if not aware:
+            now = now.replace(tzinfo=None)
+        return now
 
     @utils.sync_decorator
-    async def get_now_ts(self) -> float:
+    async def get_now_ts(self, aware: bool = False) -> float:
         """Returns the current Local Timestamp.
 
         Examples:
@@ -2334,7 +2337,7 @@ class ADAPI:
              1565990318.728324
 
         """
-        return await self.AD.sched.get_now_ts()
+        return (await self.get_now(aware)).timestamp()
 
     @overload
     async def now_is_between(self, start_time: str, end_time: str, name: str | None = None, now: str | None = None) -> bool: ...
@@ -2377,11 +2380,8 @@ class ADAPI:
         """
         return await self.AD.sched.now_is_between(*args, **kwargs)
 
-    @overload
-    async def sunrise(self, aware: bool = False, today: bool = False, days_offset: int = 0) -> dt.datetime: ...
-
     @utils.sync_decorator
-    async def sunrise(self, *args, **kwargs) -> dt.datetime:
+    async def sunrise(self, aware: bool = False, today: bool = False, days_offset: int = 0) -> dt.datetime:
         """Returns a `datetime` object that represents the next time Sunrise will occur.
 
         Args:
@@ -2399,13 +2399,10 @@ class ADAPI:
             2023-02-01 07:12:20.272403
 
         """
-        return await self.AD.sched.sunrise(*args, **kwargs)
-
-    @overload
-    async def sunset(self, aware: bool = False, today: bool = False, days_offset: int = 0) -> dt.datetime: ...
+        return await self.AD.sched.sunrise(aware, today, days_offset)
 
     @utils.sync_decorator
-    async def sunset(self, *args, **kwargs) -> dt.datetime:
+    async def sunset(self, aware: bool = False, today: bool = False, days_offset: int = 0) -> dt.datetime:
         """Returns a `datetime` object that represents the next time Sunset will occur.
 
         Args:
@@ -2424,7 +2421,7 @@ class ADAPI:
             2023-02-02 18:09:46.252314
 
         """
-        return await self.AD.sched.sunset(*args, **kwargs)
+        return await self.AD.sched.sunset(aware, today, days_offset)
 
     @utils.sync_decorator
     async def time(self) -> dt.time:
@@ -2438,8 +2435,7 @@ class ADAPI:
             20:15:31.295751
 
         """
-        now = await self.AD.sched.get_now()
-        return now.astimezone(self.AD.tz).time()
+        return (await self.datetime(aware=True)).time()
 
     @utils.sync_decorator
     async def datetime(self, aware: bool = False) -> dt.datetime:
@@ -2457,11 +2453,7 @@ class ADAPI:
             2019-08-15 20:15:55.549379
 
         """
-        if aware is True:
-            now = await self.AD.sched.get_now()
-            return now.astimezone(self.AD.tz)
-        else:
-            return await self.AD.sched.get_now_naive()
+        return await self.get_now(aware)
 
     @utils.sync_decorator
     async def date(self) -> dt.date:
@@ -2475,8 +2467,7 @@ class ADAPI:
             2019-08-15
 
         """
-        now = await self.AD.sched.get_now()
-        return now.astimezone(self.AD.tz).date()
+        return (await self.datetime(aware=True)).date()
 
     def get_timezone(self) -> str:
         """Returns the current time zone."""
@@ -2565,20 +2556,18 @@ class ADAPI:
         """
         return await self.AD.sched.info_timer(handle, self.name)
 
-    @overload
+    @utils.sync_decorator
     async def run_in(
         self,
         callback: Callable,
         delay: float,
-        # random_start: int,
-        # random_end: int,
-        pin: bool,
-        pin_thread: int,
+        *args,
+        random_start: int = None,
+        random_end: int = None,
+        pin: bool | None = None,
+        pin_thread: int | None = None,
         **kwargs
-    ) -> str: ...
-
-    @utils.sync_decorator
-    async def run_in(self, callback: Callable, delay: float, **kwargs) -> str:
+    ) -> str:
         """Runs the callback in a defined number of seconds.
 
         This is used to add a delay, for instance, a 60 second delay before
@@ -2617,26 +2606,35 @@ class ADAPI:
             >>> self.handle = self.run_in(self.run_in_c, 5, title = "run_in5")
 
         """
-        self.logger.debug("Registering run_in in %s seconds for %s", delay, self.name)
-        # Support fractional delays
-        i, d = divmod(float(delay), 1)
-        exec_time = await self.get_now() + timedelta(seconds=int(i), microseconds=d * 1000000)
-        return await self.AD.sched.insert_schedule(self.name, exec_time, callback, **kwargs)
+        match delay:
+            case int() | float():
+                delay = timedelta(seconds=delay)
 
-    @overload
+        assert isinstance(delay, timedelta), f'Invalid delay: {delay}'
+        self.logger.debug(f"Registering run_in in {delay.total_seconds():.1f}s for {self.name}")
+        exec_time = (await self.get_now()) + delay
+        return await self.AD.sched.insert_schedule(
+            name=self.name,
+            aware_dt=exec_time,
+            callback=functools.partial(callback, *args, **kwargs),
+            random_start=random_start,
+            random_end=random_end,
+            pin=pin,
+            pin_thread=pin_thread,
+        )
+
+    @utils.sync_decorator
     async def run_once(
         self,
         callback: Callable,
-        start: dt.time | str,
-        # random_start: int,
-        # random_end: int,
-        pin: bool,
-        pin_thread: int,
+        start: dt.time | str | None = None,
+        *args,
+        random_start: int = None,
+        random_end: int = None,
+        pin: bool | None = None,
+        pin_thread: int | None = None,
         **kwargs
-    ) -> str: ...
-
-    @utils.sync_decorator
-    async def run_once(self, callback: Callable, start: dt.time | str, **kwargs) -> str:
+    ) -> str:
         """Runs the callback once, at the specified time of day.
 
         Args:
@@ -2647,6 +2645,8 @@ class ADAPI:
                 string that specifies when the callback will occur. If the time
                 specified is in the past, the callback will occur the ``next day`` at
                 the specified time.
+            *args: Arbitrary positional arguments to be provided to the callback function 
+                when it is invoked.
             random_start (int): Start of range of the random time.
             random_end (int): End of range of the random time.
             pin (bool, optional): If True, the callback will be pinned to a particular thread.
@@ -2682,41 +2682,27 @@ class ADAPI:
             >>> handle = self.run_once(self.run_once_c, "sunrise + 01:00:00")
 
         """
-        if isinstance(start, dt.time):
-            when = start
-        elif isinstance(start, str):
-            start_time_obj = await self.AD.sched._parse_time(start, self.name)
-            when = start_time_obj["datetime"].time()
-        else:
-            raise ValueError("Invalid type for start")
-        name = self.name
+        return await self.run_at(
+            callback, start, *args,
+            random_start=random_start,
+            random_end=random_end,
+            pin=pin,
+            pin_thread=pin_thread,
+            **kwargs
+        )
 
-        self.logger.debug("Registering run_once at %s for %s", when, name)
-
-        now = await self.get_now()
-        today = now.date()
-        event = dt.datetime.combine(today, when)
-        aware_event = self.AD.sched.convert_naive(event)
-        if aware_event < now:
-            one_day = dt.timedelta(days=1)
-            aware_event = aware_event + one_day
-        handle = await self.AD.sched.insert_schedule(name, aware_event, callback, **kwargs)
-        return handle
-
-    @overload
+    @utils.sync_decorator
     async def run_at(
         self,
         callback: Callable,
-        start: dt.time | str,
-        # random_start: int,
-        # random_end: int,
-        pin: bool,
-        pin_thread: int,
+        start: dt.time | str | None = None,
+        *args,
+        random_start: int = None,
+        random_end: int = None,
+        pin: bool | None = None,
+        pin_thread: int | None = None,
         **kwargs
-    ) -> str: ...
-
-    @utils.sync_decorator
-    async def run_at(self, callback: Callable, start: dt.datetime | str, **kwargs) -> str:
+    ) -> str:
         """Runs the callback once, at the specified time of day.
 
         Args:
@@ -2725,6 +2711,8 @@ class ADAPI:
                 `here <APPGUIDE.html#about-schedule-callbacks>`__.
             start: Should be either a Python ``datetime`` object or a ``parse_time()`` formatted
                 string that specifies when the callback will occur.
+            *args: Arbitrary positional arguments to be provided to the callback function 
+                when it is invoked.
             random_start (int): Start of range of the random time.
             random_end (int): End of range of the random time.
             pin (bool, optional): If ``True``, the callback will be pinned to a particular thread.
@@ -2768,57 +2756,60 @@ class ADAPI:
             >>> handle = self.run_at(self.run_at_c, "sunrise + 01:00:00")
 
         """
-        if isinstance(start, dt.datetime):
-            when = start
-        elif isinstance(start, str):
-            start_time_obj = await self.AD.sched._parse_time(start, self.name)
-            when = start_time_obj["datetime"]
-        else:
-            raise ValueError("Invalid type for start")
-        aware_when = self.AD.sched.convert_naive(when)
-        name = self.name
+        match start:
+            case str():
+                info = await self.AD.sched._parse_time(start, self.name)
+                start = info['datetime']
+            case dt.time():
+                start = dt.datetime.combine(await self.date(), start).astimezone(self.AD.tz)
+            case dt.datetime():
+                ...
+            case _:
+                raise ValueError("Invalid type for start")
+        
+        self.logger.debug("Registering run_at at %s for %s", start, self.name)
 
-        self.logger.debug("Registering run_at at %s for %s", when, name)
+        return await self.AD.sched.insert_schedule(
+            name=self.name,
+            aware_dt=start,
+            callback=functools.partial(callback, *args, **kwargs),
+            random_start=random_start,
+            random_end=random_end,
+            pin=pin,
+            pin_thread=pin_thread,
+        )
 
-        now = await self.get_now()
-        if aware_when < now:
-            aware_when += timedelta(days=1)
-        handle = await self.AD.sched.insert_schedule(name, aware_when, callback, **kwargs)
-        return handle
-
-    @overload
+    @utils.sync_decorator
     async def run_daily(
         self,
         callback: Callable,
-        start: dt.time | str,
-        # random_start: int,
-        # random_end: int,
-        pin: bool,
-        pin_thread: int,
-        **kwargs
-    ) -> str: ...
-
-    @utils.sync_decorator
-    async def run_daily(self, callback: Callable, start: dt.time | str, **kwargs) -> str:
+        start: dt.time | str | None = None,
+        *args,
+        random_start: int = None,
+        random_end: int = None,
+        pin: bool | None = None,
+        pin_thread: int | None = None,
+        **cb_kwargs
+    ) -> str:
         """Runs the callback at the same time every day.
 
         Args:
             callback: Function to be invoked every day at the specified time.
                 It must conform to the standard Scheduler Callback format documented
                 `here <APPGUIDE.html#about-schedule-callbacks>`__.
-            start: Should be either a Python ``time`` object or a ``parse_time()`` formatted
-                string that specifies when the callback will occur. If the time
-                specified is in the past, the callback will occur the ``next day`` at
-                the specified time.
-                When specifying sunrise or sunset relative times using the ``parse_datetime()``
-                format, the time of the callback will be adjusted every day to track the actual
-                value of sunrise or sunset.
+            start: A Python ``time`` object that specifies when the callback will occur,
+                the hour and minute components of the time object are ignored. If the
+                time specified is in the past, the callback will occur the ``next minute`` at
+                the specified time. If time is not supplied, the callback will start a
+                minute from the time that ``run_daily()`` was executed.
+            *args: Arbitrary positional arguments to be provided to the callback function 
+                when it is invoked.
             random_start (int): Start of range of the random time.
             random_end (int): End of range of the random time.
-            pin (bool, optional): If ``True``, the callback will be pinned to a particular thread.
+            pin (bool, optional): If True, the callback will be pinned to a particular thread.
             pin_thread (int, optional): Specify which thread from the worker pool the callback
                 will be run by (0 - number of threads -1).
-            **kwargs: Arbitrary keyword parameters to be provided to the callback
+            **cb_kwargs: Arbitrary keyword parameters to be provided to the callback
                 function when it is invoked.
 
         Returns:
@@ -2848,47 +2839,67 @@ class ADAPI:
             >>> handle = self.run_daily(self.run_daily_c, "sunset + 01:00:00")
 
         """
-        info = None
-        when = None
-        if isinstance(start, dt.time):
-            when = start
-        elif isinstance(start, str):
-            info = await self.AD.sched._parse_time(start, self.name)
-        else:
-            raise ValueError("Invalid type for start")
+        offset = 0
+        sun = None
+        match start:
+            case str():
+                info = await self.AD.sched._parse_time(start, self.name)
+                start, offset, sun = info['datetime'], info['offset'], info['sun']
+            case dt.time():
+                start = dt.datetime.combine(await self.date(), start).astimezone(self.AD.tz)
+            case dt.datetime():
+                ...
+            case _:
+                raise ValueError("Invalid type for start")
 
-        if info is None or info["sun"] is None:
-            if when is None:
-                when = info["datetime"].time()
-            aware_now = await self.get_now()
-            now = self.AD.sched.make_naive(aware_now)
-            today = now.date()
-            event = dt.datetime.combine(today, when)
-            if event < now:
-                event = event + dt.timedelta(days=1)
-            handle = await self.run_every(callback, event, 24 * 60 * 60, **kwargs)
-        elif info["sun"] == "sunrise":
-            kwargs["offset"] = info["offset"]
-            handle = await self.run_at_sunrise(callback, **kwargs)
-        else:
-            kwargs["offset"] = info["offset"]
-            handle = await self.run_at_sunset(callback, **kwargs)
-        return handle
+        ad_kwargs = dict(
+            random_start=random_start,
+            random_end=random_end,
+            pin=pin,
+            pin_thread=pin_thread,
+        )
 
-    @overload
+        match sun:
+            case None:
+                return await self.run_every(
+                    callback,
+                    start,
+                    timedelta(days=1),
+                    *args,
+                    **ad_kwargs,
+                    **cb_kwargs
+                )
+            case "sunrise":
+                return await self.run_at_sunrise(
+                    callback,
+                    *args,
+                    repeat=True,
+                    offset=offset,
+                    **ad_kwargs,
+                    **cb_kwargs
+                )
+            case "sunset":
+                return await self.run_at_sunset(
+                    callback,
+                    *args,
+                    repeat=True,
+                    offset=offset,
+                    **ad_kwargs,
+                    **cb_kwargs
+                )
+
+    @utils.sync_decorator
     async def run_hourly(
         self,
         callback: Callable,
-        start: dt.time | str,
-        # random_start: int,
-        # random_end: int,
-        pin: bool,
-        pin_thread: int,
+        start: dt.time | dt.datetime | str | None = None,
+        *args,
+        random_start: int = None,
+        random_end: int = None,
+        pin: bool | None = None,
+        pin_thread: int | None = None,
         **kwargs
-    ) -> str: ...
-
-    @utils.sync_decorator
-    async def run_hourly(self, callback: Callable, start: dt.time | str, **kwargs) -> str:
+    ) -> str:
         """Runs the callback at the same time every hour.
 
         Args:
@@ -2896,13 +2907,15 @@ class ADAPI:
                 It must conform to the standard Scheduler Callback format documented
                 `here <APPGUIDE.html#about-schedule-callbacks>`__.
             start: A Python ``time`` object that specifies when the callback will occur,
-                the hour component of the time object is ignored. If the time specified
-                is in the past, the callback will occur the ``next hour`` at the specified
-                time. If time is not supplied, the callback will start an hour from the
-                time that ``run_hourly()`` was executed.
+                the hour and minute components of the time object are ignored. If the
+                time specified is in the past, the callback will occur the ``next minute`` at
+                the specified time. If time is not supplied, the callback will start a
+                minute from the time that ``run_hourly()`` was executed.
+            *args: Arbitrary positional arguments to be provided to the callback function 
+                when it is invoked.
             random_start (int): Start of range of the random time.
             random_end (int): End of range of the random time.
-            pin (bool, optional): If ``True``, the callback will be pinned to a particular thread.
+            pin (bool, optional): If True, the callback will be pinned to a particular thread.
             pin_thread (int, optional): Specify which thread from the worker pool the callback
                 will be run by (0 - number of threads -1).
             **kwargs: Arbitrary keyword parameters to be provided to the callback
@@ -2923,31 +2936,30 @@ class ADAPI:
             >>> self.run_hourly(self.run_hourly_c, runtime)
 
         """
-        now = await self.get_now()
-        if start is None:
-            event = now + dt.timedelta(hours=1)
-        else:
-            event = now
-            event = event.replace(minute=start.minute, second=start.second)
-            if event < now:
-                event = event + dt.timedelta(hours=1)
-        handle = await self.run_every(callback, event, 60 * 60, **kwargs)
-        return handle
+        return await self.run_every(
+            callback,
+            start,
+            timedelta(hours=1),
+            *args,
+            random_start=random_start,
+            random_end=random_end,
+            pin=pin,
+            pin_thread=pin_thread,
+            **kwargs
+        )
 
-    @overload
+    @utils.sync_decorator
     async def run_minutely(
         self,
         callback: Callable,
-        start: dt.time | str,
-        # random_start: int,
-        # random_end: int,
-        pin: bool,
-        pin_thread: int,
+        start: dt.time | dt.datetime | str | None = None,
+        *args,
+        random_start: int = None,
+        random_end: int = None,
+        pin: bool | None = None,
+        pin_thread: int | None = None,
         **kwargs
-    ) -> str: ...
-
-    @utils.sync_decorator
-    async def run_minutely(self, callback: Callable, start: dt.time, **kwargs) -> str:
+    ) -> str:
         """Runs the callback at the same time every minute.
 
         Args:
@@ -2959,6 +2971,8 @@ class ADAPI:
                 time specified is in the past, the callback will occur the ``next minute`` at
                 the specified time. If time is not supplied, the callback will start a
                 minute from the time that ``run_minutely()`` was executed.
+            *args: Arbitrary positional arguments to be provided to the callback function 
+                when it is invoked.
             random_start (int): Start of range of the random time.
             random_end (int): End of range of the random time.
             pin (bool, optional): If True, the callback will be pinned to a particular thread.
@@ -2982,32 +2996,31 @@ class ADAPI:
             >>> self.run_minutely(self.run_minutely_c, time)
 
         """
-        now = await self.get_now()
-        if start is None:
-            event = now + dt.timedelta(minutes=1)
-        else:
-            event = now
-            event = event.replace(second=start.second)
-            if event < now:
-                event = event + dt.timedelta(minutes=1)
-        handle = await self.run_every(callback, event, 60, **kwargs)
-        return handle
+        return await self.run_every(
+            callback,
+            start,
+            timedelta(minutes=1),
+            *args,
+            random_start=random_start,
+            random_end=random_end,
+            pin=pin,
+            pin_thread=pin_thread,
+            **kwargs
+        )
 
-    @overload
+    @utils.sync_decorator
     async def run_every(
         self,
         callback: Callable,
-        start: dt.time | str,
-        interval: int,
-        # random_start: int,
-        # random_end: int,
-        pin: bool,
-        pin_thread: int,
+        start: dt.time | dt.datetime | str | None = None,
+        interval: int | float | dt.timedelta = 0,
+        *args,
+        random_start: int = None,
+        random_end: int = None,
+        pin: bool | None = None,
+        pin_thread: int | None = None,
         **kwargs
-    ) -> str: ...
-
-    @utils.sync_decorator
-    async def run_every(self, callback: Callable, start: dt.datetime | str, interval: int, **kwargs) -> str:
+    ) -> str:
         """Runs the callback with a configurable delay starting at a specific time.
 
         Args:
@@ -3018,8 +3031,10 @@ class ADAPI:
                 will occur, or can take the `now` string alongside an added offset. If given
                 in the past, it will be executed in the next interval time.
             interval (int): Frequency (expressed in seconds) in which the callback should be executed.
-            random_start (int): Start of range of the random time.
-            random_end (int): End of range of the random time.
+            *args: Arbitrary positional arguments to be provided to the callback function 
+                when it is invoked.
+            random_start (int, optional): Start of range of the random time.
+            random_end (int, optional): End of range of the random time.
             pin (bool, optional): If ``True``, the callback will be pinned to a particular thread.
             pin_thread (int, optional): Specify which thread from the worker pool the callback
                 will be run by (0 - number of threads -1).
@@ -3048,64 +3063,57 @@ class ADAPI:
             >>> self.run_every(self.run_every_c, "now+5", 5 * 60)
 
         """
-        name = self.name
-        now = await self.get_now()
+        match interval:
+            case int() | float():
+                interval = dt.timedelta(seconds=interval)
+            case dt.timedelta():
+                ...
+            case _:
+                raise ValueError(f'Bad value for interval: {interval}')
+        
+        assert isinstance(interval, dt.timedelta)
 
-        if isinstance(start, str) and "now" in start:  # meaning immediate time required
-            now_offset = 0
-            if "+" in start:  # meaning time to be added
-                now_offset = int(re.findall(r"\d+", start)[0])
-
-            aware_start = await self.get_now()
-            aware_start = aware_start + dt.timedelta(seconds=now_offset)
-
-        else:
-            aware_start = self.AD.sched.convert_naive(start)
-
-        if aware_start < now:
-            aware_start = now + dt.timedelta(seconds=interval)
+        aware_start = await self.AD.sched.get_next_period(interval, start)
 
         self.logger.debug(
-            "Registering run_every starting %s in %ss intervals for %s",
-            aware_start,
+            "Registering %s for run_every in %s intervals, starting %s",
+            callback.__name__,
             interval,
-            name,
+            aware_start,
         )
 
-        handle = await self.AD.sched.insert_schedule(
-            name, aware_start, callback, True, None, interval=interval, **kwargs
+        return await self.AD.sched.insert_schedule(
+            name=self.name,
+            aware_dt=aware_start,
+            callback=functools.partial(callback, *args, **kwargs),
+            repeat=True,
+            interval=interval.total_seconds(),
+            random_start=random_start,
+            random_end=random_end,
+            pin=pin,
+            pin_thread=pin_thread
         )
-        return handle
 
     @utils.sync_decorator
-    async def _schedule_sun(self, name: str, type_: str, callback: Callable, **kwargs) -> str:
-        match type_:
-            case "next_rising":
-                event = self.AD.sched.next_sunrise()
-            case "next_setting":
-                event = self.AD.sched.next_sunset()
-
-        return await self.AD.sched.insert_schedule(name, event, callback, True, type_, **kwargs)
-
-    @overload
     async def run_at_sunset(
         self,
         callback: Callable,
-        offset: int,
-        # random_start: int,
-        # random_end: int,
-        pin: bool,
-        pin_thread: int,
+        *args,
+        repeat: bool = False,
+        offset: int | None = None,
+        random_start: int = None,
+        random_end: int = None,
+        pin: bool | None = None,
+        pin_thread: int | None = None,
         **kwargs
-    ) -> str: ...
-
-    @utils.sync_decorator
-    async def run_at_sunset(self, callback: Callable, **kwargs) -> str:
+    ) -> str:
         """Runs a callback every day at or around sunset.
 
         Args:
             callback: Function to be invoked at or around sunset. It must conform to the
                 standard Scheduler Callback format documented `here <APPGUIDE.html#about-schedule-callbacks>`__.
+            *args: Arbitrary positional arguments to be provided to the callback function 
+                when it is invoked.
             offset (int, optional): The time in seconds that the callback should be delayed after
                 sunset. A negative value will result in the callback occurring before sunset.
                 This parameter cannot be combined with ``random_start`` or ``random_end``.
@@ -3114,7 +3122,7 @@ class ADAPI:
             pin (bool, optional): If ``True``, the callback will be pinned to a particular thread.
             pin_thread (int, optional): Specify which thread from the worker pool the callback
                 will be run by (0 - number of threads -1).
-            **kwargs: Arbitrary keyword parameters to be provided to the callback
+            **kwargs: Arbitrary keyword arguments to be provided to the callback
                 function when it is invoked.
 
         Returns:
@@ -3143,28 +3151,42 @@ class ADAPI:
             >>> self.run_at_sunset(self.sun, random_start = -60*60, random_end = 30*60)
 
         """
-        self.logger.debug("Registering run_at_sunset with kwargs = %s for %s", kwargs, self.name)
-        return await self._schedule_sun(self.name, "next_setting", callback, **kwargs)
+        sunset = await self.AD.sched.next_sunset()
+        td = timedelta(seconds=offset)
+        self.logger.debug(f"Registering run_at_sunset at {sunset+td} with {args}, {kwargs}")
+        return await self.AD.sched.insert_schedule(
+            name=self.name,
+            aware_dt=sunset,
+            callback=functools.partial(callback, *args, **kwargs),
+            repeat=repeat,
+            type_="next_setting",
+            offset=offset,
+            random_start=random_start,
+            random_end=random_end,
+            pin=pin,
+            pin_thread=pin_thread
+        )
 
-    @overload
+    @utils.sync_decorator
     async def run_at_sunrise(
         self,
         callback: Callable,
-        offset: int,
-        # random_start: int,
-        # random_end: int,
-        pin: bool,
-        pin_thread: int,
+        *args,
+        repeat: bool = False,
+        offset: int | None = None,
+        random_start: int = None,
+        random_end: int = None,
+        pin: bool | None = None,
+        pin_thread: int | None = None,
         **kwargs
-    ) -> str: ...
-
-    @utils.sync_decorator
-    async def run_at_sunrise(self, callback: Callable, **kwargs) -> str:
+    ) -> str:
         """Runs a callback every day at or around sunrise.
 
         Args:
             callback: Function to be invoked at or around sunrise. It must conform to the
                 standard Scheduler Callback format documented `here <APPGUIDE.html#about-schedule-callbacks>`__.
+            *args: Arbitrary positional arguments to be provided to the callback function 
+                when it is invoked.
             offset (int, optional): The time in seconds that the callback should be delayed after
                 sunrise. A negative value will result in the callback occurring before sunrise.
                 This parameter cannot be combined with ``random_start`` or ``random_end``.
@@ -3173,7 +3195,7 @@ class ADAPI:
             pin (bool, optional): If ``True``, the callback will be pinned to a particular thread.
             pin_thread (int, optional): Specify which thread from the worker pool the callback
                 will be run by (0 - number of threads -1).
-            **kwargs: Arbitrary keyword parameters to be provided to the callback
+            **kwargs: Arbitrary keyword arguments to be provided to the callback
                 function when it is invoked.
 
         Returns:
@@ -3185,7 +3207,7 @@ class ADAPI:
             denote a random offset after an event.
 
         Examples:
-            Run 45 minutes before sunset.
+            Run 45 minutes before sunrise.
 
             >>> self.run_at_sunrise(self.sun, offset = datetime.timedelta(minutes = -45).total_seconds())
 
@@ -3202,8 +3224,21 @@ class ADAPI:
             >>> self.run_at_sunrise(self.sun, random_start = -60*60, random_end = 30*60)
 
         """
-        self.logger.debug("Registering run_at_sunrise with kwargs = %s for %s", kwargs, self.name)
-        return await self._schedule_sun(self.name, "next_rising", callback, **kwargs)
+        sunrise = await self.AD.sched.next_sunrise()
+        td = timedelta(seconds=offset)
+        self.logger.debug(f"Registering run_at_sunrise at {sunrise+td} with {args}, {kwargs}")
+        return await self.AD.sched.insert_schedule(
+            name=self.name,
+            aware_dt=sunrise,
+            callback=functools.partial(callback, *args, **kwargs),
+            repeat=repeat,
+            type_="next_rising",
+            offset=offset,
+            random_start=random_start,
+            random_end=random_end,
+            pin=pin,
+            pin_thread=pin_thread
+        )
 
     #
     # Dashboard
