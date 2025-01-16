@@ -38,8 +38,7 @@ class State:
 
         for ns in self.AD.namespaces:
             writeback = self.AD.namespaces[ns].writeback
-            self.add_persistent_namespace(ns, writeback)
-            self.logger.info("User Defined Namespace '%s' initialized", ns)
+            self.AD.loop.create_task(self.add_persistent_namespace(ns, writeback))
 
     @property
     def namespace_path(self) -> Path:
@@ -110,6 +109,7 @@ class State:
         else:
             self.logger.warning("Namespace %s doesn't exists", namespace)
 
+    @utils.executor_decorator
     def add_persistent_namespace(self, namespace: str, writeback: str) -> Path:
         """Used to add a database file for a created namespace"""
 
@@ -210,7 +210,7 @@ class State:
             #
             if "timeout" in kwargs:
                 timeout = kwargs.pop("timeout")
-                exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=int(timeout))
+                exec_time = (await self.AD.sched.get_now()) + datetime.timedelta(seconds=int(timeout))
 
                 kwargs["__timeout"] = await self.AD.sched.insert_schedule(
                     name=name,
@@ -714,7 +714,7 @@ class State:
 
     async def set_namespace_state(self, namespace: str, state: Dict, persist: bool = False):
         if persist:
-            self.add_persistent_namespace(namespace, "safe")
+            await self.add_persistent_namespace(namespace, "safe")
             self.state[namespace].update(state)
         else:
             # first in case it had been created before, it should be deleted
