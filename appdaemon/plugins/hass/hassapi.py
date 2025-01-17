@@ -947,3 +947,17 @@ class Hass(ADBase, ADAPI):
 
     def label_entities(self, label_name_or_id: str) -> list[str]:
         return self._label_command('label_entities', label_name_or_id)
+
+    @overload
+    async def backup_full(
+        self,
+        name: str,
+        password: str | None = None,
+        compressed: bool = True,
+        location: str | None = None,
+        homeassistant_exclude_database: bool = False
+    ): ...
+
+    @utils.sync_decorator
+    async def backup_full(self, name: str, **kwargs) -> dict:
+        return await self.call_service("hassio/backup_full", name=name, **kwargs)
