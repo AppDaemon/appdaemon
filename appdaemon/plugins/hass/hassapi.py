@@ -95,7 +95,7 @@ class Hass(ADBase, ADAPI):
             entity_id=entity_id,
             **kwargs
         )
-    
+
     async def _create_helper(
         self,
         friendly_name: str,
@@ -650,6 +650,7 @@ class Hass(ADBase, ADAPI):
 
     @utils.sync_decorator
     async def last_pressed(self, button_id: str, namespace: str | None = None) -> datetime:
+        """Only works on entities in the input_button domain"""
         assert button_id.split('.')[0] == 'input_button'
         state = await self.get_state(button_id, namespace=namespace)
         last_pressed = datetime.fromisoformat(state).astimezone(self.AD.tz)
@@ -657,6 +658,7 @@ class Hass(ADBase, ADAPI):
 
     @utils.sync_decorator
     async def time_since_last_press(self, button_id: str, namespace: str | None = None) -> timedelta:
+        """Only works on entities in the input_button domain"""
         return (await self.get_now()) - (await self.last_pressed(button_id, namespace))
 
     @utils.sync_decorator
