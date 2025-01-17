@@ -587,6 +587,7 @@ class AppManagement:
                     update_actions.apps.init.add(name)
                 else:
                     # If an app exists, compare to the current config
+                    # if not utils.deep_compare(cfg, self.app_config.root[name]):
                     if cfg != self.app_config.root[name]:
                         self.logger.info("App config modified: %s", name)
                         update_actions.apps.reload.add(name)
@@ -902,7 +903,7 @@ class AppManagement:
                         success_text=f"Started '{app_name}'",
                         error_text=f"Error starting app '{app_name}' from {rel_path}",
                     )
-                    async def safe_start(self):
+                    async def safe_start(self: "AppManagement"):
                         try:
                             await self.start_app(app_name)
                         except Exception:
@@ -911,7 +912,7 @@ class AppManagement:
 
                     await safe_start(self)
                 elif isinstance(cfg, GlobalModule):
-                    assert cfg.module_name in sys.modules
+                    assert cfg.module_name in sys.modules, f'{cfg.module_name} not in sys.modules'
 
     async def _import_modules(self, update_actions: UpdateActions) -> Set[str]:
         """Calls ``self.import_module`` for each module in the list
