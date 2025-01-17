@@ -10,7 +10,7 @@ from collections import OrderedDict
 from datetime import time, timedelta, timezone
 from itertools import count
 from logging import Logger
-from typing import TYPE_CHECKING, Callable, overload
+from typing import TYPE_CHECKING, Any, Callable
 
 import pytz
 from astral import SunDirection
@@ -39,6 +39,8 @@ class Scheduler:
     logger: Logger
     error: Logger
     diag: Logger
+
+    schedule: dict[str, dict[str, Any]]
 
     active: bool = False
     realtime: bool = True
@@ -124,7 +126,7 @@ class Scheduler:
             pin_app = True
         else:
             pin_app = pin or self.AD.app_management.objects[name].pin_app
-        
+
         pin_thread = pin_thread or self.AD.app_management.objects[name].pin_thread
 
         if name not in self.schedule:
@@ -421,7 +423,7 @@ class Scheduler:
 
     async def next_sunrise(self, days_offset: int = 0) -> datetime:
         """Returns a tz-aware datetime object for the sunrise that's in the future.
-        
+
         The days_offset is applied to the first day that sunrise is in the future
         """
         now = await self.get_now()
@@ -433,7 +435,7 @@ class Scheduler:
             )
             if dt >= now:
                 break
-        
+
         if days_offset == 0:
             return dt
         else:
@@ -445,7 +447,7 @@ class Scheduler:
 
     async def next_sunset(self, days_offset: int = 0) -> datetime:
         """Returns a tz-aware datetime object for the sunset that's in the future.
-        
+
         The days_offset is applied to the first day that sunset is in the future
         """
         now = await self.get_now()
@@ -457,7 +459,7 @@ class Scheduler:
             )
             if dt >= now:
                 break
-        
+
         if days_offset == 0:
             return dt
         else:
@@ -466,7 +468,7 @@ class Scheduler:
                 local=True,
                 observer_elevation=self.AD.config.elevation
             )
-    
+
     @staticmethod
     def get_offset(**kwargs):
         kwargs = {k:v for k, v in kwargs.items() if v is not None}
@@ -971,7 +973,7 @@ class Scheduler:
                     raise ValueError(f"Invalid sun event: {sun}")
 
             kwargs = {k: int(v) for k, v in match_dict.items() if v is not None}
-            
+
             if "microsecond" in kwargs:
                 kwargs["microsecond"] = int(float(f"0.{kwargs['microsecond']}") * 10**6)
 
@@ -1049,7 +1051,8 @@ class Scheduler:
     # Utilities
     #
     @staticmethod
-    def sanitize_timer_kwargs(app: "ADBase", kwargs):
+    def sanitize_timer_kwargs(app: "ADBase", kwargs: dict) -> dict:
+        """Removes keywords from the keywords"""
         kwargs_copy = kwargs.copy()
         return utils._sanitize_kwargs(
             kwargs_copy,
