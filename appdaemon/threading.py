@@ -1219,6 +1219,9 @@ class Threading:
         use_dictionary_unpacking = utils.has_expanded_kwargs(funcref)
 
         try:
+            if isinstance(funcref, functools.partial):
+                funcref = funcref.func
+
             sig = inspect.signature(funcref)
 
             if type in callback_args:
