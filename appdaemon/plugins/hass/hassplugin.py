@@ -671,7 +671,7 @@ class HassPlugin(PluginBase):
     #
 
     @utils.warning_decorator(error_text="Unexpected error while getting hass state")
-    async def get_complete_state(self):
+    async def get_complete_state(self) -> dict[str, dict[str, Any]]:
         """This method is needed for all AppDaemon plugins"""
         hass_state = (await self.websocket_send_json(type="get_states"))["result"]
         states = {s["entity_id"]: s for s in hass_state}
