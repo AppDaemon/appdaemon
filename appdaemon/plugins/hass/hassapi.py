@@ -769,18 +769,21 @@ class Hass(ADBase, ADAPI):
             namespace=namespace,
         )
 
-    @utils.sync_decorator
-    async def last_pressed(self, button_id: str, namespace: str | None = None) -> datetime:
+    def last_pressed(self, button_id: str, namespace: str | None = None) -> datetime:
         """Only works on entities in the input_button domain"""
         assert button_id.split('.')[0] == 'input_button'
         state = self.get_state(button_id, namespace=namespace)
-        last_pressed = datetime.fromisoformat(state).astimezone(self.AD.tz)
-        return last_pressed
+        match state:
+            case str():
+                return datetime.fromisoformat(state).astimezone(self.AD.tz)
+            case datetime():
+                return state
+            # case _:
+            #     self.logger.warning(f'Unknown time: {state}')
 
-    @utils.sync_decorator
-    async def time_since_last_press(self, button_id: str, namespace: str | None = None) -> timedelta:
+    def time_since_last_press(self, button_id: str, namespace: str | None = None) -> timedelta:
         """Only works on entities in the input_button domain"""
-        return (await self.get_now()) - (await self.last_pressed(button_id, namespace))
+        return self.get_now() - self.last_pressed(button_id, namespace)
 
     #
     # Notifications
