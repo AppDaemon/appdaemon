@@ -51,19 +51,19 @@ class Hass(ADBase, ADAPI):
 
     @utils.sync_decorator
     async def check_for_entity(self, entity_id: str) -> bool:
-        """Uses the REST API to check if an entity exists instead of checking 
+        """Uses the REST API to check if an entity exists instead of checking
         AD's internal state
         """
         return await self._plugin.check_for_entity(entity_id)
-    
+
     @utils.sync_decorator
     async def get_device_id(self, entity_id: str) -> str:
         """Uses the ``device_id`` function in a template to get the device ID"""
         return await self.render_template(f'{{{{device_id("{entity_id}")}}}}')
-    
+
     @utils.sync_decorator
     async def get_device_entities(self, device_id: str) -> list[str]:
-        """Uses the ``device_entities`` function in a template to get entities 
+        """Uses the ``device_entities`` function in a template to get entities
         associated with a device.
         """
         return await self.render_template(f'{{{{device_entities("{device_id}")}}}}')
@@ -573,7 +573,7 @@ class Hass(ADBase, ADAPI):
             value=value,
             namespace=namespace
         )
-    
+
     @utils.sync_decorator
     async def set_options(self, entity_id: str, options: list[str], namespace: str | None = None) -> dict:
         # https://www.home-assistant.io/integrations/input_select/#actions
@@ -634,7 +634,7 @@ class Hass(ADBase, ADAPI):
             cycle=cycle,
             namespace=namespace,
         )
-    
+
     @utils.sync_decorator
     async def select_first(self, entity_id: str, namespace: str | None = None) -> dict:
         return await self._domain_service_call(
@@ -642,7 +642,7 @@ class Hass(ADBase, ADAPI):
             entity_id=entity_id,
             namespace=namespace,
         )
-    
+
     @utils.sync_decorator
     async def select_last(self, entity_id: str, namespace: str | None = None) -> dict:
         return await self._domain_service_call(
@@ -1024,7 +1024,7 @@ class Hass(ADBase, ADAPI):
         homeassistant: bool = False,
         addons: Iterable[str] = None,
         folders: Iterable[str] = None,
-        password: str = None,        
+        password: str = None,
     ): ...
 
     @utils.sync_decorator
