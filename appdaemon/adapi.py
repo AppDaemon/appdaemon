@@ -139,21 +139,6 @@ class ADAPI:
         return self.config_model.name
 
     @property
-    def namespace(self) -> str:
-        return self._namespace
-
-    @namespace.setter
-    def namespace(self, new: str):
-        if not self.namespace_exists(new):
-            self.logger.warning(f"Namespace '{new}' does not exist, setting the namespace for app '{self.name}' anyway")
-
-        self._namespace = new
-
-        # NOTE: This gets called as a side effect of the __init__ method, so the
-        # self._plugin attribute should always be available
-        self._plugin = self.AD.plugins.get_plugin_object(self.namespace)
-
-    @property
     def plugin_config(self) -> dict:
         self.get_plugin_config()
         return self.AD.plugins.config

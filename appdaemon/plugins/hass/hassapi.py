@@ -605,6 +605,59 @@ class Hass(ADBase, ADAPI):
                 namespace,
             )
 
+    @utils.sync_decorator
+    async def get_logbook(
+        self,
+        entity: str | None = None,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
+        days: int | None = None,
+        callback: Callable | None = None,
+    ) -> list[dict[str, str]]:
+        """Gets access to the HA Database.
+        This is a convenience function that allows accessing the HA Database.
+        Caution must be taken when using this, as depending on the size of the 
+        database, it can take a long time to process.
+
+        Hits the ``/api/logbook/<timestamp>`` endpoint. See
+        https://developers.home-assistant.io/docs/api/rest for more information
+
+        Args:
+            entity (str, optional): Fully qualified id of the device to be querying, e.g.,
+                ``light.office_lamp`` or ``scene.downstairs_on``. This can be any entity_id
+                in the database.
+            start_time (datetime, optional): 
+            end_time (datetime, optional): 
+            days (int, optional): 
+            callback (Callable, optional): 
+            namespace (str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases it is safe to ignore this parameter.
+
+        Returns:
+            A list of dictionaries, each representing a single entry for a single entity.
+
+        Examples:
+            >>> data = self.get_logbook("light.office_lamp")
+            >>> data = self.get_logbook("light.office_lamp", days=5)
+
+        """
+        if days is not None:
+            end_time = end_time or await self.get_now()
+            start_time = end_time - timedelta(days=days)
+
+        if self._plugin is not None:
+            coro = self._plugin.get_logbook(
+                entity=entity,
+                timestamp=start_time,
+                end_time=end_time,
+            )
+
+            if callback is not None and callable(callback):
+                self.create_task(coro, callback)
+            else:
+                return await coro
+
     # Input Helpers
 
     @utils.sync_decorator

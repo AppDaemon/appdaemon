@@ -104,7 +104,15 @@ class ADBase:
 
     @namespace.setter
     def namespace(self, new: str):
+        if not self.AD.state.namespace_exists(new):
+            self.logger.warning(f"Namespace '{new}' does not exist, setting the namespace for app '{self.name}' anyway")
+
         self._namespace = new
+
+        # NOTE: This gets called as a side effect of the __init__ method, so the
+        # self._plugin attribute should always be available
+        self._plugin = self.AD.plugins.get_plugin_object(self.namespace)
+        # Sometimes this will be None. Namespaces are not guaranteed to be associated with a plugin
 
     @property
     def app_config(self):

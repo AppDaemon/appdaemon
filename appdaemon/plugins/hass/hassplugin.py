@@ -649,12 +649,6 @@ class HassPlugin(PluginBase):
         return await safe_event(self, timeout, req)
 
     #
-    # Home Assistant REST Interactions
-    #
-    # Some functions can't be handled via the stream
-    #
-
-    #
     # Entities
     #
 
@@ -751,6 +745,26 @@ class HassPlugin(PluginBase):
             for entity_res in result
         ]
         # result = {eid: r for eid, r in zip(filter_entity_id, result)}
+        return result
+
+    @utils.warning_decorator(error_text='Unexpected error getting logbook')
+    async def get_logbook(
+        self,
+        entity: str | None = None,
+        timestamp: datetime.datetime | None = None,
+        end_time: datetime.datetime | None = None,
+    ) -> list[dict[str, str]]:
+        """Used to get HA's logbook"""
+        endpoint = "/api/logbook"
+        if timestamp is not None:
+            endpoint += f"/{timestamp.isoformat()}"
+
+        result = await self.http_method(
+            "get",
+            endpoint,
+            entity=entity,
+            end_time=end_time
+        )
         return result
 
     @utils.warning_decorator(error_text='Unexpected error rendering template')
