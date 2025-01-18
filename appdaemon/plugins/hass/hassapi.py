@@ -1,6 +1,6 @@
 from ast import literal_eval
 from datetime import datetime, timedelta
-from typing import Any, Callable, Literal, Type, Union, overload
+from typing import Any, Callable, Iterable, Literal, Type, Union, overload
 
 from ... import utils
 from ...adapi import ADAPI
@@ -991,4 +991,43 @@ class Hass(ADBase, ADAPI):
 
     @utils.sync_decorator
     async def backup_full(self, name: str, **kwargs) -> dict:
+        # https://www.home-assistant.io/integrations/hassio/#action-hassiobackup_full
         return await self.call_service("hassio/backup_full", name=name, **kwargs)
+
+    @overload
+    async def backup_partial(
+        self,
+        addons: Iterable[str] = None,
+        folders: Iterable[str] = None,
+        name: str = None,
+        password: str = None,
+        compressed: bool = True,
+        location: str = None,
+        homeassistant: bool = False,
+        homeassistant_exclude_database: bool = False,
+    ): ...
+
+    @utils.sync_decorator
+    async def backup_partial(self, **kwargs) -> dict:
+        # https://www.home-assistant.io/integrations/hassio/#action-hassiobackup_partial
+        return await self.call_service("hassio/backup_partial", **kwargs)
+
+    @utils.sync_decorator
+    async def restore_full(self, slug: str, password: str | None = None) -> dict:
+        # https://www.home-assistant.io/integrations/hassio/#action-hassiorestore_full
+        return await self.call_service("hassio/restore_full", slug=slug, password=password)
+
+    @overload
+    async def restore_parial(
+        self,
+        slug: str,
+        homeassistant: bool = False,
+        addons: Iterable[str] = None,
+        folders: Iterable[str] = None,
+        password: str = None,        
+    ): ...
+
+    @utils.sync_decorator
+    async def restore_parial(self, slug: str, **kwargs) -> dict:
+        # https://www.home-assistant.io/integrations/hassio/#action-hassiorestore_partial
+        return await self.call_service("hassio/restore_parial", slug=slug, **kwargs)
