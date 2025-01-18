@@ -60,6 +60,9 @@ class ADAPI:
 
     constraints: list[dict]
 
+    namespace: str
+    _plugin: PluginBase
+
     def __init__(self, ad: AppDaemon, config_model: AppConfig):
         self.AD = ad
         self.config_model = config_model
@@ -617,7 +620,7 @@ class ADAPI:
 
         Args:
             namespace (str): The namespace to be newly created, which must not be same as the operating namespace
-            writeback (optional): The writeback to be used. Will be safe by default
+            writeback (optional): The writeback to be used. Will be ``safe`` by default
             persist (bool, optional): If to make the namespace persistent. So if AD reboots
                 it will startup will all the created entities being intact. It is persistent by default
 
@@ -2065,7 +2068,7 @@ class ADAPI:
             >>> self.listen_event(self.button_event, ["pressed", "released"])
 
         """
-        self.logger.debug("Calling listen_event for %s", self.name)
+        self.logger.debug(f"Calling listen_event for {self.name} for {event}: {kwargs}")
         namespace = namespace or self.namespace
 
         match event:

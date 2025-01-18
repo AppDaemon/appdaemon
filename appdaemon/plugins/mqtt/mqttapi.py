@@ -54,6 +54,8 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
     an more readable. These are documented in the following section.
     """
 
+    _plugin: MqttPlugin
+
     def __init__(self, ad: AppDaemon, config_model: AppConfig):
         """Constructor for the app.
 

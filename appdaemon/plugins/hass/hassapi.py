@@ -36,21 +36,6 @@ class Hass(ADBase, ADAPI):
         self.register_constraint("constrain_input_boolean")
         self.register_constraint("constrain_input_select")
 
-    #
-    # Properties
-    #
-
-    @property
-    def namespace(self) -> str:
-        return self._namespace
-
-    @namespace.setter
-    def namespace(self, new: str):
-        # NOTE: This gets called as a side effect of the __init__ method, so the
-        # self._plugin attribute should always be available
-        self._namespace = new
-        self._plugin = self.AD.plugins.get_plugin_object(self.namespace)
-
     @utils.sync_decorator
     async def ping(self) -> float:
         """Gets the number of seconds """
