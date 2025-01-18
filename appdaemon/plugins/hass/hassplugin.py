@@ -338,6 +338,7 @@ class HassPlugin(PluginBase):
                 bytes_sent=len(url) + len(json.dumps(kwargs).encode('utf-8')),
                 requests_sent=1
             )
+            self.logger.debug(f'Hass {method.upper()} {endpoint}: {kwargs}')
             match method.lower():
                 case 'get':
                     coro = self.session.get(url=url, params=kwargs)
@@ -363,8 +364,11 @@ class HassPlugin(PluginBase):
                     else:
                         return await resp.json()
                 case 400 | 401 | 403| 404 | 405:
-                    text = await resp.text()
-                    self.logger.error("Bad response from %s: %s", url, text)
+                    try:
+                        msg = (await resp.json())["message"]
+                    except Exception:
+                        msg = await resp.text()
+                    self.logger.error(f"Bad response from {url}: {msg}")
                 case 500 | 502:
                     text = await resp.text()
                     self.logger.error("Internal server error %s: %s", url, text)
@@ -707,10 +711,6 @@ class HassPlugin(PluginBase):
         elif isinstance(resp, ClientResponse) and resp.status == 404:
             return False
 
-    #
-    # History
-    #
-
     async def get_history(
         self,
         filter_entity_id: str | list[str],
@@ -760,5 +760,4 @@ class HassPlugin(PluginBase):
 
         # if we get a request for not our namespace something has gone very wrong
         assert namespace == self.namespace
-
         return await self.http_method("post", "/api/template", template=template)
