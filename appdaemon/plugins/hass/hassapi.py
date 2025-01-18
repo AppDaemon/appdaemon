@@ -64,18 +64,6 @@ class Hass(ADBase, ADAPI):
         """
         return await self._plugin.check_for_entity(entity_id)
 
-    @utils.sync_decorator
-    async def get_device_id(self, entity_id: str) -> str:
-        """Uses the ``device_id`` function in a template to get the device ID"""
-        return await self.render_template(f'{{{{device_id("{entity_id}")}}}}')
-
-    @utils.sync_decorator
-    async def get_device_entities(self, device_id: str) -> list[str]:
-        """Uses the ``device_entities`` function in a template to get entities
-        associated with a device.
-        """
-        return await self.render_template(f'{{{{device_entities("{device_id}")}}}}')
-
     #
     # Internal Helpers
     # Methods that other methods 
