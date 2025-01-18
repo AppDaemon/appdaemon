@@ -896,8 +896,7 @@ class ADAPI:
         namespace = namespace or self.namespace
         return await self.AD.plugins.get_plugin_meta(namespace)
 
-    @utils.sync_decorator
-    async def friendly_name(self, entity_id: str, namespace: str | None = None) -> str:
+    def friendly_name(self, entity_id: str, namespace: str | None = None) -> str:
         """Gets the Friendly Name of an entity.
 
         Args:
@@ -920,7 +919,7 @@ class ADAPI:
         namespace = namespace or self.namespace
         self._check_entity(namespace, entity_id)
 
-        return await self.get_state(
+        return self.get_state(
             entity_id=entity_id,
             attribute="friendly_name",
             default=entity_id,
@@ -1553,8 +1552,7 @@ class ADAPI:
         self.logger.debug("Calling info_listen_state for %s", self.name)
         return await self.AD.state.info_state_callback(handle, self.name)
 
-    @utils.sync_decorator
-    async def get_state(
+    def get_state(
         self,
         entity_id: str,
         attribute: str | None = None,
@@ -1622,7 +1620,7 @@ class ADAPI:
         namespace = namespace or self.namespace
         self._check_entity(namespace, entity_id)
         entity_api = self.get_entity_api(namespace, entity_id)
-        return await entity_api.get_state(attribute, default, copy)
+        return entity_api.get_state(attribute, default, copy)
 
     @overload
     async def set_state(

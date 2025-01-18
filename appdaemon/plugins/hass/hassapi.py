@@ -1,6 +1,7 @@
 from ast import literal_eval
 from datetime import datetime, timedelta
-from typing import Any, Callable, Iterable, Literal, Type, Union, overload
+import re
+from typing import Any, Callable, Iterable, Literal, Type, overload
 
 from ... import utils
 from ...adapi import ADAPI
@@ -13,9 +14,7 @@ from ...models.notification.iOS import iOSData
 from .hassplugin import HassPlugin
 from .notifications import AndroidNotification
 
-#
-# Define an entities class as a descriptor to enable read only access of HASS state
-#
+
 class Hass(ADBase, ADAPI):
     """HASS API class for the users to inherit from.
 
@@ -141,7 +140,7 @@ class Hass(ADBase, ADAPI):
             )
         else:
             self.log(f'Entity already exists: {friendly_name}')
-            return await self.get_state(entity_id, 'all')
+            return self.get_state(entity_id, 'all')
 
     #
     # Device Trackers
@@ -319,61 +318,82 @@ class Hass(ADBase, ADAPI):
         return not self.anyone_home(person, namespace)
 
     #
-    # Built in constraints
+    # Built-in constraints
     #
 
-    def constrain_presence(self, value: str) -> bool:
-        unconstrained = True
-        if value == "everyone" and not self.everyone_home():
-            unconstrained = False
-        elif value == "anyone" and not self.anyone_home():
-            unconstrained = False
-        elif value == "noone" and not self.noone_home():
-            unconstrained = False
+    def constrain_presence(self, value: Literal["everyone", "anyone", "noone"] | None = None) -> bool:
+        """Returns True if unconstrained"""
+        match value.lower():
+            case "everyone":
+                return not self.everyone_home()
+            case "anyone":
+                return not self.anyone_home()
+            case "noone":
+                return not self.noone_home()
+            case None:
+                return True
+            case _:
+                raise ValueError(f'Invalid presence constraint: {value}')
 
-        return unconstrained
+    def constrain_person(self, value: Literal["everyone", "anyone", "noone"] | None = None) -> bool:
+        """Returns True if unconstrained"""
+        match value.lower():
+            case "everyone":
+                return not self.everyone_home(person=True)
+            case "anyone":
+                return not self.anyone_home(person=True)
+            case "noone":
+                return not self.noone_home(person=True)
+            case None:
+                return True
+            case _:
+                raise ValueError(f'Invalid presence constraint: {value}')
 
-    def constrain_person(self, value: str) -> bool:
-        unconstrained = True
-        if value == "everyone" and not self.everyone_home(person=True):
-            unconstrained = False
-        elif value == "anyone" and not self.anyone_home(person=True):
-            unconstrained = False
-        elif value == "noone" and not self.noone_home(person=True):
-            unconstrained = False
+    def constrain_input_boolean(self, value: str | Iterable[str]) -> bool:
+        """Returns True if unconstrained - all input_booleans match the desired
+        state. Desired state defaults to ``on``
+        """
+        match value:
+            case Iterable():
+                constraints = value if isinstance(value, list) else list(value)
+            case str():
+                constraints = [value]
 
-        return unconstrained
+        assert isinstance(value, list) and all(isinstance(v, str) for v in value)
 
-    def constrain_input_boolean(self, value: Union[str, list]) -> bool:
-        unconstrained = True
-        state = self.get_state()
-
-        constraints = [value] if isinstance(value, str) else value
         for constraint in constraints:
-            values = constraint.split(",")
-            if len(values) == 2:
-                entity = values[0]
-                desired_state = values[1]
-            else:
-                entity = constraint
-                desired_state = "on"
-            if entity in state and state[entity]["state"] != desired_state:
-                unconstrained = False
+            parts = re.split(r',\s*', constraint)
+            match len(parts):
+                case 2:
+                    entity, desired_state = parts
+                case 1:
+                    entity = constraint
+                    desired_state = "on"
 
-        return unconstrained
+            if self.get_state(entity, copy=False) != desired_state.strip():
+                return False
 
-    def constrain_input_select(self, value: Union[str, list]) -> bool:
-        unconstrained = True
-        state = self.get_state()
+        return True
 
-        constraints = [value] if isinstance(value, str) else value
+    def constrain_input_select(self, value: str | Iterable[str]) -> bool:
+        """Returns True if unconstrained - all inputs match a desired state."""
+        match value:
+            case Iterable():
+                constraints = value if isinstance(value, list) else list(value)
+            case str():
+                constraints = [value]
+
+        assert isinstance(value, list) and all(isinstance(v, str) for v in value)
+
         for constraint in constraints:
-            values = constraint.split(",")
-            entity = values.pop(0)
-            if entity in state and state[entity]["state"] not in values:
-                unconstrained = False
+            # using re.split allows for an arbitrary amount of whitespace after the comma
+            parts = re.split(r',\s*', constraint)
+            entity = parts[0]
+            desired_states = parts[1:]
+            if self.get_state(entity, copy=False) not in desired_states:
+                return False
 
-        return unconstrained
+        return True
 
     #
     # Helper functions for services
@@ -679,11 +699,10 @@ class Hass(ADBase, ADAPI):
             namespace=namespace,
         )
 
-    @utils.sync_decorator
     async def last_pressed(self, button_id: str, namespace: str | None = None) -> datetime:
         """Only works on entities in the input_button domain"""
         assert button_id.split('.')[0] == 'input_button'
-        state = await self.get_state(button_id, namespace=namespace)
+        state = self.get_state(button_id, namespace=namespace)
         last_pressed = datetime.fromisoformat(state).astimezone(self.AD.tz)
         return last_pressed
 
