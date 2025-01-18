@@ -15,6 +15,7 @@ from typing import Any, Callable, Dict, List, Optional, overload
 import iso8601
 
 from appdaemon import utils
+from appdaemon.app_management import PluginBase
 from appdaemon.appdaemon import AppDaemon
 from appdaemon.entity import Entity
 from appdaemon.logging import Logging
@@ -131,6 +132,26 @@ class ADAPI:
     @property
     def name(self) -> str:
         return self.config_model.name
+
+    @property
+    def namespace(self) -> str:
+        return self._namespace
+
+    @namespace.setter
+    def namespace(self, new: str):
+        if not self.namespace_exists(new):
+            self.logger.warning(f"Namespace '{new}' does not exist, setting the namespace for app '{self.name}' anyway")
+
+        self._namespace = new
+
+        # NOTE: This gets called as a side effect of the __init__ method, so the
+        # self._plugin attribute should always be available
+        self._plugin = self.AD.plugins.get_plugin_object(self.namespace)
+
+    @property
+    def plugin_config(self) -> dict:
+        self.get_plugin_config()
+        return self.AD.plugins.config
 
     #
     # Logging
@@ -560,16 +581,6 @@ class ADAPI:
         # Keeping namespace get/set functions for legacy compatibility
         return self.namespace
 
-    @property
-    def namespace(self) -> str:
-        return self._namespace
-
-    @namespace.setter
-    def namespace(self, new: str):
-        if not self.namespace_exists(new):
-            self.logger.warning(f"Namespace '{new}' does not exist, setting the namespace for app '{self.name}' anyway")
-        self._namespace = new
-
     def namespace_exists(self, namespace: str) -> bool:
         """Checks the existence of a namespace in AppDaemon.
 
@@ -589,9 +600,12 @@ class ADAPI:
         return self.AD.state.namespace_exists(namespace)
 
     @utils.sync_decorator
-    async def add_namespace(self, namespace: str,
-                            writeback: str = 'safe',
-                            persist: bool = True) -> str | None:
+    async def add_namespace(
+        self,
+        namespace: str,
+        writeback: str = 'safe',
+        persist: bool = True
+    ) -> str | None:
         """Used to add a user-defined namespaces from apps, which has a database file associated with it.
 
         This way, when AD restarts these entities will be reloaded into AD with its
@@ -1507,7 +1521,6 @@ class ADAPI:
                     for e in entity_id
                 ]
 
-
     @utils.sync_decorator
     async def cancel_listen_state(self, handle: str, silent: bool = False) -> bool:
         """Cancels a ``listen_state()`` callback.
@@ -1686,7 +1699,7 @@ class ADAPI:
         return await entity_api.set_state(state=state, **kwargs)
 
     #
-    # Service
+    # Services
     #
 
     @staticmethod
@@ -1907,6 +1920,8 @@ class ADAPI:
                         self._check_entity(namespace, e)
 
         return await self.AD.services.call_service(namespace, *service.split("/", 2), name=self.name, data=data)
+
+    # Sequences
 
     @utils.sync_decorator
     async def run_sequence(self, sequence: str | list[str], namespace: str | None = None) -> Any:
@@ -2422,20 +2437,6 @@ class ADAPI:
         return await self.AD.sched.sunset(aware, today, days_offset)
 
     @utils.sync_decorator
-    async def time(self) -> dt.time:
-        """Returns a localised `time` object representing the current Local Time.
-
-        Use this in preference to the standard Python ways to discover the current time,
-        especially when using the "Time Travel" feature for testing.
-
-        Examples:
-            >>> self.time()
-            20:15:31.295751
-
-        """
-        return (await self.datetime(aware=True)).time()
-
-    @utils.sync_decorator
     async def datetime(self, aware: bool = False) -> dt.datetime:
         """Returns a `datetime` object representing the current Local Date and Time.
 
@@ -2452,6 +2453,20 @@ class ADAPI:
 
         """
         return await self.get_now(aware)
+
+    @utils.sync_decorator
+    async def time(self) -> dt.time:
+        """Returns a localised `time` object representing the current Local Time.
+
+        Use this in preference to the standard Python ways to discover the current time,
+        especially when using the "Time Travel" feature for testing.
+
+        Examples:
+            >>> self.time()
+            20:15:31.295751
+
+        """
+        return (await self.datetime(aware=True)).time()
 
     @utils.sync_decorator
     async def date(self) -> dt.date:
