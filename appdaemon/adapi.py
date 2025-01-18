@@ -10,16 +10,18 @@ from concurrent.futures import Future
 from datetime import timedelta
 from logging import Logger
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, overload
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, overload
 
 import iso8601
 
 from appdaemon import utils
-from appdaemon.app_management import PluginBase
 from appdaemon.appdaemon import AppDaemon
 from appdaemon.entity import Entity
 from appdaemon.logging import Logging
-from appdaemon.models.app_config import AppConfig
+
+if TYPE_CHECKING:
+    from .models.app_config import AppConfig
+    from .plugin_management import PluginBase
 
 
 class ADAPI:
@@ -36,7 +38,7 @@ class ADAPI:
     name: str
     """The app name, which is set by the top-level key in the YAML file
     """
-    config_model: AppConfig
+    config_model: "AppConfig"
     """Pydantic model of the app configuration
     """
     config: Dict[str, Any]
@@ -61,9 +63,9 @@ class ADAPI:
     constraints: list[dict]
 
     namespace: str
-    _plugin: PluginBase
+    _plugin: "PluginBase"
 
-    def __init__(self, ad: AppDaemon, config_model: AppConfig):
+    def __init__(self, ad: AppDaemon, config_model: "AppConfig"):
         self.AD = ad
         self.config_model = config_model
 
