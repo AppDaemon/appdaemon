@@ -681,6 +681,7 @@ class HassPlugin(PluginBase):
         states = {s["entity_id"]: s for s in hass_state}
         return states
 
+    @utils.warning_decorator(error_text='Unexpected error setting state')
     async def set_plugin_state(
         self,
         namespace: str,
@@ -700,6 +701,7 @@ class HassPlugin(PluginBase):
 
         return await safe_set_state(self)
 
+    @utils.warning_decorator(error_text='Unexpected error getting state')
     async def get_plugin_state(self, entity_id: str, timeout: float | None = None):
         return await self.http_method('get', f'/api/states/{entity_id}', timeout)
 
@@ -711,6 +713,7 @@ class HassPlugin(PluginBase):
         elif isinstance(resp, ClientResponse) and resp.status == 404:
             return False
 
+    @utils.warning_decorator(error_text='Unexpected error getting history')
     async def get_history(
         self,
         filter_entity_id: str | list[str],
@@ -750,7 +753,7 @@ class HassPlugin(PluginBase):
         # result = {eid: r for eid, r in zip(filter_entity_id, result)}
         return result
 
-    @utils.warning_decorator(error_text='Error setting state for template')
+    @utils.warning_decorator(error_text='Unexpected error rendering template')
     async def render_template(self, namespace: str, template: str):
         self.logger.debug(
             "render_template() namespace=%s data=%s",
