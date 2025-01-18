@@ -862,14 +862,14 @@ class Hass(ADBase, ADAPI):
             )
 
     @utils.sync_decorator
-    async def render_template(self, template: str):
+    async def render_template(self, template: str) -> Any:
         """Renders a Home Assistant Template
+
+        https://www.home-assistant.io/docs/configuration/templating
+        https://www.home-assistant.io/integrations/template
 
         Args:
             template (str): The Home Assistant Template to be rendered.
-
-        Keyword Args:
-            None.
 
         Returns:
             The rendered template in a native Python type.
