@@ -1,6 +1,6 @@
+import re
 from ast import literal_eval
 from datetime import datetime, timedelta
-import re
 from typing import Any, Callable, Iterable, Literal, Type, overload
 
 from ... import utils
@@ -36,6 +36,9 @@ class Hass(ADBase, ADAPI):
         self.register_constraint("constrain_input_boolean")
         self.register_constraint("constrain_input_select")
 
+    #
+    # Properties
+    #
 
     @property
     def namespace(self) -> str:
@@ -47,6 +50,12 @@ class Hass(ADBase, ADAPI):
         # self._plugin attribute should always be available
         self._namespace = new
         self._plugin = self.AD.plugins.get_plugin_object(self.namespace)
+
+    @utils.sync_decorator
+    async def ping(self) -> float:
+        """Gets the number of seconds """
+        if (plugin := self._plugin) is not None:
+            return (await plugin.ping())['ad_duration']
 
     @utils.sync_decorator
     async def check_for_entity(self, entity_id: str) -> bool:
@@ -68,8 +77,8 @@ class Hass(ADBase, ADAPI):
         return await self.render_template(f'{{{{device_entities("{device_id}")}}}}')
 
     #
-    # Helpers
-    #
+    # Internal Helpers
+    # Methods that other methods 
 
     async def _entity_service_call(self, service: str, entity_id: str, namespace: str | None = None, **kwargs):
         """Wraps up a common pattern in methods that use a service call with an entity_id
@@ -144,7 +153,29 @@ class Hass(ADBase, ADAPI):
 
     #
     # Device Trackers
-    #
+    # Methods relating to entities in the person and device_tracker domains
+
+    def get_tracker_details(self, person: bool = True, namespace: str | None = None, copy: bool = True) -> dict[str, Any]:
+        """Returns a list of all device tracker and the associated states.
+
+        Args:
+            person (boolean, optional): If set to True, use person rather than device_tracker
+                as the device type to query
+            namespace (str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases it is safe to ignore this parameter.
+            copy (bool, optional): Whether to return a copy of the state dictionary. This is usually
+                the desired behavior because it prevents accidental modification of the internal AD
+                data structures. Defaults to True.
+
+        Examples:
+            >>> trackers = self.get_tracker_details()
+            >>> for tracker in trackers:
+            >>>     do something
+
+        """
+        device = "person" if person else "device_tracker"
+        return self.get_state(device, namespace=namespace, copy=copy)
 
     def get_trackers(self, person: bool = True, namespace: str | None = None) -> list[str]:
         """Returns a list of all device tracker names.
@@ -166,28 +197,6 @@ class Hass(ADBase, ADAPI):
 
         """
         return list(self.get_tracker_details(person, namespace, copy=False).keys())
-
-    def get_tracker_details(self, person: bool = True, namespace: str | None = None, copy: bool = True) -> dict[str, Any]:
-        """Returns a list of all device trackers and their associated state.
-
-        Args:
-            person (boolean, optional): If set to True, use person rather than device_tracker
-                as the device type to query
-            namespace (str, optional): Namespace to use for the call. See the section on
-                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
-                In most cases it is safe to ignore this parameter.
-            copy (bool, optional): Whether to return a copy of the state dictionary. This is usually
-                the desired behavior because it prevents accidental modification of the internal AD
-                data structures. Defaults to True.
-
-        Examples:
-            >>> trackers = self.get_tracker_details()
-            >>> for tracker in trackers:
-            >>>     do something
-
-        """
-        device = "person" if person else "device_tracker"
-        return self.get_state(device, namespace=namespace, copy=copy)
 
     @overload
     def get_tracker_state(
@@ -397,10 +406,12 @@ class Hass(ADBase, ADAPI):
 
     #
     # Helper functions for services
-    #
+    # Methods that use self.call_service
+
+    # Home Assistant General
 
     @utils.sync_decorator
-    async def turn_on(self, entity_id: str, namespace: str | None = None, **kwargs) -> None:
+    async def turn_on(self, entity_id: str, namespace: str | None = None, **kwargs) -> dict:
         """Turns `on` a Home Assistant entity.
 
         This is a convenience function for the ``homeassistant.turn_on``
@@ -436,7 +447,7 @@ class Hass(ADBase, ADAPI):
             >>> self.turn_on("light.office_1", color_name = "green")
 
         """
-        return await self._entity_service_call(
+        return self._entity_service_call(
             service="homeassistant/turn_on",
             entity_id=entity_id,
             namespace=namespace,
@@ -474,7 +485,7 @@ class Hass(ADBase, ADAPI):
             >>> self.turn_off("scene.bedroom_on")
 
         """
-        return await self._entity_service_call(
+        return self._entity_service_call(
             service="homeassistant/turn_off",
             entity_id=entity_id,
             namespace=namespace,
@@ -482,7 +493,7 @@ class Hass(ADBase, ADAPI):
         )
 
     @utils.sync_decorator
-    async def toggle(self, entity_id: str, namespace: str | None = None, **kwargs) -> None:
+    async def toggle(self, entity_id: str, namespace: str | None = None, **kwargs) -> dict:
         """Toggles between ``on`` and ``off`` for the selected entity.
 
         This is a convenience function for the ``homeassistant.toggle`` function.
@@ -514,24 +525,114 @@ class Hass(ADBase, ADAPI):
         )
 
     @utils.sync_decorator
-    async def create_input_number(
+    async def get_history(
         self,
-        friendly_name: str,
-        entity_id: str = None,
-        initial_val: int | float = 0,
-        namespace: str | None = None
-    ) -> dict:
-        """Creates a new input number entity by using ``set_state`` on a non-existent one with the right format
+        entity_id: str | list[str],
+        days: int | None = None,
+        start_time: datetime | str | None = None,
+        end_time: datetime | str | None = None,
+        minimal_response: bool | None = None,
+        no_attributes: bool | None = None,
+        significant_changes_only: bool | None = None,
+        callback: Callable | None = None,
+        namespace: str | None = None,
+    ) -> list[list[dict[str, Any]]]:
+        """Gets access to the HA Database.
+        This is a convenience function that allows accessing the HA Database, so the
+        history state of a device can be retrieved. It allows for a level of flexibility
+        when retrieving the data, and returns it as a dictionary list. Caution must be
+        taken when using this, as depending on the size of the database, it can take
+        a long time to process.
 
-        Entities created this way do not persist after Home Assistant restarts.
+        Hits the ``/api/history/period/<timestamp>`` endpoint. See
+        https://developers.home-assistant.io/docs/api/rest for more information
+
+        Args:
+            entity_id (str, optional): Fully qualified id of the device to be querying, e.g.,
+                ``light.office_lamp`` or ``scene.downstairs_on`` This can be any entity_id
+                in the database. If this is left empty, the state of all entities will be
+                retrieved within the specified time. If both ``end_time`` and ``start_time``
+                explained below are declared, and ``entity_id`` is specified, the specified
+                ``entity_id`` will be ignored and the history states of `all` entity_id in
+                the database will be retrieved within the specified time.
+            days (int, optional): The days from the present-day walking backwards that is
+                required from the database.
+            start_time (optional): The start time from when the data should be retrieved.
+                This should be the furthest time backwards, like if we wanted to get data from
+                now until two days ago. Your start time will be the last two days datetime.
+                ``start_time`` time can be either a UTC aware time string like ``2019-04-16 12:00:03+01:00``
+                or a ``datetime.datetime`` object.
+            end_time (optional): The end time from when the data should be retrieved. This should
+                be the latest time like if we wanted to get data from now until two days ago. Your
+                end time will be today's datetime ``end_time`` time can be either a UTC aware time
+                string like ``2019-04-16 12:00:03+01:00`` or a ``datetime.datetime`` object. It should
+                be noted that it is not possible to declare only ``end_time``. If only ``end_time``
+                is declared without ``start_time`` or ``days``, it will revert to default to the latest
+                history state. When ``end_time`` is specified, it is not possible to declare ``entity_id``.
+                If ``entity_id`` is specified, ``end_time`` will be ignored.
+            minimal_response (bool, optional):
+            no_attributes (bool, optional):
+            significant_changes_only (bool, optional):
+            callback (callable, optional): If wanting to access the database to get a large amount of data,
+                using a direct call to this function will take a long time to run and lead to AD cancelling the task.
+                To get around this, it is better to pass a function, which will be responsible of receiving the result
+                from the database. The signature of this function follows that of a scheduler call.
+            namespace (str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases it is safe to ignore this parameter.
+
+        Returns:
+            An iterable list of entity_ids and their history state.
+
+        Examples:
+            Get device state over the last 5 days.
+
+            >>> data = self.get_history(entity_id = "light.office_lamp", days = 5)
+
+            Get device state over the last 2 days and walk forward.
+
+            >>> import datetime
+            >>> from datetime import timedelta
+            >>> start_time = datetime.datetime.now() - timedelta(days = 2)
+            >>> data = self.get_history(entity_id = "light.office_lamp", start_time = start_time)
+
+            Get device state from yesterday and walk 5 days back.
+
+            >>> import datetime
+            >>> from datetime import timedelta
+            >>> end_time = datetime.datetime.now() - timedelta(days = 1)
+            >>> data = self.get_history(end_time = end_time, days = 5)
+
         """
-        return await self._create_helper(
-            friendly_name=friendly_name,
-            entity_id=entity_id,
-            type='input_number',
-            initial_val=initial_val,
-            namespace=namespace,
-        )
+
+        namespace = namespace or self._namespace
+
+        if days is not None:
+            end_time = end_time or await self.get_now()
+            start_time = end_time - timedelta(days=days)
+
+        if self._plugin is not None:
+            coro = self._plugin.get_history(
+                filter_entity_id=entity_id,
+                timestamp=start_time,
+                end_time=end_time,
+                minimal_response=minimal_response,
+                no_attributes=no_attributes,
+                significant_changes_only=significant_changes_only,
+            )
+
+            if callback is not None and callable(callback):
+                self.create_task(coro, callback)
+            else:
+                return await coro
+
+        else:
+            self.logger.warning(
+                "Wrong Namespace selected, as %s has no database plugin attached to it",
+                namespace,
+            )
+
+    # Input Helpers
 
     @utils.sync_decorator
     async def set_value(self, entity_id: str, value: int | float, namespace: str | None = None) -> None:
@@ -671,25 +772,6 @@ class Hass(ADBase, ADAPI):
             namespace=namespace,
         )
 
-    # @utils.sync_decorator
-    # async def create_input_button(
-    #     self,
-    #     friendly_name: str,
-    #     entity_id: str = None,
-    #     namespace: str | None = None
-    # ) -> dict:
-    #     """Creates a new input number entity by using ``set_state`` on a non-existent one with the right format
-
-    #     Entities created this way do not persist after Home Assistant restarts.
-    #     """
-    #     return await self._create_helper(
-    #         friendly_name=friendly_name,
-    #         entity_id=entity_id,
-    #         type='input_button',
-    #         initial_val='unknown',
-    #         namespace=namespace,
-    #     )
-
     @utils.sync_decorator
     async def press_button(self, button_id: str, namespace: str | None = None) -> dict:
         # https://www.home-assistant.io/integrations/input_button/#actions
@@ -699,6 +781,7 @@ class Hass(ADBase, ADAPI):
             namespace=namespace,
         )
 
+    @utils.sync_decorator
     async def last_pressed(self, button_id: str, namespace: str | None = None) -> datetime:
         """Only works on entities in the input_button domain"""
         assert button_id.split('.')[0] == 'input_button'
@@ -710,6 +793,10 @@ class Hass(ADBase, ADAPI):
     async def time_since_last_press(self, button_id: str, namespace: str | None = None) -> timedelta:
         """Only works on entities in the input_button domain"""
         return (await self.get_now()) - (await self.last_pressed(button_id, namespace))
+
+    #
+    # Notifications
+    #
 
     @utils.sync_decorator
     async def notify(
@@ -772,150 +859,6 @@ class Hass(ADBase, ADAPI):
             kwargs["notification_id"] = id
         await self.call_service("persistent_notification/create", **kwargs)
 
-    @utils.sync_decorator
-    async def get_history(
-        self,
-        entity_id: str | list[str],
-        days: int | None = None,
-        start_time: datetime | str | None = None,
-        end_time: datetime | str | None = None,
-        minimal_response: bool | None = None,
-        no_attributes: bool | None = None,
-        significant_changes_only: bool | None = None,
-        callback: Callable | None = None,
-        namespace: str | None = None,
-    ) -> list[list[dict[str, Any]]]:
-        """Gets access to the HA Database.
-        This is a convenience function that allows accessing the HA Database, so the
-        history state of a device can be retrieved. It allows for a level of flexibility
-        when retrieving the data, and returns it as a dictionary list. Caution must be
-        taken when using this, as depending on the size of the database, it can take
-        a long time to process.
-
-        Hits the ``/api/history/period/<timestamp>`` endpoint. See
-        https://developers.home-assistant.io/docs/api/rest for more information
-
-        Args:
-            entity_id (str, optional): Fully qualified id of the device to be querying, e.g.,
-                ``light.office_lamp`` or ``scene.downstairs_on`` This can be any entity_id
-                in the database. If this is left empty, the state of all entities will be
-                retrieved within the specified time. If both ``end_time`` and ``start_time``
-                explained below are declared, and ``entity_id`` is specified, the specified
-                ``entity_id`` will be ignored and the history states of `all` entity_id in
-                the database will be retrieved within the specified time.
-            days (int, optional): The days from the present-day walking backwards that is
-                required from the database.
-            start_time (optional): The start time from when the data should be retrieved.
-                This should be the furthest time backwards, like if we wanted to get data from
-                now until two days ago. Your start time will be the last two days datetime.
-                ``start_time`` time can be either a UTC aware time string like ``2019-04-16 12:00:03+01:00``
-                or a ``datetime.datetime`` object.
-            end_time (optional): The end time from when the data should be retrieved. This should
-                be the latest time like if we wanted to get data from now until two days ago. Your
-                end time will be today's datetime ``end_time`` time can be either a UTC aware time
-                string like ``2019-04-16 12:00:03+01:00`` or a ``datetime.datetime`` object. It should
-                be noted that it is not possible to declare only ``end_time``. If only ``end_time``
-                is declared without ``start_time`` or ``days``, it will revert to default to the latest
-                history state. When ``end_time`` is specified, it is not possible to declare ``entity_id``.
-                If ``entity_id`` is specified, ``end_time`` will be ignored.
-            minimal_response (bool, optional):
-            no_attributes (bool, optional):
-            significant_changes_only (bool, optional):
-            callback (callable, optional): If wanting to access the database to get a large amount of data,
-                using a direct call to this function will take a long time to run and lead to AD cancelling the task.
-                To get around this, it is better to pass a function, which will be responsible of receiving the result
-                from the database. The signature of this function follows that of a scheduler call.
-            namespace (str, optional): Namespace to use for the call. See the section on
-                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
-                In most cases it is safe to ignore this parameter.
-
-        Returns:
-            An iterable list of entity_ids and their history state.
-
-        Examples:
-            Get device state over the last 5 days.
-
-            >>> data = self.get_history(entity_id = "light.office_lamp", days = 5)
-
-            Get device state over the last 2 days and walk forward.
-
-            >>> import datetime
-            >>> from datetime import timedelta
-            >>> start_time = datetime.datetime.now() - timedelta(days = 2)
-            >>> data = self.get_history(entity_id = "light.office_lamp", start_time = start_time)
-
-            Get device state from yesterday and walk 5 days back.
-
-            >>> import datetime
-            >>> from datetime import timedelta
-            >>> end_time = datetime.datetime.now() - timedelta(days = 1)
-            >>> data = self.get_history(end_time = end_time, days = 5)
-
-        """
-
-        namespace = namespace or self._namespace
-
-        if days is not None:
-            end_time = end_time or await self.get_now()
-            start_time = end_time - timedelta(days=days)
-
-        if self._plugin is not None:
-            coro = self._plugin.get_history(
-                filter_entity_id=entity_id,
-                timestamp=start_time,
-                end_time=end_time,
-                minimal_response=minimal_response,
-                no_attributes=no_attributes,
-                significant_changes_only=significant_changes_only,
-            )
-
-            if callback is not None and callable(callback):
-                self.create_task(coro, callback)
-            else:
-                return await coro
-
-        else:
-            self.logger.warning(
-                "Wrong Namespace selected, as %s has no database plugin attached to it",
-                namespace,
-            )
-
-    @utils.sync_decorator
-    async def render_template(self, template: str) -> Any:
-        """Renders a Home Assistant Template
-
-        https://www.home-assistant.io/docs/configuration/templating
-        https://www.home-assistant.io/integrations/template
-
-        Args:
-            template (str): The Home Assistant Template to be rendered.
-
-        Returns:
-            The rendered template in a native Python type.
-
-        Examples:
-            >>> self.render_template("{{ states('sun.sun') }}")
-            Returns (str) above_horizon
-
-            >>> self.render_template("{{ is_state('sun.sun', 'above_horizon') }}")
-            Returns (bool) True
-
-            >>> self.render_template("{{ states('sensor.outside_temp') }}")
-            Returns (float) 97.2
-
-        """
-        result = await self._plugin.render_template(self.namespace, template)
-        try:
-            return literal_eval(result)
-        except (SyntaxError, ValueError):
-            return result
-
-    @utils.sync_decorator
-    async def ping(self) -> float:
-        """Gets the number of seconds """
-        if (plugin := self._plugin) is not None:
-            return (await plugin.ping())['ad_duration']
-
     @overload
     def notify_android(
         self,
@@ -971,32 +914,7 @@ class Hass(ADBase, ADAPI):
     def listen_notification_action(self, callback: Callable, action: str) -> str:
         return self.listen_event(callback, 'mobile_app_notification_action', action=action)
 
-    # Labels
-    # https://www.home-assistant.io/docs/configuration/templating/#labels
-
-    def _label_command(self, command: str, input: str) -> str | list[str]:
-        return self.render_template(f'{{{{ {command}("{input}") }}}}')
-
-    def labels(self, input: str = None) -> list[str]:
-        if input is None:
-            return self.render_template('{{ labels() }}')
-        else:
-            return self._label_command('labels', input)
-
-    def label_id(self, lookup_value: str) -> str:
-        return self._label_command('label_id', lookup_value)
-
-    def label_name(self, lookup_value: str):
-        return self._label_command('label_name', lookup_value)
-
-    def label_areas(self, label_name_or_id: str) -> list[str]:
-        return self._label_command('label_areas', label_name_or_id)
-
-    def label_devices(self, label_name_or_id: str) -> list[str]:
-        return self._label_command('label_devices', label_name_or_id)
-
-    def label_entities(self, label_name_or_id: str) -> list[str]:
-        return self._label_command('label_entities', label_name_or_id)
+    # Backup/Restore
 
     @overload
     async def backup_full(
@@ -1050,3 +968,78 @@ class Hass(ADBase, ADAPI):
     async def restore_parial(self, slug: str, **kwargs) -> dict:
         # https://www.home-assistant.io/integrations/hassio/#action-hassiorestore_partial
         return await self.call_service("hassio/restore_parial", slug=slug, **kwargs)
+
+    #
+    # Template functions
+    # Functions that use self.render_template
+
+    @utils.sync_decorator
+    async def render_template(self, template: str) -> Any:
+        """Renders a Home Assistant Template
+
+        https://www.home-assistant.io/docs/configuration/templating
+        https://www.home-assistant.io/integrations/template
+
+        Args:
+            template (str): The Home Assistant Template to be rendered.
+
+        Returns:
+            The rendered template in a native Python type.
+
+        Examples:
+            >>> self.render_template("{{ states('sun.sun') }}")
+            Returns (str) above_horizon
+
+            >>> self.render_template("{{ is_state('sun.sun', 'above_horizon') }}")
+            Returns (bool) True
+
+            >>> self.render_template("{{ states('sensor.outside_temp') }}")
+            Returns (float) 97.2
+
+        """
+        result = await self._plugin.render_template(self.namespace, template)
+        try:
+            return literal_eval(result)
+        except (SyntaxError, ValueError):
+            return result
+
+    # Device IDs
+
+    @utils.sync_decorator
+    async def get_device_id(self, entity_id: str) -> str:
+        """Uses the ``device_id`` function in a template to get the device ID"""
+        return await self.render_template(f'{{{{device_id("{entity_id}")}}}}')
+
+    @utils.sync_decorator
+    async def get_device_entities(self, device_id: str) -> list[str]:
+        """Uses the ``device_entities`` function in a template to get entities
+        associated with a device.
+        """
+        return await self.render_template(f'{{{{device_entities("{device_id}")}}}}')
+
+    # Labels
+    # https://www.home-assistant.io/docs/configuration/templating/#labels
+
+    def _label_command(self, command: str, input: str) -> str | list[str]:
+        return self.render_template(f'{{{{ {command}("{input}") }}}}')
+
+    def labels(self, input: str = None) -> list[str]:
+        if input is None:
+            return self.render_template('{{ labels() }}')
+        else:
+            return self._label_command('labels', input)
+
+    def label_id(self, lookup_value: str) -> str:
+        return self._label_command('label_id', lookup_value)
+
+    def label_name(self, lookup_value: str):
+        return self._label_command('label_name', lookup_value)
+
+    def label_areas(self, label_name_or_id: str) -> list[str]:
+        return self._label_command('label_areas', label_name_or_id)
+
+    def label_devices(self, label_name_or_id: str) -> list[str]:
+        return self._label_command('label_devices', label_name_or_id)
+
+    def label_entities(self, label_name_or_id: str) -> list[str]:
+        return self._label_command('label_entities', label_name_or_id)
