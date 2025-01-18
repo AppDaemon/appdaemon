@@ -778,8 +778,8 @@ class Hass(ADBase, ADAPI):
                 return datetime.fromisoformat(state).astimezone(self.AD.tz)
             case datetime():
                 return state
-            # case _:
-            #     self.logger.warning(f'Unknown time: {state}')
+            case _:
+                self.logger.warning(f'Unknown time: {state}')
 
     def time_since_last_press(self, button_id: str, namespace: str | None = None) -> timedelta:
         """Only works on entities in the input_button domain"""
