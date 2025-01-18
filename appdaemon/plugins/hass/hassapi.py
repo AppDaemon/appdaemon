@@ -66,7 +66,7 @@ class Hass(ADBase, ADAPI):
 
     #
     # Internal Helpers
-    # Methods that other methods 
+    # Methods that other methods
 
     async def _entity_service_call(self, service: str, entity_id: str, namespace: str | None = None, **kwargs):
         """Wraps up a common pattern in methods that use a service call with an entity_id
