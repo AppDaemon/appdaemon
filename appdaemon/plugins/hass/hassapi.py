@@ -51,7 +51,22 @@ class Hass(ADBase, ADAPI):
 
     @utils.sync_decorator
     async def check_for_entity(self, entity_id: str) -> bool:
+        """Uses the REST API to check if an entity exists instead of checking 
+        AD's internal state
+        """
         return await self._plugin.check_for_entity(entity_id)
+    
+    @utils.sync_decorator
+    async def get_device_id(self, entity_id: str) -> str:
+        """Uses the ``device_id`` function in a template to get the device ID"""
+        return await self.render_template(f'{{{{device_id("{entity_id}")}}}}')
+    
+    @utils.sync_decorator
+    async def get_device_entities(self, device_id: str) -> list[str]:
+        """Uses the ``device_entities`` function in a template to get entities 
+        associated with a device.
+        """
+        return await self.render_template(f'{{{{device_entities("{device_id}")}}}}')
 
     #
     # Helpers
