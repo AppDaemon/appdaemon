@@ -573,6 +573,16 @@ class Hass(ADBase, ADAPI):
             value=value,
             namespace=namespace
         )
+    
+    @utils.sync_decorator
+    async def set_options(self, entity_id: str, options: list[str], namespace: str | None = None) -> dict:
+        # https://www.home-assistant.io/integrations/input_select/#actions
+        return await self._domain_service_call(
+            service="input_select/set_options",
+            entity_id=entity_id,
+            options=options,
+            namespace=namespace,
+        )
 
     @utils.sync_decorator
     async def select_option(self, entity_id: str, option: str, namespace: str | None = None) -> None:
@@ -624,35 +634,41 @@ class Hass(ADBase, ADAPI):
             cycle=cycle,
             namespace=namespace,
         )
-
+    
     @utils.sync_decorator
-    async def set_options(self, entity_id: str, options: list[str], namespace: str | None = None) -> dict:
-        # https://www.home-assistant.io/integrations/input_select/#actions
+    async def select_first(self, entity_id: str, namespace: str | None = None) -> dict:
         return await self._domain_service_call(
-            service="input_select/set_options",
+            service="input_select/select_first",
             entity_id=entity_id,
-            options=options,
             namespace=namespace,
         )
-
+    
     @utils.sync_decorator
-    async def create_input_button(
-        self,
-        friendly_name: str,
-        entity_id: str = None,
-        namespace: str | None = None
-    ) -> dict:
-        """Creates a new input number entity by using ``set_state`` on a non-existent one with the right format
-
-        Entities created this way do not persist after Home Assistant restarts.
-        """
-        return await self._create_helper(
-            friendly_name=friendly_name,
+    async def select_last(self, entity_id: str, namespace: str | None = None) -> dict:
+        return await self._domain_service_call(
+            service="input_select/select_last",
             entity_id=entity_id,
-            type='input_button',
-            initial_val='unknown',
             namespace=namespace,
         )
+
+    # @utils.sync_decorator
+    # async def create_input_button(
+    #     self,
+    #     friendly_name: str,
+    #     entity_id: str = None,
+    #     namespace: str | None = None
+    # ) -> dict:
+    #     """Creates a new input number entity by using ``set_state`` on a non-existent one with the right format
+
+    #     Entities created this way do not persist after Home Assistant restarts.
+    #     """
+    #     return await self._create_helper(
+    #         friendly_name=friendly_name,
+    #         entity_id=entity_id,
+    #         type='input_button',
+    #         initial_val='unknown',
+    #         namespace=namespace,
+    #     )
 
     @utils.sync_decorator
     async def press_button(self, button_id: str, namespace: str | None = None) -> dict:
