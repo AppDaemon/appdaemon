@@ -1799,6 +1799,7 @@ class ADAPI:
         self,
         service: str,
         namespace: str | None = None,
+        timeout: int | float | None = None,
         return_result: bool = True,
         callback: Callable | None = None,
         hass_result: bool = True,
@@ -1812,6 +1813,7 @@ class ADAPI:
         self,
         service: str,
         namespace: str | None = None,
+        timeout: int | float | None = None, # Used by utils.sync_decorator
         **data: Optional[Any]
     ) -> Any:
         """Calls a Service within AppDaemon.

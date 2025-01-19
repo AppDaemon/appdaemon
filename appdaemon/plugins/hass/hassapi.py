@@ -946,17 +946,18 @@ class Hass(ADBase, ADAPI):
     # Backup/Restore
 
     @overload
-    async def backup_full(
+    def backup_full(
         self,
-        name: str,
+        name: str | None = None,
         password: str | None = None,
         compressed: bool = True,
         location: str | None = None,
-        homeassistant_exclude_database: bool = False
+        homeassistant_exclude_database: bool = False,
+        timeout: int | float = 30 # Used by sync_decorator
     ): ...
 
     @utils.sync_decorator
-    async def backup_full(self, name: str, **kwargs) -> dict:
+    async def backup_full(self, name=None, timeout: int | float = 30, **kwargs) -> dict:
         # https://www.home-assistant.io/integrations/hassio/#action-hassiobackup_full
         return await self.call_service("hassio/backup_full", name=name, **kwargs)
 
@@ -971,15 +972,21 @@ class Hass(ADBase, ADAPI):
         location: str = None,
         homeassistant: bool = False,
         homeassistant_exclude_database: bool = False,
+        timeout: int | float = 30 # Used by sync_decorator
     ): ...
 
     @utils.sync_decorator
-    async def backup_partial(self, **kwargs) -> dict:
+    async def backup_partial(self, name=None, timeout: int | float = 30, **kwargs) -> dict:
         # https://www.home-assistant.io/integrations/hassio/#action-hassiobackup_partial
-        return await self.call_service("hassio/backup_partial", **kwargs)
+        return await self.call_service("hassio/backup_partial", name=name, **kwargs)
 
     @utils.sync_decorator
-    async def restore_full(self, slug: str, password: str | None = None) -> dict:
+    async def restore_full(
+        self,
+        slug: str,
+        password: str | None = None,
+        timeout: int | float = 30 # Used by sync_decorator
+    ) -> dict:
         # https://www.home-assistant.io/integrations/hassio/#action-hassiorestore_full
         return await self.call_service("hassio/restore_full", slug=slug, password=password)
 
@@ -991,10 +998,10 @@ class Hass(ADBase, ADAPI):
         addons: Iterable[str] = None,
         folders: Iterable[str] = None,
         password: str = None,
+        timeout: int | float = 30 # Used by sync_decorator
     ): ...
 
-    @utils.sync_decorator
-    async def restore_parial(self, slug: str, **kwargs) -> dict:
+    async def restore_parial(self, slug: str, timeout: int | float = 30, **kwargs) -> dict:
         # https://www.home-assistant.io/integrations/hassio/#action-hassiorestore_partial
         return await self.call_service("hassio/restore_parial", slug=slug, **kwargs)
 
