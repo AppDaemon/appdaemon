@@ -3363,7 +3363,7 @@ class ADAPI:
         sched_data = {
             "id": uuid.uuid4().hex,
             "name": self.name,
-            "objectid": self.AD.app_management.objects[self.name]["id"],
+            "objectid": self.AD.app_management.objects[self.name].id,
             "type": "scheduler",
             "function": callback,
             "pin_app": self.get_app_pin(),
@@ -3410,7 +3410,7 @@ class ADAPI:
         sched_data = {
             "id": uuid.uuid4().hex,
             "name": self.name,
-            "objectid": self.AD.app_management.objects[self.name]["id"],
+            "objectid": self.AD.app_management.objects[self.name].id,
             "type": "scheduler",
             "function": callback,
             "pin_app": await self.get_app_pin(),
