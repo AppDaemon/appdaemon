@@ -21,6 +21,8 @@ class Callbacks:
     """Standard python logger named ``Diag``
     """
 
+    callbacks: dict[str, dict[str, dict[str, Any]]]
+
     def __init__(self, ad: "AppDaemon"):
         self.AD = ad
         self.callbacks = {}
