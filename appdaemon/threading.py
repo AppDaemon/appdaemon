@@ -924,7 +924,7 @@ class Threading:
 
         use_dictionary_unpacking = utils.has_expanded_kwargs(funcref)
 
-        app = await self.AD.app_management.get_app_instance(name, objectid)
+        app = self.AD.app_management.get_app_instance(name, objectid)
         if app is not None:
             try:
                 if _type == "scheduler":
@@ -1060,8 +1060,7 @@ class Threading:
 
             use_dictionary_unpacking = utils.has_expanded_kwargs(funcref)
 
-            app = utils.run_coroutine_threadsafe(
-                self, self.AD.app_management.get_app_instance(name, objectid))
+            app = self.AD.app_management.get_app_instance(name, objectid)
             if app is not None:
                 try:
                     if _type == "scheduler":

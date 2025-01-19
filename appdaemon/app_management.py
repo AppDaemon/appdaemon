@@ -232,7 +232,7 @@ class AppManagement:
     def get_app_info(self, name: str):
         return self.objects.get(name)
 
-    async def get_app_instance(self, name: str, id):
+    def get_app_instance(self, name: str, id):
         if (obj := self.objects.get(name)) and obj.id == id:
             return obj.object
 
@@ -1128,11 +1128,11 @@ class AppManagement:
 
         return result
 
-    def get_app_file(self, app):
+    def get_app_file(self, app: str) -> str:
         """Used to get the file an app is located"""
-
-        app_file = utils.run_coroutine_threadsafe(self, self.get_state(app, attribute="config_path"))
-        return app_file
+        return self.AD.threading.run_coroutine_threadsafe(
+            self.get_state(app, attribute="config_path")
+        )
 
     async def manage_services(self,
                               namespace: str,
