@@ -1045,7 +1045,7 @@ class AppManagement:
         return executed
 
     @utils.executor_decorator
-    def edit_app(self, app, **kwargs):
+    def edit_app(self, app: str, **kwargs):
         """Used to edit an app, which is already in Yaml. It is expecting the app's name"""
 
         executed = True
@@ -1088,7 +1088,7 @@ class AppManagement:
         return executed
 
     @utils.executor_decorator
-    def remove_app(self, app, **kwargs):
+    def remove_app(self, app: str, **kwargs):
         """Used to remove an app"""
 
         result = None
