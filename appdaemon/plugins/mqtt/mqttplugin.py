@@ -388,10 +388,10 @@ class MqttPlugin(PluginBase):
 
         return False
 
-    async def mqtt_client_state(self):
+    async def mqtt_client_state(self) -> bool:
         return self.mqtt_connected
 
-    async def send_ad_event(self, data):
+    async def send_ad_event(self, data: dict[str, Any]):
         await self.AD.events.process_event(self.namespace, data)
 
     #
