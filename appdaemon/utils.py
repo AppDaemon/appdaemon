@@ -194,9 +194,10 @@ def sync_decorator(coro_func):  # no type hints here, so that @wraps(func) works
                 return task
             else:
                 return run_coroutine_threadsafe(self, coro, timeout=timeout)
-        except Exception as e:
-            ad.threading.logger.error(f"Error running coroutine threadsafe: {e}")
-            ad.threading.logger.error(format_exception(e))
+        except Exception:
+        # except Exception as e:
+            # ad.threading.logger.error(f"Error running coroutine threadsafe: {e}")
+            # ad.threading.logger.error(format_exception(e))
             raise
 
     return wrapper
