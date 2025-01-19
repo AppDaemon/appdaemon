@@ -737,7 +737,12 @@ class HassPlugin(PluginBase):
         result = [
             [
                 {
-                    k: datetime.datetime.fromisoformat(v) if k.startswith("last_") else v
+                    k: (
+                        datetime
+                        .datetime
+                        .fromisoformat(v)
+                        .astimezone(self.AD.tz)
+                    ) if k.startswith("last_") else v
                     for k, v in individual_result.items()
                 }
                 for individual_result in entity_res
