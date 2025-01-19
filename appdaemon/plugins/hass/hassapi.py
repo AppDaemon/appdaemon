@@ -72,7 +72,7 @@ class Hass(ADBase, ADAPI):
     async def _domain_service_call(
         self,
         service: str,
-        entity_id: str,
+        entity_id: str | Iterable[str],
         namespace: str | None = None,
         **kwargs
     ):
@@ -82,9 +82,19 @@ class Hass(ADBase, ADAPI):
             - Asserts that the entity is in the right domain.
             - Displays a warning if the entity doesn't exist in the namespace.
         """
-        assert service.split('/')[0] == entity_id.split('.')[0], f'{entity_id} does not match domain for {service}'
         namespace = namespace or self.namespace
-        self._check_entity(namespace, entity_id)
+        domain = service.split('/')[0]
+
+        match entity_id:
+            case str():
+                assert domain == entity_id.split('.')[0], f'{entity_id} does not match domain for {service}'
+                self._check_entity(namespace, entity_id)
+            case Iterable():
+                entity_id = entity_id if isinstance(entity_id, list) else list(entity_id)
+                for e in entity_id:
+                    assert domain == e.split('.')[0], f'{e} does not match domain for {service}'
+                    self._check_entity(namespace, e)
+
         return await self.call_service(
             service=service,
             namespace=namespace,
@@ -1004,6 +1014,46 @@ class Hass(ADBase, ADAPI):
     async def restore_parial(self, slug: str, timeout: int | float = 30, **kwargs) -> dict:
         # https://www.home-assistant.io/integrations/hassio/#action-hassiorestore_partial
         return await self.call_service("hassio/restore_parial", slug=slug, **kwargs)
+
+    # Media
+
+    @utils.sync_decorator
+    async def media_play(self, entity_id: str | Iterable[str]) -> dict:
+        return await self._domain_service_call('media_player/media_play', entity_id)
+
+    @utils.sync_decorator
+    async def media_pause(self, entity_id: str | Iterable[str]) -> dict:
+        return await self._domain_service_call('media_player/media_pause', entity_id)
+
+    @utils.sync_decorator
+    async def media_play_pause(self, entity_id: str | Iterable[str]) -> dict:
+        return await self._domain_service_call('media_player/media_play_pause', entity_id)
+
+    @utils.sync_decorator
+    async def media_mute(self, entity_id: str | Iterable[str]) -> dict:
+        # https://www.home-assistant.io/integrations/media_player/#action-media_playervolume_mute
+        return await self._domain_service_call('media_player/volume_mute', entity_id)
+
+    @utils.sync_decorator
+    async def media_set_volume(self, entity_id: str | Iterable[str], volume: float = 0.5) -> dict:
+        # https://www.home-assistant.io/integrations/media_player/#action-media_playervolume_set
+        return await self._domain_service_call(
+            service='media_player/volume_set',
+            entity_id=entity_id,
+            volume_level=volume,
+        )
+
+    @utils.sync_decorator
+    async def media_seek(self, entity_id: str | Iterable[str], seek_position: float | timedelta) -> dict:
+        if isinstance(seek_position, timedelta):
+            seek_position = seek_position.total_seconds()
+
+        # https://www.home-assistant.io/integrations/media_player/#action-media_playermedia_seek
+        return await self._domain_service_call(
+            service='media_player/media_seek',
+            entity_id=entity_id,
+            seek_position=seek_position
+        )
 
     #
     # Template functions
