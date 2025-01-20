@@ -273,7 +273,7 @@ class Threading:
                 t["state"],
                 t["attributes"]["time_called"],
                 t["attributes"]["is_alive"],
-                await self.get_pinned_apps(thread),
+                self.get_pinned_apps(thread),
             )
         self.diag.info("--------------------------------------------------")
 
@@ -330,7 +330,7 @@ class Threading:
             for thread_id in self.threads:
                 if self.threads[thread_id]["thread"].is_alive() is not True:
                     self.logger.critical("Thread %s has died", thread_id)
-                    self.logger.critical("Pinned apps were: %s", await self.get_pinned_apps(thread_id))
+                    self.logger.critical("Pinned apps were: %s", self.get_pinned_apps(thread_id))
                     self.logger.critical("Thread will be restarted")
                     id = thread_id.split("-")[1]
                     await self.add_thread(silent=False, pinthread=False, id=id)
@@ -494,7 +494,7 @@ class Threading:
                 time_called=utils.dt_to_str(
                     now.replace(microsecond=0), self.AD.tz),
                 is_alive=self.threads[thread_id]["thread"].is_alive(),
-                pinned_apps=await self.get_pinned_apps(thread_id),
+                pinned_apps=self.get_pinned_apps(thread_id),
             )
         await self.set_state("_threading", "admin", appentity, state=callback)
 
@@ -561,7 +561,7 @@ class Threading:
                 thread_pins[thread] += 1
 
         for thread in self.threads:
-            pinned_apps = await self.get_pinned_apps(thread)
+            pinned_apps = self.get_pinned_apps(thread)
             await self.set_state(
                 "_threading",
                 "admin",
@@ -590,9 +590,14 @@ class Threading:
                 valid = False
         return valid
 
-    async def get_pinned_apps(self, thread: str):
+    def get_pinned_apps(self, thread: str):
+        """Gets the names of apps that are pinned to a particular thread"""
         id = int(thread.split("-")[1])
-        return [app_name for app_name, obj in self.AD.app_management.objects.items() if obj.pin_thread == id]
+        return [
+            app_name
+            for app_name, obj in self.AD.app_management.objects.items()
+            if obj.pin_thread == id
+        ]
 
     #
     # Constraints
