@@ -262,7 +262,7 @@ class AppDaemonConfig(BaseModel):
     thread_duration_warning_threshold: float = 10
     threadpool_workers: int = 10
 
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+    model_config = ConfigDict(arbitrary_types_allowed=True, extra='allow')
     ad_version: str = __version__
 
     @field_validator("config_dir", mode="after")
@@ -319,9 +319,11 @@ class AppDaemonConfig(BaseModel):
     @model_validator(mode="after")
     def warn_deprecated(self):
         for field in self.model_fields_set:
-            info = self.model_fields[field]
-            if info.deprecated:
-                print(f"Deprecated field: {field}")
+            if field in self.__pydantic_extra__:
+                print(f'WARNING extra field: {field}')
+            elif (info := self.model_fields.get(field)) and info.deprecated:
+                print(f"WARNING deprecated field: {field}")
+
         return self
 
 
