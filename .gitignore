@@ -62,6 +62,7 @@ target/
 # Python
 venv
 .venv
+uv.lock
 
 # Mac stuff
 .DS_Store
