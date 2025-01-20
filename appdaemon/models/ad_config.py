@@ -320,9 +320,9 @@ class AppDaemonConfig(BaseModel):
     def warn_deprecated(self):
         for field in self.model_fields_set:
             if field in self.__pydantic_extra__:
-                print(f'WARNING extra field: {field}')
+                print(f'WARNING {field}: Extra config field. This will be ignored')
             elif (info := self.model_fields.get(field)) and info.deprecated:
-                print(f"WARNING deprecated field: {field}")
+                print(f"WARNING {field}: {info.deprecation_message}")
 
         return self
 
