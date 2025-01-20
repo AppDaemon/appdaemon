@@ -557,7 +557,7 @@ class Threading:
         for name, obj in self.AD.app_management.objects.items():
             if obj.pin_app and obj.pin_thread == -1:
                 thread = thread_pins.index(min(thread_pins))
-                await self.set_pin_thread(name, thread)
+                self.AD.app_management.set_pin_thread(name, thread)
                 thread_pins[thread] += 1
 
         for thread in self.threads:
@@ -577,21 +577,6 @@ class Threading:
             return cfg.pin_app
         else:
             return bool(self.pin_apps)
-
-    async def get_app_pin(self, name: str):
-        return self.AD.app_management.objects[name].pin_app
-
-    async def set_app_pin(self, name: str, pin: bool):
-        self.AD.app_management.objects[name].pin_app = pin
-        if pin is True:
-            # May need to set this app up with a pinned thread
-            await self.calculate_pin_threads()
-
-    async def get_pin_thread(self, name: str):
-        return self.AD.app_management.objects[name].pin_thread
-
-    async def set_pin_thread(self, name: str, thread: int):
-        self.AD.app_management.objects[name].pin_thread = thread
 
     def validate_pin(self, name, kwargs):
         valid = True

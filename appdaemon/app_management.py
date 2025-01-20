@@ -236,6 +236,19 @@ class AppManagement:
         if (obj := self.objects.get(name)) and obj.id == id:
             return obj.object
 
+    def get_app_pin(self, name: str) -> bool:
+        return self.objects[name].pin_app
+
+    def set_app_pin(self, name: str, pin: bool):
+        self.objects[name].pin_app = pin
+        self.AD.loop.create_task(self.AD.threading.calculate_pin_threads)
+
+    def get_pin_thread(self, name: str) -> int:
+        return self.objects[name].pin_thread
+    
+    def set_pin_thread(self, name: str, thread: int):
+        self.objects[name].pin_thread = thread
+
     async def initialize_app(self, app_name: str):
         try:
             init_func = self.objects[app_name].object.initialize

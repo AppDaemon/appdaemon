@@ -481,8 +481,7 @@ class ADAPI:
     # Threading
     #
 
-    @utils.sync_decorator
-    async def set_app_pin(self, pin: bool) -> None:
+    def set_app_pin(self, pin: bool) -> None:
         """Sets an App to be pinned or unpinned.
 
         Args:
@@ -497,10 +496,9 @@ class ADAPI:
             >>> self.set_app_pin(True)
 
         """
-        await self.AD.threading.set_app_pin(self.name, pin)
+        self.AD.app_management.set_app_pin(self.name, pin)
 
-    @utils.sync_decorator
-    async def get_app_pin(self) -> bool:
+    def get_app_pin(self) -> bool:
         """Finds out if the current App is currently pinned or not.
 
         Returns:
@@ -511,10 +509,9 @@ class ADAPI:
             >>>     self.log("App pinned!")
 
         """
-        return await self.AD.threading.get_app_pin(self.name)
+        return self.AD.app_management.get_app_pin(self.name)
 
-    @utils.sync_decorator
-    async def set_pin_thread(self, thread: int) -> None:
+    def set_pin_thread(self, thread: int) -> None:
         """Sets the thread that the App will be pinned to.
 
         Args:
@@ -530,10 +527,9 @@ class ADAPI:
             >>> self.set_pin_thread(5)
 
         """
-        await self.AD.threading.set_pin_thread(self.name, thread)
+        self.AD.app_management.set_pin_thread(self.name, thread)
 
-    @utils.sync_decorator
-    async def get_pin_thread(self) -> int:
+    def get_pin_thread(self) -> int:
         """Finds out which thread the App is pinned to.
 
         Returns:
@@ -544,7 +540,7 @@ class ADAPI:
             >>> self.log(f"I'm pinned to thread: {thread}")
 
         """
-        return await self.AD.threading.get_pin_thread(self.name)
+        return self.AD.app_management.get_pin_thread(self.name)
 
     #
     # Namespace
@@ -3408,15 +3404,16 @@ class ADAPI:
             >>> def coro_callback(self, kwargs):
 
         """
+        managed_object = self.AD.app_management.objects[self.name]
         # get stuff we'll need to fake scheduler call
         sched_data = {
             "id": uuid.uuid4().hex,
             "name": self.name,
-            "objectid": self.AD.app_management.objects[self.name].id,
+            "objectid": managed_object.id,
             "type": "scheduler",
             "function": callback,
-            "pin_app": await self.get_app_pin(),
-            "pin_thread": await self.get_pin_thread(),
+            "pin_app": managed_object.pin_app,
+            "pin_thread": managed_object.pin_thread,
         }
 
         def callback_inner(f):
