@@ -1,11 +1,11 @@
 import asyncio
 from logging import Logger
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import appdaemon.utils as utils
 
 if TYPE_CHECKING:
-    from appdaemon.appdaemon import AppDaemon
+    from .appdaemon import AppDaemon
 
 
 class Callbacks:
