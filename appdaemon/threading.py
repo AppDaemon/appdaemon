@@ -48,7 +48,6 @@ class Threading:
     last_stats_time: datetime.datetime = datetime.datetime.fromtimestamp(0)
     callback_list: List[Dict]
 
-    auto_pin: bool = True
     pin_threads: int = 0
     total_threads: int
 
@@ -76,10 +75,15 @@ class Threading:
 
     @property
     def pin_apps(self):
+        "Whether each app should be pinned to a thread"
         return self.AD.config.pin_apps
 
     @property
     def total_threads(self) -> int:
+        """Number of threads created for apps. By default this is 
+        automatically calculated, but can also be manually configured by the 
+        user in appdaemon.yaml.
+        """
         return self.AD.config.total_threads
 
     @total_threads.setter
@@ -159,7 +163,7 @@ class Threading:
 
     async def create_initial_threads(self):
         if self.total_threads:
-            self.auto_pin = False
+            self.pin_apps = False
         else:
             # Force a config check here so we have an accurate activate app count
             self.AD.app_management.logger.debug("Reading app config files to determine how many threads to make")
@@ -170,7 +174,6 @@ class Threading:
         if self.pin_apps:
             self.pin_threads = self.pin_threads or self.total_threads
         else:
-            self.auto_pin = False
             self.pin_threads = 0
             self.total_threads = self.total_threads or 10
 
@@ -573,10 +576,7 @@ class Threading:
         # Check apps.yaml first - allow override
         cfg = self.AD.app_management.app_config.root[app_name]
         assert isinstance(cfg, AppConfig)
-        if cfg.pin_app is not None:
-            return cfg.pin_app
-        else:
-            return bool(self.pin_apps)
+        return cfg.pin_app or self.pin_apps
 
     def validate_pin(self, name, kwargs):
         valid = True

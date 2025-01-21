@@ -93,7 +93,7 @@ class ManagedObject:
     object: Any
     id: str = field(default_factory=lambda: uuid.uuid4().hex)
     module_path: Optional[Path] = None
-    pin_app: bool = True
+    pin_app: bool = None
     pin_thread: Optional[int] = None
     running: bool = False
     use_dictionary_unpacking: bool = False

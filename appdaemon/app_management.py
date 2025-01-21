@@ -241,7 +241,10 @@ class AppManagement:
 
     def set_app_pin(self, name: str, pin: bool):
         self.objects[name].pin_app = pin
-        self.AD.loop.create_task(self.AD.threading.calculate_pin_threads)
+        utils.run_coroutine_threadsafe(
+            self,
+            self.AD.threading.calculate_pin_threads(),
+        )
 
     def get_pin_thread(self, name: str) -> int:
         return self.objects[name].pin_thread
@@ -466,7 +469,7 @@ class AppManagement:
                 object=new_obj,
                 pin_app=self.AD.threading.app_should_be_pinned(app_name),
                 pin_thread=pin,
-                running=True,
+                running=False,
                 module_path=Path(mod_obj.__file__),
             )
 
@@ -614,7 +617,7 @@ class AppManagement:
 
             self.app_config.root.update(freshly_read_cfg.root)
 
-        if self.AD.threading.auto_pin:
+        if self.AD.threading.pin_apps:
             active_apps = self.app_config.active_app_count
             if active_apps > self.AD.threading.thread_count:
                 threads_to_add = active_apps - self.AD.threading.thread_count
