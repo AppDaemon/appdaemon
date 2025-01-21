@@ -80,8 +80,8 @@ class Threading:
 
     @property
     def total_threads(self) -> int:
-        """Number of threads created for apps. By default this is 
-        automatically calculated, but can also be manually configured by the 
+        """Number of threads created for apps. By default this is
+        automatically calculated, but can also be manually configured by the
         user in appdaemon.yaml.
         """
         return self.AD.config.total_threads

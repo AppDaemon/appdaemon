@@ -256,22 +256,22 @@ class AppDaemonConfig(BaseModel):
         | None
     ) = None
     total_threads: int | None = None
-    """The number of dedicated worker threads to create for running the apps. 
-    Normally, AppDaemon will create enough threads to provide one per app, or 
-    default to 10 if app pinning is turned off. Setting this to a specific 
+    """The number of dedicated worker threads to create for running the apps.
+    Normally, AppDaemon will create enough threads to provide one per app, or
+    default to 10 if app pinning is turned off. Setting this to a specific
     value will turn off automatic thread management."""
     pin_apps: bool = True
-    """If true, AppDaemon apps will be pinned to a particular thread. This 
-    should avoids complications around re-entrant code and locking of instance 
+    """If true, AppDaemon apps will be pinned to a particular thread. This
+    should avoids complications around re-entrant code and locking of instance
     variables."""
     pin_threads: int | None = None
-    """Number of threads to use for pinned apps, allowing the user to section 
-    off a sub-pool just for pinned apps. By default all threads are used for 
+    """Number of threads to use for pinned apps, allowing the user to section
+    off a sub-pool just for pinned apps. By default all threads are used for
     pinned apps."""
     thread_duration_warning_threshold: float = 10
     threadpool_workers: int = 10
-    """Number of threads in AppDaemon's internal thread pool, which can be used 
-    to execute functions asynchronously in worker threads. 
+    """Number of threads in AppDaemon's internal thread pool, which can be used
+    to execute functions asynchronously in worker threads.
     """
 
     model_config = ConfigDict(

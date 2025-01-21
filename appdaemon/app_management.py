@@ -248,7 +248,7 @@ class AppManagement:
 
     def get_pin_thread(self, name: str) -> int:
         return self.objects[name].pin_thread
-    
+
     def set_pin_thread(self, name: str, thread: int):
         self.objects[name].pin_thread = thread
 
@@ -919,7 +919,7 @@ class AppManagement:
                             raise
 
                     await safe_create(self)
-            
+
             # Need to have already created the ManagedObjects for the threads to get assigned
             await self.AD.threading.calculate_pin_threads()
 
