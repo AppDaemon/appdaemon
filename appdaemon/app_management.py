@@ -355,27 +355,18 @@ class AppManagement:
         for dep in dependencies:
             assert dep in valid_apps, f"'{app_name}' depends on '{dep}', but it's not running or loaded"
 
-        try:
+        if self.app_config[app_name].disable:
+            pass
+        else:
             try:
-                await self.create_app_object(app_name)
+                await self.initialize_app(app_name)
             except Exception:
-                await self.set_state(app_name, state="compile_error")
+                await self.set_state(app_name, state="initialize_error")
+                self.objects[app_name].running = False
                 raise
-
-            if self.app_config[app_name].disable:
-                pass
             else:
-                try:
-                    await self.initialize_app(app_name)
-                except Exception:
-                    await self.set_state(app_name, state="initialize_error")
-                    self.objects[app_name].running = False
-                    raise
-                else:
-                    self.objects[app_name].running = True
-        except Exception:
-            await self.increase_inactive_apps(app_name)
-            raise
+                self.objects[app_name].running = True
+
 
     async def stop_app(self, app_name: str, delete: bool = False) -> bool:
         """Stops the app
@@ -462,6 +453,8 @@ class AppManagement:
         try:
             new_obj = app_class(self.AD, cfg)
         except Exception as exc:
+            await self.set_state(app_name, state="compile_error")
+            await self.increase_inactive_apps(app_name)
             raise ade.AppInstantiationError(f"Error when creating class '{class_name}' for app named '{app_name}'") from exc
         else:
             self.objects[app_name] = ManagedObject(
@@ -475,7 +468,7 @@ class AppManagement:
 
             # load the module path into app entity
             module_path = await utils.run_in_executor(self, os.path.abspath, mod_obj.__file__)
-            await self.set_state(app_name, module_path=module_path)
+            await self.set_state(app_name, state="created", module_path=module_path)
 
     def get_managed_app_names(self, include_globals: bool = False) -> Set[str]:
         apps = set(name for name, o in self.objects.items() if o.type == "app")
@@ -911,10 +904,28 @@ class AppManagement:
         if start_order:
             self.logger.info("Starting apps: %s", update_actions.apps.init_set)
             self.logger.debug("App start order: %s", start_order)
+
             for app_name in start_order:
                 if isinstance((cfg := self.app_config.root[app_name]), AppConfig):
                     rel_path = cfg.config_path.relative_to(self.AD.app_dir.parent)
+                    @utils.warning_decorator(
+                        error_text=f"Error creating the app object for '{app_name}' from {rel_path}"
+                    )
+                    async def safe_create(self: "AppManagement"):
+                        try:
+                            await self.create_app_object(app_name)
+                        except Exception:
+                            update_actions.apps.failed.add(app_name)
+                            raise
 
+                    await safe_create(self)
+            
+            # Need to have already created the ManagedObjects for the threads to get assigned
+            await self.AD.threading.calculate_pin_threads()
+
+            for app_name in start_order:
+                if isinstance((cfg := self.app_config.root[app_name]), AppConfig):
+                    rel_path = cfg.config_path.relative_to(self.AD.app_dir.parent)
                     @utils.warning_decorator(
                         success_text=f"Started '{app_name}'",
                         error_text=f"Error starting app '{app_name}' from {rel_path}",
@@ -926,7 +937,8 @@ class AppManagement:
                             update_actions.apps.failed.add(app_name)
                             raise
 
-                    await safe_start(self)
+                    if self.get_state(app_name) != "compile_error":
+                        await safe_start(self)
                 elif isinstance(cfg, GlobalModule):
                     assert cfg.module_name in sys.modules, f'{cfg.module_name} not in sys.modules'
 
