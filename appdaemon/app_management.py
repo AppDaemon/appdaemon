@@ -937,7 +937,7 @@ class AppManagement:
                             update_actions.apps.failed.add(app_name)
                             raise
 
-                    if self.get_state(app_name) != "compile_error":
+                    if await self.get_state(app_name) != "compile_error":
                         await safe_start(self)
                 elif isinstance(cfg, GlobalModule):
                     assert cfg.module_name in sys.modules, f'{cfg.module_name} not in sys.modules'
