@@ -430,7 +430,7 @@ class Hass(ADBase, ADAPI):
             >>> self.turn_on("light.office_1", color_name = "green")
 
         """
-        return self._entity_service_call(
+        return await self._entity_service_call(
             service="homeassistant/turn_on",
             entity_id=entity_id,
             namespace=namespace,
@@ -468,7 +468,7 @@ class Hass(ADBase, ADAPI):
             >>> self.turn_off("scene.bedroom_on")
 
         """
-        return self._entity_service_call(
+        return await self._entity_service_call(
             service="homeassistant/turn_off",
             entity_id=entity_id,
             namespace=namespace,
