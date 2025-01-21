@@ -1,7 +1,8 @@
 import re
 from ast import literal_eval
+from collections.abc import Iterable
 from datetime import datetime, timedelta
-from typing import Any, Callable, Iterable, Literal, Type, overload
+from typing import Any, Callable, Literal, Type, overload
 
 from ... import utils
 from ...adapi import ADAPI
