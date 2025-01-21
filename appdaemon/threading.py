@@ -541,6 +541,7 @@ class Threading:
         self.threads[t.name]["thread"] = t
 
     async def calculate_pin_threads(self):
+        """Assigns thread numbers to apps that are supposed to be pinned"""
         if self.pin_threads == 0:
             return
 
