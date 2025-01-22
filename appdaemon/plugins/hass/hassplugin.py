@@ -699,7 +699,7 @@ class HassPlugin(PluginBase):
     async def get_plugin_state(self, entity_id: str, timeout: float | None = None):
         return await self.http_method('get', f'/api/states/{entity_id}', timeout)
 
-    async def check_for_entity(self, entity_id: str, timeout: float | None = None):
+    async def check_for_entity(self, entity_id: str, timeout: float | None = None) -> bool:
         """Tries to get the state of an entity ID to see if it exists"""
         resp = await self.get_plugin_state(entity_id, timeout)
         if isinstance(resp, dict):
@@ -758,18 +758,33 @@ class HassPlugin(PluginBase):
         entity: str | None = None,
         timestamp: datetime.datetime | None = None,
         end_time: datetime.datetime | None = None,
-    ) -> list[dict[str, str]]:
+    ) -> list[dict[str, str | datetime.datetime]]:
         """Used to get HA's logbook"""
         endpoint = "/api/logbook"
         if timestamp is not None:
             endpoint += f"/{timestamp.isoformat()}"
 
-        result = await self.http_method(
+        assert await self.check_for_entity(entity_id=entity), f"'{entity}' does not exist"
+
+        result: list[dict[str, str]] = await self.http_method(
             "get",
             endpoint,
             entity=entity,
             end_time=end_time
         )
+
+        result = [
+            {
+                k: v if k!= "when" else (
+                    datetime
+                    .datetime
+                    .fromisoformat(v)
+                    .astimezone(self.AD.tz)
+                )
+                for k, v in entry.items()
+            }
+            for entry in result
+        ]
         return result
 
     @utils.warning_decorator(error_text='Unexpected error rendering template')
