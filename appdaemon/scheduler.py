@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
 
 time_regex_str = r"(?P<hour>\d+):(?P<minute>\d+):(?P<second>\d+)(?:\.(?P<microsecond>\d+))?"
-date_regex_str = r"^(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})" + f"(?:{r"\s"}+{time_regex_str})?"
+date_regex_str = r"^(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})" + r"(?:\s+" + f'{time_regex_str})?'
 DATE_REGEX = re.compile(date_regex_str)
 TIME_REGEX = re.compile(f"^{time_regex_str}")
 SUN_REGEX = re.compile(
