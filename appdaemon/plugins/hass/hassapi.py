@@ -44,11 +44,23 @@ class Hass(ADBase, ADAPI):
             return (await plugin.ping())['ad_duration']
 
     @utils.sync_decorator
-    async def check_for_entity(self, entity_id: str) -> bool:
+    async def check_for_entity(self, entity_id: str, namespace: str | None = None) -> bool:
         """Uses the REST API to check if an entity exists instead of checking
-        AD's internal state
+        AD's internal state.
+
+        Args:
+            entity_id (str): Fully qualified id.
+            namespace (str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases it is safe to ignore this parameter.
+
+        Returns:
+            Bool of whether the entity exists.
         """
-        return await self._plugin.check_for_entity(entity_id)
+        plugin: "HassPlugin" = self.AD.plugins.get_plugin_object(
+            namespace or self.namespace
+        )
+        return await plugin.check_for_entity(entity_id)
 
     #
     # Internal Helpers
@@ -595,8 +607,13 @@ class Hass(ADBase, ADAPI):
             end_time = end_time or await self.get_now()
             start_time = end_time - timedelta(days=days)
 
-        if self._plugin is not None:
-            coro = self._plugin.get_history(
+
+        plugin: "HassPlugin" = self.AD.plugins.get_plugin_object(
+            namespace or self.namespace
+        )
+
+        if plugin is not None:
+            coro = plugin.get_history(
                 filter_entity_id=entity_id,
                 timestamp=start_time,
                 end_time=end_time,
@@ -624,29 +641,38 @@ class Hass(ADBase, ADAPI):
         end_time: datetime | None = None,
         days: int | None = None,
         callback: Callable | None = None,
-    ) -> list[dict[str, str]]:
+        namespace: str | None = None,
+    ) -> list[dict[str, str | datetime]]:
         """Gets access to the HA Database.
         This is a convenience function that allows accessing the HA Database.
-        Caution must be taken when using this, as depending on the size of the 
+        Caution must be taken when using this, as depending on the size of the
         database, it can take a long time to process.
 
         Hits the ``/api/logbook/<timestamp>`` endpoint. See
         https://developers.home-assistant.io/docs/api/rest for more information
 
         Args:
-            entity (str, optional): Fully qualified id of the device to be querying, e.g.,
-                ``light.office_lamp`` or ``scene.downstairs_on``. This can be any entity_id
-                in the database.
-            start_time (datetime, optional): 
-            end_time (datetime, optional): 
-            days (int, optional): 
-            callback (Callable, optional): 
+            entity (str, optional): Fully qualified id of the device to be
+                querying, e.g., ``light.office_lamp`` or 
+                ``scene.downstairs_on``. This can be any entity_id in the 
+                database. This method does not support multiple entity IDs. If 
+                no ``entity`` is specified, then all logbook entries for the 
+                period will be returned.
+            start_time (datetime, optional): The start time of the period
+                covered. Defaults to 1 day before the time of the request.
+            end_time (datetime, optional): The end time of the period covered.
+                Defaults to the current time if the ``days`` argument is also used.
+            days (int, optional): Number of days before the end time to include
+            callback (Callable, optional): Callback to run with the results of the
+                request. The callback needs to take a single argument, a future object.
             namespace (str, optional): Namespace to use for the call. See the section on
                 `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
                 In most cases it is safe to ignore this parameter.
 
         Returns:
-            A list of dictionaries, each representing a single entry for a single entity.
+            A list of dictionaries, each representing a single entry for a
+            single entity. The value for the ``when`` key of each dictionary
+            gets converted to a ``datetime`` object with a timezone.
 
         Examples:
             >>> data = self.get_logbook("light.office_lamp")
@@ -657,8 +683,11 @@ class Hass(ADBase, ADAPI):
             end_time = end_time or await self.get_now()
             start_time = end_time - timedelta(days=days)
 
-        if self._plugin is not None:
-            coro = self._plugin.get_logbook(
+        plugin: "HassPlugin" = self.AD.plugins.get_plugin_object(
+            namespace or self.namespace
+        )
+        if plugin is not None:
+            coro = plugin.get_logbook(
                 entity=entity,
                 timestamp=start_time,
                 end_time=end_time,
@@ -1061,14 +1090,17 @@ class Hass(ADBase, ADAPI):
     # Functions that use self.render_template
 
     @utils.sync_decorator
-    async def render_template(self, template: str) -> Any:
+    async def render_template(self, template: str, namespace: str | None = None) -> Any:
         """Renders a Home Assistant Template
 
         https://www.home-assistant.io/docs/configuration/templating
         https://www.home-assistant.io/integrations/template
 
         Args:
-            template (str): The Home Assistant Template to be rendered.
+            template (str): The Home Assistant template to be rendered.
+            namespace (str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases it is safe to ignore this parameter.
 
         Returns:
             The rendered template in a native Python type.
@@ -1084,7 +1116,10 @@ class Hass(ADBase, ADAPI):
             Returns (float) 97.2
 
         """
-        result = await self._plugin.render_template(self.namespace, template)
+        plugin: "HassPlugin" = self.AD.plugins.get_plugin_object(
+            namespace or self.namespace
+        )
+        result = await plugin.render_template(self.namespace, template)
         try:
             return literal_eval(result)
         except (SyntaxError, ValueError):
