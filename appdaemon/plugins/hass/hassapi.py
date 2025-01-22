@@ -653,10 +653,10 @@ class Hass(ADBase, ADAPI):
 
         Args:
             entity (str, optional): Fully qualified id of the device to be
-                querying, e.g., ``light.office_lamp`` or 
-                ``scene.downstairs_on``. This can be any entity_id in the 
-                database. This method does not support multiple entity IDs. If 
-                no ``entity`` is specified, then all logbook entries for the 
+                querying, e.g., ``light.office_lamp`` or
+                ``scene.downstairs_on``. This can be any entity_id in the
+                database. This method does not support multiple entity IDs. If
+                no ``entity`` is specified, then all logbook entries for the
                 period will be returned.
             start_time (datetime, optional): The start time of the period
                 covered. Defaults to 1 day before the time of the request.
