@@ -398,12 +398,12 @@ class MqttPlugin(PluginBase):
     # Get initial state
     #
 
-    async def get_complete_state(self):
+    async def get_complete_state(self): # Needs to be async for plugins that need to send/receive something
         self.logger.debug("*** Sending Complete State: %s ***", self.state)
         return copy.deepcopy(self.state)
 
-    async def get_metadata(self) -> dict[str, Any]:
-        return self.config.model_dump(by_alias=True)
+    def get_metadata(self) -> dict[str, Any]:
+        return self.config.model_dump(by_alias=True, exclude_none=True)
 
     #
     # Utility gets called every second (or longer if configured
@@ -421,7 +421,6 @@ class MqttPlugin(PluginBase):
     async def get_updates(self):
         already_initialized = False
         already_notified = False
-        first_time = True
         first_time_service = True
 
         self.mqtt_connect_event = asyncio.Event()
@@ -458,13 +457,11 @@ class MqttPlugin(PluginBase):
                     first_time_service = False
 
                 state = await self.get_complete_state()
-                meta = await self.get_metadata()
+                meta = self.get_metadata()
 
                 # meaning the client has connected to the broker
                 if self.mqtt_connected:
-                    await self.AD.plugins.notify_plugin_started(
-                        self.name, self.namespace, meta, state, first_time
-                    )
+                    await self.notify_plugin_started(meta, state)
                     already_notified = False
                     already_initialized = True
                     self.logger.info("MQTT Plugin initialization complete")
@@ -476,7 +473,6 @@ class MqttPlugin(PluginBase):
                         self.logger.critical("MQTT Plugin Stopped Unexpectedly")
                         already_notified = True
                         already_initialized = False
-                        first_time = False
                     if not already_initialized and not already_notified:
                         self.logger.critical("Could not complete MQTT Plugin initialization, trying again in 5 seconds")
                         if self.stopping:

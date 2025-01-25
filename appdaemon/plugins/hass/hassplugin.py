@@ -192,8 +192,10 @@ class HassPlugin(PluginBase):
         self.logger.info("All startup conditions met")
         self.ready_event.set()
 
-        state = await self.get_complete_state()
-        await self.AD.plugins.notify_plugin_started(self.name, self.namespace, self.metadata, state, self.first_time)
+        await self.notify_plugin_started(
+            await self.get_hass_config(),
+            await self.get_complete_state()
+        )
         self.first_time = False
 
         self.logger.info(f"Completed initialization in {self.time_str()}")
