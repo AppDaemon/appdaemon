@@ -391,7 +391,7 @@ class Plugins:
                     try:
                         self.logger.debug("Refreshing %s state", name)
 
-                        with async_timeout.timeout(self.plugins[name]["refresh_timeout"]):
+                        async with async_timeout.timeout(self.plugins[name]["refresh_timeout"]):
                             state = await self.plugin_objs[plugin]["object"].get_complete_state()
 
                         if state is not None:
@@ -414,10 +414,20 @@ class Plugins:
                         )
                     except Exception:
                         self.logger.warning(
-                            "Timeout refreshing %s state - retrying in %s seconds",
+                            "Exception refreshing %s state - retrying in %s seconds",
                             plugin,
                             self.plugins[name]["refresh_delay"],
                         )
+                        self.logger.debug("-" * 60)
+                        self.logger.debug(
+                            "Exception refreshing %s state - retrying in %s seconds",
+                            plugin,
+                            self.plugins[name]["refresh_delay"],
+                        )
+                        self.logger.debug("-" * 60)
+                        self.logger.debug(traceback.format_exc())
+                        self.logger.debug("-" * 60)
+
                     finally:
                         self.last_plugin_state[plugin] = datetime.datetime.now()
 
