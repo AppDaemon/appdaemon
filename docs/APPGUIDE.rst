@@ -149,8 +149,7 @@ Configuration of Apps
 ---------------------
 
 Apps are configured by specifying new sections in an app configuration
-file. These configuration files can be written in either YAML or TOML, but must be the same type as the appdaemon configuration file, and which variant is used depends on the ``--toml`` flag
-supplied to AppDaemon at startup.
+file. These configuration files can be written in either YAML or TOML.
 
 The App configuration files exist under the apps directory and can be called anything as long as they end in ``.yaml`` or ``.toml``.
 You can have one single file for configuration of all apps, or break it down to have one configuration file per App, or anything in between.

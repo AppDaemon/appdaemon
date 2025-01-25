@@ -21,7 +21,7 @@
             "request": "launch",
             "module": "appdaemon",
             "justMyCode": true,
-            "args": "-c /conf/ad_config/production --toml"
+            "args": "-c /conf/ad_config/production"
         },
     ]
 }

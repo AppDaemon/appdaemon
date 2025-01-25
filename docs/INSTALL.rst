@@ -217,7 +217,7 @@ A brief description of them follows:
 
     If no file is found in either location, AppDaemon will raise an exception. In addition, AppDaemon expects to find a dir named ``apps`` immediately subordinate to the config directory.
 
-``-C`` name of the configuration file (default: ``appdaemon.yaml`` or ``appdaemon.toml`` depending on the value of the ``--toml`` flag)
+``-C`` name of the configuration file (default: ``appdaemon.yaml`` or ``appdaemon.toml``)
 
 .. TODO: document -d in appdaemon help text
 
