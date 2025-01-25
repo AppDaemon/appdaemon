@@ -873,8 +873,7 @@ class ADAPI:
         """
         return devices.split(",")
 
-    @utils.sync_decorator
-    async def get_plugin_config(self, namespace: str | None = None) -> Any:
+    def get_plugin_config(self, namespace: str | None = None) -> Any:
         """Gets any useful metadata that the plugin may have available.
 
         For instance, for the HASS plugin, this will return Home Assistant configuration
@@ -894,7 +893,7 @@ class ADAPI:
 
         """
         namespace = namespace or self.namespace
-        return await self.AD.plugins.get_plugin_meta(namespace)
+        return self.AD.plugins.get_plugin_meta(namespace)
 
     def friendly_name(self, entity_id: str, namespace: str | None = None) -> str:
         """Gets the Friendly Name of an entity.
