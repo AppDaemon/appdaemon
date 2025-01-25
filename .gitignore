@@ -76,7 +76,6 @@ venv
 # IDE
 
 .vscode
-.devcontainer
 
 # Docs
 
