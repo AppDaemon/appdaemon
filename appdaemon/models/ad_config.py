@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Annotated, Any, Callable, Dict, List, Literal, Optional, Union
+from ssl import _SSLMethod
 
 import pytz
 from pydantic import (
@@ -16,7 +17,6 @@ from pydantic import (
     SecretStr,
     Tag,
     field_validator,
-    model_serializer,
     model_validator,
 )
 from pytz.tzinfo import DstTzInfo, StaticTzInfo
@@ -63,7 +63,7 @@ class MQTTConfig(PluginConfig):
     client_cert: str | None = None
     client_key: str | None = None
     verify_cert: bool = True
-    tls_version: Literal["auto", "1.0", "1.1", "1.2"] = "auto"
+    tls_version: _SSLMethod | Literal["auto", "1.0", "1.1", "1.2"] = "auto"
 
     @model_validator(mode="after")
     def custom_validator(self):
@@ -87,10 +87,6 @@ class MQTTConfig(PluginConfig):
             self.client_topics = list()
 
         return self
-
-    @model_serializer
-    def serial(self, vals: dict):
-        return vals
 
 
 class HASSConfig(PluginConfig):
@@ -276,7 +272,8 @@ class AppDaemonConfig(BaseModel):
 
     model_config = ConfigDict(
         arbitrary_types_allowed=True,
-        extra='allow'
+        extra='allow',
+        validate_assignment=True,
     )
     ad_version: str = __version__
 
@@ -330,16 +327,6 @@ class AppDaemonConfig(BaseModel):
             if (file := data.get("config_file")) and not data.get("config_dir"):
                 data["config_dir"] = Path(file).parent
         return data
-
-    @model_validator(mode="after")
-    def warn_deprecated(self):
-        for field in self.model_fields_set:
-            if field in self.__pydantic_extra__:
-                print(f'WARNING {field}: Extra config field. This will be ignored')
-            elif (info := self.model_fields.get(field)) and info.deprecated:
-                print(f"WARNING {field}: {info.deprecation_message}")
-
-        return self
 
 
 class MainConfig(BaseModel):
