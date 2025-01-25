@@ -404,6 +404,10 @@ class ADMain:
 
         self.logger.info("-" * 60)
         self.logger.info("AppDaemon Version %s starting", utils.__version__)
+
+        if utils.__version_comments__ is not None and utils.__version_comments__ != "":
+            self.logger.info("Additional version info: %s", utils.__version_comments__)
+
         self.logger.info("-" * 60)
         self.logger.info(
             "Python version is %s.%s.%s",
