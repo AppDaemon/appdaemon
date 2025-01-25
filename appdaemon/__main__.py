@@ -257,8 +257,6 @@ class ADMain:
             "--write_toml", help="use TOML for creating new app configuration files", action="store_true")
         parser.add_argument("--toml", help="Deprecated", action="store_true")
 
-        #test
-
         args = parser.parse_args()
 
         config_dir = args.config
