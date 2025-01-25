@@ -289,14 +289,14 @@ class Logging(metaclass=utils.Singleton):
                 args["formatter"] = formatter
                 formatter.formatTime = self.get_time
                 logger = logging.getLogger(args["name"])
-                # logger.addFilter(
-                #     DuplicateFilter(
-                #         logger,
-                #         args["filter_threshold"],
-                #         args["filter_repeat_delay"],
-                #         args["filter_timeout"],
-                #     )
-                # )
+                logger.addFilter(
+                    DuplicateFilter(
+                        logger,
+                        args["filter_threshold"],
+                        args["filter_repeat_delay"],
+                        args["filter_timeout"],
+                    )
+                )
                 args["logger"] = logger
                 logger.setLevel(log_level)
                 logger.propagate = False
@@ -312,14 +312,14 @@ class Logging(metaclass=utils.Singleton):
                     )
                 self.config[log]["handler"] = handler
                 handler.setFormatter(formatter)
-                # logger.addFilter(
-                #     DuplicateFilter(
-                #         logger,
-                #         args["filter_threshold"],
-                #         args["filter_repeat_delay"],
-                #         args["filter_timeout"],
-                #     )
-                # )
+                logger.addFilter(
+                    DuplicateFilter(
+                        logger,
+                        args["filter_threshold"],
+                        args["filter_repeat_delay"],
+                        args["filter_timeout"],
+                    )
+                )
                 logger.addHandler(handler)
 
         # Setup any aliases
@@ -446,14 +446,14 @@ class Logging(metaclass=utils.Singleton):
             Logger: Child logger
         """
         logger = self.get_logger().getChild(name)
-        # logger.addFilter(
-        #     DuplicateFilter(
-        #         logger,
-        #         self.config["main_log"]["filter_threshold"],
-        #         self.config["main_log"]["filter_repeat_delay"],
-        #         self.config["main_log"]["filter_timeout"],
-        #     )
-        # )
+        logger.addFilter(
+            DuplicateFilter(
+                logger,
+                self.config["main_log"]["filter_threshold"],
+                self.config["main_log"]["filter_repeat_delay"],
+                self.config["main_log"]["filter_timeout"],
+            )
+        )
 
         if name in self.AD.module_debug:
             logger.setLevel(self.AD.module_debug[name])
