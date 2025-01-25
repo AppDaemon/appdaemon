@@ -77,7 +77,6 @@ uv.lock
 # IDE
 
 .vscode
-.devcontainer
 
 # Docs
 
