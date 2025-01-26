@@ -511,9 +511,6 @@ class Scheduler:
         # I don't want to rely on heuristics such as "it occurs at 2am" because I don't know if that holds
         # true for every timezone. With this method, as long as pytz's dst() function is correct, this should work
         #
-
-        # TODO : Convert this to some sort of binary search for efficiency
-        # TODO : This really should support sub 1 second periods better
         self.logger.debug("get_next_dst_offset() base=%s limit=%s", base, limit)
         current = base.astimezone(self.AD.tz).dst()
         self.logger.debug("current=%s", current)

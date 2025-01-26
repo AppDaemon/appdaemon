@@ -63,8 +63,6 @@ class State:
 
         await self.AD.events.process_event("admin", data)
 
-        # TODO need to update and reload the admin page to show the new namespace in real-time
-
         return nspath_file
 
     async def namespace_exists(self, namespace):
@@ -90,8 +88,6 @@ class State:
             }
 
             await self.AD.events.process_event("admin", data)
-
-            # TODO need to update and reload the admin page to show the removed namespace in real-time
 
         elif namespace in self.state:
             self.logger.warning("Cannot delete namespace %s, as not an app defined namespace", namespace)
