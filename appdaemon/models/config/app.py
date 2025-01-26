@@ -5,8 +5,8 @@ from typing import Dict, Iterable, Iterator, List, Optional, Set, Tuple, Union
 from pydantic import BaseModel, Field, RootModel, field_validator, model_validator
 from pydantic_core import PydanticUndefinedType
 
-from ..dependency import reverse_graph
-from ..utils import read_config_file
+from ...dependency import reverse_graph
+from ...utils import read_config_file
 
 
 class GlobalModules(RootModel):

@@ -14,7 +14,7 @@ from appdaemon.app_management import AppManagement
 from appdaemon.callbacks import Callbacks
 from appdaemon.events import Events
 from appdaemon.futures import Futures
-from appdaemon.models import AppDaemonConfig
+from appdaemon.models.config import AppDaemonConfig
 from appdaemon.plugin_management import PluginManagement
 from appdaemon.scheduler import Scheduler
 from appdaemon.sequences import Sequences

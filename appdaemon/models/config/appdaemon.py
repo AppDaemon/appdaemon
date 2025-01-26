@@ -5,10 +5,10 @@ from typing import Annotated, Any, Callable, Literal, Union
 
 import pytz
 from pydantic import BaseModel, ConfigDict, Discriminator, Field, RootModel, Tag, field_validator, model_validator
+from pytz.tzinfo import BaseTzInfo
 from typing_extensions import deprecated
 
-from ...plugins.hass.config import HASSConfig
-from ...plugins.mqtt.config import MQTTConfig
+from ...models.config.plugin import HASSConfig, MQTTConfig
 from ...version import __version__
 from .misc import FilterConfig, NamespaceConfig
 
@@ -28,7 +28,7 @@ class AppDaemonConfig(BaseModel):
     latitude: float
     longitude: float
     elevation: int
-    time_zone: Union[pytz.StaticTzInfo, pytz.DstTzInfo]
+    time_zone: Union[BaseTzInfo]
     plugins: dict[
         str,
         Annotated[

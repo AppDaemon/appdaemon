@@ -1,7 +1,21 @@
 from datetime import datetime
-from typing import Any, Optional
+from typing import Annotated, Any, Optional
 
-from pydantic import BaseModel
+import pytz
+from pydantic import BaseModel, BeforeValidator, ConfigDict
+
+
+class HASSMetaData(BaseModel, extra="allow"):
+    """Represents the fields required to be returned from the ``get_config``
+    command from the websocket connection
+    """
+
+    latitude: float
+    longitude: float
+    elevation: float
+    time_zone: Annotated[pytz.BaseTzInfo, BeforeValidator(pytz.timezone)]
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class HAContext(BaseModel):

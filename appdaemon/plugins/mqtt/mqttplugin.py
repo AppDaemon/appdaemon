@@ -1,16 +1,18 @@
-import copy
-from typing import Any
-import paho.mqtt.client as mqtt
 import asyncio
-import traceback
-import ssl
+import copy
 import json
+import ssl
+import traceback
 from threading import Lock
+from typing import Any
+
+import paho.mqtt.client as mqtt
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
 from appdaemon.plugin_management import PluginBase
-from appdaemon.models.ad_config import MQTTConfig
+
+from ...models.config.plugin import MQTTConfig
 
 
 class MqttPlugin(PluginBase):

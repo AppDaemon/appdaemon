@@ -19,10 +19,11 @@ from pydantic import BaseModel
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
-from appdaemon.models.ad_config import HASSConfig, HASSMetaData
+from appdaemon.models.config.plugin import HASSConfig
 from appdaemon.plugin_management import PluginBase
 
 from .exceptions import HAEventsSubError
+from .models import HASSMetaData
 from .utils import hass_check, looped_coro
 
 

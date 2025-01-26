@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any, Dict, Type, Union
 
 from . import utils
 from .app_management import UpdateMode
-from .models.ad_config import PluginConfig
+from .models.config.plugin import PluginConfig
 
 if TYPE_CHECKING:
     from appdaemon.appdaemon import AppDaemon
