@@ -145,17 +145,10 @@ class ADBase:
     def get_ad_api(self) -> adapi.ADAPI:
         return adapi.ADAPI(self.AD, self.config_model)
 
-    @utils.sync_decorator
-    async def get_plugin_api(self, plugin_name: str) -> Callable:
-        return await self.AD.plugins.get_plugin_api(
-            plugin_name,
-            self.name,
-            self._logging,
-            self.args,
-            self.config_model,
-            self.app_config,
-            self.global_vars,
-        )
+    def get_plugin_api(self, plugin_name: str):
+        app_cfg = self.app_config.root[self.name]
+        plugin_api = self.AD.plugins.get_plugin_api(plugin_name, app_cfg)
+        return plugin_api
 
     #
     # Constraints

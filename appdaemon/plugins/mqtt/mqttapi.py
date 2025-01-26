@@ -1,11 +1,14 @@
-from typing import Any, Callable, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 import appdaemon.adapi as adapi
 import appdaemon.adbase as adbase
 import appdaemon.utils as utils
-from appdaemon.appdaemon import AppDaemon
-from appdaemon.models.config.app import AppConfig
-from appdaemon.plugins.mqtt.mqttplugin import MqttPlugin
+
+from ...appdaemon import AppDaemon
+
+if TYPE_CHECKING:
+    from ...models.config import AppConfig
+    from .mqttplugin import MqttPlugin
 
 
 class Mqtt(adbase.ADBase, adapi.ADAPI):
@@ -54,21 +57,9 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
     an more readable. These are documented in the following section.
     """
 
-    _plugin: MqttPlugin
+    _plugin: "MqttPlugin"
 
-    def __init__(self, ad: AppDaemon, config_model: AppConfig):
-        """Constructor for the app.
-
-        Args:
-            ad: AppDaemon object.
-            name: name of the app.
-            logging: reference to logging object.
-            args: app arguments.
-            config: AppDaemon config.
-            app_config: config for all apps.
-            global_vars: reference to global variables dict.
-
-        """
+    def __init__(self, ad: AppDaemon, config_model: "AppConfig"):
         # Call Super Classes
         adbase.ADBase.__init__(self, ad, config_model)
         adapi.ADAPI.__init__(self, ad, config_model)
@@ -154,7 +145,7 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
         """
 
         namespace = self._get_namespace(**kwargs)
-        plugin: MqttPlugin = self.AD.plugins.get_plugin_object(namespace)
+        plugin: "MqttPlugin" = self.AD.plugins.get_plugin_object(namespace)
         topic = kwargs.get("topic", kwargs.get("wildcard"))
 
         if plugin is not None:

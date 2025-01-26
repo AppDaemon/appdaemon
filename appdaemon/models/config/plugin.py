@@ -20,8 +20,12 @@ class PluginConfig(BaseModel, extra="allow"):
     """Delay between refreshes of the complete plugin state in the utility loop"""
     refresh_timeout: int = 30
     use_dictionary_unpacking: bool = True
-    module_name: str = None
-    class_name: str = None
+
+    # Used by the AppDaemon internals to import the plugins.
+    plugin_module: str = None
+    plugin_class: str = None
+    api_module: str = None
+    api_class: str = None
 
     connect_timeout: int | float = 1.0
     reconnect_delay: int | float = 5.0
@@ -36,11 +40,17 @@ class PluginConfig(BaseModel, extra="allow"):
 
     @model_validator(mode="after")
     def custom_validator(self):
-        if "module_name" not in self.model_fields_set:
-            self.module_name = f"appdaemon.plugins.{self.type}.{self.type}plugin"
+        if "plugin_module" not in self.model_fields_set:
+            self.plugin_module = f"appdaemon.plugins.{self.type}.{self.type}plugin"
 
-        if "class_name" not in self.model_fields_set:
-            self.class_name = f"{self.type.capitalize()}Plugin"
+        if "plugin_class" not in self.model_fields_set:
+            self.plugin_class = f"{self.type.capitalize()}Plugin"
+
+        if "api_module" not in self.model_fields_set:
+            self.api_module = f"appdaemon.plugins.{self.type}.{self.type}api"
+
+        if "api_classname" not in self.model_fields_set:
+            self.api_class = f"{self.type.capitalize()}"
 
         return self
 

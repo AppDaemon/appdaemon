@@ -12,9 +12,11 @@ from typing import TYPE_CHECKING, Any, Dict, Type, Union
 from . import utils
 from .app_management import UpdateMode
 from .models.config.plugin import PluginConfig
+from .models.config import AppConfig
 
 if TYPE_CHECKING:
-    from appdaemon.appdaemon import AppDaemon
+    from .adapi import ADAPI
+    from .appdaemon import AppDaemon
 
 
 class PluginBase(abc.ABC):
@@ -282,13 +284,13 @@ class PluginManagement:
                 self.logger.info(
                     msg,
                     name,
-                    cfg.class_name,
-                    cfg.module_name,
+                    cfg.plugin_class,
+                    cfg.plugin_module,
                 )
 
                 try:
-                    module = importlib.import_module(cfg.module_name)
-                    plugin_class: Type[PluginBase] = getattr(module, cfg.class_name)
+                    module = importlib.import_module(cfg.plugin_module)
+                    plugin_class: Type[PluginBase] = getattr(module, cfg.plugin_class)
                     plugin: PluginBase = plugin_class(self.AD, name, self.config[name])
                     namespace = plugin.config.namespace
 
@@ -486,19 +488,12 @@ class PluginManagement:
                 OK = False
         return OK
 
-    async def get_plugin_api(self, plugin_name, name, _logging, args, config, app_config, global_vars):
-        if plugin_name in self.config:
-            plugin = self.config[plugin_name]
-            module_name = "{}api".format(plugin["type"])
-            mod = __import__(module_name, globals(), locals(), [module_name], 0)
-            app_class = getattr(mod, plugin["type"].title())
-            api = app_class(self.AD, name, _logging, args, config, app_config, global_vars)
-            if "namespace" in plugin:
-                api.set_namespace(plugin["namespace"])
-            else:
-                api.set_namespace("default")
+    def get_plugin_api(self, plugin_name: str, app_cfg: AppConfig) -> "ADAPI":
+        if plugin_cfg := self.config.get(plugin_name):
+            module = importlib.import_module(plugin_cfg.api_module)
+            api_class: Type["ADAPI"] = getattr(module, plugin_cfg.api_class)
+            api = api_class(self.AD, app_cfg)
+            api.set_namespace(plugin_cfg.namespace)
             return api
-
         else:
             self.logger.warning("Unknown Plugin Configuration in get_plugin_api()")
-            return None

@@ -70,7 +70,7 @@ class ADAPI:
         self.config_model = config_model
 
         self.config = self.AD.config.model_dump(by_alias=True, exclude_unset=True)
-        self.args = self.config_model.model_dump(by_alias=True, exclude_unset=True)
+        self.args = config_model.model_dump(by_alias=True, exclude_unset=True)
 
         self.dashboard_dir = None
 
@@ -119,6 +119,11 @@ class ADAPI:
     # Properties
     #
     @property
+    def app_config(self) -> dict:
+        """Full set of loaded app configurations."""
+        return self.AD.app_management.app_config.model_dump(by_alias=True, exclude_unset=True)
+
+    @property
     def app_dir(self) -> Path:
         return self.AD.app_dir
 
@@ -127,7 +132,7 @@ class ADAPI:
         return self.AD.config_dir
 
     @property
-    def global_vars(self):
+    def global_vars(self) -> dict:
         return self.AD.global_vars
 
     @property
