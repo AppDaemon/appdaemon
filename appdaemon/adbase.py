@@ -2,9 +2,9 @@ import threading
 from functools import wraps
 from logging import Logger
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Dict, List
+from typing import TYPE_CHECKING, Dict, List
 
-from . import adapi, utils
+from . import adapi
 
 if TYPE_CHECKING:
     from .appdaemon import AppDaemon
