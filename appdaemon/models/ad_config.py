@@ -238,10 +238,7 @@ class AppDaemonConfig(BaseModel):
     cert_verify: bool = True
     disable_apps: bool = False
 
-    import_method: Annotated[
-        Literal["normal", "expert"] | None,
-        deprecated("Import method is no longer relevant with the new AppManagement system."),
-    ] = None
+    import_method: Literal["default", "legacy", "expert"] | None = None
 
     load_distribution: str = "roundrobbin"
     threads: (

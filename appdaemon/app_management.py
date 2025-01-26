@@ -760,39 +760,47 @@ class AppManagement:
     @utils.executor_decorator
     def _process_import_paths(self):
         """Process one time static additions to sys.path"""
-        # Get unique set of the absolute paths of all the subdirectories containing python files
-        python_file_parents = set(f.parent.resolve() for f in Path(self.AD.app_dir).rglob("*.py"))
-        # Filter out any that have __init__.py files in them
-        module_parents = set(p for p in python_file_parents if not (p / "__init__.py").exists())
+        # Always start with the app_dir
+        self.add_to_import_path(self.AD.app_dir)
 
-        #  unique set of the absolute paths of all subdirectories with a __init__.py in them
-        package_dirs = set(p for p in python_file_parents if (p / "__init__.py").exists())
-        # Filter by ones whose parent directory's don't also contain an __init__.py
-        top_packages_dirs = set(p for p in package_dirs if not (p.parent / "__init__.py").exists())
-        # Get the parent directories so the ones with __init__.py are importable
-        package_parents = set(p.parent for p in top_packages_dirs)
+        match self.AD.config.import_method:
+            case 'default' | 'expert' | None:
+                # Get unique set of the absolute paths of all the subdirectories containing python files
+                python_file_parents = set(f.parent.resolve() for f in Path(self.AD.app_dir).rglob("*.py"))
+                # Filter out any that have __init__.py files in them
+                module_parents = set(p for p in python_file_parents if not (p / "__init__.py").exists())
 
-        # Combine import directories. Having the list sorted will prioritize parent folders over children during import
-        import_dirs = sorted(module_parents | package_parents, reverse=True)
+                #  unique set of the absolute paths of all subdirectories with a __init__.py in them
+                package_dirs = set(p for p in python_file_parents if (p / "__init__.py").exists())
+                # Filter by ones whose parent directory's don't also contain an __init__.py
+                top_packages_dirs = set(p for p in package_dirs if not (p.parent / "__init__.py").exists())
+                # Get the parent directories so the ones with __init__.py are importable
+                package_parents = set(p.parent for p in top_packages_dirs)
 
-        for path in import_dirs:
-            self.add_to_import_path(path)
+                # Combine import directories. Having the list sorted will prioritize parent folders over children during import
+                import_dirs = sorted(module_parents | package_parents, reverse=True)
 
-        # Add any aditional import paths
-        for path in map(Path, self.AD.import_paths):
-            if not path.exists():
-                self.logger.warning(f"import_path {path} does not exist - not adding to path")
-                continue
+                for path in import_dirs:
+                    self.add_to_import_path(path)
 
-            if not path.is_dir():
-                self.logger.warning(f"import_path {path} is not a directory - not adding to path")
-                continue
+                # Add any aditional import paths
+                for path in map(Path, self.AD.import_paths):
+                    if not path.exists():
+                        self.logger.warning(f"import_path {path} does not exist - not adding to path")
+                        continue
 
-            if not path.is_absolute():
-                path = Path(self.AD.config_dir) / path
+                    if not path.is_dir():
+                        self.logger.warning(f"import_path {path} is not a directory - not adding to path")
+                        continue
 
-            self.add_to_import_path(path)
+                    if not path.is_absolute():
+                        path = Path(self.AD.config_dir) / path
 
+                    self.add_to_import_path(path)
+            case 'legacy':
+                for root, subdirs, files in os.walk(self.AD.app_dir):
+                    if utils.is_valid_root_path(root) and root not in sys.path:
+                        self.add_to_import_path(root)
 
     async def _init_dep_manager(self):
         self.dependency_manager = DependencyManager(
