@@ -304,8 +304,7 @@ class ADMain:
         try:
             config = utils.read_config_file(config_file_path)
         except Exception as e:
-            print(f"FATAL: Unexpected error loading config file: {
-                  config_file_path}")
+            print(f"FATAL: Unexpected error loading config file: {config_file_path}")
             print(e)
             sys.exit()
 
