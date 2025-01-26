@@ -268,6 +268,7 @@ class AppManagement:
             raise ade.BadInitializeMethod(f"Wrong number of arguments for initialize method of {class_name}")
 
         # Call its initialize function
+        await self.set_state(app_name, state="initializing")
         self.logger.info(f"Calling initialize() for {app_name}")
         if asyncio.iscoroutinefunction(init_func):
             await init_func()
