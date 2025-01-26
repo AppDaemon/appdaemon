@@ -4,7 +4,7 @@ import appdaemon.adapi as adapi
 import appdaemon.adbase as adbase
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
-from appdaemon.models.app_config import AppConfig
+from appdaemon.models.config.app import AppConfig
 from appdaemon.plugins.mqtt.mqttplugin import MqttPlugin
 
 

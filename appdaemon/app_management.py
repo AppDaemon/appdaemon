@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING, Iterable, Literal, Set, Union
 
 from appdaemon.dependency import DependencyResolutionFail, get_full_module_name
 from appdaemon.dependency_manager import DependencyManager
-from appdaemon.models.app_config import AllAppConfig, AppConfig, GlobalModule
+from appdaemon.models.config import AllAppConfig, AppConfig, GlobalModule
 from appdaemon.models.internal.file_check import FileCheck
 
 from . import exceptions as ade

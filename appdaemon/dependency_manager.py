@@ -4,13 +4,14 @@ from pathlib import Path
 from typing import Iterable
 
 from .dependency import find_all_dependents, get_dependency_graph, get_full_module_name, reverse_graph, topo_sort
-from .models.app_config import AllAppConfig, BaseApp
+from .models.config.app import AllAppConfig, BaseApp
 from .models.internal.file_check import FileCheck
 
 
 @dataclass
 class Dependencies(ABC):
     """Wraps an instance of ``FileCheck`` with a corresponding set of dependency graphs."""
+
     files: FileCheck = field(repr=False)
     ext: str = field(init=False)  # this has to be defined by the children classes
     dep_graph: dict[str, set[str]] = field(init=False)

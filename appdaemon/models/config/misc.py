@@ -22,3 +22,14 @@ class AppDaemonCLIKwargs(BaseModel):
 
     def print(self):
         print(json.dumps(self.model_dump(mode="json", exclude_defaults=True), indent=4))
+
+
+class FilterConfig(BaseModel):
+    command_line: str
+    input_ext: str
+    output_ext: str
+
+
+class NamespaceConfig(BaseModel):
+    writeback: Literal["safe", "hybrid"] = "safe"
+    persist: bool = False

@@ -2,7 +2,7 @@ import appdaemon.adapi as adapi
 import appdaemon.adbase as adbase
 from appdaemon.appdaemon import AppDaemon
 from appdaemon.logging import Logging
-from appdaemon.models.app_config import AppConfig
+from appdaemon.models.config.app import AppConfig
 
 
 class Dummy(adbase.ADBase, adapi.ADAPI):

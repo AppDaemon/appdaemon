@@ -2,18 +2,21 @@ import re
 from ast import literal_eval
 from collections.abc import Iterable
 from datetime import datetime, timedelta
-from typing import Any, Callable, Literal, Type, overload
+from typing import TYPE_CHECKING, Any, Callable, Literal, Type, overload
 
 from ... import utils
 from ...adapi import ADAPI
 from ...adbase import ADBase
 from ...appdaemon import AppDaemon
-from ...models.app_config import AppConfig
 from ...models.notification.android import AndroidData
 from ...models.notification.base import NotificationData
 from ...models.notification.iOS import iOSData
 from .hassplugin import HassPlugin
 from .notifications import AndroidNotification
+
+
+if TYPE_CHECKING:
+    from ...models.config.app import AppConfig
 
 
 class Hass(ADBase, ADAPI):
@@ -24,7 +27,7 @@ class Hass(ADBase, ADAPI):
 
     _plugin: HassPlugin
 
-    def __init__(self, ad: AppDaemon, config_model: AppConfig):
+    def __init__(self, ad: AppDaemon, config_model: "AppConfig"):
         # Call Super Classes
         ADBase.__init__(self, ad, config_model)
         ADAPI.__init__(self, ad, config_model)

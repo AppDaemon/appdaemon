@@ -4,13 +4,13 @@ from logging import Logger
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Dict, List
 
-import appdaemon.adapi as adapi
-import appdaemon.utils as utils
-from appdaemon.logging import Logging
-from appdaemon.models.app_config import AppConfig
+from . import adapi, utils
 
 if TYPE_CHECKING:
-    from appdaemon.appdaemon import AppDaemon
+    from .appdaemon import AppDaemon
+    from .logging import Logging
+    from .models.config.app import AppConfig
+
 
 #
 # Locking decorator
@@ -49,7 +49,7 @@ def global_lock(f):
 
 class ADBase:
     AD: "AppDaemon"
-    config_model: AppConfig
+    config_model: "AppConfig"
 
     config: Dict
     """Dictionary of the AppDaemon configuration
@@ -64,7 +64,7 @@ class ADBase:
     app_dir: Path
     config_dir: Path
 
-    _logging: Logging
+    _logging: "Logging"
     logger: Logger
     err: Logger
 
@@ -72,7 +72,7 @@ class ADBase:
     user_logs: Dict
     constraints: List
 
-    def __init__(self, ad: "AppDaemon", config_model: AppConfig):
+    def __init__(self, ad: "AppDaemon", config_model: "AppConfig"):
         self.AD = ad
         self.config_model = config_model
 
@@ -131,7 +131,7 @@ class ADBase:
         return self.AD.global_vars
 
     @property
-    def _logging(self) -> Logging:
+    def _logging(self) -> "Logging":
         return self.AD.logging
 
     @property

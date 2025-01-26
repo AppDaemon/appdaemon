@@ -16,12 +16,13 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 
 import iso8601
 
-from appdaemon import utils as utils
-from appdaemon.models.app_config import AllAppConfig, AppConfig
+from . import utils
+from .models.config.app import AppConfig
 
 if TYPE_CHECKING:
-    from appdaemon.adbase import ADBase
-    from appdaemon.appdaemon import AppDaemon
+    from .adbase import ADBase
+    from .appdaemon import AppDaemon
+    from .models.config.app import AllAppConfig
 
 class Threading:
     """Subsystem container for managing :class:`~threading.Thread` objects"""
@@ -168,7 +169,7 @@ class Threading:
             # Force a config check here so we have an accurate activate app count
             self.AD.app_management.logger.debug("Reading app config files to determine how many threads to make")
             cfg_paths = await self.AD.app_management.get_app_config_files()
-            full_cfg: AllAppConfig = await self.AD.app_management.read_all(cfg_paths)
+            full_cfg: "AllAppConfig" = await self.AD.app_management.read_all(cfg_paths)
             self.total_threads = full_cfg.active_app_count
 
         if self.pin_apps:

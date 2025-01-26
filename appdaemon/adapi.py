@@ -20,7 +20,7 @@ from appdaemon.entity import Entity
 from appdaemon.logging import Logging
 
 if TYPE_CHECKING:
-    from .models.app_config import AppConfig
+    from .models.config.app import AppConfig
     from .plugin_management import PluginBase
 
 
