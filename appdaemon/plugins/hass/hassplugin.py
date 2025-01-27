@@ -71,6 +71,7 @@ class HassPlugin(PluginBase):
     services: list[dict[str, Any]]
 
     _result_futures: dict[int, asyncio.Future]
+    _silent_results: dict[int, bool]
     startup_conditions: list[StartupWaitCondition]
 
     first_time: bool = True
@@ -83,6 +84,7 @@ class HassPlugin(PluginBase):
         self.metadata = {}
         self.services = []
         self._result_futures = {}
+        self._silent_results = {}
         self.startup_conditions = []
 
         # Internal state flags
@@ -217,13 +219,17 @@ class HassPlugin(PluginBase):
         else:
             self.logger.warning(f"Received result without a matching future: {resp}")
 
-        match resp["success"]:
-            case True:
-                self.logger.debug(f'Received successful result from ID {resp["id"]}')
-            case False:
-                self.logger.warning("Error with websocket result: %s: %s", resp["error"]["code"], resp["error"]["message"])
-            case None:
-                self.logger.error(f"Invalid response success value: {resp['success']}")
+        silent = self._silent_results.pop(resp["id"], False) or \
+            self.AD.config.suppress_log_messages
+        
+        if not silent:
+            match resp["success"]:
+                case True:
+                    self.logger.debug(f'Received successful result from ID {resp["id"]}')
+                case False:
+                    self.logger.warning("Error with websocket result: %s: %s", resp["error"]["code"], resp["error"]["message"])
+                case None:
+                    self.logger.error(f"Invalid response success value: {resp['success']}")
 
     @utils.warning_decorator(error_text="Unexpected error during receive_event")
     async def receive_event(self, event: dict):
@@ -266,7 +272,7 @@ class HassPlugin(PluginBase):
             # ? 'entity_registry_updated'
                 self.logger.debug('Unrecognized event %s', typ)
 
-    async def websocket_send_json(self, timeout: float = 5.0, **request) -> dict:
+    async def websocket_send_json(self, timeout: float = 5.0, silent: bool = False, **request) -> dict:
         """
         Sends a json request over the websocket and gets the response.
 
@@ -297,6 +303,7 @@ class HassPlugin(PluginBase):
 
         future = self.AD.loop.create_future()
         self._result_futures[self.id] = future
+        self._silent_results[self.id] = silent
 
         try:
             result: dict = await asyncio.wait_for(future, timeout=timeout)
@@ -559,6 +566,7 @@ class HassPlugin(PluginBase):
         hass_timeout: float | None = None,
         return_response: bool | None = None,
         callback: Callable | None = None,
+        suppress_log_messages: bool = False,
         **data
     ):
         """Used by ``self.check_register_service`` when calling ``self.AD.services.register_service``.
@@ -605,7 +613,7 @@ class HassPlugin(PluginBase):
         if target is not None:
             req["target"] = target
 
-        send_coro = self.websocket_send_json(**req)
+        send_coro = self.websocket_send_json(silent=suppress_log_messages, **req)
 
         if callback is not None:
             error_text=f'Error in callback {callback.__name__} for service {domain}/{service}'

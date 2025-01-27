@@ -79,7 +79,8 @@ class AppDaemonConfig(BaseModel):
     exclude_dirs: list[str] = Field(default_factory=list)
     cert_verify: bool = True
     disable_apps: bool = False
-
+    suppress_log_messages: bool = False
+    """Suppresses the log messages based on the result field of the response"""
     import_method: Literal["default", "legacy", "expert"] | None = None
 
     load_distribution: str = "roundrobbin"
