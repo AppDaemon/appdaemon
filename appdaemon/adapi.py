@@ -1561,7 +1561,8 @@ class ADAPI:
         attribute: str | None = None,
         default: Any | None = None,
         namespace: str | None = None,
-        copy: bool = True
+        copy: bool = True,
+        **kwargs
     ) -> Any:
         """Gets the state of any component within Home Assistant.
 
@@ -1620,6 +1621,9 @@ class ADAPI:
             >>> state = self.get_state("light.office_1", attribute="all")
 
         """
+        if kwargs:
+            self.logger.warning(f'Extra kwargs passed to get_state, will be ignored: {kwargs}')
+
         namespace = namespace or self.namespace
         self._check_entity(namespace, entity_id)
         entity_api = self.get_entity_api(namespace, entity_id)
