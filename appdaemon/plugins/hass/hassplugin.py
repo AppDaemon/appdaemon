@@ -221,7 +221,7 @@ class HassPlugin(PluginBase):
 
         silent = self._silent_results.pop(resp["id"], False) or \
             self.AD.config.suppress_log_messages
-        
+
         if not silent:
             match resp["success"]:
                 case True:
