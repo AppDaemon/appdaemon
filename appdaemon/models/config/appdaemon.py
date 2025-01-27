@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Annotated, Any, Callable, Literal, Union
 
 import pytz
-from pydantic import BaseModel, ConfigDict, Discriminator, Field, RootModel, Tag, field_validator, model_validator
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Discriminator, Field, RootModel, Tag, field_validator, model_validator
 from pytz.tzinfo import BaseTzInfo
 from typing_extensions import deprecated
 
@@ -28,7 +28,7 @@ class AppDaemonConfig(BaseModel):
     latitude: float
     longitude: float
     elevation: int
-    time_zone: Union[BaseTzInfo]
+    time_zone: Annotated[BaseTzInfo, BeforeValidator(pytz.timezone)]
     plugins: dict[
         str,
         Annotated[
@@ -137,11 +137,6 @@ class AppDaemonConfig(BaseModel):
             v = v.upper()
             assert v in logging._nameToLevel, f"Invalid log level: {v}"
             return v
-
-    @field_validator("time_zone", mode="before")
-    @classmethod
-    def convert_timezone(cls, v: str):
-        return pytz.timezone(v)
 
     @field_validator("plugins", mode="before")
     @classmethod
