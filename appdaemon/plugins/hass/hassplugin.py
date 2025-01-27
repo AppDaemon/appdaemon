@@ -283,8 +283,9 @@ class HassPlugin(PluginBase):
             self.id += 1
             request["id"] = self.id
 
-            # include this in the "not auth" section so we don't accidentally put the token in the logs
-            self.logger.debug(f"Sending JSON: {request}")
+            if not silent:
+                # include this in the "not auth" section so we don't accidentally put the token in the logs
+                self.logger.debug(f"Sending JSON: {request}")
 
         send_time = perf_counter()
         try:
@@ -308,7 +309,8 @@ class HassPlugin(PluginBase):
         try:
             result: dict = await asyncio.wait_for(future, timeout=timeout)
         except asyncio.TimeoutError:
-            self.logger.warning(f"Timed out [{timeout:.0f}s] waiting for request: %s", request)
+            if not silent:
+                self.logger.warning(f"Timed out [{timeout:.0f}s] waiting for request: %s", request)
             return {"success": "timeout", "ad_duration": timeout}
         else:
             travel_time = perf_counter() - send_time
