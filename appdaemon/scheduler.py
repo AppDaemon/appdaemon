@@ -939,13 +939,16 @@ class Scheduler:
 
     async def _parse_time(
         self,
-        time_str: str,
+        time_str: str | datetime,
         name: str | None = None,
         today: bool = False,
         days_offset: int = 0
     ) -> dict:
         sun = None
         offset = 0
+
+        if isinstance(time_str, datetime):
+            return time_str + timedelta(days=days_offset)
 
         # parse time with date
         if match := DATE_REGEX.match(time_str):
