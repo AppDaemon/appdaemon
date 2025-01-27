@@ -1,5 +1,4 @@
 import asyncio
-import datetime
 import functools
 import logging
 import random
@@ -7,7 +6,7 @@ import re
 import traceback
 import uuid
 from collections import OrderedDict
-from datetime import time, timedelta, timezone
+from datetime import datetime, time, timedelta, timezone, MAXYEAR
 from itertools import count
 from logging import Logger
 from typing import TYPE_CHECKING, Any, Callable
@@ -16,11 +15,11 @@ import pytz
 from astral import SunDirection
 from astral.location import Location, LocationInfo
 
-import appdaemon.utils as utils
+from . import utils
 
 if TYPE_CHECKING:
-    from appdaemon.appdaemon import AppDaemon
-    from appdaemon.adbase import ADBase
+    from .adbase import ADBase
+    from .appdaemon import AppDaemon
 
 
 time_regex_str = r"(?P<hour>\d+):(?P<minute>\d+):(?P<second>\d+)(?:\.(?P<microsecond>\d+))?"
@@ -57,7 +56,7 @@ class Scheduler:
         self.location = None
         self.schedule = {}
 
-        self.now = datetime.datetime.now(timezone.utc)
+        self.now = datetime.now(timezone.utc)
 
         #
         # If we were waiting for a timezone from metadata, we have it now.
@@ -84,7 +83,7 @@ class Scheduler:
             aware_now = self.AD.tz.localize(unaware_now)
             self.now = aware_now.astimezone(pytz.utc)
         else:
-            self.now = datetime.datetime.now(pytz.utc)
+            self.now = datetime.now(pytz.utc)
 
         if self.AD.timewarp != 1:
             tt = True
@@ -98,7 +97,7 @@ class Scheduler:
     async def insert_schedule(
         self,
         name: str,
-        aware_dt: datetime.datetime,
+        aware_dt: datetime,
         callback: Callable | None,
         repeat: bool = False,
         type_: str | None = None,
@@ -172,7 +171,7 @@ class Scheduler:
             {
                 "app": name,
                 "execution_time": utils.dt_to_str(ts.replace(microsecond=0), self.AD.tz),
-                "repeat": str(datetime.timedelta(seconds=interval)),
+                "repeat": str(timedelta(seconds=interval)),
                 "function": function_name,
                 "pinned": pin_app,
                 "pinned_thread": pin_thread,
@@ -398,23 +397,23 @@ class Scheduler:
 
         self.location = Location(LocationInfo("", "", self.AD.tz.zone, latitude, longitude))
 
-    async def sun(self, type: str, secs_offset: int) -> datetime.datetime:
-        return (await self.get_next_sun_event(type, secs_offset)) + datetime.timedelta(seconds=secs_offset)
+    async def sun(self, type: str, secs_offset: int) -> datetime:
+        return (await self.get_next_sun_event(type, secs_offset)) + timedelta(seconds=secs_offset)
 
-    async def get_next_sun_event(self, type: str, day_offset: int) -> datetime.datetime:
+    async def get_next_sun_event(self, type: str, day_offset: int) -> datetime:
         if type == "next_rising":
             return await self.next_sunrise(day_offset)
         else:
             return await self.next_sunset(day_offset)
 
-    async def todays_sunrise(self, days_offset: int = 0) -> datetime.datetime:
+    async def todays_sunrise(self, days_offset: int = 0) -> datetime:
         return self.location.sunrise(
             date=(await self.get_now()) + timedelta(days=days_offset),
             local=True,
             observer_elevation=self.AD.config.elevation
         )
 
-    async def todays_sunset(self, days_offset: int = 0) -> datetime.datetime:
+    async def todays_sunset(self, days_offset: int = 0) -> datetime:
         return self.location.sunset(
             date=(await self.get_now()) + timedelta(days=days_offset),
             local=True,
@@ -489,13 +488,13 @@ class Scheduler:
 
     async def get_next_period(
         self,
-        interval: int | float | datetime.timedelta,
-        start: datetime.time | datetime.datetime | str | None = None,
+        interval: int | float | timedelta,
+        start: time | datetime | str | None = None,
     ) -> datetime:
         match interval:
             case int() | float():
-                interval = datetime.timedelta(seconds=interval)
-            case datetime.timedelta():
+                interval = timedelta(seconds=interval)
+            case timedelta():
                 ...
             case _:
                 raise ValueError(f'Bad value for interval: {interval}')
@@ -508,15 +507,15 @@ class Scheduler:
                 if "+" in start and (m := re.search(r'\d+', start)):  # meaning time to be added
                     now_offset = int(m.group())
                 aware_start = now + interval + timedelta(seconds=now_offset)
-            case datetime.time():
-                aware_start = datetime.datetime.combine(now.date(), start).astimezone(self.AD.tz)
-            case datetime.datetime():
+            case time():
+                aware_start = datetime.combine(now.date(), start).astimezone(self.AD.tz)
+            case datetime():
                 aware_start = self.AD.sched.convert_naive(start)
             case None:
                 aware_start = now + interval
             case _:
                 raise ValueError(f'Bad value for start: {start}')
-        assert isinstance(aware_start, datetime.datetime) and aware_start.tzinfo is not None
+        assert isinstance(aware_start, datetime) and aware_start.tzinfo is not None
 
         while True:
             if aware_start >= now:
@@ -538,7 +537,7 @@ class Scheduler:
     #
 
     def get_next_entries(self):
-        next_exec = datetime.datetime.now(pytz.utc).replace(year=datetime.MAXYEAR, month=12, day=31)
+        next_exec = datetime.now(pytz.utc).replace(year=MAXYEAR, month=12, day=31)
         for name in self.schedule.keys():
             for entry in self.schedule[name].keys():
                 if self.schedule[name][entry]["timestamp"] < next_exec:
@@ -581,7 +580,7 @@ class Scheduler:
         self.AD.booted = await self.get_now_naive()
 
         tt = self.set_start_time()
-        self.last_fired = pytz.utc.localize(datetime.datetime.utcnow())
+        self.last_fired = pytz.utc.localize(datetime.utcnow())
         if tt is True:
             self.realtime = False
             self.logger.info("Starting time travel ...")
@@ -606,7 +605,7 @@ class Scheduler:
                         self.AD.stop_function()
                     else:
                         self.stop()
-                now = pytz.utc.localize(datetime.datetime.utcnow())
+                now = pytz.utc.localize(datetime.utcnow())
                 if self.realtime is True:
                     self.now = now
 
@@ -625,7 +624,7 @@ class Scheduler:
 
                     self.now = self.now + timedelta(seconds=delta)
 
-                self.last_fired = pytz.utc.localize(datetime.datetime.utcnow())
+                self.last_fired = pytz.utc.localize(datetime.utcnow())
                 self.logger.debug("self.now = %s", self.now)
                 #
                 # Now we're awake and know what time it is
@@ -751,7 +750,7 @@ class Scheduler:
     async def sun_down(self):
         return await self.now_is_between("sunset", "sunrise")
 
-    async def info_timer(self, handle, name) -> tuple[datetime.datetime, int, dict] | None:
+    async def info_timer(self, handle, name) -> tuple[datetime, int, dict] | None:
         if self.timer_running(name, handle):
             callback = self.schedule[name][handle]
             return (
@@ -818,20 +817,20 @@ class Scheduler:
 
     async def is_dst(self, dt=None):
         if dt is None:
-            return (await self.get_now()).astimezone(self.AD.tz).dst() != datetime.timedelta(0)
+            return (await self.get_now()).astimezone(self.AD.tz).dst() != timedelta(0)
         else:
-            return dt.astimezone(self.AD.tz).dst() != datetime.timedelta(0)
+            return dt.astimezone(self.AD.tz).dst() != timedelta(0)
 
     async def get_now(self):
         if self.realtime is True:
-            return pytz.utc.localize(datetime.datetime.utcnow())
+            return datetime.now(self.AD.time_zone)
         else:
             return self.now
 
     # Non async version of get_now(), required for logging time formatter - no locking but only used during time travel so should be OK ...
     def get_now_sync(self):
         if self.realtime is True:
-            return pytz.utc.localize(datetime.datetime.utcnow())
+            return pytz.utc.localize(datetime.utcnow())
         else:
             return self.now
 
@@ -841,13 +840,22 @@ class Scheduler:
     async def get_now_naive(self):
         return self.make_naive(await self.get_now())
 
-    async def now_is_between(self, start_time: str, end_time: str, name: str | None = None, now: str | None = None):
-        start_time = (await self._parse_time(start_time, name, today=True, days_offset=0))["datetime"]
-        end_time = (await self._parse_time(end_time, name, today=True, days_offset=0))["datetime"]
+    async def now_is_between(
+        self,
+        start_time: str | datetime,
+        end_time: str | datetime,
+        name: str | None = None,
+        now: str | None = None
+    ):
+        if isinstance(start_time, str):
+            start_time = (await self._parse_time(start_time, name, today=True, days_offset=0))["datetime"]
+        if isinstance(end_time, str):
+            end_time = (await self._parse_time(end_time, name, today=True, days_offset=0))["datetime"]
+
         if now is not None:
             now = (await self._parse_time(now, name))["datetime"]
         else:
-            now = (await self.get_now()).astimezone(self.AD.tz)
+            now = await self.get_now()
 
         # self.logger.info(
         #    "\n" + "-" * 80 + f"\nInitial\nstart = {start_time}\nnow   = {now}\nend   = {end_time}\n" + "-" * 80
@@ -877,7 +885,7 @@ class Scheduler:
 
         return start_time <= now <= end_time
 
-    async def sunset(self, aware: bool = True, today: bool = False, days_offset: int = 0) -> datetime.datetime:
+    async def sunset(self, aware: bool = True, today: bool = False, days_offset: int = 0) -> datetime:
         if today:
             dt = await self.todays_sunset(days_offset)
         else:
@@ -885,7 +893,7 @@ class Scheduler:
 
         return dt if aware else dt.replace(tzinfo=None)
 
-    async def sunrise(self, aware: bool = True, today: bool = False, days_offset: int = 0) -> datetime.datetime:
+    async def sunrise(self, aware: bool = True, today: bool = False, days_offset: int = 0) -> datetime:
         if today:
             dt = await self.todays_sunrise(days_offset)
         else:
@@ -946,7 +954,7 @@ class Scheduler:
             if "microsecond" in kwargs:
                 kwargs["microsecond"] = int(float(f"0.{kwargs['microsecond']}") * 10**6)
 
-            dt = datetime.datetime(**kwargs) + datetime.timedelta(days=days_offset)
+            dt = datetime(**kwargs) + timedelta(days=days_offset)
 
         # parse time based on time only (date will be today)
         elif match := TIME_REGEX.match(time_str):
@@ -955,7 +963,8 @@ class Scheduler:
             if "microsecond" in kwargs:
                 kwargs["microsecond"] = int(float(f"0.{kwargs['microsecond']}") * 10**6)
 
-            dt = datetime.datetime.combine(datetime.datetime.today().date(), time(**kwargs)) + datetime.timedelta(
+            today = (await self.get_now()).date()
+            dt = datetime.combine(today, time(**kwargs)) + timedelta(
                 days=days_offset
             )
 
@@ -1074,7 +1083,7 @@ class Scheduler:
         else:
             ts = dt.timestamp()
             rounded = round(base * round(float(ts) / base), prec)
-            result = datetime.datetime.utcfromtimestamp(rounded)
+            result = datetime.utcfromtimestamp(rounded)
             aware_result = pytz.utc.localize(result)
             return aware_result
 
@@ -1089,14 +1098,5 @@ class Scheduler:
 
         return result
 
-    def make_naive(self, dt):
-        local = dt.astimezone(self.AD.tz)
-        return datetime.datetime(
-            local.year,
-            local.month,
-            local.day,
-            local.hour,
-            local.minute,
-            local.second,
-            local.microsecond,
-        )
+    def make_naive(self, dt: datetime) -> datetime:
+        return dt.replace(tzinfo=None)
