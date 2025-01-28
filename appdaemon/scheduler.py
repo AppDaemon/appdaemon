@@ -892,10 +892,8 @@ class Scheduler:
         name: str | None = None,
         now: str | None = None
     ):
-        if isinstance(start_time, str):
-            start_time_dt = (await self.get_dt_from_param(start_time, name, today=True, days_offset=0))["datetime"]
-        if isinstance(end_time, str):
-            end_time_dt = (await self.get_dt_from_param(end_time, name, today=True, days_offset=0))["datetime"]
+        start_time_dt = (await self.get_dt_from_param(start_time, name, today=True, days_offset=0))["datetime"]
+        end_time_dt = (await self.get_dt_from_param(end_time, name, today=True, days_offset=0))["datetime"]
 
         if now is not None:
             now = (await self._parse_time(now, name))["datetime"]
