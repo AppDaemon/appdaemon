@@ -351,10 +351,11 @@ class AppManagement:
             return
 
         # assert dependencies
-        valid_apps = self.valid_apps
         dependencies = self.app_config.root[app_name].dependencies
         for dep in dependencies:
-            assert dep in valid_apps, f"'{app_name}' depends on '{dep}', but it's not running or loaded"
+            if isinstance(self.app_config[dep], AppConfig):
+                dependency_state = await self.get_state(dep)
+                assert dependency_state == "idle", f"'{app_name}' depends on '{dep}', but it's state is {dependency_state}"
 
         if self.app_config[app_name].disable:
             pass
