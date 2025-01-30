@@ -28,7 +28,8 @@ class Sequences:
 
     async def run_sequence_service(self, namespace, domain, service, kwargs):
         if "entity_id" not in kwargs:
-            self.logger.warning("entity_id not given in service call, so will not be executing %s", service)
+            self.logger.warning(
+                "entity_id not given in service call, so will not be executing %s", service)
             return
 
         entity_id = kwargs["entity_id"]
@@ -134,7 +135,8 @@ class Sequences:
         if isinstance(sequence, str):
             entity_id = sequence
             if self.AD.state.entity_exists("rules", entity_id) is False:
-                self.logger.warning('Unknown sequence "%s" in run_sequence()', sequence)
+                self.logger.warning(
+                    'Unknown sequence "%s" in run_sequence()', sequence)
                 return None
 
             entity = await self.AD.state.get_state("_services", "rules", sequence, attribute="all")
@@ -146,7 +148,8 @@ class Sequences:
             #
             # Assume it's a list with the actual commands in it
             #
-            assert isinstance(sequence, list) and all(isinstance(s, str) for s in sequence)
+            assert isinstance(sequence, list) and all(
+                isinstance(s, str) for s in sequence)
             entity_id = "sequence.{}".format(uuid.uuid4().hex)
             # Create an ephemeral entity for it
             ephemeral_entity = True
@@ -191,7 +194,8 @@ class Sequences:
 
                         elif command == "wait_state":
                             if ephemeral_entity is True:
-                                self.logger.warning("Cannot process command 'wait_state', as not supported in sequence")
+                                self.logger.warning(
+                                    "Cannot process command 'wait_state', as not supported in sequence")
                                 continue
 
                             _, entity_name = entity_id.split(".")
@@ -200,7 +204,8 @@ class Sequences:
                             wait_entity = parameters.get("entity_id")
 
                             if wait_entity is None:
-                                self.logger.warning("Cannot process command 'wait_state', as entity_id not given")
+                                self.logger.warning(
+                                    "Cannot process command 'wait_state', as entity_id not given")
                                 continue
 
                             state = parameters.get("state")
@@ -209,17 +214,20 @@ class Sequences:
                             timeout = parameters.get("timeout", 15 * 60)
 
                             # now we create the wait entity object
-                            entity_object = Entity(self.logger, self.AD, name, ns, wait_entity)
+                            entity_object = Entity(
+                                self.logger, self.AD, name, ns, wait_entity)
                             if not entity_object.exists():
                                 self.logger.warning(
-                                    f"Waiting for an entity {wait_entity}, in sequence {entity_name}, that doesn't exist"
+                                    f"Waiting for an entity {wait_entity}, in sequence {
+                                        entity_name}, that doesn't exist"
                                 )
 
                             try:
                                 await entity_object.wait_state(state, attribute, duration, timeout)
                             except TimeOutException:
                                 self.logger.warning(
-                                    f"{entity_name} sequence wait for {wait_entity} timed out, so continuing sequence"
+                                    f"{entity_name} sequence wait for {
+                                        wait_entity} timed out, so continuing sequence"
                                 )
 
                         else:
@@ -228,11 +236,18 @@ class Sequences:
                             params = copy.deepcopy(parameters)
                             await self.AD.services.call_service(ns, domain, service, entity_id, params)
 
-                            if isinstance(loop_step, dict):  # we need to loop this command multiple times
+                            # we need to loop this command multiple times
+                            if isinstance(loop_step, dict):
                                 await self.loop_step(ns, command, parameters, loop_step)
 
                 if loop is not True:
                     break
+        except Exception:
+            self.logger.error("-" * 60)
+            self.logger.error("Unexpected error when attempting do_steps()")
+            self.logger.error("-" * 60)
+            self.logger.error(traceback.format_exc())
+            self.logger.error("-" * 60)
         finally:
             await self.AD.state.set_state("_sequences", "rules", entity_id, state="idle")
 
