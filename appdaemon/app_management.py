@@ -368,7 +368,6 @@ class AppManagement:
             else:
                 self.objects[app_name].running = True
 
-
     async def stop_app(self, app_name: str, delete: bool = False) -> bool:
         """Stops the app
 
@@ -923,15 +922,20 @@ class AppManagement:
                     async def safe_create(self: "AppManagement"):
                         try:
                             await self.create_app_object(app_name)
+                        except ModuleNotFoundError as e:
+                            update_actions.apps.failed.add(app_name)
+                            self.logger.warning(f"Failed to import module for '{app_name}': {e}")
                         except Exception:
                             update_actions.apps.failed.add(app_name)
-                            raise
+                            raise # any exceptions will be handled by the warning_decorator
 
                     await safe_create(self)
 
             # Need to have already created the ManagedObjects for the threads to get assigned
             await self.AD.threading.calculate_pin_threads()
 
+            # Need to recalculate start order in case creating the app object fails
+            start_order = update_actions.apps.start_sort(self.dependency_manager)
             for app_name in start_order:
                 if isinstance((cfg := self.app_config.root[app_name]), AppConfig):
                     rel_path = cfg.config_path.relative_to(self.AD.app_dir.parent)
@@ -963,7 +967,7 @@ class AppManagement:
             for module_name in load_order:
 
                 @utils.warning_decorator(error_text=f"Error importing '{module_name}'")
-                async def safe_import(self):
+                async def safe_import(self: "AppManagement"):
                     try:
                         await self.import_module(module_name)
                     except Exception:
