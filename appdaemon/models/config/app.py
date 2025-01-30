@@ -1,6 +1,6 @@
 from abc import ABC
 from pathlib import Path
-from typing import Dict, Iterable, Iterator, List, Optional, Set, Tuple, Union
+from typing import Iterable, Iterator, Optional, Union
 
 from pydantic import BaseModel, Field, RootModel, field_validator, model_validator
 from pydantic_core import PydanticUndefinedType
@@ -10,7 +10,7 @@ from ...utils import read_config_file
 
 
 class GlobalModules(RootModel):
-    root: Set[str]
+    root: set[str]
 
 
 class BaseApp(BaseModel, ABC):
@@ -19,10 +19,10 @@ class BaseApp(BaseModel, ABC):
     module_name: str = Field(alias="module")
     """Importable module name.
     """
-    dependencies: Set[str] = Field(default_factory=set)
+    dependencies: set[str] = Field(default_factory=set)
     """Other apps that this app depends on. They are guaranteed to be loaded and started before this one.
     """
-    global_dependencies: Set[str] = Field(default_factory=set)
+    global_dependencies: set[str] = Field(default_factory=set)
     """Global modules that this app depends on.
     """
     global_: bool = Field(alias="global")
@@ -30,7 +30,7 @@ class BaseApp(BaseModel, ABC):
 
 class GlobalModule(BaseApp):
     global_: bool = Field(default=True, alias="global")
-    global_dependencies: Set[str] = Field(default_factory=set)
+    global_dependencies: set[str] = Field(default_factory=set)
     """Global modules that this app depends on.
     """
 
@@ -38,13 +38,13 @@ class GlobalModule(BaseApp):
 class Sequence(RootModel):
     class SequenceItem(BaseModel):
         class SequenceStep(RootModel):
-            root: Dict[str, Dict]
+            root: dict[str, dict]
 
         name: str
         namespace: str = "default"
-        steps: List[SequenceStep]
+        steps: list[SequenceStep]
 
-    root: Dict[str, SequenceItem]
+    root: dict[str, SequenceItem]
 
 
 class AppConfig(BaseApp, extra="allow"):
@@ -61,23 +61,23 @@ class AppConfig(BaseApp, extra="allow"):
 
     @field_validator("dependencies", "global_dependencies", mode="before")
     @classmethod
-    def coerce_to_list(cls, value: Union[str, Set[str]]) -> Set[str]:
+    def coerce_to_list(cls, value: Union[str, set[str]]) -> set[str]:
         return set((value,)) if isinstance(value, str) else value
 
     def __getitem__(self, key: str):
         return getattr(self, key)
 
     @property
-    def args(self) -> Dict[str, Dict]:
+    def args(self) -> dict[str, dict]:
         return self.model_dump(by_alias=True, exclude_unset=True)
 
 
 class AllAppConfig(RootModel):
-    root: Dict[str, Union[AppConfig, GlobalModule, GlobalModules, Sequence]] = {}
+    root: dict[str, Union[AppConfig, GlobalModule, GlobalModules, Sequence]] = {}
 
     @model_validator(mode="before")
     @classmethod
-    def set_app_names(cls, values: Dict):
+    def set_app_names(cls, values: dict):
         if not isinstance(values, PydanticUndefinedType):
             for app_name, cfg in values.items():
                 match app_name:
@@ -117,11 +117,11 @@ class AllAppConfig(RootModel):
             self.root.update(cls.from_config_file(p).root)
         return self
 
-    def depedency_graph(self) -> Dict[str, Set[str]]:
+    def depedency_graph(self) -> dict[str, set[str]]:
         """Maps the app names to the other apps that they depend on"""
         return {app_name: cfg.dependencies | cfg.global_dependencies for app_name, cfg in self.root.items() if isinstance(cfg, (AppConfig, GlobalModule))}
 
-    def reversed_dependency_graph(self) -> Dict[str, Set[str]]:
+    def reversed_dependency_graph(self) -> dict[str, set[str]]:
         """Maps each app to the other apps that depend on it"""
         return reverse_graph(self.depedency_graph())
 
@@ -129,7 +129,7 @@ class AllAppConfig(RootModel):
         """Returns the app name and associated config for user-defined apps. Does not include global module apps"""
         yield from ((app_name, cfg) for app_name, cfg in self.root.items() if isinstance(cfg, AppConfig))
 
-    def app_names(self) -> Set[str]:
+    def app_names(self) -> set[str]:
         """Returns all the app names for regular user apps and global module apps"""
         return set(app_name for app_name, cfg in self.root.items() if isinstance(cfg, BaseApp))
 
@@ -144,7 +144,7 @@ class AllAppConfig(RootModel):
         """Active in this case means not disabled"""
         return len([cfg for cfg in self.root.values() if isinstance(cfg, AppConfig) and not cfg.disable])
 
-    def get_active_app_count(self) -> Tuple[int, int, int]:
+    def get_active_app_count(self) -> tuple[int, int, int]:
         active = 0
         inactive = 0
         glbl = 0
