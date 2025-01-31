@@ -85,10 +85,12 @@ class Services:
             name = kwargs.get("__name")
             # first we confirm if the namespace exists
             if name and namespace not in self.AD.state.state:
-                raise NamespaceException(f"Namespace {namespace}, doesn't exist")
+                raise NamespaceException(
+                    f"Namespace {namespace}, doesn't exist")
 
             elif not callable(callback):
-                raise ValueError(f"The given callback {callback} is not a callable function")
+                raise ValueError(f"The given callback {
+                                 callback} is not a callable function")
 
             if namespace not in self.services:
                 self.services[namespace] = {}
@@ -99,27 +101,32 @@ class Services:
             if service in self.services[namespace][domain]:
                 # there was a service already registered before
                 # so if a different app, we ask to deregister first
-                service_app = self.services[namespace][domain][service].get("__name")
+                service_app = self.services[namespace][domain][service].get(
+                    "__name")
                 if service_app and service_app != name:
                     self.logger.warning(
-                        f"This service '{domain}/{service}' already registered to a different app '{service_app}', and so cannot be registered to {name}. Do deregister from app first"
+                        f"This service '{domain}/{service}' already registered to a different app '{
+                            service_app}', and so cannot be registered to {name}. Do deregister from app first"
                     )
                     return
 
-            self.services[namespace][domain][service] = {"callback": callback, "__name": name, **kwargs}
+            self.services[namespace][domain][service] = {
+                "callback": callback, "__name": name, **kwargs}
 
             if __silent is False:
                 data = {
                     "event_type": "service_registered",
                     "data": {"namespace": namespace, "domain": domain, "service": service},
                 }
-                self.AD.loop.create_task(self.AD.events.process_event(namespace, data))
+                self.AD.loop.create_task(
+                    self.AD.events.process_event(namespace, data))
 
             if name:
                 if name not in self.app_registered_services:
                     self.app_registered_services[name] = set()
 
-                self.app_registered_services[name].add(f"{namespace}:{domain}:{service}")
+                self.app_registered_services[name].add(
+                    f"{namespace}:{domain}:{service}")
 
     def deregister_service(self, namespace: str, domain: str, service: str, __name: str) -> bool:
         """Used to unregister a service"""
@@ -133,12 +140,14 @@ class Services:
         )
 
         if __name not in self.app_registered_services:
-            raise ValueError(f"The given App {__name} has no services registered")
+            raise ValueError(f"The given App {
+                             __name} has no services registered")
 
         app_service = f"{namespace}:{domain}:{service}"
 
         if app_service not in self.app_registered_services[__name]:
-            raise ValueError(f"The given App {__name} doesn't have the given service registered it")
+            raise ValueError(f"The given App {
+                             __name} doesn't have the given service registered it")
 
         # if it gets here, then time to deregister
         with self.services_lock:
@@ -149,7 +158,8 @@ class Services:
                 "event_type": "service_deregistered",
                 "data": {"namespace": namespace, "domain": domain, "service": service, "app": __name},
             }
-            self.AD.loop.create_task(self.AD.events.process_event(namespace, data))
+            self.AD.loop.create_task(
+                self.AD.events.process_event(namespace, data))
 
             # now check if that domain is empty
             # if it is, remove it also
@@ -192,13 +202,13 @@ class Services:
             ]
 
     async def call_service(
-            self,
-            namespace: str,
-            domain: str,
-            service: str,
-            name: str | None = None,
-            data: dict[str, Any] | None = None, # Don't expand with **data
-) -> Any:
+        self,
+        namespace: str,
+        domain: str,
+        service: str,
+        name: str | None = None,
+        data: dict[str, Any] | None = None,  # Don't expand with **data
+    ) -> Any:
         self.logger.debug(
             "call_service: namespace=%s domain=%s service=%s data=%s",
             namespace,
@@ -206,15 +216,23 @@ class Services:
             service,
             data,
         )
+
+        # data can be None, later on we assume it is not!
+        if data is None:
+            data = {}
+
         with self.services_lock:
             if namespace not in self.services:
-                raise NamespaceException(f"Unknown namespace {namespace} in call_service from {name}")
+                raise NamespaceException(f"Unknown namespace {
+                                         namespace} in call_service from {name}")
 
             if domain not in self.services[namespace]:
-                raise DomainException(f"Unknown domain ({namespace}/{domain}) in call_service from {name}")
+                raise DomainException(
+                    f"Unknown domain ({namespace}/{domain}) in call_service from {name}")
 
             if service not in self.services[namespace][domain]:
-                raise ServiceException(f"Unknown service ({namespace}/{domain}/{service}) in call_service from {name}")
+                raise ServiceException(
+                    f"Unknown service ({namespace}/{domain}/{service}) in call_service from {name}")
 
             # If we have namespace in data it's an override for the domain of the eventual service call, as distinct
             # from the namespace the call itself is executed from. e.g. set_state() is in the AppDaemon namespace but
@@ -230,9 +248,10 @@ class Services:
             match isasync := service_def.pop("__async", 'auto'):
                 case 'auto':
                     # Remove any wrappers from the funcref before determining if it's async or not
-                    isasync = asyncio.iscoroutinefunction(utils.unwrapped(funcref))
+                    isasync = asyncio.iscoroutinefunction(
+                        utils.unwrapped(funcref))
                 case bool():
-                    pass # isasync already set as a bool from above
+                    pass  # isasync already set as a bool from above
                 case _:
                     raise TypeError(f'Invalid __async type: {isasync}')
 
@@ -247,9 +266,11 @@ class Services:
             else:
                 # It's not a coroutine, run it in an executor
                 if use_dictionary_unpacking:
-                    coro = utils.run_in_executor(self, funcref, ns, domain, service, **data)
+                    coro = utils.run_in_executor(
+                        self, funcref, ns, domain, service, **data)
                 else:
-                    coro = utils.run_in_executor(self, funcref, ns, domain, service, data)
+                    coro = utils.run_in_executor(
+                        self, funcref, ns, domain, service, data)
 
             @utils.warning_decorator(error_text=f"Unexpected error calling service {ns}/{domain}/{service}")
             async def safe_service(self: 'Services'):

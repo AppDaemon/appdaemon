@@ -55,7 +55,7 @@ class Sequences:
             if sequence_namespace is not None:
                 attributes.update({"namespace": sequence_namespace})
 
-            if not self.AD.state.entity_exists("rules", entity):
+            if not await self.AD.state.entity_exists("rules", entity):
                 # it doesn't exist so add it
                 await self.AD.state.add_entity(
                     "rules",
@@ -83,7 +83,7 @@ class Sequences:
             await self.cancel_sequence(sequence)
             await self.AD.state.remove_entity("rules", "sequence.{}".format(sequence))
 
-    async def run_sequence(self, _name: str, namespace: str, sequence: str | list[str]):
+    async def run_sequence(self, _name, namespace, sequence):
         if isinstance(sequence, str):
             if "." in sequence:
                 # the entity given
@@ -128,13 +128,13 @@ class Sequences:
         self.AD.futures.cancel_futures(name)
         await self.AD.state.set_state("_sequences", "rules", entity_id, state="idle")
 
-    async def prep_sequence(self, _name: str, namespace: str, sequence: str | list[str]):
+    async def prep_sequence(self, _name, namespace, sequence):
         ephemeral_entity = False
         loop = False
 
         if isinstance(sequence, str):
             entity_id = sequence
-            if self.AD.state.entity_exists("rules", entity_id) is False:
+            if await self.AD.state.entity_exists("rules", entity_id) is False:
                 self.logger.warning(
                     'Unknown sequence "%s" in run_sequence()', sequence)
                 return None
@@ -148,18 +148,11 @@ class Sequences:
             #
             # Assume it's a list with the actual commands in it
             #
-            assert isinstance(sequence, list) and all(
-                isinstance(s, str) for s in sequence)
             entity_id = "sequence.{}".format(uuid.uuid4().hex)
             # Create an ephemeral entity for it
             ephemeral_entity = True
 
-            await self.AD.state.add_entity(
-                namespace="rules",
-                entity=entity_id,
-                state="idle",
-                attributes={"steps": sequence}
-            )
+            await self.AD.state.add_entity("rules", entity_id, "idle", attributes={"steps": sequence})
 
             seq = sequence
             ns = namespace
@@ -167,14 +160,8 @@ class Sequences:
         coro = await self.do_steps(ns, entity_id, seq, ephemeral_entity, loop)
         return coro
 
-    async def do_steps(self,
-                       namespace: str,
-                       entity_id: str,
-                       seq: str | list[str],
-                       ephemeral_entity: bool = False,
-                       loop: bool = False):
+    async def do_steps(self, namespace, entity_id, seq, ephemeral_entity, loop):
         await self.AD.state.set_state("_sequences", "rules", entity_id, state="active")
-
         try:
             while True:
                 steps = copy.deepcopy(seq)
@@ -216,7 +203,7 @@ class Sequences:
                             # now we create the wait entity object
                             entity_object = Entity(
                                 self.logger, self.AD, name, ns, wait_entity)
-                            if not entity_object.exists():
+                            if not await entity_object.exists():
                                 self.logger.warning(
                                     f"Waiting for an entity {wait_entity}, in sequence {
                                         entity_name}, that doesn't exist"
@@ -232,6 +219,7 @@ class Sequences:
 
                         else:
                             domain, service = str.split(command, "/")
+                            # parameters["__name"] = entity_id
                             loop_step = parameters.pop("loop_step", None)
                             params = copy.deepcopy(parameters)
                             await self.AD.services.call_service(ns, domain, service, entity_id, params)
@@ -242,12 +230,14 @@ class Sequences:
 
                 if loop is not True:
                     break
+
         except Exception:
             self.logger.error("-" * 60)
-            self.logger.error("Unexpected error when attempting do_steps()")
+            self.logger.error("Unexpected error in do_steps()")
             self.logger.error("-" * 60)
             self.logger.error(traceback.format_exc())
             self.logger.error("-" * 60)
+
         finally:
             await self.AD.state.set_state("_sequences", "rules", entity_id, state="idle")
 
@@ -272,7 +262,13 @@ class Sequences:
 
         except Exception:
             self.logger.error("-" * 60)
-            self.logger.error("Unexpected error when attempting to loop step")
+            self.logger.error("Unexpected error in loop_step()")
             self.logger.error("-" * 60)
             self.logger.error(traceback.format_exc())
             self.logger.error("-" * 60)
+
+    #
+    # Placeholder for constraints
+    #
+    def list_constraints(self):
+        return []
