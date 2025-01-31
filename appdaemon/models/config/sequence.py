@@ -1,7 +1,7 @@
 from datetime import timedelta
 from typing import Annotated, Any, Literal, Union
 
-from pydantic import BaseModel, BeforeValidator, Discriminator, Field, PlainSerializer, RootModel, Tag
+from pydantic import BaseModel, BeforeValidator, Discriminator, Field, PlainSerializer, RootModel, Tag, WrapSerializer
 
 
 TimeType = Annotated[
@@ -33,11 +33,18 @@ class ServiceCallStep(BaseModel, extra="allow"):
     # any of the extra kwargs will go to the service call
 
 
-def service_validator(v: dict[str, dict[str, Any]]):
+def service_call_validator(v: dict[str, dict[str, Any]]):
     """Puts the name of the domain/name of the service into the diction"""
     service = next(iter(v.keys()))
     v[service]["service"] = service
-    return v
+    return v[service]
+
+
+def service_call_serializer(value: Any, handler, info):
+    # https://docs.pydantic.dev/latest/api/functional_serializers/#pydantic.functional_serializers.WrapSerializer
+    partial_result = handler(value, info)
+    service_name = partial_result.pop("service")
+    return {service_name: partial_result}
 
 
 def step_discriminator(v: Any):
@@ -49,8 +56,11 @@ def step_discriminator(v: Any):
                 return "wait"
             else:
                 return "service_call"
-        case _:
-            raise ValueError(f"Bad step: {v}")
+        # case ServiceCallStep() | SleepStep() | WaitStateStep():
+        #     ...
+        # case _:
+        #     raise ValueError(f"Bad step: {v}")
+    return v
 
 
 # This type wraps up the logic for determining the type of each step
@@ -59,8 +69,9 @@ SequenceStep = Annotated[
         Annotated[SleepStep, Tag("sleep")],
         Annotated[dict[Literal["wait_state"], WaitStateStep], Tag("wait")],
         Annotated[
-            dict[str, ServiceCallStep],
-            BeforeValidator(service_validator),
+            ServiceCallStep,
+            BeforeValidator(service_call_validator),
+            WrapSerializer(service_call_serializer),
             Tag("service_call")
         ],
     ],
