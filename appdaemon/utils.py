@@ -697,7 +697,7 @@ def write_toml_config(path, **kwargs):
         tomli_w.dump(kwargs, stream)
 
 
-def read_config_file(file: Path) -> Dict[str, Dict]:
+def read_config_file(file: Path) -> dict[str, dict | list]:
     # raise ValueError
     """Reads a single YAML or TOML file.
 

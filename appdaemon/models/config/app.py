@@ -1,12 +1,15 @@
+from copy import deepcopy
+import sys
 from abc import ABC
 from pathlib import Path
-from typing import Iterable, Iterator, Optional, Union
+from typing import Annotated, Any, Iterable, Iterator, Literal, Optional, Union
 
-from pydantic import BaseModel, Field, RootModel, field_validator, model_validator
+from pydantic import BaseModel, Discriminator, Field, RootModel, Tag, field_validator
 from pydantic_core import PydanticUndefinedType
 
 from ...dependency import reverse_graph
 from ...utils import read_config_file
+from .sequence import SequenceConfig
 
 
 class GlobalModules(RootModel):
@@ -14,7 +17,7 @@ class GlobalModules(RootModel):
 
 
 class BaseApp(BaseModel, ABC):
-    name: Optional[str] = None  # Needs to remain optional because it gets set later
+    name: str
     config_path: Optional[Path] = None  # Needs to remain optional because it gets set later
     module_name: str = Field(alias="module")
     """Importable module name.
@@ -22,47 +25,33 @@ class BaseApp(BaseModel, ABC):
     dependencies: set[str] = Field(default_factory=set)
     """Other apps that this app depends on. They are guaranteed to be loaded and started before this one.
     """
-    global_dependencies: set[str] = Field(default_factory=set)
-    """Global modules that this app depends on.
-    """
-    global_: bool = Field(alias="global")
+    disable: bool = False
+
+    @property
+    def module_is_loaded(self) -> bool:
+        return self.module_name in sys.modules
+
+    @field_validator("dependencies", mode="before")
+    @classmethod
+    def coerce_to_list(cls, value: Union[str, set[str]]) -> set[str]:
+        return set((value,)) if isinstance(value, str) else value
 
 
 class GlobalModule(BaseApp):
-    global_: bool = Field(default=True, alias="global")
+    global_: Literal[True] = Field(alias="global")
     global_dependencies: set[str] = Field(default_factory=set)
     """Global modules that this app depends on.
     """
-
-
-class Sequence(RootModel):
-    class SequenceItem(BaseModel):
-        class SequenceStep(RootModel):
-            root: dict[str, dict]
-
-        name: str
-        namespace: str = "default"
-        steps: list[SequenceStep]
-
-    root: dict[str, SequenceItem]
 
 
 class AppConfig(BaseApp, extra="allow"):
     class_name: str = Field(alias="class")
     """Name of the class to use for the app. Must be accessible as an attribute of the imported `module_name`
     """
-
-    global_: bool = Field(default=True, alias="global")
-    disable: bool = False
     pin_app: Optional[bool] = None
     pin_thread: Optional[int] = None
     log: Optional[str] = None
     log_level: Optional[str] = None
-
-    @field_validator("dependencies", "global_dependencies", mode="before")
-    @classmethod
-    def coerce_to_list(cls, value: Union[str, set[str]]) -> set[str]:
-        return set((value,)) if isinstance(value, str) else value
 
     def __getitem__(self, key: str):
         return getattr(self, key)
@@ -72,30 +61,45 @@ class AppConfig(BaseApp, extra="allow"):
         return self.model_dump(by_alias=True, exclude_unset=True)
 
 
-class AllAppConfig(RootModel):
-    root: dict[str, Union[AppConfig, GlobalModule, GlobalModules, Sequence]] = {}
+def discriminate_app(v: Any):
+    match v:
+        case dict():
+            if v.get("global"):
+                return "global"
+            else:
+                return "app"
+    return v
 
-    @model_validator(mode="before")
+
+AppOrGlobal = Annotated[
+    Union[
+        Annotated[AppConfig, Tag("app")], 
+        Annotated[GlobalModule, Tag("global")]
+    ],
+    Field(discriminator=Discriminator(discriminate_app))
+]
+
+
+class AllAppConfig(RootModel):
+    root: dict[
+        str | Literal["global_modules", "sequence"],
+        Union[AppOrGlobal, GlobalModules, SequenceConfig]
+    ] = Field(default_factory=dict)
+
+    @field_validator("root", mode="before")
     @classmethod
     def set_app_names(cls, values: dict):
+        values = deepcopy(values)
         if not isinstance(values, PydanticUndefinedType):
             for app_name, cfg in values.items():
                 match app_name:
                     case "global_modules":
                         values[app_name] = GlobalModules.model_validate(cfg)
                     case "sequence":
-                        values[app_name] = Sequence.model_validate(cfg)
+                        values[app_name] = SequenceConfig.model_validate(cfg)
                     case _:
                         cfg["name"] = app_name
                         values[app_name] = cfg
-
-                match cfg:
-                    case BaseApp():
-                        values[app_name]["name"] = app_name
-                    case dict():
-                        if cfg.get("global"):
-                            values[app_name] = GlobalModule.model_validate(cfg)
-
             return values
 
     def __getitem__(self, key: str):
@@ -112,14 +116,30 @@ class AllAppConfig(RootModel):
     @classmethod
     def from_config_files(cls, paths: Iterable[Path]):
         paths = iter(paths)
-        self = cls.from_config_file(next(paths))
+        cfg = read_config_file(next(paths))
         for p in paths:
-            self.root.update(cls.from_config_file(p).root)
-        return self
+            for new, new_cfg in read_config_file(p).items():
+                if new in cfg:
+                    match new:
+                        case "global_modules":
+                            cfg[new].extend(new_cfg)
+                        case "sequence":
+                            cfg[new].update(new_cfg)
+                        case _:
+                            # This is the case for an app being defined more than once
+                            # TODO: Log some kind of warning here
+                            cfg[new].update(new_cfg)
+                else:
+                    cfg[new] = new_cfg
+        return cls.model_validate(cfg)
 
     def depedency_graph(self) -> dict[str, set[str]]:
         """Maps the app names to the other apps that they depend on"""
-        return {app_name: cfg.dependencies | cfg.global_dependencies for app_name, cfg in self.root.items() if isinstance(cfg, (AppConfig, GlobalModule))}
+        return {
+            app_name: cfg.dependencies
+            for app_name, cfg in self.root.items()
+            if isinstance(cfg, (AppConfig, GlobalModule))
+        }
 
     def reversed_dependency_graph(self) -> dict[str, set[str]]:
         """Maps each app to the other apps that depend on it"""
