@@ -141,7 +141,8 @@ class AppDaemon:
 
         if self.apps is True:
             assert self.config_dir is not None, "Config_dir not set. This is a development problem"
-            assert self.config_dir.exists(), f"{self.config_dir} does not exist"
+            assert self.config_dir.exists(), f"{
+                self.config_dir} does not exist"
             assert os.access(
                 self.config_dir, os.R_OK | os.X_OK
             ), f"{self.config_dir} does not have the right permissions"
@@ -154,6 +155,8 @@ class AppDaemon:
                 assert os.access(
                     self.app_dir, os.R_OK | os.W_OK | os.X_OK
                 ), f"{self.app_dir} does not have the right permissions"
+
+            self.logger.info(f"Using {self.app_dir} as app_dir")
 
             self.app_management = AppManagement(self)
             self.threading = Threading(self)

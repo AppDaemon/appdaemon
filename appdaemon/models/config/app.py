@@ -73,7 +73,7 @@ def discriminate_app(v: Any):
 
 AppOrGlobal = Annotated[
     Union[
-        Annotated[AppConfig, Tag("app")], 
+        Annotated[AppConfig, Tag("app")],
         Annotated[GlobalModule, Tag("global")]
     ],
     Field(discriminator=Discriminator(discriminate_app))

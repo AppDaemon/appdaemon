@@ -1,12 +1,20 @@
 from datetime import timedelta
 from typing import Annotated, Any, Literal, Union
 
-from pydantic import BaseModel, BeforeValidator, Discriminator, Field, PlainSerializer, RootModel, Tag, WrapSerializer
+from pydantic import BaseModel, BeforeValidator, Discriminator, Field, PlainSerializer, RootModel, Tag, ValidationError, WrapSerializer
+
+
+def validate_timedelta(v: Any):
+    match v:
+        case int() | float():
+            return timedelta(seconds=v)
+        case _:
+            raise ValidationError(f'Invalid type for timedelta: {v}')
 
 
 TimeType = Annotated[
     timedelta,
-    BeforeValidator(lambda v: timedelta(seconds=v)),
+    BeforeValidator(validate_timedelta),
     PlainSerializer(lambda td: td.total_seconds())
 ]
 
