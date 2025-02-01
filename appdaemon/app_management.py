@@ -192,6 +192,9 @@ class AppManagement:
     async def remove_entity(self, name: str):
         await self.AD.state.remove_entity("admin", f"app.{name}")
 
+    def app_rel_path(self, app_name: str) -> Path:
+        return self.app_config.root[app_name].config_path.relative_to(self.AD.app_dir)
+
     async def init_admin_stats(self):
         # create sensors
         await self.add_entity(self.active_apps_sensor, 0, {"friendly_name": "Active Apps"})
@@ -367,10 +370,23 @@ class AppManagement:
 
         # assert dependencies
         dependencies = self.app_config.root[app_name].dependencies
-        for dep in dependencies:
-            if isinstance(self.app_config[dep], AppConfig):
-                if not self.objects[dep].running:
-                    raise ade.AppDependencyError(f"'{app_name}' depends on '{dep}', but it's not running")
+        for dep_name in dependencies:
+            if (dep_cfg := self.app_config.root.get(dep_name)):
+                match dep_cfg:
+                    case AppConfig():
+                        # There is a valid app configuration for this dependency
+                        if not (obj := self.objects.get(dep_name)) or not obj.running:
+                            # If the object isn't in the self.objects dict or it's there, but not running
+                            raise ade.AppDependencyError(f"'{app_name}' depends on '{dep_name}', but it's not running")
+                    case GlobalModule():
+                        if dep_name not in sys.modules:
+                            raise ade.AppDependencyError(f"'{app_name}' depends on '{dep_name}', but it's not loaded")
+            else:
+                rel_path = self.app_rel_path(app_name)
+                raise ade.AppConfigNotFound(
+                    f"'{app_name}' references '{dep_name}' in ./{rel_path} but it wasn't found anywhere"
+                )
+
 
         if self.app_config[app_name].disable:
             pass
