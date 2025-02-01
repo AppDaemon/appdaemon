@@ -613,12 +613,30 @@ class AppManagement:
             files_to_read = self.config_filecheck.new | self.config_filecheck.modified
             freshly_read_cfg = await self.read_all(files_to_read)
 
-            valid_app_names = self.valid_apps
+            current_apps = self.valid_apps
             for name, cfg in freshly_read_cfg.app_definitions():
+                if isinstance(cfg, SequenceConfig):
+                    # Need to handle new, changed, and deleted sequences
+                    existing_sequences = set(self.valid_sequences)
+                    new_sequences = set(n for n in cfg.root if n not in existing_sequences)
+                    update_actions.sequences.init |= new_sequences
+
+                    # Only the changed files will be in the freshly_loaded_config
+                    # deleted_sequences = set(n for n in existing_sequences if n not in cfg.root)
+                    # update_actions.sequences.term |= deleted_sequences
+
+                    overlaped_sequences = set(n for n in cfg.root if n in existing_sequences)
+                    for seq_name in overlaped_sequences:
+                        current_seq = self.sequence_config.root[seq_name]
+                        new_seq = cfg.root[seq_name]
+                        if new_seq != current_seq:
+                            update_actions.sequences.reload.add(new_seq)
+                    continue
+
                 if name in self.non_apps:
                     continue
 
-                if name not in valid_app_names:
+                if name not in current_apps:
                     self.logger.info("New app config: %s", name)
                     update_actions.apps.init.add(name)
                 else:
@@ -628,10 +646,11 @@ class AppManagement:
                         self.logger.info("App config modified: %s", name)
                         update_actions.apps.reload.add(name)
 
-            prev_apps_from_read_files = self.app_config.apps_from_file(
-                files_to_read) & valid_app_names
+            prev_apps_from_read_files = self.app_config.apps_from_file(files_to_read) & current_apps
             deleted_apps = set(
-                n for n in prev_apps_from_read_files if n not in freshly_read_cfg.app_names())
+                n for n in prev_apps_from_read_files
+                if n not in freshly_read_cfg.app_names()
+            )
             update_actions.apps.term |= deleted_apps
             for name in deleted_apps:
                 # del self.app_config.root[name]
@@ -770,11 +789,14 @@ class AppManagement:
 
             await self.check_app_config_files(update_actions)
 
+            # TODO: handle sequence reload here
+            ...
+
             try:
                 await self.check_app_python_files(update_actions)
             except DependencyResolutionFail as exc:
-                self.logger.error(f"Error reading python files: {
-                                  utils.format_exception(exc.base_exception)}")
+                exception_text = utils.format_exception(exc.base_exception)
+                self.logger.error(f"Error reading python files: {exception_text}")
                 return
 
             if mode == UpdateMode.TERMINATE:

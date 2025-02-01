@@ -147,7 +147,11 @@ class AllAppConfig(RootModel):
 
     def app_definitions(self):
         """Returns the app name and associated config for user-defined apps. Does not include global module apps"""
-        yield from ((app_name, cfg) for app_name, cfg in self.root.items() if isinstance(cfg, AppConfig))
+        yield from (
+            (app_name, cfg)
+            for app_name, cfg in self.root.items()
+            if isinstance(cfg, (AppConfig, SequenceConfig))
+        )
 
     def app_names(self) -> set[str]:
         """Returns all the app names for regular user apps and global module apps"""
