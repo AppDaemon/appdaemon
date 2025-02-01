@@ -9,7 +9,7 @@ from appdaemon.entity import Entity
 from appdaemon.exceptions import TimeOutException
 
 if TYPE_CHECKING:
-    from appdaemon.appdaemon import AppDaemon
+    from .appdaemon import AppDaemon
 
 
 class Sequences:
@@ -21,10 +21,35 @@ class Sequences:
 
     AD: "AppDaemon"
     logger: Logger
+    namespace: str = "rules"
 
     def __init__(self, ad: "AppDaemon"):
         self.AD = ad
         self.logger = ad.logging.get_child("_sequences")
+
+    def sequence_exists(self, entity_id: str) -> bool:
+        return self.AD.state.entity_exists(self.namespace, entity_id)
+
+    async def add_entity(self, entity_id: str, state: str, **kwargs):
+        return await self.AD.state.add_entity(
+            namespace=self.namespace,
+            entity=entity_id,
+            state=state,
+            attributes=kwargs
+        )
+
+    # async def get_state(self):
+    #     return
+
+    async def set_state(self, entity_id: str, state: str, replace: bool = False, **kwargs):
+        return await self.AD.state.set_state(
+            name="_sequences",
+            namespace=self.namespace,
+            entity=entity_id,
+            state=state,
+            replace=replace,
+            **kwargs
+        )
 
     async def run_sequence_service(self, namespace, domain, service, kwargs):
         if "entity_id" not in kwargs:
@@ -40,39 +65,28 @@ class Sequences:
         elif service == "cancel" and isinstance(entity_id, str):
             return await self.cancel_sequence(entity_id)
 
-    async def add_sequences(self, sequences):
-        for sequence in sequences:
-            entity = "sequence.{}".format(sequence)
-            name = f"sequence_{sequence}"
+    async def add_sequences(self, sequences: dict[str, dict]):
+        for seq_name, seq_cfg in sequences.items():
             attributes = {
-                "friendly_name": sequences[sequence].get("name", sequence),
-                "loop": sequences[sequence].get("loop", False),
-                "steps": sequences[sequence]["steps"],
+                "friendly_name": seq_cfg.get("name", seq_name),
+                "loop": seq_cfg.get("loop", False),
+                "steps": seq_cfg["steps"],
             }
 
-            sequence_namespace = sequences[sequence].get("namespace")
+            if sequence_namespace := seq_cfg.get("namespace") is not None:
+                attributes["namespace"] = sequence_namespace
 
-            if sequence_namespace is not None:
-                attributes.update({"namespace": sequence_namespace})
-
-            if not await self.AD.state.entity_exists("rules", entity):
-                # it doesn't exist so add it
-                await self.AD.state.add_entity(
-                    "rules",
-                    entity,
-                    "idle",
-                    attributes=attributes,
-                )
-            else:
+            entity = f"sequence.{seq_name}"
+            if self.sequence_exists(entity):
                 # means existing before so in case already running already
-                await self.cancel_sequence(sequence)
-
-                await self.AD.state.set_state(
-                    "_sequences", "rules", entity, state="idle", attributes=attributes, replace=True
-                )
+                await self.cancel_sequence(seq_name)
+                await self.set_state(entity, state="idle", replace=True, **attributes)
+            else:
+                # it doesn't exist so add it
+                await self.add_entity(entity, **attributes)
 
             # create sequence objects
-            self.AD.app_management.init_sequence_object(name, self)
+            self.AD.app_management.init_sequence_object(f"sequence_{seq_name}", self)
 
     async def remove_sequences(self, sequences):
         if not isinstance(sequences, list):
@@ -83,7 +97,7 @@ class Sequences:
             await self.cancel_sequence(sequence)
             await self.AD.state.remove_entity("rules", "sequence.{}".format(sequence))
 
-    async def run_sequence(self, _name, namespace, sequence):
+    async def run_sequence(self, _name: str, namespace: str, sequence: str):
         if isinstance(sequence, str):
             if "." in sequence:
                 # the entity given
@@ -128,16 +142,15 @@ class Sequences:
         self.AD.futures.cancel_futures(name)
         await self.AD.state.set_state("_sequences", "rules", entity_id, state="idle")
 
-    async def prep_sequence(self, _name, namespace, sequence):
+    async def prep_sequence(self, _name: str, namespace: str, sequence: str | list[dict]):
         ephemeral_entity = False
         loop = False
 
         if isinstance(sequence, str):
             entity_id = sequence
-            if await self.AD.state.entity_exists("rules", entity_id) is False:
-                self.logger.warning(
-                    'Unknown sequence "%s" in run_sequence()', sequence)
-                return None
+            if not self.sequence_exists(entity_id):
+                self.logger.warning('Unknown sequence "%s" in run_sequence()', sequence)
+                return
 
             entity = await self.AD.state.get_state("_services", "rules", sequence, attribute="all")
             seq = entity["attributes"]["steps"]
