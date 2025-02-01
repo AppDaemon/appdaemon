@@ -1039,7 +1039,8 @@ class AppManagement:
                 await safe_import(self)
 
     async def _init_sequences(self):
-        await self.AD.sequences.add_sequences(self.sequence_config)
+        if self.sequence_config is not None:
+            await self.AD.sequences.add_sequences(self.sequence_config)
 
     def apps_per_module(self, module_name: str) -> Set[str]:
         """Finds which apps came from a given module name.
