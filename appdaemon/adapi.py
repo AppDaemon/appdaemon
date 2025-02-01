@@ -1557,12 +1557,12 @@ class ADAPI:
 
     def get_state(
         self,
-        entity_id: str,
+        entity_id: str | None = None,
         attribute: str | None = None,
         default: Any | None = None,
         namespace: str | None = None,
         copy: bool = True,
-        **kwargs
+        **kwargs # left in intentionally for compatibility
     ) -> Any:
         """Gets the state of any component within Home Assistant.
 
@@ -1571,7 +1571,7 @@ class ADAPI:
         push-based approach instead of a pull-based one.
 
         Args:
-            entity_id (str): This is the name of an entity or device type. If just
+            entity_id (str, optional): This is the name of an entity or device type. If just
                 a device type is provided, e.g., `light` or `binary_sensor`, `get_state()`
                 will return a dictionary of all devices of that type, indexed by the ``entity_id``,
                 containing all the state for each entity. If a fully qualified ``entity_id``
@@ -1624,10 +1624,13 @@ class ADAPI:
         if kwargs:
             self.logger.warning(f'Extra kwargs passed to get_state, will be ignored: {kwargs}')
 
-        namespace = namespace or self.namespace
-        self._check_entity(namespace, entity_id)
-        entity_api = self.get_entity_api(namespace, entity_id)
-        return entity_api.get_state(attribute, default, copy)
+        namespace or self.namespace
+        api = self.get_entity_api(namespace, entity_id)
+        return api.get_state(
+            attribute=attribute,
+            default=default,
+            copy=copy
+        )
 
     @overload
     async def set_state(
@@ -3486,7 +3489,7 @@ class ADAPI:
         """Sometimes this gets called when creating a new entity, so the check needs to be suppressed
         """
         namespace = namespace or self.namespace
-        if check_existence:
+        if check_existence and entity_id is not None:
             self._check_entity(namespace, entity_id)
         return Entity.entity_api(self.logger, self.AD, self.name, namespace, entity_id)
 
