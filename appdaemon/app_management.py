@@ -505,7 +505,12 @@ class AppManagement:
     def init_sequence_object(self, name: str, object):
         """Add the sequence object to the internal dictionary of ``ManagedObjects``"""
         self.objects[name] = ManagedObject(
-            type="sequence", object=object, pin_app=False, pin_thread=-1, running=False)
+            type="sequence",
+            object=object, # I don't think this ever gets used.
+            pin_app=False,
+            pin_thread=-1,
+            running=False
+        )
 
     async def terminate_sequence(self, name: str) -> bool:
         """Terminate the sequence"""

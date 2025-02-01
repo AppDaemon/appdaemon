@@ -86,7 +86,7 @@ class Sequences:
                 await self.add_entity(entity, state="idle", **attributes)
 
             # create sequence objects
-            self.AD.app_management.init_sequence_object(f"sequence_{seq_name}", self)
+            self.AD.app_management.init_sequence_object(f"sequence_{seq_name}", None)
 
     async def remove_sequences(self, sequences):
         if not isinstance(sequences, list):
