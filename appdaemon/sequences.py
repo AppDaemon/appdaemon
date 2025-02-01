@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 from appdaemon.entity import Entity
 from appdaemon.exceptions import TimeOutException
+from appdaemon.models.config.sequence import SequenceConfig
 
 if TYPE_CHECKING:
     from .appdaemon import AppDaemon
@@ -65,16 +66,18 @@ class Sequences:
         elif service == "cancel" and isinstance(entity_id, str):
             return await self.cancel_sequence(entity_id)
 
-    async def add_sequences(self, sequences: dict[str, dict]):
-        for seq_name, seq_cfg in sequences.items():
+    async def add_sequences(self, sequences: SequenceConfig):
+        self.logger.debug(f'Adding sequences: {set(sequences.root.keys())}')
+
+        for seq_name, seq_cfg in sequences.root.items():
             attributes = {
-                "friendly_name": seq_cfg.get("name", seq_name),
-                "loop": seq_cfg.get("loop", False),
-                "steps": seq_cfg["steps"],
+                "friendly_name": seq_cfg.name or seq_name,
+                "loop": seq_cfg.loop,
+                "steps": seq_cfg.steps
             }
 
-            if sequence_namespace := seq_cfg.get("namespace") is not None:
-                attributes["namespace"] = sequence_namespace
+            if seq_cfg.namespace is not None:
+                attributes["namespace"] = seq_cfg.namespace
 
             entity = f"sequence.{seq_name}"
             if self.sequence_exists(entity):
@@ -86,7 +89,7 @@ class Sequences:
                 await self.add_entity(entity, state="idle", **attributes)
 
             # create sequence objects
-            self.AD.app_management.init_sequence_object(f"sequence_{seq_name}", None)
+            self.AD.app_management.init_sequence_object(f"sequence_{seq_name}", seq_cfg)
 
     async def remove_sequences(self, sequences):
         if not isinstance(sequences, list):

@@ -18,6 +18,8 @@ from typing import TYPE_CHECKING, Iterable, Literal, Set, Union
 from appdaemon.dependency import DependencyResolutionFail, get_full_module_name
 from appdaemon.dependency_manager import DependencyManager
 from appdaemon.models.config import AllAppConfig, AppConfig, GlobalModule
+from appdaemon.models.config.app import SequenceConfig
+from appdaemon.models.config.sequence import Sequence
 from appdaemon.models.internal.file_check import FileCheck
 
 from . import exceptions as ade
@@ -150,6 +152,10 @@ class AppManagement:
             for g, cfg in self.app_config.root.items()
             if isinstance(cfg, GlobalModule) and cfg.module_name in sys.modules
         )
+
+    @property
+    def sequence_config(self) -> SequenceConfig | None:
+        return self.app_config.root.get('sequence')
 
     @property
     def valid_apps(self) -> set[str]:
@@ -502,7 +508,7 @@ class AppManagement:
             use_dictionary_unpacking=use_dictionary_unpacking,
         )
 
-    def init_sequence_object(self, name: str, object):
+    def init_sequence_object(self, name: str, object: Sequence):
         """Add the sequence object to the internal dictionary of ``ManagedObjects``"""
         self.objects[name] = ManagedObject(
             type="sequence",
@@ -758,6 +764,7 @@ class AppManagement:
             if mode == UpdateMode.INIT:
                 await self._process_import_paths()
                 await self._init_dep_manager()
+                await self._init_sequences()
 
             update_actions = UpdateActions()
 
@@ -1030,6 +1037,9 @@ class AppManagement:
                         raise
 
                 await safe_import(self)
+
+    async def _init_sequences(self):
+        await self.AD.sequences.add_sequences(self.sequence_config)
 
     def apps_per_module(self, module_name: str) -> Set[str]:
         """Finds which apps came from a given module name.
