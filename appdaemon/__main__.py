@@ -306,8 +306,10 @@ class ADMain:
             else:
                 module_debug_cli = {}
 
-            if isinstance(module_debug_cfg := ad_kwargs.get("module_debug"), dict):
-                ad_kwargs["module_debug"] = module_debug_cfg | module_debug_cli
+            if isinstance(ad_kwargs.get("module_debug"), dict):
+                ad_kwargs["module_debug"] |= module_debug_cli
+            else:
+                ad_kwargs["module_debug"] = module_debug_cli
 
             # Validate the AppDaemon configuration
             ad_config_model = AppDaemonConfig.model_validate(ad_kwargs)
