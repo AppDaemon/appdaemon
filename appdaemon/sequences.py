@@ -83,7 +83,7 @@ class Sequences:
                 await self.set_state(entity, state="idle", replace=True, **attributes)
             else:
                 # it doesn't exist so add it
-                await self.add_entity(entity, **attributes)
+                await self.add_entity(entity, state="idle", **attributes)
 
             # create sequence objects
             self.AD.app_management.init_sequence_object(f"sequence_{seq_name}", self)
