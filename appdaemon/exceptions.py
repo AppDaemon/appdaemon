@@ -48,6 +48,10 @@ class AppClassSignatureError(Exception):
     pass
 
 
+class AppDependencyError(Exception):
+    pass
+
+
 class AppInstantiationError(Exception):
     pass
 

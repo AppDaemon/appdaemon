@@ -7,7 +7,6 @@ import functools
 import inspect
 import io
 import json
-from logging import Logger
 import os
 import platform
 import pstats
@@ -20,6 +19,7 @@ import traceback
 from collections.abc import Iterable
 from datetime import timedelta
 from functools import wraps
+from logging import Logger
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Coroutine, Dict
 
@@ -31,9 +31,11 @@ from pydantic import ValidationError
 
 from appdaemon.version import __version__  # noqa: F401
 
+from . import exceptions as ade
+
 if TYPE_CHECKING:
-    from appdaemon.appdaemon import AppDaemon
-    from appdaemon.adbase import ADBase
+    from .adbase import ADBase
+    from .appdaemon import AppDaemon
 
 
 if platform.system() != "Windows":
@@ -354,6 +356,8 @@ def warning_decorator(
                     result = await func(self, *args, **kwargs)
                 else:
                     result = func(self, *args, **kwargs)
+            except ade.AppDependencyError as e:
+                logger.warning(f'Dependency error: {e}')
             except Exception as e:
                 error_logger: Logger = self.error
                 error_logger.warning("-" * 60)

@@ -369,7 +369,8 @@ class AppManagement:
         dependencies = self.app_config.root[app_name].dependencies
         for dep in dependencies:
             if isinstance(self.app_config[dep], AppConfig):
-                assert self.objects[dep].running, f"'{app_name}' depends on '{dep}', but it's not running"
+                if not self.objects[dep].running:
+                    raise ade.AppDependencyError(f"'{app_name}' depends on '{dep}', but it's not running")
 
         if self.app_config[app_name].disable:
             pass
