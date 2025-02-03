@@ -547,7 +547,8 @@ class Entity:
         """Get the entity's entity_id"""
         self._entity_id = new
         try:
-            self.domain, self.entity_name = self._entity_id.split('.')
+            if new is not None:
+                self.domain, self.entity_name = self._entity_id.split('.')
         except ValueError:
             # The entity_id could actually be just a domain
             self.domain = self._entity_id

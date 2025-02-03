@@ -85,6 +85,7 @@ class LoadingActions:
 class UpdateActions:
     modules: LoadingActions = field(init=False, default_factory=LoadingActions)
     apps: LoadingActions = field(init=False, default_factory=LoadingActions)
+    sequences: LoadingActions = field(init=False, default_factory=LoadingActions)
 
 
 @dataclass

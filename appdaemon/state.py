@@ -554,13 +554,13 @@ class State:
         }
 
     def parse_state(
-            self,
-            namespace: str,
-            entity: str,
-            state: Any | None = None,
-            attributes: dict | None = None,
-            replace: bool = False,
-            **kwargs
+        self,
+        namespace: str,
+        entity: str,
+        state: Any | None = None,
+        attributes: dict | None = None,
+        replace: bool = False,
+        **kwargs
     ):
         self.logger.debug(f"parse_state: {entity}, {kwargs}")
 

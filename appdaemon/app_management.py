@@ -18,6 +18,8 @@ from typing import TYPE_CHECKING, Iterable, Literal, Set, Union
 from appdaemon.dependency import DependencyResolutionFail, get_full_module_name
 from appdaemon.dependency_manager import DependencyManager
 from appdaemon.models.config import AllAppConfig, AppConfig, GlobalModule
+from appdaemon.models.config.app import SequenceConfig
+from appdaemon.models.config.sequence import Sequence
 from appdaemon.models.internal.file_check import FileCheck
 
 from . import exceptions as ade
@@ -152,6 +154,10 @@ class AppManagement:
         )
 
     @property
+    def sequence_config(self) -> SequenceConfig | None:
+        return self.app_config.root.get('sequence')
+
+    @property
     def valid_apps(self) -> set[str]:
         return self.running_apps | self.loaded_globals
 
@@ -185,6 +191,9 @@ class AppManagement:
 
     async def remove_entity(self, name: str):
         await self.AD.state.remove_entity("admin", f"app.{name}")
+
+    def app_rel_path(self, app_name: str) -> Path:
+        return self.app_config.root[app_name].config_path.relative_to(self.AD.app_dir)
 
     async def init_admin_stats(self):
         # create sensors
@@ -376,10 +385,23 @@ class AppManagement:
 
         # assert dependencies
         dependencies = self.app_config.root[app_name].dependencies
-        for dep in dependencies:
-            if isinstance(self.app_config[dep], AppConfig):
-                assert self.objects[dep].running, f"'{
-                    app_name}' depends on '{dep}', but it's not running"
+        for dep_name in dependencies:
+            if (dep_cfg := self.app_config.root.get(dep_name)):
+                match dep_cfg:
+                    case AppConfig():
+                        # There is a valid app configuration for this dependency
+                        if not (obj := self.objects.get(dep_name)) or not obj.running:
+                            # If the object isn't in the self.objects dict or it's there, but not running
+                            raise ade.AppDependencyError(f"'{app_name}' depends on '{dep_name}', but it's not running")
+                    case GlobalModule():
+                        if dep_name not in sys.modules:
+                            raise ade.AppDependencyError(f"'{app_name}' depends on '{dep_name}', but it's not loaded")
+            else:
+                rel_path = self.app_rel_path(app_name)
+                raise ade.AppConfigNotFound(
+                    f"'{app_name}' references '{dep_name}' in ./{rel_path} but it wasn't found anywhere"
+                )
+
 
         if self.app_config[app_name].disable:
             pass
@@ -518,10 +540,15 @@ class AppManagement:
             use_dictionary_unpacking=use_dictionary_unpacking,
         )
 
-    def init_sequence_object(self, name: str, object):
+    def init_sequence_object(self, name: str, object: Sequence):
         """Add the sequence object to the internal dictionary of ``ManagedObjects``"""
         self.objects[name] = ManagedObject(
-            type="sequence", object=object, pin_app=False, pin_thread=-1, running=False)
+            type="sequence",
+            object=object, # I don't think this ever gets used.
+            pin_app=False,
+            pin_thread=-1,
+            running=False
+        )
 
     async def terminate_sequence(self, name: str) -> bool:
         """Terminate the sequence"""
@@ -618,12 +645,30 @@ class AppManagement:
             files_to_read = self.config_filecheck.new | self.config_filecheck.modified
             freshly_read_cfg = await self.read_all(files_to_read)
 
-            valid_app_names = self.valid_apps
+            current_apps = self.valid_apps
             for name, cfg in freshly_read_cfg.app_definitions():
+                if isinstance(cfg, SequenceConfig):
+                    # Need to handle new, changed, and deleted sequences
+                    existing_sequences = set(self.valid_sequences)
+                    new_sequences = set(n for n in cfg.root if n not in existing_sequences)
+                    update_actions.sequences.init |= new_sequences
+
+                    # Only the changed files will be in the freshly_loaded_config
+                    # deleted_sequences = set(n for n in existing_sequences if n not in cfg.root)
+                    # update_actions.sequences.term |= deleted_sequences
+
+                    overlaped_sequences = set(n for n in cfg.root if n in existing_sequences)
+                    for seq_name in overlaped_sequences:
+                        current_seq = self.sequence_config.root[seq_name]
+                        new_seq = cfg.root[seq_name]
+                        if new_seq != current_seq:
+                            update_actions.sequences.reload.add(new_seq)
+                    continue
+
                 if name in self.non_apps:
                     continue
 
-                if name not in valid_app_names:
+                if name not in current_apps:
                     self.logger.info("New app config: %s", name)
                     update_actions.apps.init.add(name)
                 else:
@@ -633,10 +678,11 @@ class AppManagement:
                         self.logger.info("App config modified: %s", name)
                         update_actions.apps.reload.add(name)
 
-            prev_apps_from_read_files = self.app_config.apps_from_file(
-                files_to_read) & valid_app_names
+            prev_apps_from_read_files = self.app_config.apps_from_file(files_to_read) & current_apps
             deleted_apps = set(
-                n for n in prev_apps_from_read_files if n not in freshly_read_cfg.app_names())
+                n for n in prev_apps_from_read_files
+                if n not in freshly_read_cfg.app_names()
+            )
             update_actions.apps.term |= deleted_apps
             for name in deleted_apps:
                 # del self.app_config.root[name]
@@ -769,16 +815,20 @@ class AppManagement:
             if mode == UpdateMode.INIT:
                 await self._process_import_paths()
                 await self._init_dep_manager()
+                await self._init_sequences()
 
             update_actions = UpdateActions()
 
             await self.check_app_config_files(update_actions)
 
+            # TODO: handle sequence reload here
+            ...
+
             try:
                 await self.check_app_python_files(update_actions)
             except DependencyResolutionFail as exc:
-                self.logger.error(f"Error reading python files: {
-                                  utils.format_exception(exc.base_exception)}")
+                exception_text = utils.format_exception(exc.base_exception)
+                self.logger.error(f"Error reading python files: {exception_text}")
                 return
 
             if mode == UpdateMode.TERMINATE:
@@ -1041,6 +1091,10 @@ class AppManagement:
                         raise
 
                 await safe_import(self)
+
+    async def _init_sequences(self):
+        if self.sequence_config is not None:
+            await self.AD.sequences.add_sequences(self.sequence_config)
 
     def apps_per_module(self, module_name: str) -> Set[str]:
         """Finds which apps came from a given module name.

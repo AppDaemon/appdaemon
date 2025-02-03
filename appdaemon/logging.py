@@ -455,8 +455,8 @@ class Logging(metaclass=utils.Singleton):
             )
         )
 
-        if name in self.AD.module_debug:
-            logger.setLevel(self.AD.module_debug[name])
+        if name in self.AD.module_debug.root:
+            logger.setLevel(self.AD.module_debug.root[name])
         else:
             logger.setLevel(self.AD.loglevel)
 
