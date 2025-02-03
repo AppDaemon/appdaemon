@@ -647,7 +647,7 @@ class AppManagement:
                         current_seq = self.sequence_config.root[seq_name]
                         new_seq = cfg.root[seq_name]
                         if new_seq != current_seq:
-                            update_actions.sequences.reload.add(new_seq)
+                            update_actions.sequences.reload.add(seq_name)
                     continue
 
                 if name in self.non_apps:
