@@ -347,6 +347,7 @@ def warning_decorator(
         @wraps(func)
         async def wrapper(self, *args, **kwargs):
             logger: Logger = self.logger
+            error_logger: Logger = self.error
             try:
                 nonlocal start_text
                 if start_text is not None:
@@ -356,10 +357,13 @@ def warning_decorator(
                     result = await func(self, *args, **kwargs)
                 else:
                     result = func(self, *args, **kwargs)
-            except ade.AppDependencyError as e:
+            except SyntaxError as e:
+                logger.warning(f'Syntax error: {e}')
+                text = ''.join(traceback.format_exception(e, limit=1))
+                error_logger.error(text)
+            except (ade.AppDependencyError, ade.AppConfigNotFound) as e:
                 logger.warning(f'Dependency error: {e}')
             except Exception as e:
-                error_logger: Logger = self.error
                 error_logger.warning("-" * 60)
                 nonlocal error_text
                 error_text = error_text or f"Unexpected error running {func.__qualname__}"
