@@ -273,18 +273,33 @@ class AppManagement:
 
         # Call its initialize function
         await self.set_state(app_name, state="initializing")
-        self.logger.info(f"Calling initialize() for {app_name}")
-        if asyncio.iscoroutinefunction(init_func):
-            await init_func()
-        else:
-            await utils.run_in_executor(self, init_func)
+        try:
+            self.logger.info(f"Calling initialize() for {app_name}")
+            if asyncio.iscoroutinefunction(init_func):
+                await init_func()
+            else:
+                await utils.run_in_executor(self, init_func)
 
-        await self.increase_active_apps(app_name)
-        await self.set_state(app_name, state="idle")
+            await self.increase_active_apps(app_name)
+            await self.set_state(app_name, state="idle")
 
-        event_data = {"event_type": "app_initialized",
-                      "data": {"app": app_name}}
-        await self.AD.events.process_event("admin", event_data)
+            event_data = {"event_type": "app_initialized",
+                          "data": {"app": app_name}}
+            await self.AD.events.process_event("admin", event_data)
+        except Exception:
+            error_logger = logging.getLogger("Error.{}".format(app_name))
+            error_logger.warning("-" * 60)
+            error_logger.warning(
+                "Unexpected error running initialize() for %s", app_name)
+            error_logger.warning("-" * 60)
+            error_logger.warning(traceback.format_exc())
+            error_logger.warning("-" * 60)
+            if self.AD.logging.separate_error_log() is True:
+                self.logger.warning(
+                    "Logged an error to %s",
+                    self.AD.logging.get_filename("error_log"),
+                )
+            return False
 
     async def terminate_app(self, app_name: str, delete: bool = True) -> bool:
         try:

@@ -28,7 +28,8 @@ from .utils import hass_check, looped_coro
 
 
 class HASSWebsocketResponse(BaseModel):
-    type: Literal["result", "auth_required", "auth_ok", "auth_invalid", "event"]
+    type: Literal["result", "auth_required",
+                  "auth_ok", "auth_invalid", "event"]
     ha_version: Optional[str] = None
     message: Optional[str] = None
     id: Optional[int] = None
@@ -106,7 +107,8 @@ class HassPlugin(PluginBase):
         """
         ssl_context = None if self.config.cert_verify else False
         if self.config.cert_verify and self.config.cert_path:
-            ssl_context = ssl.create_default_context(capath=self.config.cert_path)
+            ssl_context = ssl.create_default_context(
+                capath=self.config.cert_path)
         conn = aiohttp.TCPConnector(ssl=ssl_context)
         return aiohttp.ClientSession(
             connector=conn,
@@ -138,7 +140,8 @@ class HassPlugin(PluginBase):
             case WSMsgType.CLOSE:
                 self.logger.debug("Received %s message", msg.type)
             case _:
-                self.logger.error("Unhandled websocket message type: %s", msg.type)
+                self.logger.error(
+                    "Unhandled websocket message type: %s", msg.type)
         return msg_json
 
     @utils.warning_decorator(error_text="Error during processing jSON", reraise=True)
@@ -146,14 +149,17 @@ class HassPlugin(PluginBase):
         """Wraps a match/case statement for the ``type`` key of the JSON received from the websocket"""
         match resp["type"]:
             case "auth_required":
-                self.logger.info("Connected to Home Assistant %s with aiohttp websocket", resp["ha_version"])
+                self.logger.info(
+                    "Connected to Home Assistant %s with aiohttp websocket", resp["ha_version"])
                 await self.__post_conn__()
             case "auth_ok":
-                self.logger.info("Authenticated to Home Assistant %s", resp["ha_version"])
+                self.logger.info(
+                    "Authenticated to Home Assistant %s", resp["ha_version"])
                 # Creating a task here allows the plugin to still receive events as it waits for the startup conditions
                 self.AD.loop.create_task(self.__post_auth__())
             case "auth_invalid":
-                self.logger.error(f'Failed to authenticate to Home Assistant: {resp["message"]}')
+                self.logger.error(f'Failed to authenticate to Home Assistant: {
+                                  resp["message"]}')
                 await self.ws.close()
             case "ping":
                 await self.ping()
@@ -181,14 +187,18 @@ class HassPlugin(PluginBase):
                 match res["success"]:
                     case False:
                         res = res["error"]
-                        raise HAEventsSubError(f'{res["code"]}: {res["message"]}')
+                        raise HAEventsSubError(
+                            f'{res["code"]}: {res["message"]}')
                     case "timeout":
-                        raise HAEventsSubError("Timed out waiting for subscription acknowledgement")
+                        raise HAEventsSubError(
+                            "Timed out waiting for subscription acknowledgement")
 
-        config_coro = looped_coro(self.get_hass_config, self.config.config_sleep_time)
+        config_coro = looped_coro(
+            self.get_hass_config, self.config.config_sleep_time)
         self.AD.loop.create_task(config_coro(self))
 
-        service_coro = looped_coro(self.get_hass_services, self.config.services_sleep_time)
+        service_coro = looped_coro(
+            self.get_hass_services, self.config.services_sleep_time)
         self.AD.loop.create_task(service_coro(self))
 
         await self.wait_for_start_conditions()
@@ -215,9 +225,11 @@ class HassPlugin(PluginBase):
             if not future.done():
                 future.set_result(resp)
             else:
-                self.logger.warning(f'Request already timed out for {resp["id"]}')
+                self.logger.debug(
+                    f'Request already timed out for {resp["id"]}')
         else:
-            self.logger.warning(f"Received result without a matching future: {resp}")
+            self.logger.warning(
+                f"Received result without a matching future: {resp}")
 
         silent = self._silent_results.pop(resp["id"], False) or \
             self.AD.config.suppress_log_messages
@@ -225,18 +237,22 @@ class HassPlugin(PluginBase):
         if not silent:
             match resp["success"]:
                 case True:
-                    self.logger.debug(f'Received successful result from ID {resp["id"]}')
+                    self.logger.debug(
+                        f'Received successful result from ID {resp["id"]}')
                 case False:
-                    self.logger.warning("Error with websocket result: %s: %s", resp["error"]["code"], resp["error"]["message"])
+                    self.logger.warning(
+                        "Error with websocket result: %s: %s", resp["error"]["code"], resp["error"]["message"])
                 case None:
-                    self.logger.error(f"Invalid response success value: {resp['success']}")
+                    self.logger.error(f"Invalid response success value: {
+                                      resp['success']}")
 
     @utils.warning_decorator(error_text="Unexpected error during receive_event")
     async def receive_event(self, event: dict):
         self.logger.debug(f"Received event type: {event['event_type']}")
 
         meta_attrs = {"origin", "time_fired", "context"}
-        event["metadata"] = {a: val for a in meta_attrs if (val := event.pop(a, None)) is not None}
+        event["metadata"] = {a: val for a in meta_attrs if (
+            val := event.pop(a, None)) is not None}
 
         await self.AD.events.process_event(self.namespace, event)
 
@@ -251,7 +267,8 @@ class HassPlugin(PluginBase):
                 data = event["data"]
                 await self.check_register_service(data["domain"], data["service"], silent=True)
             case "call_service":
-                service_name = f'{event["data"]["domain"]}.{event["data"]["service"]}'
+                service_name = f'{event["data"]["domain"]}.{
+                    event["data"]["service"]}'
                 entity_id = event["data"]["service_data"].get('entity_id')
                 self.logger.debug(f'{service_name}, {entity_id}')
             case 'entity_registry_updated':
@@ -310,7 +327,8 @@ class HassPlugin(PluginBase):
             result: dict = await asyncio.wait_for(future, timeout=timeout)
         except asyncio.TimeoutError:
             if not silent:
-                self.logger.warning(f"Timed out [{timeout:.0f}s] waiting for request: %s", request)
+                self.logger.warning(
+                    f"Timed out [{timeout:.0f}s] waiting for request: %s", request)
             return {"success": "timeout", "ad_duration": timeout}
         else:
             travel_time = perf_counter() - send_time
@@ -366,7 +384,8 @@ class HassPlugin(PluginBase):
         except asyncio.CancelledError:
             self.logger.debug("Task cancelled during %s", method.upper())
         except aiohttp.ServerDisconnectedError:
-            self.logger.error("HASS disconnected unexpectedly during %s to %s", method.upper(), url)
+            self.logger.error(
+                "HASS disconnected unexpectedly during %s to %s", method.upper(), url)
         else:
             self.update_perf(bytes_recv=resp.content_length, updates_recv=1)
             match resp.status:
@@ -375,7 +394,7 @@ class HassPlugin(PluginBase):
                         return await resp.text()
                     else:
                         return await resp.json()
-                case 400 | 401 | 403| 404 | 405:
+                case 400 | 401 | 403 | 404 | 405:
                     try:
                         msg = (await resp.json())["message"]
                     except Exception:
@@ -383,15 +402,18 @@ class HassPlugin(PluginBase):
                     self.logger.error(f"Bad response from {url}: {msg}")
                 case 500 | 502:
                     text = await resp.text()
-                    self.logger.error("Internal server error %s: %s", url, text)
+                    self.logger.error(
+                        "Internal server error %s: %s", url, text)
                 case _:
-                    raise NotImplementedError('Unhandled error: HTTP %s', resp.status)
+                    raise NotImplementedError(
+                        'Unhandled error: HTTP %s', resp.status)
             return resp
 
     async def wait_for_start_conditions(self):
         condition_tasks = []
         if delay := self.config.plugin_startup_conditions.get('delay'):
-            self.logger.info(f'Adding a {delay:.0f}s delay to the {self.name} startup')
+            self.logger.info(f'Adding a {delay:.0f}s delay to the {
+                             self.name} startup')
             condition_tasks.append(
                 self.AD.loop.create_task(
                     asyncio.sleep(delay)
@@ -411,7 +433,8 @@ class HassPlugin(PluginBase):
         if cond := self.config.plugin_startup_conditions.get('state'):
             state = await self.get_plugin_state(cond['entity'])
             if utils.deep_compare(cond['value'], state):
-                self.logger.info(f'Startup state condition already met: {cond}')
+                self.logger.info(
+                    f'Startup state condition already met: {cond}')
             else:
                 self.logger.info(f'Adding startup state condition: {cond}')
                 condition = StartupWaitCondition({
@@ -428,7 +451,8 @@ class HassPlugin(PluginBase):
                     )
                 )
 
-        self.logger.info(f'Waiting for {len(condition_tasks)} startup condition tasks after {self.time_str()}')
+        self.logger.info(f'Waiting for {len(
+            condition_tasks)} startup condition tasks after {self.time_str()}')
         if condition_tasks:
             await asyncio.wait(condition_tasks)
 
@@ -470,22 +494,26 @@ class HassPlugin(PluginBase):
             case str():
                 service = services  # rename for clarity
                 if domain not in existing_domains:
-                    self.services.append({"domain": domain, "services": {service: {}}})
+                    self.services.append(
+                        {"domain": domain, "services": {service: {}}})
                     new_services = {service}
             case dict():
                 if domain in existing_domains:
                     for i, s in enumerate(self.services):
                         if domain == s["domain"]:
                             self.services[i]["services"].update(services)
-                            new_services = set(s for s in services if s not in self.services[i]["services"])
+                            new_services = set(
+                                s for s in services if s not in self.services[i]["services"])
                 else:
-                    self.services.append({"domain": domain, "services": services})
+                    self.services.append(
+                        {"domain": domain, "services": services})
                     new_services = services
                     pass
 
         for service in new_services:
             if not silent:
-                self.logger.debug("Registering new service %s/%s", domain, service)
+                self.logger.debug(
+                    "Registering new service %s/%s", domain, service)
 
             self.AD.services.register_service(
                 self.namespace,
@@ -517,7 +545,8 @@ class HassPlugin(PluginBase):
         # raise ValueError
         try:
             services: dict[str, dict[str, dict]] = (await self.websocket_send_json(type="get_services"))["result"]
-            services = [{"domain": domain, "services": services} for domain, services in services.items()]
+            services = [{"domain": domain, "services": services}
+                        for domain, services in services.items()]
 
             # manually added HASS services
             new_services = {}
@@ -592,7 +621,8 @@ class HassPlugin(PluginBase):
         if domain == "template" and service == "render":
             return await self.render_template(namespace, data)
 
-        req = {"type": "call_service", "domain": domain, "service": service, "service_data": data}
+        req = {"type": "call_service", "domain": domain,
+               "service": service, "service_data": data}
 
         service_properties = {
             prop: val
@@ -615,11 +645,14 @@ class HassPlugin(PluginBase):
         if target is not None:
             req["target"] = target
 
-        send_coro = self.websocket_send_json(silent=suppress_log_messages, **req)
+        send_coro = self.websocket_send_json(
+            silent=suppress_log_messages, **req)
 
         if callback is not None:
-            error_text=f'Error in callback {callback.__name__} for service {domain}/{service}'
-            cb_safety_decorator = utils.warning_decorator(error_text=error_text)
+            error_text = f'Error in callback {
+                callback.__name__} for service {domain}/{service}'
+            cb_safety_decorator = utils.warning_decorator(
+                error_text=error_text)
 
         if return_response is False:
             task = self.AD.loop.create_task(send_coro)
@@ -633,7 +666,8 @@ class HassPlugin(PluginBase):
             try:
                 res = await asyncio.wait_for(send_coro, timeout=hass_timeout)
             except asyncio.TimeoutError:
-                self.logger.error(f"Timed out [{hass_timeout:.0f}s] during service call: {req}")
+                self.logger.error(
+                    f"Timed out [{hass_timeout:.0f}s] during service call: {req}")
             else:
                 if callback is not None:
                     @cb_safety_decorator
@@ -696,7 +730,8 @@ class HassPlugin(PluginBase):
         state: Any | None = None,
         attributes: Any | None = None
     ):
-        self.logger.debug("set_plugin_state() %s %s %s %s", namespace, entity_id, state, attributes)
+        self.logger.debug("set_plugin_state() %s %s %s %s",
+                          namespace, entity_id, state, attributes)
 
         # if we get a request for not our namespace something has gone very wrong
         assert namespace == self.namespace
@@ -788,7 +823,7 @@ class HassPlugin(PluginBase):
 
         result = [
             {
-                k: v if k!= "when" else (
+                k: v if k != "when" else (
                     datetime
                     .datetime
                     .fromisoformat(v)

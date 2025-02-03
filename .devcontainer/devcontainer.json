@@ -25,7 +25,8 @@
 	// "remoteUser": "devcontainer"
 
 	"mounts": [
-		"source=${localEnv:HOME}${localEnv:USERPROFILE}/production/,target=/conf,type=bind,consistency=cached"
+		//"source=${localEnv:HOME}${localEnv:USERPROFILE}/production/,target=/conf,type=bind,consistency=cached"
+		"source=${localEnv:HOME}${localEnv:USERPROFILE}/appdir_test/,target=/conf,type=bind,consistency=cached"
 	],
 
 	// Configure tool-specific properties.
