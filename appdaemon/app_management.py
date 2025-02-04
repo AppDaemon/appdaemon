@@ -723,8 +723,9 @@ class AppManagement:
         """
         raw_cfg = utils.read_config_file(file)
         if not bool(raw_cfg):
-            self.logger.warning(f"Loaded an empty config file: {
-                                file.relative_to(self.AD.app_dir.parent)}")
+            self.logger.warning(
+                f"Loaded an empty config file: {file.relative_to(self.AD.app_dir.parent)}"
+            )
         config_model = AllAppConfig.model_validate(raw_cfg)
         for cfg in config_model.root.values():
             if isinstance(cfg, (AppConfig, GlobalModule)):
