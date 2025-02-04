@@ -1043,7 +1043,7 @@ class AppManagement:
                     async def safe_create(self: "AppManagement"):
                         try:
                             await self.create_app_object(app_name)
-                        except Exception as e:
+                        except Exception:
                             update_actions.apps.failed.add(app_name)
                             raise  # any exceptions will be handled by the warning_decorator
 
@@ -1103,7 +1103,7 @@ class AppManagement:
                         for app_name in update_actions.apps.failed:
                             await self.set_state(app_name, state="compile_error")
                             await self.increase_inactive_apps(app_name)
-                        
+
                         # Handle this down here to avoid having to repeat all the above logic for
                         # other exceptions.
                         if isinstance(e, ModuleNotFoundError):
