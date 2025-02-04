@@ -2068,13 +2068,15 @@ class ADAPI:
         namespace = namespace or self.namespace
 
         match event:
-            case str():
+            case str() | None:
                 return await self.AD.events.add_event_callback(self.name, namespace, callback, event, **kwargs)
             case Iterable():
                 return [
                     await self.AD.events.add_event_callback(self.name, namespace, callback, e, **kwargs)
                     for e in event
                 ]
+            case _:
+                self.logger.warning(f'Invalid event: {event}')
 
     @utils.sync_decorator
     async def cancel_listen_event(self, handle: str) -> bool:
