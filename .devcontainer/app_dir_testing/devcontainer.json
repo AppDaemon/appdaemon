@@ -4,7 +4,7 @@
 	"name": "appdaemon-dev",
 	"build": {
 		// Sets the run context to one level up instead of the .devcontainer folder.
-		"context": "..",
+		"context": "../..",
 		// Update the 'dockerFile' property if you aren't using the standard 'Dockerfile' filename.
 		"dockerfile": "Dockerfile",
 		"args": {
@@ -17,7 +17,7 @@
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	//"forwardPorts": ["4949:4949"],
-	"appPort": [ "4949:4949" ],
+	"appPort": [ "4848:4848" ],
 	// Uncomment the next line to run commands after the container is created.
 	// "postCreateCommand": "cat /etc/os-release",
 
@@ -25,7 +25,6 @@
 	// "remoteUser": "devcontainer"
 
 	"mounts": [
-		//"source=${localEnv:HOME}${localEnv:USERPROFILE}/production/,target=/conf,type=bind,consistency=cached"
 		"source=${localEnv:HOME}${localEnv:USERPROFILE}/appdir_test/,target=/conf,type=bind,consistency=cached"
 	],
 
