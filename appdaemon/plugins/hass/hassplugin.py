@@ -375,7 +375,7 @@ class HassPlugin(PluginBase):
                         return await resp.text()
                     else:
                         return await resp.json()
-                case 400 | 401 | 403| 404 | 405:
+                case 400 | 401 | 403 | 404 | 405:
                     try:
                         msg = (await resp.json())["message"]
                     except Exception:
@@ -788,7 +788,7 @@ class HassPlugin(PluginBase):
 
         result = [
             {
-                k: v if k!= "when" else (
+                k: v if k != "when" else (
                     datetime
                     .datetime
                     .fromisoformat(v)

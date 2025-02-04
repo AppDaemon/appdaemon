@@ -368,23 +368,26 @@ def warning_decorator(
                 else:
                     result = func(self, *args, **kwargs)
             except SyntaxError as e:
-                logger.warning(f'Syntax error: {e}')
+                logger.warning(error_text)
                 log_warning_block(
                     error_logger,
                     header=error_text,
                     exception_text=''.join(traceback.format_exception(e, limit=-1))
                 )
-            except ModuleNotFoundError as e:
-                logger.warning(f'Module not found: {e}')
-                log_warning_block(
-                    error_logger,
-                    header=error_text,
-                    exception_text=''.join(traceback.format_exception(e, limit=-1))
-                )
+                ...
             except ade.AppDependencyError as e:
                 logger.warning(f'Dependency error: {e}')
                 if self.AD.logging.separate_error_log():
                     error_logger.warning(f'Dependency error: {e}')
+                ...
+            except (ade.AppInstantiationError, ade.AppInitializeError, ade.AppModuleNotFound) as e:
+                logger.warning(e)
+                log_warning_block(
+                    error_logger,
+                    header=error_text,
+                    exception_text=''.join(traceback.format_exception(e, limit=-2))
+                )
+                ...
             except ValidationError as e:
                 log_warning_block(
                     error_logger,

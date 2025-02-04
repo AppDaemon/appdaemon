@@ -16,6 +16,14 @@
             "args": "-c /conf/ad_config/dev_test"
         },
         {
+            "name": "AppDaemon Appdir Test",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "appdaemon",
+            "justMyCode": true,
+            "args": "-c /conf"
+        },
+        {
             "name": "AppDaemon Production",
             "type": "debugpy",
             "request": "launch",
