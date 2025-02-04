@@ -379,19 +379,21 @@ class AppManagement:
         # assert dependencies
         dependencies = self.app_config.root[app_name].dependencies
         for dep_name in dependencies:
+            rel_path = self.app_rel_path(app_name)
             if (dep_cfg := self.app_config.root.get(dep_name)):
                 match dep_cfg:
                     case AppConfig():
                         # There is a valid app configuration for this dependency
                         if not (obj := self.objects.get(dep_name)) or not obj.running:
                             # If the object isn't in the self.objects dict or it's there, but not running
-                            raise ade.AppDependencyError(f"'{app_name}' depends on '{dep_name}', but it's not running")
+                            raise ade.AppDependencyError(f"'{app_name}' from ./{rel_path} depends on '{dep_name}', but it's not running")
                     case GlobalModule():
                         if dep_name not in sys.modules:
-                            raise ade.AppDependencyError(f"'{app_name}' depends on '{dep_name}', but it's not loaded")
+                            raise ade.AppDependencyError(
+                                f"'{app_name}' from ./{rel_path} depends on '{dep_name}', but it's not loaded"
+                            )
             else:
-                rel_path = self.app_rel_path(app_name)
-                raise ade.AppConfigNotFound(
+                raise ade.AppDependencyError(
                     f"'{app_name}' references '{dep_name}' in ./{rel_path} but it wasn't found anywhere"
                 )
 
