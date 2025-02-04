@@ -115,23 +115,27 @@ class AllAppConfig(RootModel):
 
     @classmethod
     def from_config_files(cls, paths: Iterable[Path]):
-        paths = iter(paths)
-        cfg = read_config_file(next(paths))
-        for p in paths:
-            for new, new_cfg in read_config_file(p).items():
-                if new in cfg:
-                    match new:
-                        case "global_modules":
-                            cfg[new].extend(new_cfg)
-                        case "sequence":
-                            cfg[new].update(new_cfg)
-                        case _:
-                            # This is the case for an app being defined more than once
-                            # TODO: Log some kind of warning here
-                            cfg[new].update(new_cfg)
-                else:
-                    cfg[new] = new_cfg
-        return cls.model_validate(cfg)
+        try:
+            paths = iter(paths)
+            cfg = read_config_file(next(paths))
+        except StopIteration:
+            return cls()
+        else:
+            for p in paths:
+                for new, new_cfg in read_config_file(p).items():
+                    if new in cfg:
+                        match new:
+                            case "global_modules":
+                                cfg[new].extend(new_cfg)
+                            case "sequence":
+                                cfg[new].update(new_cfg)
+                            case _:
+                                # This is the case for an app being defined more than once
+                                # TODO: Log some kind of warning here
+                                cfg[new].update(new_cfg)
+                    else:
+                        cfg[new] = new_cfg
+            return cls.model_validate(cfg)
 
     def depedency_graph(self) -> dict[str, set[str]]:
         """Maps the app names to the other apps that they depend on"""
