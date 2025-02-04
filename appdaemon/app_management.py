@@ -13,7 +13,9 @@ from copy import copy
 from functools import partial, reduce, wraps
 from logging import Logger
 from pathlib import Path
-from typing import TYPE_CHECKING, Iterable, Literal, Set, Union
+from typing import TYPE_CHECKING, Iterable, Literal, Set, Union, Generator
+
+from pydantic import ValidationError
 
 from appdaemon.dependency import DependencyResolutionFail, get_full_module_name
 from appdaemon.dependency_manager import DependencyManager
@@ -96,8 +98,10 @@ class AppManagement:
             domain="app",
             callback=self.manage_services
         )
-        services = {"start", "stop", "restart", "disable",
-                    "enable", "reload", "create", "edit", "remove"}
+        services = {
+            "start", "stop", "restart", "disable",
+            "enable", "reload", "create", "edit", "remove"
+        }
         for service in services:
             register(service=service)
         # self.AD.services.register_service("admin", "app", "start", self.manage_services)
@@ -156,6 +160,14 @@ class AppManagement:
     @property
     def sequence_config(self) -> SequenceConfig | None:
         return self.app_config.root.get('sequence')
+
+    @property
+    def valid_sequences(self) -> Generator[str, None, None]:
+        """Sequences are considered valid after they pass through the pydantic
+        models, which happens when they're read from file.
+        """
+        if (seq_cfg := self.sequence_config) is not None:
+            yield from seq_cfg.root.keys()
 
     @property
     def valid_apps(self) -> set[str]:
@@ -272,43 +284,32 @@ class AppManagement:
             app_cfg = self.app_config[app_name]
             module_path = Path(sys.modules[app_cfg.module_name].__file__)
             rel_path = module_path.relative_to(self.AD.app_dir.parent)
-            raise ade.NoInitializeMethod(f"Class {app_cfg.class_name} in {
-                                         rel_path} does not have an initialize method")
+            raise ade.NoInitializeMethod(
+                f"Class {app_cfg.class_name} in {rel_path} does not have an initialize method"
+            )
 
         if utils.count_positional_arguments(init_func) != 0:
             class_name = self.app_config[app_name].class_name
             raise ade.BadInitializeMethod(
-                f"Wrong number of arguments for initialize method of {class_name}")
+                f"Wrong number of arguments for initialize method of {class_name}"
+            )
 
         # Call its initialize function
         await self.set_state(app_name, state="initializing")
-        try:
-            self.logger.info(f"Calling initialize() for {app_name}")
-            if asyncio.iscoroutinefunction(init_func):
-                await init_func()
-            else:
-                await utils.run_in_executor(self, init_func)
+        self.logger.info(f"Calling initialize() for {app_name}")
+        if asyncio.iscoroutinefunction(init_func):
+            await init_func()
+        else:
+            await utils.run_in_executor(self, init_func)
 
-            await self.increase_active_apps(app_name)
-            await self.set_state(app_name, state="idle")
+        await self.increase_active_apps(app_name)
+        await self.set_state(app_name, state="idle")
 
-            event_data = {"event_type": "app_initialized",
-                          "data": {"app": app_name}}
-            await self.AD.events.process_event("admin", event_data)
-        except Exception:
-            error_logger = logging.getLogger("Error.{}".format(app_name))
-            error_logger.warning("-" * 60)
-            error_logger.warning(
-                "Unexpected error running initialize() for %s", app_name)
-            error_logger.warning("-" * 60)
-            error_logger.warning(traceback.format_exc())
-            error_logger.warning("-" * 60)
-            if self.AD.logging.separate_error_log() is True:
-                self.logger.warning(
-                    "Logged an error to %s",
-                    self.AD.logging.get_filename("error_log"),
-                )
-            return False
+        event_data = {
+            "event_type": "app_initialized",
+            "data": {"app": app_name}
+        }
+        await self.AD.events.process_event("admin", event_data)
 
     async def terminate_app(self, app_name: str, delete: bool = True) -> bool:
         try:
@@ -386,19 +387,21 @@ class AppManagement:
         # assert dependencies
         dependencies = self.app_config.root[app_name].dependencies
         for dep_name in dependencies:
+            rel_path = self.app_rel_path(app_name)
             if (dep_cfg := self.app_config.root.get(dep_name)):
                 match dep_cfg:
                     case AppConfig():
                         # There is a valid app configuration for this dependency
                         if not (obj := self.objects.get(dep_name)) or not obj.running:
                             # If the object isn't in the self.objects dict or it's there, but not running
-                            raise ade.AppDependencyError(f"'{app_name}' depends on '{dep_name}', but it's not running")
+                            raise ade.AppDependencyError(f"'{app_name}' from ./{rel_path} depends on '{dep_name}', but it's not running")
                     case GlobalModule():
                         if dep_name not in sys.modules:
-                            raise ade.AppDependencyError(f"'{app_name}' depends on '{dep_name}', but it's not loaded")
+                            raise ade.AppDependencyError(
+                                f"'{app_name}' from ./{rel_path} depends on '{dep_name}', but it's not loaded"
+                            )
             else:
-                rel_path = self.app_rel_path(app_name)
-                raise ade.AppConfigNotFound(
+                raise ade.AppDependencyError(
                     f"'{app_name}' references '{dep_name}' in ./{rel_path} but it wasn't found anywhere"
                 )
 
@@ -408,10 +411,11 @@ class AppManagement:
         else:
             try:
                 await self.initialize_app(app_name)
-            except Exception:
+            except Exception as e:
                 await self.set_state(app_name, state="initialize_error")
                 self.objects[app_name].running = False
-                raise
+                self.logger.warning(f"App '{app_name}' failed to start")
+                raise ade.AppInitializeError(f"Error during initialize method for '{app_name}'") from e
             else:
                 self.objects[app_name].running = True
 
@@ -442,7 +446,10 @@ class AppManagement:
 
     async def restart_app(self, app):
         await self.stop_app(app, delete=False)
-        await self.start_app(app)
+        try:
+            await self.start_app(app)
+        except (ade.AppDependencyError, ade.AppInitializeError) as e:
+            self.logger.warning(e)
 
     def get_app_debug_level(self, name: str):
         if obj := self.objects.get(name):
@@ -485,20 +492,24 @@ class AppManagement:
             pin = -1
 
         # This module should already be loaded and stored in sys.modules
-        mod_obj = await utils.run_in_executor(self, importlib.import_module, module_name)
+        try:
+            mod_obj = await utils.run_in_executor(self, importlib.import_module, module_name)
+        except ModuleNotFoundError as exc:
+            rel_path = self.app_rel_path(app_name)
+            raise ade.AppModuleNotFound(
+                f"Unable to import '{module_name}' as defined for app '{app_name}' in {rel_path}"
+            ) from exc
 
         try:
             app_class = getattr(mod_obj, class_name)
         except AttributeError as exc:
             raise ade.AppClassNotFound(
-                f"Unable to find '{class_name}' in module '{
-                    mod_obj.__file__}' as defined in app '{app_name}'"
+                f"Unable to find '{class_name}' in module '{mod_obj.__file__}' as defined in app '{app_name}'"
             ) from exc
 
         if utils.count_positional_arguments(app_class.__init__) != 3:
             raise ade.AppClassSignatureError(
-                f"Class '{
-                    class_name}' takes the wrong number of arguments. Check the inheritance"
+                f"Class '{class_name}' takes the wrong number of arguments. Check the inheritance"
             )
 
         try:
@@ -506,8 +517,9 @@ class AppManagement:
         except Exception as exc:
             await self.set_state(app_name, state="compile_error")
             await self.increase_inactive_apps(app_name)
-            raise ade.AppInstantiationError(f"Error when creating class '{
-                                            class_name}' for app named '{app_name}'") from exc
+            raise ade.AppInstantiationError(
+                f"Error when creating class '{class_name}' for app named '{app_name}'"
+            ) from exc
         else:
             self.objects[app_name] = ManagedObject(
                 type="app",
@@ -570,15 +582,21 @@ class AppManagement:
                 rel_path = path.relative_to(self.AD.app_dir.parent)
 
                 @utils.warning_decorator(
-                    # start_text=f"{rel_path} read start",
                     success_text=f"Read {rel_path}",
                     error_text=f"Unexepected error while reading {rel_path}",
-                    # finally_text=f"{rel_path} read finish",
                 )
-                async def safe_read(self, path: Path):
-                    return await self.read_config_file(path)
+                async def safe_read(self: "AppManagement", path: Path) -> AllAppConfig:
+                    try:
+                        return await self.read_config_file(path)
+                    except ValidationError as e:
+                        self.logger.warning(f'User config file failed validation {rel_path}')
+                        # e.rel_path = rel_path
+                        raise e
 
-                new_cfg: AllAppConfig = await safe_read(self, path)
+                new_cfg = await safe_read(self, path)
+                if new_cfg is None:
+                    continue
+
                 for name, cfg in new_cfg.root.items():
                     if isinstance(cfg, AppConfig):
                         await self.add_entity(
@@ -662,7 +680,7 @@ class AppManagement:
                         current_seq = self.sequence_config.root[seq_name]
                         new_seq = cfg.root[seq_name]
                         if new_seq != current_seq:
-                            update_actions.sequences.reload.add(new_seq)
+                            update_actions.sequences.reload.add(seq_name)
                     continue
 
                 if name in self.non_apps:
@@ -695,7 +713,8 @@ class AppManagement:
             if active_apps > self.AD.threading.thread_count:
                 threads_to_add = active_apps - self.AD.threading.thread_count
                 self.logger.debug(
-                    f"Adding {threads_to_add} threads based on the active app count")
+                    f"Adding {threads_to_add} threads based on the active app count"
+                )
                 for _ in range(threads_to_add):
                     await self.AD.threading.add_thread(silent=False, pinthread=True)
 
@@ -707,8 +726,9 @@ class AppManagement:
         """
         raw_cfg = utils.read_config_file(file)
         if not bool(raw_cfg):
-            self.logger.warning(f"Loaded an empty config file: {
-                                file.relative_to(self.AD.app_dir.parent)}")
+            self.logger.warning(
+                f"Loaded an empty config file: {file.relative_to(self.AD.app_dir.parent)}"
+            )
         config_model = AllAppConfig.model_validate(raw_cfg)
         for cfg in config_model.root.values():
             if isinstance(cfg, (AppConfig, GlobalModule)):
@@ -856,18 +876,28 @@ class AppManagement:
         match self.AD.config.import_method:
             case 'default' | 'expert' | None:
                 # Get unique set of the absolute paths of all the subdirectories containing python files
-                python_file_parents = set(f.parent.resolve()
-                                          for f in Path(self.AD.app_dir).rglob("*.py"))
+                python_file_parents = set(
+                    f.parent.resolve() for f in Path(self.AD.app_dir).rglob("*.py")
+                )
+
                 # Filter out any that have __init__.py files in them
-                module_parents = set(p for p in python_file_parents if not (
-                    p / "__init__.py").exists())
+                module_parents = set(
+                    p for p in python_file_parents
+                    if not (p / "__init__.py").exists()
+                )
 
                 #  unique set of the absolute paths of all subdirectories with a __init__.py in them
-                package_dirs = set(p for p in python_file_parents if (
-                    p / "__init__.py").exists())
+                package_dirs = set(
+                    p for p in python_file_parents
+                    if (p / "__init__.py").exists()
+                )
+
                 # Filter by ones whose parent directory's don't also contain an __init__.py
-                top_packages_dirs = set(p for p in package_dirs if not (
-                    p.parent / "__init__.py").exists())
+                top_packages_dirs = set(
+                    p for p in package_dirs
+                    if not (p.parent / "__init__.py").exists()
+                )
+
                 # Get the parent directories so the ones with __init__.py are importable
                 package_parents = set(p.parent for p in top_packages_dirs)
 
@@ -900,12 +930,16 @@ class AppManagement:
                         self.add_to_import_path(root)
 
     async def _init_dep_manager(self):
-        self.dependency_manager = DependencyManager(
-            python_files=await self.get_python_files(),
-            config_files=await self.get_app_config_files()
-        )
-        self.config_filecheck.mtimes = {}
-        self.python_filecheck.mtimes = {}
+        @utils.warning_decorator(error_text="Error while creating dependency manager")
+        async def safe_dep_create(self: "AppManagement"):
+            self.dependency_manager = DependencyManager(
+                python_files=await self.get_python_files(),
+                config_files=await self.get_app_config_files()
+            )
+            self.config_filecheck.mtimes = {}
+            self.python_filecheck.mtimes = {}
+
+        await safe_dep_create(self)
 
     @utils.executor_decorator
     def get_python_files(self) -> Iterable[Path]:
@@ -1018,16 +1052,11 @@ class AppManagement:
                         self.AD.app_dir.parent)
 
                     @utils.warning_decorator(
-                        error_text=f"Error creating the app object for '{
-                            app_name}' from {rel_path}"
+                        error_text=f"Error creating the app object for '{app_name}' from {rel_path}"
                     )
                     async def safe_create(self: "AppManagement"):
                         try:
                             await self.create_app_object(app_name)
-                        except ModuleNotFoundError as e:
-                            update_actions.apps.failed.add(app_name)
-                            self.logger.warning(
-                                f"Failed to import module for '{app_name}': {e}")
                         except Exception:
                             update_actions.apps.failed.add(app_name)
                             raise  # any exceptions will be handled by the warning_decorator
@@ -1047,8 +1076,7 @@ class AppManagement:
 
                     @utils.warning_decorator(
                         success_text=f"Started '{app_name}'",
-                        error_text=f"Error starting app '{
-                            app_name}' from {rel_path}",
+                        error_text=f"Error starting app '{app_name}' from {rel_path}",
                     )
                     async def safe_start(self: "AppManagement"):
                         try:
@@ -1060,8 +1088,7 @@ class AppManagement:
                     if await self.get_state(app_name) != "compile_error":
                         await safe_start(self)
                 elif isinstance(cfg, GlobalModule):
-                    assert cfg.module_name in sys.modules, f'{
-                        cfg.module_name} not in sys.modules'
+                    assert cfg.module_name in sys.modules, f'{cfg.module_name} not in sys.modules'
 
     async def _import_modules(self, update_actions: UpdateActions) -> Set[str]:
         """Calls ``self.import_module`` for each module in the list
@@ -1079,7 +1106,7 @@ class AppManagement:
                 async def safe_import(self: "AppManagement"):
                     try:
                         await self.import_module(module_name)
-                    except Exception:
+                    except Exception as e:
                         dm: DependencyManager = self.dependency_manager
                         update_actions.modules.failed |= dm.dependent_modules(
                             module_name)
@@ -1088,7 +1115,13 @@ class AppManagement:
                         for app_name in update_actions.apps.failed:
                             await self.set_state(app_name, state="compile_error")
                             await self.increase_inactive_apps(app_name)
-                        raise
+
+                        # Handle this down here to avoid having to repeat all the above logic for
+                        # other exceptions.
+                        if isinstance(e, ModuleNotFoundError):
+                            raise ade.AppModuleNotFound(f"Unable to import '{module_name}'") from e
+                        else:
+                            raise
 
                 await safe_import(self)
 

@@ -21,7 +21,7 @@ from appdaemon.sequences import Sequences
 from appdaemon.services import Services
 from appdaemon.state import State
 from appdaemon.thread_async import ThreadAsync
-from appdaemon.threading import Threading
+from appdaemon.threads import Threading
 from appdaemon.utility_loop import Utility
 
 if TYPE_CHECKING:
@@ -141,8 +141,7 @@ class AppDaemon:
 
         if self.apps is True:
             assert self.config_dir is not None, "Config_dir not set. This is a development problem"
-            assert self.config_dir.exists(), f"{
-                self.config_dir} does not exist"
+            assert self.config_dir.exists(), f"{self.config_dir} does not exist"
             assert os.access(
                 self.config_dir, os.R_OK | os.X_OK
             ), f"{self.config_dir} does not have the right permissions"

@@ -325,6 +325,14 @@ def format_exception(e):
     return traceback.format_exc()
 
 
+def log_warning_block(logger: Logger, exception_text: str, header: str | None = None, width: int = 60):
+    logger.warning("-" * width)
+    logger.warning(header or "Unexpe")
+    exception_text = ("-" * 60) + "\n" + exception_text
+    logger.warning(exception_text)
+    logger.warning("-" * 60)
+
+
 def warning_decorator(
     start_text: str | None = None,
     success_text: str | None = None,
@@ -347,6 +355,9 @@ def warning_decorator(
         @wraps(func)
         async def wrapper(self, *args, **kwargs):
             logger: Logger = self.logger
+            error_logger: Logger = self.error
+            nonlocal error_text
+            error_text = error_text or f"Unexpected error running {func.__qualname__}"
             try:
                 nonlocal start_text
                 if start_text is not None:
@@ -356,20 +367,40 @@ def warning_decorator(
                     result = await func(self, *args, **kwargs)
                 else:
                     result = func(self, *args, **kwargs)
+            except SyntaxError as e:
+                logger.warning(error_text)
+                log_warning_block(
+                    error_logger,
+                    header=error_text,
+                    exception_text=''.join(traceback.format_exception(e, limit=-1))
+                )
+                ...
             except ade.AppDependencyError as e:
                 logger.warning(f'Dependency error: {e}')
+                if self.AD.logging.separate_error_log():
+                    error_logger.warning(f'Dependency error: {e}')
+                ...
+            except (ade.AppInstantiationError, ade.AppInitializeError, ade.AppModuleNotFound) as e:
+                logger.warning(e)
+                log_warning_block(
+                    error_logger,
+                    header=error_text,
+                    exception_text=''.join(traceback.format_exception(e, limit=-2))
+                )
+                ...
+            except ValidationError as e:
+                log_warning_block(
+                    error_logger,
+                    header=error_text,
+                    exception_text=str(e)
+                )
+                ...
             except Exception as e:
-                error_logger: Logger = self.error
-                error_logger.warning("-" * 60)
-                nonlocal error_text
-                error_text = error_text or f"Unexpected error running {func.__qualname__}"
-                error_logger.warning(error_text)
-                if isinstance(e, ValidationError):
-                    error_logger.warning(e)
-                else:
-                    exception_text = ("-" * 60) + "\n" + format_exception(e)
-                    error_logger.warning(exception_text)
-                error_logger.warning("-" * 60)
+                log_warning_block(
+                    error_logger,
+                    exception_text=format_exception(e),
+                    header=error_text,
+                )
 
                 if self.AD.logging.separate_error_log():
                     logger.warning(

@@ -169,8 +169,12 @@ class Threading:
             # Force a config check here so we have an accurate activate app count
             self.AD.app_management.logger.debug("Reading app config files to determine how many threads to make")
             cfg_paths = await self.AD.app_management.get_app_config_files()
-            full_cfg: "AllAppConfig" = await self.AD.app_management.read_all(cfg_paths)
-            self.total_threads = full_cfg.active_app_count
+            if not cfg_paths:
+                self.logger.warning(f'No apps found in {self.AD.app_dir}. This is probably a mistake')
+                self.total_threads = 10
+            else:
+                full_cfg: "AllAppConfig" = await self.AD.app_management.read_all(cfg_paths)
+                self.total_threads = full_cfg.active_app_count
 
         if self.pin_apps:
             self.pin_threads = self.pin_threads or self.total_threads
@@ -194,7 +198,7 @@ class Threading:
 
         self.thread_count = 0
         for _ in range(self.total_threads):
-            await self.add_thread(True)
+            await self.add_thread(silent=True)
 
         # Add thread object to track async
         await self.add_entity(

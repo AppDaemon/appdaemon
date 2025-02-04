@@ -221,16 +221,16 @@ class Sequences:
                                 self.logger, self.AD, name, ns, wait_entity)
                             if not await entity_object.exists():
                                 self.logger.warning(
-                                    f"Waiting for an entity {wait_entity}, in sequence {
-                                        entity_name}, that doesn't exist"
+                                    f"Waiting for an entity {wait_entity}, in sequence "
+                                    f"{entity_name}, that doesn't exist"
                                 )
 
                             try:
                                 await entity_object.wait_state(state, attribute, duration, timeout)
                             except TimeOutException:
                                 self.logger.warning(
-                                    f"{entity_name} sequence wait for {
-                                        wait_entity} timed out, so continuing sequence"
+                                    f"{entity_name} sequence wait for {wait_entity} timed out, "
+                                    "so continuing sequence"
                                 )
 
                         else:

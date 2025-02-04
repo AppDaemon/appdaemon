@@ -712,7 +712,9 @@ class ADAPI:
 
     def _check_entity(self, namespace: str, entity_id: str):
         """Ensures that the entity exists in the given namespace"""
-        if "." in entity_id and not self.AD.state.entity_exists(namespace, entity_id):
+        if entity_id is not None and \
+            "." in entity_id and \
+            not self.AD.state.entity_exists(namespace, entity_id):
             self.logger.warning("%s: Entity %s not found in namespace %s", self.name, entity_id, namespace)
 
     @staticmethod
@@ -1360,7 +1362,7 @@ class ADAPI:
     async def listen_state(
         self,
         callback: Callable,
-        entity_id: str | Iterable[str],
+        entity_id: str | Iterable[str] | None = None,
         namespace: str | None = None,
         **kwargs
     ) -> str | list[str]:
@@ -1500,7 +1502,7 @@ class ADAPI:
         namespace = namespace or self.namespace
 
         match entity_id:
-            case str():
+            case str() | None:
                 self._check_entity(namespace, entity_id)
                 return await self.get_entity_api(namespace, entity_id).listen_state(callback, **kwargs)
             case Iterable():
@@ -2068,13 +2070,15 @@ class ADAPI:
         namespace = namespace or self.namespace
 
         match event:
-            case str():
+            case str() | None:
                 return await self.AD.events.add_event_callback(self.name, namespace, callback, event, **kwargs)
             case Iterable():
                 return [
                     await self.AD.events.add_event_callback(self.name, namespace, callback, e, **kwargs)
                     for e in event
                 ]
+            case _:
+                self.logger.warning(f'Invalid event: {event}')
 
     @utils.sync_decorator
     async def cancel_listen_event(self, handle: str) -> bool:

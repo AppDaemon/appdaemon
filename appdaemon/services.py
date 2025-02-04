@@ -89,8 +89,7 @@ class Services:
                     f"Namespace {namespace}, doesn't exist")
 
             elif not callable(callback):
-                raise ValueError(f"The given callback {
-                                 callback} is not a callable function")
+                raise ValueError(f"The given callback {callback} is not a callable function")
 
             if namespace not in self.services:
                 self.services[namespace] = {}
@@ -105,8 +104,9 @@ class Services:
                     "__name")
                 if service_app and service_app != name:
                     self.logger.warning(
-                        f"This service '{domain}/{service}' already registered to a different app '{
-                            service_app}', and so cannot be registered to {name}. Do deregister from app first"
+                        f"This service '{domain}/{service}' already registered to a "
+                        f"different app '{service_app}', and so cannot be registered "
+                        f"to {name}. Do deregister from app first"
                     )
                     return
 
@@ -140,14 +140,12 @@ class Services:
         )
 
         if __name not in self.app_registered_services:
-            raise ValueError(f"The given App {
-                             __name} has no services registered")
+            raise ValueError(f"The given App {__name} has no services registered")
 
         app_service = f"{namespace}:{domain}:{service}"
 
         if app_service not in self.app_registered_services[__name]:
-            raise ValueError(f"The given App {
-                             __name} doesn't have the given service registered it")
+            raise ValueError(f"The given App {__name} doesn't have the given service registered it")
 
         # if it gets here, then time to deregister
         with self.services_lock:
@@ -223,8 +221,7 @@ class Services:
 
         with self.services_lock:
             if namespace not in self.services:
-                raise NamespaceException(f"Unknown namespace {
-                                         namespace} in call_service from {name}")
+                raise NamespaceException(f"Unknown namespace {namespace} in call_service from {name}")
 
             if domain not in self.services[namespace]:
                 raise DomainException(

@@ -43,6 +43,10 @@ class LoadingActions:
     failed: set[str] = field(default_factory=set)
 
     @property
+    def changes(self) -> bool:
+        return any(map(bool, (self.init, self.reload, self.term)))
+
+    @property
     def init_set(self) -> set[str]:
         return (self.init | self.reload) - self.failed
 

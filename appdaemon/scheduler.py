@@ -201,8 +201,10 @@ class Scheduler:
             del self.schedule[name]
 
         if not executed and not silent:
-            self.logger.warning(f"Invalid callback handle '{
-                                handle}' in cancel_timer() from app {name}")
+            self.logger.warning(
+                f"Invalid callback handle '{handle}' in "
+                f"cancel_timer() from app {name}"
+            )
 
         return executed
 
@@ -252,8 +254,8 @@ class Scheduler:
 
             if args["type"] == "next_rising" or args["type"] == "next_setting":
                 self.logger.warning(
-                    f"The given handle '{handle}' in reset_timer() from app {
-                        name} is a Sun timer, cannot" " reset that"
+                    f"The given handle '{handle}' in reset_timer() from "
+                    f"app {name} is a Sun timer, cannot" " reset that"
                 )
                 return executed
 
@@ -278,8 +280,8 @@ class Scheduler:
 
         if not executed:
             self.logger.warning(
-                f"The given handle '{handle}' in reset_timer() from app {
-                    name}, doesn't have a running timer"
+                f"The given handle '{handle}' in reset_timer() from app "
+                f"{name}, doesn't have a running timer"
             )
 
         return executed
