@@ -27,6 +27,7 @@ import dateutil.parser
 import tomli
 import tomli_w
 import yaml
+from pydantic import ValidationError
 
 from appdaemon.version import __version__  # noqa: F401
 
@@ -384,6 +385,13 @@ def warning_decorator(
                 logger.warning(f'Dependency error: {e}')
                 if self.AD.logging.separate_error_log():
                     error_logger.warning(f'Dependency error: {e}')
+            except ValidationError as e:
+                log_warning_block(
+                    error_logger,
+                    header=error_text,
+                    exception_text=str(e)
+                )
+                ...
             except Exception as e:
                 log_warning_block(
                     error_logger,

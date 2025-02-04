@@ -15,6 +15,8 @@ from logging import Logger
 from pathlib import Path
 from typing import TYPE_CHECKING, Iterable, Literal, Set, Union
 
+from pydantic import ValidationError
+
 from appdaemon.dependency import DependencyResolutionFail, get_full_module_name
 from appdaemon.dependency_manager import DependencyManager
 from appdaemon.models.config import AllAppConfig, AppConfig, GlobalModule
@@ -565,15 +567,21 @@ class AppManagement:
                 rel_path = path.relative_to(self.AD.app_dir.parent)
 
                 @utils.warning_decorator(
-                    # start_text=f"{rel_path} read start",
                     success_text=f"Read {rel_path}",
                     error_text=f"Unexepected error while reading {rel_path}",
-                    # finally_text=f"{rel_path} read finish",
                 )
-                async def safe_read(self, path: Path):
-                    return await self.read_config_file(path)
+                async def safe_read(self: "AppManagement", path: Path) -> AllAppConfig:
+                    try:
+                        return await self.read_config_file(path)
+                    except ValidationError as e:
+                        self.logger.warning(f'User config file failed validation {rel_path}')
+                        # e.rel_path = rel_path
+                        raise e
 
-                new_cfg: AllAppConfig = await safe_read(self, path)
+                new_cfg = await safe_read(self, path)
+                if new_cfg is None:
+                    continue
+
                 for name, cfg in new_cfg.root.items():
                     if isinstance(cfg, AppConfig):
                         await self.add_entity(
@@ -895,12 +903,16 @@ class AppManagement:
                         self.add_to_import_path(root)
 
     async def _init_dep_manager(self):
-        self.dependency_manager = DependencyManager(
-            python_files=await self.get_python_files(),
-            config_files=await self.get_app_config_files()
-        )
-        self.config_filecheck.mtimes = {}
-        self.python_filecheck.mtimes = {}
+        @utils.warning_decorator(error_text="Error while creating dependency manager")
+        async def safe_dep_create(self: "AppManagement"):
+            self.dependency_manager = DependencyManager(
+                python_files=await self.get_python_files(),
+                config_files=await self.get_app_config_files()
+            )
+            self.config_filecheck.mtimes = {}
+            self.python_filecheck.mtimes = {}
+
+        await safe_dep_create(self)
 
     @utils.executor_decorator
     def get_python_files(self) -> Iterable[Path]:
