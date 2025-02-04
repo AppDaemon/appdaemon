@@ -158,6 +158,14 @@ class AppManagement:
         return self.app_config.root.get('sequence')
 
     @property
+    def valid_sequences(self) -> Generator[str, None, None]:
+        """Sequences are considered valid after they pass through the pydantic
+        models, which happens when they're read from file.
+        """
+        if (seq_cfg := self.sequence_config) is not None:
+            yield from seq_cfg.root.keys()
+
+    @property
     def valid_apps(self) -> set[str]:
         return self.running_apps | self.loaded_globals
 
