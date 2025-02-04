@@ -21,7 +21,7 @@ from appdaemon.sequences import Sequences
 from appdaemon.services import Services
 from appdaemon.state import State
 from appdaemon.thread_async import ThreadAsync
-from appdaemon.threading import Threading
+from appdaemon.threads import Threading
 from appdaemon.utility_loop import Utility
 
 if TYPE_CHECKING:
