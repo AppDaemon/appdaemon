@@ -1,5 +1,5 @@
-ARG PYTHON_RELEASE=3.12
-ARG BASE_IMAGE=mcr.microsoft.com/devcontainers/python:${PYTHON_RELEASE}
+ARG PYTHON_RELEASE=3.13
+ARG BASE_IMAGE=python:${PYTHON_RELEASE}
 # Runtime image
 FROM ${BASE_IMAGE}
 
@@ -14,7 +14,3 @@ RUN pip install -r /usr/src/appdaemon/dev-requirements.txt
 
 # Add doc dependencies
 RUN pip install -r /usr/src/appdaemon/doc-requirements.txt
-
-# Install AppDaemon itself to keep VSCODE happy
-
-RUN pip install /usr/src/appdaemon

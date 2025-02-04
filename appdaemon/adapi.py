@@ -69,7 +69,8 @@ class ADAPI:
         self.AD = ad
         self.config_model = config_model
 
-        self.config = self.AD.config.model_dump(by_alias=True, exclude_unset=True)
+        self.config = self.AD.config.model_dump(
+            by_alias=True, exclude_unset=True)
         self.args = config_model.model_dump(by_alias=True, exclude_unset=True)
 
         self.dashboard_dir = None
@@ -163,7 +164,7 @@ class ADAPI:
              stack_info: bool = False,
              stacklevel: int = 1,
              extra: Mapping[str, object] | None = None
-    ) -> None: ...
+             ) -> None: ...
 
     def _log(
         self,
@@ -175,7 +176,8 @@ class ADAPI:
         **kwargs
     ) -> None:
         if ascii_encode:
-            msg = str(msg).encode("utf-8", "replace").decode("ascii", "replace")
+            msg = str(msg).encode(
+                "utf-8", "replace").decode("ascii", "replace")
 
         match level:
             case str():
@@ -367,7 +369,6 @@ class ADAPI:
             >>> self.handle = self.listen_log(self.cb, "WARNING", log="my_custom_log")
 
         """
-
 
         return await self.AD.logging.add_log_callback(namespace, self.name, callback, level, **kwargs)
 
@@ -622,7 +623,8 @@ class ADAPI:
 
         """
         if namespace == self.namespace:  # if it belongs to this app's namespace
-            raise ValueError("Cannot add namespace with the same name as operating namespace")
+            raise ValueError(
+                "Cannot add namespace with the same name as operating namespace")
 
         return await self.AD.state.add_namespace(namespace, writeback, persist, self.name)
 
@@ -643,7 +645,8 @@ class ADAPI:
 
         """
         if namespace == self.namespace:  # if it belongs to this app's namespace
-            raise ValueError("Cannot remove namespace with the same name as operating namespace")
+            raise ValueError(
+                "Cannot remove namespace with the same name as operating namespace")
 
         return await self.AD.state.remove_namespace(namespace)
 
@@ -714,8 +717,9 @@ class ADAPI:
         """Ensures that the entity exists in the given namespace"""
         if entity_id is not None and \
             "." in entity_id and \
-            not self.AD.state.entity_exists(namespace, entity_id):
-            self.logger.warning("%s: Entity %s not found in namespace %s", self.name, entity_id, namespace)
+                not self.AD.state.entity_exists(namespace, entity_id):
+            self.logger.warning(
+                "%s: Entity %s not found in namespace %s", self.name, entity_id, namespace)
 
     @staticmethod
     def get_ad_version() -> str:
@@ -736,7 +740,7 @@ class ADAPI:
         self,
         entity_id: str,
         state: Any | None = None,
-        attributes: dict | None= None,
+        attributes: dict | None = None,
         namespace: str | None = None
     ) -> None:
         """Adds a non-existent entity, by creating it within a namespaces.
@@ -954,7 +958,8 @@ class ADAPI:
 
         """
         if not isinstance(mode, bool):
-            self.logger.warning("%s not a valid parameter for Production Mode", mode)
+            self.logger.warning(
+                "%s not a valid parameter for Production Mode", mode)
             return
         await self.AD.utility.set_production_mode(mode)
         return mode
@@ -980,7 +985,8 @@ class ADAPI:
             >>> self.start_app("lights_app")
 
         """
-        self.call_service("app/start", namespace="admin", app=app, __name=self.name)
+        self.call_service("app/start", namespace="admin",
+                          app=app, __name=self.name)
 
     def stop_app(self, app: str) -> None:
         """Stops an App which is running.
@@ -995,7 +1001,8 @@ class ADAPI:
             >>> self.stop_app("lights_app")
 
         """
-        self.call_service("app/stop", namespace="admin", app=app, __name=self.name)
+        self.call_service("app/stop", namespace="admin",
+                          app=app, __name=self.name)
 
     def restart_app(self, app: str) -> None:
         """Restarts an App which can either be running or not.
@@ -1010,7 +1017,8 @@ class ADAPI:
             >>> self.restart_app("lights_app")
 
         """
-        self.call_service("app/restart", namespace="admin", app=app, __name=self.name)
+        self.call_service("app/restart", namespace="admin",
+                          app=app, __name=self.name)
 
     def reload_apps(self) -> None:
         """Reloads the apps, and loads up those that have changes made to their .yaml or .py files.
@@ -1112,7 +1120,8 @@ class ADAPI:
 
         """
         if self.dialogflow_v == 1:
-            speech = {"speech": speech, "source": "Appdaemon", "displayText": speech}
+            speech = {"speech": speech,
+                      "source": "Appdaemon", "displayText": speech}
         elif self.dialogflow_v == 2:
             speech = {"fulfillmentText": speech, "source": "Appdaemon"}
         else:
@@ -1145,9 +1154,11 @@ class ADAPI:
             response["outputSpeech"] = {"type": "PlainText", "text": speech}
 
         if card is not None:
-            response["card"] = {"type": "Simple", "title": title, "content": card}
+            response["card"] = {"type": "Simple",
+                                "title": title, "content": card}
 
-        speech = {"version": "1.0", "response": response, "sessionAttributes": {}}
+        speech = {"version": "1.0", "response": response,
+                  "sessionAttributes": {}}
 
         return speech
 
@@ -1318,7 +1329,8 @@ class ADAPI:
         if self.AD.http is not None:
             return await self.AD.http.register_route(callback, route, self.name, **kwargs)
         else:
-            self.logger.warning("register_route for %s filed - HTTP component is not configured", route)
+            self.logger.warning(
+                "register_route for %s filed - HTTP component is not configured", route)
 
     @utils.sync_decorator
     async def deregister_route(self, handle: str) -> None:
@@ -1476,7 +1488,8 @@ class ADAPI:
 
             >>> self.handle = self.listen_state(self.my_callback, "light.office_1", new = "on")
 
-            Listen for a state change involving `light.office1` turning on when the previous state was not unknown or unavailable, and return the state attribute.
+            Listen for a state change involving `light.office1` turning on when the previous state was not unknown or unavailable,
+            and return the state attribute.
 
             >>> self.handle = self.listen_state(self.my_callback, "light.office_1", new = "on", old=lambda x: x not in ["unknown", "unavailable"])
 
@@ -1564,7 +1577,7 @@ class ADAPI:
         default: Any | None = None,
         namespace: str | None = None,
         copy: bool = True,
-        **kwargs # left in intentionally for compatibility
+        **kwargs  # left in intentionally for compatibility
     ) -> Any:
         """Gets the state of any component within Home Assistant.
 
@@ -1624,7 +1637,8 @@ class ADAPI:
 
         """
         if kwargs:
-            self.logger.warning(f'Extra kwargs passed to get_state, will be ignored: {kwargs}')
+            self.logger.warning(
+                f'Extra kwargs passed to get_state, will be ignored: {kwargs}')
 
         namespace or self.namespace
         api = self.get_entity_api(namespace, entity_id)
@@ -1694,7 +1708,8 @@ class ADAPI:
         """
 
         namespace = namespace or self.namespace
-        entity_api = self.get_entity_api(namespace, entity_id, check_existence=check_existence)
+        entity_api = self.get_entity_api(
+            namespace, entity_id, check_existence=check_existence)
         return await entity_api.set_state(state=state, **kwargs)
 
     #
@@ -1822,7 +1837,7 @@ class ADAPI:
         self,
         service: str,
         namespace: str | None = None,
-        timeout: int | float | None = None, # Used by utils.sync_decorator
+        timeout: int | float | None = None,  # Used by utils.sync_decorator
         **data: Optional[Any]
     ) -> Any:
         """Calls a Service within AppDaemon.
@@ -1954,7 +1969,8 @@ class ADAPI:
 
         """
         namespace = namespace or self.namespace
-        self.logger.debug("Calling run_sequence() for %s from %s", sequence, self.name)
+        self.logger.debug(
+            "Calling run_sequence() for %s from %s", sequence, self.name)
         return await self.AD.sequences.run_sequence(self.name, namespace, sequence)
 
     @utils.sync_decorator
@@ -1973,7 +1989,8 @@ class ADAPI:
 
         """
 
-        self.logger.debug("Calling cancel_sequence() for %s, from %s", sequence, self.name)
+        self.logger.debug(
+            "Calling cancel_sequence() for %s, from %s", sequence, self.name)
         await self.AD.sequences.cancel_sequence(sequence)
 
     #
@@ -2066,7 +2083,8 @@ class ADAPI:
             >>> self.listen_event(self.button_event, ["pressed", "released"])
 
         """
-        self.logger.debug(f"Calling listen_event for {self.name} for {event}: {kwargs}")
+        self.logger.debug(f"Calling listen_event for {
+                          self.name} for {event}: {kwargs}")
         namespace = namespace or self.namespace
 
         match event:
@@ -2356,7 +2374,8 @@ class ADAPI:
         return (await self.get_now(aware)).timestamp()
 
     @overload
-    async def now_is_between(self, start_time: str, end_time: str, name: str | None = None, now: str | None = None) -> bool: ...
+    async def now_is_between(self, start_time: str, end_time: str,
+                             name: str | None = None, now: str | None = None) -> bool: ...
 
     @utils.sync_decorator
     async def now_is_between(self, *args, **kwargs) -> bool:
@@ -2508,7 +2527,8 @@ class ADAPI:
 
         """
         name = self.name
-        self.logger.debug("Checking timer with handle %s for %s", handle, self.name)
+        self.logger.debug(
+            "Checking timer with handle %s for %s", handle, self.name)
         return self.AD.sched.timer_running(name, handle)
 
     @utils.sync_decorator
@@ -2529,7 +2549,8 @@ class ADAPI:
             >>> self.cancel_timer(handle, True)
 
         """
-        self.logger.debug("Canceling timer with handle %s for %s", handle, self.name)
+        self.logger.debug(
+            "Canceling timer with handle %s for %s", handle, self.name)
         return await self.AD.sched.cancel_timer(self.name, handle, silent)
 
     @utils.sync_decorator
@@ -2547,7 +2568,8 @@ class ADAPI:
             >>> self.reset_timer(handle)
 
         """
-        self.logger.debug("Resetting timer with handle %s for %s", handle, self.name)
+        self.logger.debug(
+            "Resetting timer with handle %s for %s", handle, self.name)
         return await self.AD.sched.reset_timer(self.name, handle)
 
     @utils.sync_decorator
@@ -2627,7 +2649,8 @@ class ADAPI:
                 delay = timedelta(seconds=delay)
 
         assert isinstance(delay, timedelta), f'Invalid delay: {delay}'
-        self.logger.debug(f"Registering run_in in {delay.total_seconds():.1f}s for {self.name}")
+        self.logger.debug(f"Registering run_in in {
+                          delay.total_seconds():.1f}s for {self.name}")
         exec_time = (await self.get_now()) + delay
         return await self.AD.sched.insert_schedule(
             name=self.name,
@@ -3169,7 +3192,8 @@ class ADAPI:
         """
         sunset = await self.AD.sched.next_sunset()
         td = timedelta(seconds=offset)
-        self.logger.debug(f"Registering run_at_sunset at {sunset+td} with {args}, {kwargs}")
+        self.logger.debug(f"Registering run_at_sunset at {
+                          sunset+td} with {args}, {kwargs}")
         return await self.AD.sched.insert_schedule(
             name=self.name,
             aware_dt=sunset,
@@ -3242,7 +3266,8 @@ class ADAPI:
         """
         sunrise = await self.AD.sched.next_sunrise()
         td = timedelta(seconds=offset)
-        self.logger.debug(f"Registering run_at_sunrise at {sunrise+td} with {args}, {kwargs}")
+        self.logger.debug(f"Registering run_at_sunrise at {
+                          sunrise+td} with {args}, {kwargs}")
         return await self.AD.sched.insert_schedule(
             name=self.name,
             aware_dt=sunrise,
@@ -3386,7 +3411,8 @@ class ADAPI:
         def callback_inner(f: Future):
             try:
                 sched_data["kwargs"] = {'result': f.result()}
-                self.create_task(self.AD.threading.dispatch_worker(self.name, sched_data))
+                self.create_task(
+                    self.AD.threading.dispatch_worker(self.name, sched_data))
 
                 # callback(f.result(), kwargs)
             except Exception as e:
@@ -3395,7 +3421,8 @@ class ADAPI:
         future = self.AD.executor.submit(func, *args, **kwargs)
 
         if callback is not None:
-            self.logger.debug("Adding add_done_callback for future %s for %s", future, self.name)
+            self.logger.debug(
+                "Adding add_done_callback for future %s for %s", future, self.name)
             future.add_done_callback(callback_inner)
 
         self.AD.futures.add_future(self.name, future)
@@ -3435,7 +3462,8 @@ class ADAPI:
             try:
                 kwargs["result"] = f.result()
                 sched_data["kwargs"] = kwargs
-                self.create_task(self.AD.threading.dispatch_worker(self.name, sched_data))
+                self.create_task(
+                    self.AD.threading.dispatch_worker(self.name, sched_data))
 
                 # callback(f.result(), kwargs)
             except asyncio.CancelledError:
@@ -3443,7 +3471,8 @@ class ADAPI:
 
         task = asyncio.create_task(coro)
         if callback is not None:
-            self.logger.debug("Adding add_done_callback for future %s for %s", task, self.name)
+            self.logger.debug(
+                "Adding add_done_callback for future %s for %s", task, self.name)
             task.add_done_callback(callback_inner)
 
         self.AD.futures.add_future(self.name, task)
@@ -3476,7 +3505,8 @@ class ADAPI:
             is_async = False
 
         if not is_async:
-            raise RuntimeError("The sleep method is for use in ASYNC methods only")
+            raise RuntimeError(
+                "The sleep method is for use in ASYNC methods only")
 
         return await asyncio.sleep(delay, result=result)
 
