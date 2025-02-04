@@ -40,10 +40,6 @@ class AppClassNotFound(Exception):
     pass
 
 
-class AppConfigNotFound(Exception):
-    pass
-
-
 class PinOutofRange(Exception):
     pass
 
@@ -53,6 +49,10 @@ class AppClassSignatureError(Exception):
 
 
 class AppDependencyError(Exception):
+    pass
+
+
+class AppModuleNotFound(Exception):
     pass
 
 

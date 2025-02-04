@@ -98,8 +98,10 @@ class AppManagement:
             domain="app",
             callback=self.manage_services
         )
-        services = {"start", "stop", "restart", "disable",
-                    "enable", "reload", "create", "edit", "remove"}
+        services = {
+            "start", "stop", "restart", "disable",
+            "enable", "reload", "create", "edit", "remove"
+        }
         for service in services:
             register(service=service)
         # self.AD.services.register_service("admin", "app", "start", self.manage_services)
@@ -711,7 +713,8 @@ class AppManagement:
             if active_apps > self.AD.threading.thread_count:
                 threads_to_add = active_apps - self.AD.threading.thread_count
                 self.logger.debug(
-                    f"Adding {threads_to_add} threads based on the active app count")
+                    f"Adding {threads_to_add} threads based on the active app count"
+                )
                 for _ in range(threads_to_add):
                     await self.AD.threading.add_thread(silent=False, pinthread=True)
 
@@ -873,18 +876,28 @@ class AppManagement:
         match self.AD.config.import_method:
             case 'default' | 'expert' | None:
                 # Get unique set of the absolute paths of all the subdirectories containing python files
-                python_file_parents = set(f.parent.resolve()
-                                          for f in Path(self.AD.app_dir).rglob("*.py"))
+                python_file_parents = set(
+                    f.parent.resolve() for f in Path(self.AD.app_dir).rglob("*.py")
+                )
+
                 # Filter out any that have __init__.py files in them
-                module_parents = set(p for p in python_file_parents if not (
-                    p / "__init__.py").exists())
+                module_parents = set(
+                    p for p in python_file_parents
+                    if not (p / "__init__.py").exists()
+                )
 
                 #  unique set of the absolute paths of all subdirectories with a __init__.py in them
-                package_dirs = set(p for p in python_file_parents if (
-                    p / "__init__.py").exists())
+                package_dirs = set(
+                    p for p in python_file_parents
+                    if (p / "__init__.py").exists()
+                )
+
                 # Filter by ones whose parent directory's don't also contain an __init__.py
-                top_packages_dirs = set(p for p in package_dirs if not (
-                    p.parent / "__init__.py").exists())
+                top_packages_dirs = set(
+                    p for p in package_dirs
+                    if not (p.parent / "__init__.py").exists()
+                )
+
                 # Get the parent directories so the ones with __init__.py are importable
                 package_parents = set(p.parent for p in top_packages_dirs)
 
@@ -1063,8 +1076,7 @@ class AppManagement:
 
                     @utils.warning_decorator(
                         success_text=f"Started '{app_name}'",
-                        error_text=f"Error starting app '{
-                            app_name}' from {rel_path}",
+                        error_text=f"Error starting app '{app_name}' from {rel_path}",
                     )
                     async def safe_start(self: "AppManagement"):
                         try:
@@ -1076,8 +1088,7 @@ class AppManagement:
                     if await self.get_state(app_name) != "compile_error":
                         await safe_start(self)
                 elif isinstance(cfg, GlobalModule):
-                    assert cfg.module_name in sys.modules, f'{
-                        cfg.module_name} not in sys.modules'
+                    assert cfg.module_name in sys.modules, f'{cfg.module_name} not in sys.modules'
 
     async def _import_modules(self, update_actions: UpdateActions) -> Set[str]:
         """Calls ``self.import_module`` for each module in the list

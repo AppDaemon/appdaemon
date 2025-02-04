@@ -89,7 +89,7 @@ def get_file_deps(file_path: str | Path) -> set[str]:
         try:
             mod: ast.Module = ast.parse(file_content, filename=file_path)
         except Exception as e:
-            logger.error(f"{e}")
+            logger.warning(f"{e}")
         else:
             for node in get_imports(mod):
                 match node:
