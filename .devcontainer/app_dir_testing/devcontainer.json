@@ -34,10 +34,7 @@
 			"extensions": [
 				"ms-python.python",
 				"njpwerner.autodocstring",
-				//"ms-python.black-formatter",
-				//"ms-python.isort",
 				"shd101wyy.markdown-preview-enhanced",
-				//"ms-python.pylint",
 				"DavidAnson.vscode-markdownlint",
 				"ms-python.debugpy",
 				"njqdev.vscode-python-typehint",
@@ -48,7 +45,8 @@
 				"github.vscode-github-actions",
 				"eamodio.gitlens",
 				"Gruntfuggly.todo-tree",
-				"tamasfe.even-better-toml"
+				"tamasfe.even-better-toml",
+				"GitHub.copilot"
 			]
 
 		}
