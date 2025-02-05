@@ -11,8 +11,8 @@ from typing import TYPE_CHECKING, Any, Dict, Type, Union
 
 from . import utils
 from .app_management import UpdateMode
-from .models.config.plugin import PluginConfig
 from .models.config import AppConfig
+from .models.config.plugin import PluginConfig
 
 if TYPE_CHECKING:
     from .adapi import ADAPI
@@ -92,7 +92,9 @@ class PluginBase(abc.ABC):
         self.config.namespaces = new
 
     @property
-    def all_namespaces(self,) -> list[str]:
+    def all_namespaces(
+        self,
+    ) -> list[str]:
         """A list of namespaces that includes the main namespace as well as any
         extra ones."""
         return [self.namespace] + self.namespaces
@@ -161,7 +163,7 @@ class PluginBase(abc.ABC):
             state (dict):
         """
         if self.AD.stopping:
-            return # return early if stopping
+            return  # return early if stopping
 
         await self.AD.plugins.refresh_update_time(self.name)
         self.AD.plugins.process_meta(meta, self.name)
@@ -171,15 +173,11 @@ class PluginBase(abc.ABC):
             event_coro = self.AD.events.process_event(ns, event)
             self.AD.loop.create_task(event_coro)
             self.AD.plugins.plugin_meta[ns] = meta
-            await self.AD.state.set_namespace_state(
-                namespace=ns,
-                state=state,
-                persist=self.config.persist_entities
-            )
+            await self.AD.state.set_namespace_state(namespace=ns, state=state, persist=self.config.persist_entities)
 
             # This accounts for the case where there's not a plugin associated with the object
             if po := self.AD.plugins.plugin_objs.get(ns):
-                po['active'] = True
+                po["active"] = True
 
         admin_entity = f"plugin.{self.name}"
         if not self.AD.state.entity_exists("admin", admin_entity):
@@ -198,11 +196,7 @@ class PluginBase(abc.ABC):
             )
 
         if not self.first_time:
-            self.AD.loop.create_task(
-                self.AD.app_management.check_app_updates(
-                    plugin=self.name,
-                    mode=UpdateMode.INIT
-            ))
+            self.AD.loop.create_task(self.AD.app_management.check_app_updates(plugin=self.name, mode=UpdateMode.INIT))
 
 
 class PluginManagement:
@@ -228,9 +222,9 @@ class PluginManagement:
     plugin_objs: Dict[str, PluginBase]
     """Dictionary storing the instantiated plugin objects.
     {<namespace>: {
-        "object": <PluginBase>,
-        "active": <bool>,
-        "name": <str>
+    "object": <PluginBase>,
+    "active": <bool>,
+    "name": <str>
     }}
     """
     required_meta = ["latitude", "longitude", "elevation", "time_zone"]
@@ -382,7 +376,7 @@ class PluginManagement:
                     if key in meta:
                         # We have a value so override
                         setattr(self.AD.config, key, meta[key])
-                        self.logger.info(f'Overrode {key} in AD config from plugin {name}')
+                        self.logger.info(f"Overrode {key} in AD config from plugin {name}")
 
     def get_plugin_cfg(self, plugin: str) -> PluginConfig:
         return self.config[plugin]
@@ -413,22 +407,17 @@ class PluginManagement:
 
     async def notify_plugin_stopped(self, name, namespace):
         self.plugin_objs[namespace]["active"] = False
-        await self.AD.events.process_event(
-            namespace,
-            {"event_type": "plugin_stopped", "data": {"name": name}}
-        )
+        await self.AD.events.process_event(namespace, {"event_type": "plugin_stopped", "data": {"name": name}})
 
     def get_plugin_meta(self, namespace: str) -> dict:
         return self.plugin_meta.get(namespace, {})
 
     async def wait_for_plugins(self):
-        self.logger.info('Waiting for plugins to be ready')
-        events: Iterable[asyncio.Event] = (
-            plugin['object'].ready_event for plugin in self.plugin_objs.values()
-        )
+        self.logger.info("Waiting for plugins to be ready")
+        events: Iterable[asyncio.Event] = (plugin["object"].ready_event for plugin in self.plugin_objs.values())
         tasks = (self.AD.loop.create_task(e.wait()) for e in events)
         await asyncio.wait(tasks)
-        self.logger.info('All plugins ready')
+        self.logger.info("All plugins ready")
 
     def get_config_for_namespace(self, namespace: str) -> PluginConfig:
         plugin_name = self.get_plugin_from_namespace(namespace)
@@ -453,10 +442,7 @@ class PluginManagement:
             if await self.time_since_plugin_update(plugin.name) > cfg.refresh_delay:
                 self.logger.debug(f"Refreshing {plugin.name}[{cfg.type}] state")
                 try:
-                    state = await asyncio.wait_for(
-                        plugin.get_complete_state(),
-                        timeout=cfg.refresh_timeout
-                    )
+                    state = await asyncio.wait_for(plugin.get_complete_state(), timeout=cfg.refresh_timeout)
                 except asyncio.TimeoutError:
                     self.logger.warning(
                         "Timeout refreshing %s state - retrying in %s seconds",
