@@ -186,6 +186,8 @@ class HTTP:
 
             self.app = web.Application()
 
+            self.logger.info(f"HTTP Listening on port {self.port}")
+
             if "headers" in self.http:
                 self.app.on_response_prepare.append(self.add_response_headers)
 
@@ -380,7 +382,7 @@ class HTTP:
         self._process_arg("static_dirs", http)
 
     async def start_server(self):
-        self.logger.info("Running on port %s", self.port)
+        # self.logger.info("Running on port %s", self.port)
 
         self.runner = web.AppRunner(self.app)
         await self.runner.setup()
@@ -850,9 +852,7 @@ class HTTP:
             del self.app_routes[name]
 
     def get_response(self, request, code, error):
-        res = "<html><head><title>{} {}</title></head><body><h1>{} {}</h1>Error in API Call</body></html>".format(
-            code, error, code, error
-        )
+        res = "<html><head><title>{} {}</title></head><body><h1>{} {}</h1>Error in API Call</body></html>".format(code, error, code, error)
         app = request.match_info.get("app", "system")
         if code == 200:
             self.access.info("API Call to %s: status: %s", app, code)
@@ -861,10 +861,7 @@ class HTTP:
         return web.Response(body=res, status=code)
 
     def get_web_response(self, request, code, error):
-        res = (
-            "<html><head><title>{} {}</title></head><body><h1>{} {}</h1>Error in Web Service"
-            " Call</body></html>".format(code, error, code, error)
-        )
+        res = "<html><head><title>{} {}</title></head><body><h1>{} {}</h1>Error in Web Service" " Call</body></html>".format(code, error, code, error)
         app = request.match_info.get("app", "system")
         if code == 200:
             self.access.info("Web Call to %s: status: %s", app, code)

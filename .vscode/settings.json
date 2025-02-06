@@ -1,0 +1,5 @@
+{
+    "ruff.configuration": "pyproject.toml",
+    "notebook.defaultFormatter": "charliermarsh.ruff",
+    "ruff.lineLength": 200
+}

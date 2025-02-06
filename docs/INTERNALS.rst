@@ -102,7 +102,7 @@ thread_async
 
 threading
 =========
-.. automodule:: appdaemon.threading
+.. automodule:: appdaemon.threads
    :members:
 
 utility_loop

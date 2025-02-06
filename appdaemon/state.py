@@ -74,8 +74,6 @@ class State:
             },
         )
 
-        # TODO need to update and reload the admin page to show the new namespace in real-time
-
         return nspath_file
 
     def namespace_exists(self, namespace: str) -> bool:
@@ -87,21 +85,18 @@ class State:
         Fires an ``__AD_NAMESPACE_REMOVED`` event in the ``admin`` namespace if it's actually removed.
         """
 
-        if result := self.state.pop(namespace, False):
+        if self.state.pop(namespace, False):
             nspath_file = await self.remove_persistent_namespace(namespace)
             self.app_added_namespaces.remove(namespace)
 
             self.logger.warning("Namespace %s, has ben removed", namespace)
 
-            await self.AD.events.process_event(
-                "admin",
-                {
-                    "event_type": "__AD_NAMESPACE_REMOVED",
-                    "data": {"namespace": namespace, "database_filename": nspath_file},
-                },
-            )
-            # TODO need to update and reload the admin page to show the removed namespace in real-time
-            return result
+            data = {
+                "event_type": "__AD_NAMESPACE_REMOVED",
+                "data": {"namespace": namespace, "database_filename": nspath_file},
+            }
+
+            await self.AD.events.process_event("admin", data)
 
         elif namespace in self.state:
             self.logger.warning("Cannot delete namespace %s, as not an app defined namespace", namespace)
@@ -311,7 +306,7 @@ class State:
 
         if not executed and not silent:
             self.logger.warning(
-                "Invalid callback handle '{}' in cancel_state_callback() from app {}".format(handle, name)
+                f"Invalid callback handle '{handle}' in cancel_state_callback() from app {name}"
             )
 
         return executed
@@ -343,7 +338,9 @@ class State:
                 for uuid_ in self.AD.callbacks.callbacks[name]:
                     callback = self.AD.callbacks.callbacks[name][uuid_]
                     if callback["type"] == "state" and (
-                        callback["namespace"] == namespace or callback["namespace"] == "global" or namespace == "global"
+                        callback["namespace"] == namespace or
+                        callback["namespace"] == "global" or
+                        namespace == "global"
                     ):
                         cdevice = None
                         centity = None
@@ -578,9 +575,9 @@ class State:
 
         if new_attrs:
             if replace:
-                new_state['attributes'] = new_attrs
+                new_state["attributes"] = new_attrs
             else:
-                new_state['attributes'].update(new_attrs)
+                new_state["attributes"].update(new_attrs)
 
         # API created entities won't necessarily have entity_id set
         new_state["entity_id"] = entity
@@ -643,8 +640,15 @@ class State:
 
     @overload
     async def set_state(
-            self, name: str, namespace: str, entity: str, _silent: bool,
-            state: Any, attributes: dict, replace: bool, **kwargs
+        self,
+        name: str,
+        namespace: str,
+        entity: str,
+        _silent: bool,
+        state: Any,
+        attributes: dict,
+        replace: bool,
+        **kwargs
     ) -> None: ...
 
     async def set_state(self, name: str, namespace: str, entity: str, _silent: bool = False, **kwargs):
@@ -683,7 +687,10 @@ class State:
             self.logger.debug("sending event to plugin")
 
             result = await set_plugin_state(
-                namespace, entity, state=new_state["state"], attributes=new_state["attributes"]
+                namespace,
+                entity,
+                state=new_state["state"],
+                attributes=new_state["attributes"]
             )
             if result is not None:
                 if "entity_id" in result:
@@ -731,7 +738,7 @@ class State:
                 if s := state.get(ns):
                     self.state[ns].update(s)
                 else:
-                    self.logger.warning(f'Attempted to update namespace without data: {ns}')
+                    self.logger.warning(f"Attempted to update namespace without data: {ns}")
         else:
             self.state[namespace].update(state)
 

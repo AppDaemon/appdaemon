@@ -7,7 +7,6 @@ also creates the loop and kicks everything off
 
 """
 
-
 import argparse
 import asyncio
 import itertools
@@ -44,6 +43,7 @@ except ImportError:
 
 class NoADConfig(Exception):
     pass
+
 
 class ADMain:
     """
@@ -146,7 +146,10 @@ class ADMain:
             # Initialize Dashboard/API/admin
 
             if http is not None and (
-                hadashboard is not None or admin is not None or aui is not None or api is not False
+                hadashboard is not None or 
+                admin is not None or 
+                aui is not None or 
+                api is not False
             ):
                 self.logger.info("Initializing HTTP")
                 self.http_object = HTTP(
@@ -247,6 +250,8 @@ class ADMain:
         parser.add_argument("-v", "--version", action="version", version="%(prog)s " + utils.__version__)
         parser.add_argument("--profiledash", help=argparse.SUPPRESS, action="store_true")
         parser.add_argument("--write_toml", help="use TOML for creating new app configuration files", action="store_true")
+        # TODO Implement --write_toml
+        parser.add_argument("--toml", help="Deprecated", action="store_true")
 
         args = parser.parse_args()
 
@@ -388,6 +393,10 @@ class ADMain:
 
         self.logger.info("-" * 60)
         self.logger.info("AppDaemon Version %s starting", utils.__version__)
+
+        if utils.__version_comments__ is not None and utils.__version_comments__ != "":
+            self.logger.info("Additional version info: %s", utils.__version_comments__)
+
         self.logger.info("-" * 60)
         self.logger.info(
             "Python version is %s.%s.%s",

@@ -12,12 +12,13 @@
 - Added option for N deg rising|setting to Scheduler._parse_time
 - Added `silent` parameter to `cancel_listen_state()` - contributed by [Daniel Rocha](https://github.com/danroc)
 - Remove support for python 3.8 and 3.9
-- Added support for python 3.12
-- Update docker image to Alpine 3.20/Python 3.12
+- Added support for python 3.12 & 3.13
+- Update docker image to Alpine 3.21/Python 3.13
 - Upgraded HASS plugin to use the aiohttp websocket client
 - Upgraded HASS plugin to use the Websocket API where possible
 - Implemented value return for HASS Service Calls
 - added the ``--write_toml`` as an AppDaemon startup parameter to force AD to use the ``TOML`` format when creating new apps using the
+- Upgraded Material Design icons to 7.4.47 - - contributed by [Daniel Rocha](https://github.com/danroc)
 
 **Fixes**
 
