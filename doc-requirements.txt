@@ -166,7 +166,7 @@ sphinxcontrib-serializinghtml==2.0.0
     # via sphinx
 starlette==0.45.3
     # via sphinx-autobuild
-tomli==2.0.2
+tomli==2.2.1
     # via appdaemon (pyproject.toml)
 tomli-w==1.0.0
     # via appdaemon (pyproject.toml)
