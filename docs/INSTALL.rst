@@ -91,7 +91,7 @@ Pip
 Linux
 ^^^^^
 
-**Requirements**: Python version `3.8`, `3.9`, `3.10` or `3.11`.
+**Requirements**: Python version `3.10` or `3.11`.
 
 **NOTE:** Do not install this in the same Python virtual environment as Home Assistant.
 If you do that, then Home Assistant will stop working due to conflicting dependencies.
