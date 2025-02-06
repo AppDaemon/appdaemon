@@ -18,6 +18,7 @@
 - Upgraded HASS plugin to use the Websocket API where possible
 - Implemented value return for HASS Service Calls
 - added the ``--write_toml`` as an AppDaemon startup parameter to force AD to use the ``TOML`` format when creating new apps using the
+- Upgraded Material Design icons to 7.4.47 - - contributed by [Daniel Rocha](https://github.com/danroc)
 
 **Fixes**
 
