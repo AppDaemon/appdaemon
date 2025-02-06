@@ -37,6 +37,7 @@ class PluginBase(abc.ABC):
     updates_recv: int
     last_check_ts: float
 
+    connect_event: asyncio.Event
     ready_event: asyncio.Event
 
     constraints: list
@@ -46,7 +47,8 @@ class PluginBase(abc.ABC):
 
     The first connection a plugin makes is handled a little differently
     because it'll be at startup and it'll be before any apps have been
-    loaded."""
+    loaded.
+    """
 
     stopping: bool = False
     """Flag that indicates whether AppDaemon is currently shutting down."""
@@ -57,6 +59,7 @@ class PluginBase(abc.ABC):
         self.config = config
         self.logger = self.AD.logging.get_child(name)
         self.error = self.logger
+        self.connect_event = asyncio.Event()
         self.ready_event = asyncio.Event()
         self.constraints = []
         self.stopping = False
@@ -421,13 +424,17 @@ class PluginManagement:
     def get_plugin_meta(self, namespace: str) -> dict:
         return self.plugin_meta.get(namespace, {})
 
-    async def wait_for_plugins(self):
+    async def wait_for_plugins(self, timeout: float | None = None):
+        """Waits for the user-configured plugin startup conditions.
+
+        Specifically, this waits for each of their ready events
+        """
         self.logger.info('Waiting for plugins to be ready')
-        events: Iterable[asyncio.Event] = (
+        events: Generator[asyncio.Event, None, None] = (
             plugin['object'].ready_event for plugin in self.plugin_objs.values()
         )
         tasks = (self.AD.loop.create_task(e.wait()) for e in events)
-        await asyncio.wait(tasks)
+        await asyncio.wait(tasks, timeout=timeout)
         self.logger.info('All plugins ready')
 
     def get_config_for_namespace(self, namespace: str) -> PluginConfig:

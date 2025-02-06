@@ -59,12 +59,34 @@ class PluginConfig(BaseModel, extra="allow"):
         return self.disable
 
 
+class StartupState(BaseModel):
+    state: Any
+    attributes: dict[str, Any] | None = None
+
+
+class StateStartupCondition(BaseModel):
+    entity: str
+    value: StartupState | None = None
+
+
+class EventStartupCondition(BaseModel):
+    event_type: str
+    data: dict | None = None
+
+
+class StartupConditions(BaseModel):
+    delay: int | float | None = None
+    state: StateStartupCondition | None = None
+    event: EventStartupCondition | None = None
+
+
+
 class HASSConfig(PluginConfig):
     ha_url: str = "http://supervisor/core"
     token: SecretStr
     ha_key: Annotated[SecretStr, deprecated("'ha_key' is deprecated. Please use long lived tokens instead")] | None = None
-    appdaemon_startup_conditions: dict = Field(default_factory=dict)
-    plugin_startup_conditions: dict = Field(default_factory=dict)
+    appdaemon_startup_conditions: StartupConditions | None = None
+    plugin_startup_conditions: StartupConditions | None = None
     cert_path: Path | None = None
     cert_verify: bool | None = None
     commtype: str = "WS"

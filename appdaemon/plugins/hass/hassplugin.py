@@ -19,7 +19,7 @@ from pydantic import BaseModel
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
-from appdaemon.models.config.plugin import HASSConfig
+from appdaemon.models.config.plugin import HASSConfig, StartupConditions
 from appdaemon.plugin_management import PluginBase
 
 from .exceptions import HAEventsSubError
@@ -125,6 +125,7 @@ class HassPlugin(PluginBase):
                 async for msg in self.ws:
                     self.update_perf(bytes_recv=len(msg.data), updates_recv=1)
                     yield msg
+        self.connect_event.clear()
 
     async def match_ws_msg(self, msg: aiohttp.WSMessage) -> dict:
         """Wraps a match/case statement for the ``msg.type``"""
@@ -169,6 +170,7 @@ class HassPlugin(PluginBase):
 
     async def __post_conn__(self):
         """Initialization to do after getting connected to the Home Assistant websocket"""
+        self.connect_event.set()
         return await self.websocket_send_json(**self.config.auth_json)
 
     async def __post_auth__(self):
@@ -191,8 +193,13 @@ class HassPlugin(PluginBase):
         service_coro = looped_coro(self.get_hass_services, self.config.services_sleep_time)
         self.AD.loop.create_task(service_coro(self))
 
-        await self.wait_for_start_conditions()
-        self.logger.info("All startup conditions met")
+
+        if self.first_time:
+            conditions = self.config.appdaemon_startup_conditions
+        else:
+            conditions = self.config.plugin_startup_conditions
+        await self.wait_for_conditions(conditions)
+        self.logger.info("All plugin startup conditions met")
         self.ready_event.set()
 
         await self.notify_plugin_started(
@@ -243,7 +250,10 @@ class HassPlugin(PluginBase):
         # check startup conditions
         if not self.is_ready:
             for condition in self.startup_conditions:
-                condition.check_received_event(event)
+                if not condition.conditions_met:
+                    condition.check_received_event(event)
+                    if condition.conditions_met:
+                        self.logger.info(f'HASS startup condition met {condition}')
 
         match typ := event["event_type"]:
             # https://data.home-assistant.io/docs/events/#service_registered
@@ -388,49 +398,59 @@ class HassPlugin(PluginBase):
                     raise NotImplementedError('Unhandled error: HTTP %s', resp.status)
             return resp
 
-    async def wait_for_start_conditions(self):
-        condition_tasks = []
-        if delay := self.config.plugin_startup_conditions.get('delay'):
+    async def wait_for_conditions(self, conditions: StartupConditions | None):
+        if conditions is None:
+            return
+
+        self.startup_conditions = []
+
+        if event := conditions.event:
+            self.logger.info(f'Adding startup event condition: {event}')
+            event_cond_data = event.model_dump(exclude_unset=True)
+            self.startup_conditions.append(StartupWaitCondition(event_cond_data))
+
+        if cond := conditions.state:
+            current_state = await self.check_for_entity(cond.entity)
+            if cond.value is None:
+                if current_state is False:
+                    # Wait for entity to exist
+                    self.startup_conditions.append(
+                        StartupWaitCondition({
+                            'event_type': 'state_changed',
+                            'data': {'entity_id': cond.entity}
+                    }))
+                else:
+                    self.logger.info(f'Startup state condition already met: {cond.entity} exists')
+            else:
+                data = cond.model_dump(exclude_unset=True)
+                if utils.deep_compare(data['value'], current_state):
+                    self.logger.info(f'Startup state condition already met: {data}')
+                else:
+                    self.logger.info(f'Adding startup state condition: {data}')
+                    self.startup_conditions.append(StartupWaitCondition({
+                        'event_type': 'state_changed',
+                        'data': {
+                            'entity_id': cond.entity,
+                            'new_state': data['value']
+                        }
+                    }))
+
+        tasks = [
+            self.AD.loop.create_task(cond.event.wait())
+            for cond in self.startup_conditions
+        ]
+
+        if delay := conditions.delay:
             self.logger.info(f'Adding a {delay:.0f}s delay to the {self.name} startup')
-            condition_tasks.append(
+            tasks.append(
                 self.AD.loop.create_task(
                     asyncio.sleep(delay)
                 )
             )
-
-        if event := self.config.plugin_startup_conditions.get('event'):
-            self.logger.info(f'Adding startup event condition: {event}')
-            condition = StartupWaitCondition(event)
-            self.startup_conditions.append(condition)
-            condition_tasks.append(
-                self.AD.loop.create_task(
-                    condition.event.wait()
-                )
-            )
-
-        if cond := self.config.plugin_startup_conditions.get('state'):
-            state = await self.get_plugin_state(cond['entity'])
-            if utils.deep_compare(cond['value'], state):
-                self.logger.info(f'Startup state condition already met: {cond}')
-            else:
-                self.logger.info(f'Adding startup state condition: {cond}')
-                condition = StartupWaitCondition({
-                    'event_type': 'state_changed',
-                    'data': {
-                        'entity_id': cond['entity'],
-                        'new_state': cond['value']
-                    }
-                })
-                self.startup_conditions.append(condition)
-                condition_tasks.append(
-                    self.AD.loop.create_task(
-                        condition.event.wait()
-                    )
-                )
-
-        self.logger.info(f'Waiting for {len(condition_tasks)} startup condition tasks after {self.time_str()}')
-        if condition_tasks:
-            await asyncio.wait(condition_tasks)
+        
+        self.logger.info(f'Waiting for {len(tasks)} startup condition tasks after {self.time_str()}')
+        if tasks:
+            await asyncio.wait(tasks)
 
     async def get_updates(self):
         while not self.stopping:
@@ -712,11 +732,13 @@ class HassPlugin(PluginBase):
     async def get_plugin_state(self, entity_id: str, timeout: float | None = None):
         return await self.http_method('get', f'/api/states/{entity_id}', timeout)
 
-    async def check_for_entity(self, entity_id: str, timeout: float | None = None) -> bool:
-        """Tries to get the state of an entity ID to see if it exists"""
+    async def check_for_entity(self, entity_id: str, timeout: float | None = None) -> dict | Literal[False]:
+        """Tries to get the state of an entity ID to see if it exists.
+        
+        Returns a dict of the state if the entity exists. Otherwise returns False"""
         resp = await self.get_plugin_state(entity_id, timeout)
         if isinstance(resp, dict):
-            return True
+            return resp
         elif isinstance(resp, ClientResponse) and resp.status == 404:
             return False
 
