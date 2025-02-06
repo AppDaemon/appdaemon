@@ -2480,8 +2480,7 @@ class ADAPI:
                 delay = timedelta(seconds=delay)
 
         assert isinstance(delay, timedelta), f"Invalid delay: {delay}"
-        self.logger.debug(f"Registering run_in in {
-                          delay.total_seconds():.1f}s for {self.name}")
+        self.logger.debug(f"Registering run_in in {delay.total_seconds():.1f}s for {self.name}")
         exec_time = (await self.get_now()) + delay
         return await self.AD.sched.insert_schedule(
             name=self.name,
@@ -2951,8 +2950,7 @@ class ADAPI:
         """
         sunset = await self.AD.sched.next_sunset()
         td = timedelta(seconds=offset)
-        self.logger.debug(f"Registering run_at_sunset at {
-                          sunset+td} with {args}, {kwargs}")
+        self.logger.debug(f"Registering run_at_sunset at {sunset+td} with {args}, {kwargs}")
         return await self.AD.sched.insert_schedule(
             name=self.name,
             aware_dt=sunset,
@@ -3025,8 +3023,7 @@ class ADAPI:
         """
         sunrise = await self.AD.sched.next_sunrise()
         td = timedelta(seconds=offset)
-        self.logger.debug(f"Registering run_at_sunrise at {
-                          sunrise+td} with {args}, {kwargs}")
+        self.logger.debug(f"Registering run_at_sunrise at {sunrise+td} with {args}, {kwargs}")
         return await self.AD.sched.insert_schedule(
             name=self.name,
             aware_dt=sunrise,
