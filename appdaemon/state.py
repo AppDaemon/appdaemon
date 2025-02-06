@@ -74,8 +74,6 @@ class State:
             },
         )
 
-        # TODO need to update and reload the admin page to show the new namespace in real-time
-
         return nspath_file
 
     def namespace_exists(self, namespace: str) -> bool:
@@ -87,21 +85,18 @@ class State:
         Fires an ``__AD_NAMESPACE_REMOVED`` event in the ``admin`` namespace if it's actually removed.
         """
 
-        if result := self.state.pop(namespace, False):
+        if self.state.pop(namespace, False):
             nspath_file = await self.remove_persistent_namespace(namespace)
             self.app_added_namespaces.remove(namespace)
 
             self.logger.warning("Namespace %s, has ben removed", namespace)
 
-            await self.AD.events.process_event(
-                "admin",
-                {
-                    "event_type": "__AD_NAMESPACE_REMOVED",
-                    "data": {"namespace": namespace, "database_filename": nspath_file},
-                },
-            )
-            # TODO need to update and reload the admin page to show the removed namespace in real-time
-            return result
+            data = {
+                "event_type": "__AD_NAMESPACE_REMOVED",
+                "data": {"namespace": namespace, "database_filename": nspath_file},
+            }
+
+            await self.AD.events.process_event("admin", data)
 
         elif namespace in self.state:
             self.logger.warning("Cannot delete namespace %s, as not an app defined namespace", namespace)
@@ -161,14 +156,7 @@ class State:
         self.logger.info("Saving all namespaces")
         self.save_all_namespaces()
 
-    async def add_state_callback(
-            self,
-            name: str,
-            namespace: str,
-            entity: str,
-            cb: Callable,
-            kwargs: dict[str, Any]
-    ):  # noqa: C901
+    async def add_state_callback(self, name: str, namespace: str, entity: str, cb: Callable, kwargs: dict[str, Any]):  # noqa: C901
         # Filter none values, which might be present as defaults
         kwargs = {k: v for k, v in kwargs.items() if v is not None}
 
@@ -238,10 +226,7 @@ class State:
                     if "new" in kwargs:
                         if __attribute is None and self.state[namespace][entity].get("state") == kwargs["new"]:
                             __new_state = kwargs["new"]
-                        elif (
-                            __attribute is not None
-                            and self.state[namespace][entity]["attributes"].get(__attribute) == kwargs["new"]
-                        ):
+                        elif __attribute is not None and self.state[namespace][entity]["attributes"].get(__attribute) == kwargs["new"]:
                             __new_state = kwargs["new"]
                         else:
                             run = False
@@ -310,9 +295,7 @@ class State:
                 del self.AD.callbacks.callbacks[name]
 
         if not executed and not silent:
-            self.logger.warning(
-                "Invalid callback handle '{}' in cancel_state_callback() from app {}".format(handle, name)
-            )
+            self.logger.warning("Invalid callback handle '{}' in cancel_state_callback() from app {}".format(handle, name))
 
         return executed
 
@@ -342,9 +325,7 @@ class State:
             for name in self.AD.callbacks.callbacks.keys():
                 for uuid_ in self.AD.callbacks.callbacks[name]:
                     callback = self.AD.callbacks.callbacks[name][uuid_]
-                    if callback["type"] == "state" and (
-                        callback["namespace"] == namespace or callback["namespace"] == "global" or namespace == "global"
-                    ):
+                    if callback["type"] == "state" and (callback["namespace"] == namespace or callback["namespace"] == "global" or namespace == "global"):
                         cdevice = None
                         centity = None
                         if callback["entity"] is not None:
@@ -547,21 +528,9 @@ class State:
             return maybe_copy(self.state[namespace])
 
         domain = entity_id.split(".", 1)[0]
-        return {
-            entity_id: maybe_copy(state)
-            for entity_id, state in self.state[namespace].items()
-            if entity_id.split(".", 1)[0] == domain
-        }
+        return {entity_id: maybe_copy(state) for entity_id, state in self.state[namespace].items() if entity_id.split(".", 1)[0] == domain}
 
-    def parse_state(
-        self,
-        namespace: str,
-        entity: str,
-        state: Any | None = None,
-        attributes: dict | None = None,
-        replace: bool = False,
-        **kwargs
-    ):
+    def parse_state(self, namespace: str, entity: str, state: Any | None = None, attributes: dict | None = None, replace: bool = False, **kwargs):
         self.logger.debug(f"parse_state: {entity}, {kwargs}")
 
         if entity in self.state[namespace]:
@@ -578,9 +547,9 @@ class State:
 
         if new_attrs:
             if replace:
-                new_state['attributes'] = new_attrs
+                new_state["attributes"] = new_attrs
             else:
-                new_state['attributes'].update(new_attrs)
+                new_state["attributes"].update(new_attrs)
 
         # API created entities won't necessarily have entity_id set
         new_state["entity_id"] = entity
@@ -642,10 +611,7 @@ class State:
             self.logger.warning("Unknown service in state service call: %s", kwargs)
 
     @overload
-    async def set_state(
-            self, name: str, namespace: str, entity: str, _silent: bool,
-            state: Any, attributes: dict, replace: bool, **kwargs
-    ) -> None: ...
+    async def set_state(self, name: str, namespace: str, entity: str, _silent: bool, state: Any, attributes: dict, replace: bool, **kwargs) -> None: ...
 
     async def set_state(self, name: str, namespace: str, entity: str, _silent: bool = False, **kwargs):
         """Sets the internal state of an entity. Uses relevant plugin objects based on namespace.
@@ -682,9 +648,7 @@ class State:
             # We assume that the state change will come back to us via the plugin
             self.logger.debug("sending event to plugin")
 
-            result = await set_plugin_state(
-                namespace, entity, state=new_state["state"], attributes=new_state["attributes"]
-            )
+            result = await set_plugin_state(namespace, entity, state=new_state["state"], attributes=new_state["attributes"])
             if result is not None:
                 if "entity_id" in result:
                     result.pop("entity_id")
@@ -731,7 +695,7 @@ class State:
                 if s := state.get(ns):
                     self.state[ns].update(s)
                 else:
-                    self.logger.warning(f'Attempted to update namespace without data: {ns}')
+                    self.logger.warning(f"Attempted to update namespace without data: {ns}")
         else:
             self.state[namespace].update(state)
 

@@ -30,6 +30,7 @@ import yaml
 from pydantic import ValidationError
 
 from appdaemon.version import __version__  # noqa: F401
+from appdaemon.version import __version_comments__  # noqa: F401
 
 from . import exceptions as ade
 
