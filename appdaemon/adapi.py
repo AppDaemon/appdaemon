@@ -1946,8 +1946,7 @@ class ADAPI:
             >>> self.listen_event(self.button_event, ["pressed", "released"])
 
         """
-        self.logger.debug(f"Calling listen_event for {
-                          self.name} for {event}: {kwargs}")
+        self.logger.debug(f"Calling listen_event for {self.name} for {event}: {kwargs}")
         namespace = namespace or self.namespace
 
         match event:
