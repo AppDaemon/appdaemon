@@ -74,6 +74,8 @@ class HassPlugin(PluginBase):
     _silent_results: dict[int, bool]
     startup_conditions: list[StartupWaitCondition]
 
+    start: float
+
     first_time: bool = True
     stopping: bool = False
 
@@ -91,7 +93,6 @@ class HassPlugin(PluginBase):
         self.stopping = False
 
         self.logger.info("HASS Plugin initialization complete")
-        self.start = perf_counter()
 
     def stop(self):
         self.logger.debug("stop() called for %s", self.name)
@@ -119,6 +120,7 @@ class HassPlugin(PluginBase):
 
         Handles creating the connection based on the HASSConfig and updates the performance counters
         """
+        self.start = perf_counter()
         async with self.create_session() as self.session:
             async with self.session.ws_connect(self.config.websocket_url) as self.ws:
                 self.id = 0

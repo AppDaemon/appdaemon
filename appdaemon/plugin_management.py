@@ -156,7 +156,7 @@ class PluginBase(abc.ABC):
 
         - sets the namespace state in self.AD.state
         - adds the plugin entity in self.AD.state
-        - sets the pluginobject to active
+        - sets the plugin object to active
         - fires a ``plugin_started`` event
 
         Arguments:
@@ -203,8 +203,8 @@ class PluginBase(abc.ABC):
         if not self.first_time:
             self.AD.loop.create_task(
                 self.AD.app_management.check_app_updates(
-                    plugin=self.name,
-                    mode=UpdateMode.INIT
+                    plugin_ns=self.namespace,
+                    mode=UpdateMode.PLUGIN_RESTART
             ))
 
 
