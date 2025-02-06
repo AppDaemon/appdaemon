@@ -278,6 +278,8 @@ class HassPlugin(PluginBase):
                 ...
             case "android.zone_entered":
                 ...
+            case "component_loaded":
+                self.logger.debug(f'Loaded component: {event["data"]["component"]}')
             case _:
                 if typ.startswith('recorder'):
                     return
