@@ -157,6 +157,12 @@ class AllAppConfig(RootModel):
             if isinstance(cfg, (AppConfig, SequenceConfig))
         )
 
+    def global_modules(self) -> list[GlobalModule]:
+        return [
+            cfg for cfg in self.root.values()
+            if isinstance(cfg, GlobalModule)
+        ]
+
     def app_names(self) -> set[str]:
         """Returns all the app names for regular user apps and global module apps"""
         return set(app_name for app_name, cfg in self.root.items() if isinstance(cfg, BaseApp))
@@ -165,7 +171,12 @@ class AllAppConfig(RootModel):
         if not isinstance(paths, set):
             paths = set(paths)
 
-        return set(app_name for app_name, cfg in self.root.items() if isinstance(cfg, (AppConfig, GlobalModule)) and cfg.config_path in paths)
+        return set(
+            app_name
+            for app_name, cfg in self.root.items()
+            if isinstance(cfg, BaseApp) and
+            cfg.config_path in paths
+        )
 
     @property
     def active_app_count(self) -> int:

@@ -451,7 +451,7 @@ class HassPlugin(PluginBase):
                     asyncio.sleep(delay)
                 )
             )
-        
+
         self.logger.info(f'Waiting for {len(tasks)} startup condition tasks after {self.time_str()}')
         if tasks:
             await asyncio.wait(tasks)
@@ -738,7 +738,7 @@ class HassPlugin(PluginBase):
 
     async def check_for_entity(self, entity_id: str, timeout: float | None = None) -> dict | Literal[False]:
         """Tries to get the state of an entity ID to see if it exists.
-        
+
         Returns a dict of the state if the entity exists. Otherwise returns False"""
         resp = await self.get_plugin_state(entity_id, timeout)
         if isinstance(resp, dict):
