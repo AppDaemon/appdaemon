@@ -27,7 +27,7 @@ bcrypt==4.2.1
     # via appdaemon (pyproject.toml)
 bidict==0.23.1
     # via python-socketio
-black==24.8.0
+black==25.1.0
     # via appdaemon (pyproject.toml)
 build==1.2.2.post1
     # via
