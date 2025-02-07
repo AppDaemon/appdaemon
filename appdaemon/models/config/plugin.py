@@ -10,7 +10,7 @@ from pydantic import BaseModel, BeforeValidator, Field, SecretBytes, SecretStr, 
 from typing_extensions import deprecated
 
 
-class PluginConfig(BaseModel, extra="allow"):
+class PluginConfig(BaseModel, extra="forbid"):
     type: str
     name: str
     """Gets set by a field_validator in the AppDaemonConfig"""
