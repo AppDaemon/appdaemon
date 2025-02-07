@@ -516,23 +516,28 @@ class Scheduler:
         now = (await self.get_now()).astimezone(self.AD.tz)
 
         match start:
-            case str() if start.startswith('now'):
-                now_offset = 0
-                # meaning time to be added
-                if "+" in start and (m := re.search(r'\d+', start)):
-                    now_offset = int(m.group())
-                aware_start = now + interval + timedelta(seconds=now_offset)
+            case str():
+                if start.startswith('now'):
+                    now_offset = 0
+                    # meaning time to be added
+                    if "+" in start and (m := re.search(r'\d+', start)):
+                        now_offset = int(m.group())
+                    aware_start = now + interval + timedelta(seconds=now_offset)
+                else:
+                    start = datetime.strptime(start, '%H:%M:%S').time()
+                    dt = datetime.combine(now.date(), start)
+                    aware_start = self.AD.tz.localize(dt)
             case time():
-                aware_start = datetime.combine(
-                    now.date(), start).astimezone(self.AD.tz)
+                dt = datetime.combine(now.date(), start)
+                aware_start = self.AD.tz.localize(dt)
             case datetime():
                 aware_start = self.AD.sched.convert_naive(start)
             case None:
                 aware_start = now + interval
             case _:
                 raise ValueError(f'Bad value for start: {start}')
-        assert isinstance(
-            aware_start, datetime) and aware_start.tzinfo is not None
+
+        assert isinstance(aware_start, datetime) and aware_start.tzinfo is not None
 
         while True:
             if aware_start >= now:
