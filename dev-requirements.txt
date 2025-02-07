@@ -151,7 +151,7 @@ tomli==2.0.2
     #   build
     #   pip-tools
     #   pytest
-tomli-w==1.0.0
+tomli-w==1.2.0
     # via appdaemon (pyproject.toml)
 typing-extensions==4.12.2
     # via
