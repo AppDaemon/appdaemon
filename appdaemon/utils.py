@@ -461,6 +461,8 @@ def run_coroutine_threadsafe(self: 'ADBase', coro: Coroutine, timeout: float | N
         future = asyncio.run_coroutine_threadsafe(coro, self.AD.loop)
         try:
             return future.result(timeout)
+        except concurrent.futures.CancelledError:
+            self.logger.warning(f'Future cancelled while waiting for coroutine: {coro}')
         except (asyncio.TimeoutError, concurrent.futures.TimeoutError):
             if hasattr(self, "logger"):
                 self.logger.warning(
