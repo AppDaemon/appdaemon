@@ -29,7 +29,7 @@ async-timeout==5.0.1
     #   sockjs
 attrs==25.1.0
     # via aiohttp
-babel==2.16.0
+babel==2.17.0
     # via sphinx
 bcrypt==4.2.1
     # via appdaemon (pyproject.toml)
