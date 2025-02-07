@@ -31,7 +31,7 @@ certifi==2024.12.14
     # via requests
 charset-normalizer==3.4.1
     # via requests
-deepdiff==8.0.1
+deepdiff==8.2.0
     # via appdaemon (pyproject.toml)
 feedparser==6.0.11
     # via appdaemon (pyproject.toml)
