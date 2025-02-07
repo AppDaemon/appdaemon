@@ -136,7 +136,6 @@ indent-width = 4
 # Assume Python 3.10.
 target-version = "py310"
 
-[tool.ruff.lint]
 # Enable pycodestyle (`E`) and Pyflakes (`F`) codes by default.
 select = ["E", "F"]
 ignore = []
@@ -150,7 +149,7 @@ lint.dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
 per-file-ignores = {}
 
-[tool.ruff.lint.mccabe]
+[tool.ruff.mccabe]
 # Unlike Flake8, default to a complexity level of 10.
 max-complexity = 10
 
