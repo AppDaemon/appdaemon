@@ -2211,7 +2211,7 @@ class ADAPI:
         return now.astimezone(self.AD.tz)
 
     @utils.sync_wrapper
-    async def get_now_ts(self) -> int:
+    async def get_now_ts(self) -> float:
         """Returns the current Local Timestamp.
 
         Examples:
