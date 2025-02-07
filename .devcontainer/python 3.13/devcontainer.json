@@ -50,7 +50,8 @@
 				"eamodio.gitlens",
 				"Gruntfuggly.todo-tree",
 				"tamasfe.even-better-toml",
-				"Postman.postman-for-vscode"
+				"Postman.postman-for-vscode",
+				"GitHub.copilot"
 			]
 
 		}

@@ -102,13 +102,6 @@ line-length = 120
 # Ruff
 
 [tool.ruff]
-# Enable pycodestyle (`E`) and Pyflakes (`F`) codes by default.
-lint.select = ["E", "F"]
-lint.ignore = []
-
-# Allow autofix for all enabled rules (when `--fix`) is provided.
-lint.fixable = ["E", "F", "UP"]
-lint.unfixable = []
 
 src = ["appdaemon"]
 
@@ -136,13 +129,12 @@ exclude = [
     "node_modules",
     "venv",
 ]
-lint.per-file-ignores = {}
 
 line-length = 200
 indent-width = 4
 
-# Assume Python 3.12.
-target-version = "py312"
+# Assume Python 3.10.
+target-version = "py310"
 
 [tool.ruff.lint]
 # Enable pycodestyle (`E`) and Pyflakes (`F`) codes by default.
