@@ -65,7 +65,7 @@ dev = [
 doc = [
     "sphinx-autobuild >= 2021.3.14,< 2024.10.0",
     "sphinx-rtd-theme == 3.0.2",
-    "pygments >= 2.14,< 2.19",
+    "pygments >= 2.14,< 2.20",
     "myst-parser == 4.0.0",
 ]
 
