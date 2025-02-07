@@ -121,8 +121,7 @@ class AppManagement:
 
         # Apply the profiler_decorator if the config option is enabled
         if self.AD.check_app_updates_profile:
-            self.check_app_updates = self.profiler_decorator(
-                self.check_app_updates)
+            self.check_app_updates = self.profiler_decorator(self.check_app_updates)
 
     @property
     def config_filecheck(self) -> FileCheck:
@@ -656,12 +655,24 @@ class AppManagement:
         files = await self.get_app_config_files()
         self.dependency_manager.app_deps.update(files)
 
+        # If there were config file changes
         if self.config_filecheck.there_were_changes:
             self.logger.debug(" Config file changes ".center(75, "="))
             self.config_filecheck.log_changes(self.logger, self.AD.app_dir)
 
+            # Read any new/modified files into a fresh config model
             files_to_read = self.config_filecheck.new | self.config_filecheck.modified
             freshly_read_cfg = await self.read_all(files_to_read)
+
+            # TODO: Move this behavior to the model validation step eventually
+            # It has to be here for now because the files get read in multiple places
+            for gm in freshly_read_cfg.global_modules():
+                rel_path = gm.config_path.relative_to(self.AD.app_dir)
+                self.logger.warning(f"Global modules are deprecated: '{gm.name}' defined in {rel_path}")
+
+            if gm := freshly_read_cfg.root.get("global_modules"):
+                gm = ", ".join(f"'{g}'" for g in gm)
+                self.logger.warning(f"Global modules are deprecated: {gm}")
 
             current_apps = self.valid_apps
             for name, cfg in freshly_read_cfg.app_definitions():
