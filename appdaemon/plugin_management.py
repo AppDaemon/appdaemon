@@ -37,6 +37,7 @@ class PluginBase(abc.ABC):
     updates_recv: int
     last_check_ts: float
 
+    connect_event: asyncio.Event
     ready_event: asyncio.Event
 
     constraints: list
@@ -46,7 +47,8 @@ class PluginBase(abc.ABC):
 
     The first connection a plugin makes is handled a little differently
     because it'll be at startup and it'll be before any apps have been
-    loaded."""
+    loaded.
+    """
 
     stopping: bool = False
     """Flag that indicates whether AppDaemon is currently shutting down."""
@@ -57,6 +59,7 @@ class PluginBase(abc.ABC):
         self.config = config
         self.logger = self.AD.logging.get_child(name)
         self.error = self.logger
+        self.connect_event = asyncio.Event()
         self.ready_event = asyncio.Event()
         self.constraints = []
         self.stopping = False
@@ -92,9 +95,7 @@ class PluginBase(abc.ABC):
         self.config.namespaces = new
 
     @property
-    def all_namespaces(
-        self,
-    ) -> list[str]:
+    def all_namespaces(self) -> list[str]:
         """A list of namespaces that includes the main namespace as well as any
         extra ones."""
         return [self.namespace] + self.namespaces
@@ -155,7 +156,7 @@ class PluginBase(abc.ABC):
 
         - sets the namespace state in self.AD.state
         - adds the plugin entity in self.AD.state
-        - sets the pluginobject to active
+        - sets the plugin object to active
         - fires a ``plugin_started`` event
 
         Arguments:
@@ -173,7 +174,11 @@ class PluginBase(abc.ABC):
             event_coro = self.AD.events.process_event(ns, event)
             self.AD.loop.create_task(event_coro)
             self.AD.plugins.plugin_meta[ns] = meta
-            await self.AD.state.set_namespace_state(namespace=ns, state=state, persist=self.config.persist_entities)
+            await self.AD.state.set_namespace_state(
+                namespace=ns,
+                state=state,
+                persist=self.config.persist_entities
+            )
 
             # This accounts for the case where there's not a plugin associated with the object
             if po := self.AD.plugins.plugin_objs.get(ns):
@@ -196,7 +201,11 @@ class PluginBase(abc.ABC):
             )
 
         if not self.first_time:
-            self.AD.loop.create_task(self.AD.app_management.check_app_updates(plugin=self.name, mode=UpdateMode.INIT))
+            self.AD.loop.create_task(
+                self.AD.app_management.check_app_updates(
+                    plugin_ns=self.namespace,
+                    mode=UpdateMode.PLUGIN_RESTART
+            ))
 
 
 class PluginManagement:
@@ -222,9 +231,9 @@ class PluginManagement:
     plugin_objs: Dict[str, PluginBase]
     """Dictionary storing the instantiated plugin objects.
     {<namespace>: {
-    "object": <PluginBase>,
-    "active": <bool>,
-    "name": <str>
+        "object": <PluginBase>,
+        "active": <bool>,
+        "name": <str>
     }}
     """
     required_meta = ["latitude", "longitude", "elevation", "time_zone"]
@@ -407,17 +416,24 @@ class PluginManagement:
 
     async def notify_plugin_stopped(self, name, namespace):
         self.plugin_objs[namespace]["active"] = False
-        await self.AD.events.process_event(namespace, {"event_type": "plugin_stopped", "data": {"name": name}})
+        data = {"event_type": "plugin_stopped", "data": {"name": name}}
+        await self.AD.events.process_event(namespace, data)
 
     def get_plugin_meta(self, namespace: str) -> dict:
         return self.plugin_meta.get(namespace, {})
 
-    async def wait_for_plugins(self):
-        self.logger.info("Waiting for plugins to be ready")
-        events: Iterable[asyncio.Event] = (plugin["object"].ready_event for plugin in self.plugin_objs.values())
-        tasks = (self.AD.loop.create_task(e.wait()) for e in events)
-        await asyncio.wait(tasks)
-        self.logger.info("All plugins ready")
+    async def wait_for_plugins(self, timeout: float | None = None):
+        """Waits for the user-configured plugin startup conditions.
+
+        Specifically, this waits for each of their ready events
+        """
+        self.logger.info('Waiting for plugins to be ready')
+        events: Generator[asyncio.Event, None, None] = (
+            plugin['object'].ready_event for plugin in self.plugin_objs.values()
+        )
+        tasks = [self.AD.loop.create_task(e.wait()) for e in events]
+        await asyncio.wait(tasks, timeout=timeout)
+        self.logger.info('All plugins ready')
 
     def get_config_for_namespace(self, namespace: str) -> PluginConfig:
         plugin_name = self.get_plugin_from_namespace(namespace)
@@ -442,7 +458,10 @@ class PluginManagement:
             if await self.time_since_plugin_update(plugin.name) > cfg.refresh_delay:
                 self.logger.debug(f"Refreshing {plugin.name}[{cfg.type}] state")
                 try:
-                    state = await asyncio.wait_for(plugin.get_complete_state(), timeout=cfg.refresh_timeout)
+                    state = await asyncio.wait_for(
+                        plugin.get_complete_state(),
+                        timeout=cfg.refresh_timeout
+                    )
                 except asyncio.TimeoutError:
                     self.logger.warning(
                         "Timeout refreshing %s state - retrying in %s seconds",

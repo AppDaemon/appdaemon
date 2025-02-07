@@ -23,14 +23,14 @@ def looped_coro(coro, sleep_time: int | float):
 
 
 def hass_check(func):
-    """Essentially swallows the function call if the Home Assistant plugin isn't ready, in which case the function will return None.
+    """Essentially swallows the function call if the Home Assistant plugin isn't connected, in which case the function will return None.
     """
     async def no_func():
         pass
 
     @functools.wraps(func)
     def func_wrapper(self: "HassPlugin", *args, **kwargs):
-        if not self.is_ready:
+        if not self.connect_event.is_set():
             self.logger.warning("Attempt to call Home Assistant while disconnected: %s", func.__name__)
             return no_func()
         else:

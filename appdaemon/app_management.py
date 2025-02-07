@@ -121,8 +121,7 @@ class AppManagement:
 
         # Apply the profiler_decorator if the config option is enabled
         if self.AD.check_app_updates_profile:
-            self.check_app_updates = self.profiler_decorator(
-                self.check_app_updates)
+            self.check_app_updates = self.profiler_decorator(self.check_app_updates)
 
     @property
     def config_filecheck(self) -> FileCheck:
@@ -656,12 +655,24 @@ class AppManagement:
         files = await self.get_app_config_files()
         self.dependency_manager.app_deps.update(files)
 
+        # If there were config file changes
         if self.config_filecheck.there_were_changes:
             self.logger.debug(" Config file changes ".center(75, "="))
             self.config_filecheck.log_changes(self.logger, self.AD.app_dir)
 
+            # Read any new/modified files into a fresh config model
             files_to_read = self.config_filecheck.new | self.config_filecheck.modified
             freshly_read_cfg = await self.read_all(files_to_read)
+
+            # TODO: Move this behavior to the model validation step eventually
+            # It has to be here for now because the files get read in multiple places
+            for gm in freshly_read_cfg.global_modules():
+                rel_path = gm.config_path.relative_to(self.AD.app_dir)
+                self.logger.warning(f"Global modules are deprecated: '{gm.name}' defined in {rel_path}")
+
+            if gm := freshly_read_cfg.root.get("global_modules"):
+                gm = ", ".join(f"'{g}'" for g in gm)
+                self.logger.warning(f"Global modules are deprecated: {gm}")
 
             current_apps = self.valid_apps
             for name, cfg in freshly_read_cfg.app_definitions():
@@ -817,13 +828,13 @@ class AppManagement:
         return wrapper
 
     # @utils.timeit
-    async def check_app_updates(self, plugin: str = None, mode: UpdateMode = UpdateMode.NORMAL):
+    async def check_app_updates(self, plugin_ns: str = None, mode: UpdateMode = UpdateMode.NORMAL):
         """Checks the states of the Python files that define the apps, reloading when necessary.
 
         Called as part of :meth:`.utility_loop.Utility.loop`
 
         Args:
-            plugin (str, optional): Plugin to restart, if necessary. Defaults to None.
+            plugin_ns (str, optional): Namespace of a plugin to restart, if necessary. Defaults to None.
             mode (UpdateMode, optional): Defaults to UpdateMode.NORMAL.
         """
         if not self.AD.apps:
@@ -859,7 +870,8 @@ class AppManagement:
             # self._add_reload_apps(update_actions)
             # self._check_for_deleted_modules(update_actions)
 
-            await self._restart_plugin(plugin, update_actions)
+            if mode == UpdateMode.PLUGIN_RESTART:
+                await self._restart_plugin_apps(plugin_ns, update_actions)
 
             await self._import_modules(update_actions)
 
@@ -994,29 +1006,23 @@ class AppManagement:
                 self.logger.info("Deletion affects apps %s", affected)
                 update_actions.apps.term |= affected
 
-    async def _restart_plugin(self, plugin, update_actions: UpdateActions):
-        if plugin is not None:
-            self.logger.info("Processing restart for %s", plugin)
-            # This is a restart of one of the plugins so check which apps need to be restarted
-            for app in self.app_config:
-                reload = False
-                if app in self.non_apps:
-                    continue
-                if "plugin" in self.app_config[app]:
-                    for this_plugin in utils.single_or_list(self.app_config[app]["plugin"]):
-                        if this_plugin == plugin:
-                            # We got a match so do the reload
-                            reload = True
-                            break
-                        elif plugin == "__ALL__":
-                            reload = True
-                            break
-                else:
-                    # No plugin dependency specified, reload to error on the side of caution
-                    reload = True
+    async def _restart_plugin_apps(self, plugin_ns: str | None, update_actions: UpdateActions):
+        """If a plugin ever re-connects after the initial startup, the apps that use it's plugin
+        all need to be restarted. The apps that belong to the plugin are determined by namespace.
+        """
+        if plugin_ns is not None:
+            self.logger.info(f"Processing restart for plugin namespace '{plugin_ns}'")
 
-                if reload is True:
-                    update_actions.apps.reload.add(app)
+            app_names = set(
+                app
+                for app, cfg in self.app_config.root.items()    # For each config key
+                if isinstance(cfg, AppConfig) and               # The config key is for an app
+                (mo := self.objects.get(app)) and               # There's a valid ManagedObject
+                mo.object.namespace == plugin_ns                # Its namespace matches the plugins
+            )
+
+            deps = self.dependency_manager.app_deps.get_dependents(app_names)
+            update_actions.apps.reload |= deps
 
     async def _stop_apps(self, update_actions: UpdateActions):
         """Terminate apps. Returns the set of app names that failed to properly terminate.

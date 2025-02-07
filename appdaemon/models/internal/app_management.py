@@ -1,7 +1,7 @@
 import uuid
 from copy import copy
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import Enum, auto
 from pathlib import Path
 from typing import Any, Literal, Optional
 
@@ -20,9 +20,10 @@ class UpdateMode(Enum):
         Terminate all apps
     """
 
-    INIT = 0
-    NORMAL = 1
-    TERMINATE = 2
+    INIT = auto()
+    NORMAL = auto()
+    PLUGIN_RESTART = auto()
+    TERMINATE = auto()
 
 
 

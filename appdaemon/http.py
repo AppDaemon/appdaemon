@@ -95,7 +95,9 @@ def route_secure(myfunc):
             return await myfunc(*args)
 
         elif "adcreds" in request.cookies:
-            match = await utils.run_in_executor(self, bcrypt.checkpw, str.encode(self.password), str.encode(request.cookies["adcreds"]))
+            match = await utils.run_in_executor(
+                self, bcrypt.checkpw, str.encode(self.password), str.encode(request.cookies["adcreds"])
+            )
             if match:
                 return await myfunc(*args)
 
@@ -369,7 +371,9 @@ class HTTP:
 
         self._process_arg("url", http)
         if not self.url:
-            self.logger.warning("'{arg}' is '{value}'. Please configure appdaemon.yaml".format(arg="url", value=self.url))
+            self.logger.warning(
+                "'{arg}' is '{value}'. Please configure appdaemon.yaml".format(arg="url", value=self.url)
+            )
             exit(0)
 
         self._process_arg("transport", http)

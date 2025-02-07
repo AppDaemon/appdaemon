@@ -145,7 +145,12 @@ class ADMain:
 
             # Initialize Dashboard/API/admin
 
-            if http is not None and (hadashboard is not None or admin is not None or aui is not None or api is not False):
+            if http is not None and (
+                hadashboard is not None or
+                admin is not None or
+                aui is not None or
+                api is not False
+            ):
                 self.logger.info("Initializing HTTP")
                 self.http_object = HTTP(
                     self.AD,
@@ -253,7 +258,11 @@ class ADMain:
         pidfile = args.pidfile
 
         default_config_files = ["appdaemon.yaml", "appdaemon.toml"]
-        default_config_paths = [Path("~/.homeassistant").expanduser(), Path("/etc/appdaemon"), Path("/conf")]
+        default_config_paths = [
+            Path("~/.homeassistant").expanduser(),
+            Path("/etc/appdaemon"),
+            Path("/conf")
+        ]
 
         if args.configfile is not None:
             config_file = Path(args.configfile).resolve()
