@@ -55,7 +55,7 @@ multidict==6.1.0
     # via
     #   aiohttp
     #   yarl
-orderly-set==5.2.2
+orderly-set==5.3.0
     # via deepdiff
 paho-mqtt==2.1.0
     # via appdaemon (pyproject.toml)

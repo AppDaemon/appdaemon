@@ -85,7 +85,7 @@ mypy-extensions==1.0.0
     # via black
 nodeenv==1.9.1
     # via pre-commit
-orderly-set==5.2.2
+orderly-set==5.3.0
     # via deepdiff
 packaging==24.2
     # via
