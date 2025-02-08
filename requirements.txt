@@ -4,7 +4,7 @@
 #
 #    pip-compile pyproject.toml
 #
-aiohappyeyeballs==2.4.4
+aiohappyeyeballs==2.4.6
     # via aiohttp
 aiohttp==3.11.12
     # via
@@ -65,6 +65,10 @@ propcache==0.2.1
     # via
     #   aiohttp
     #   yarl
+pydantic==2.10.6
+    # via appdaemon (pyproject.toml)
+pydantic-core==2.27.2
+    # via pydantic
 python-dateutil==2.9.0.post0
     # via appdaemon (pyproject.toml)
 python-engineio==4.11.2
@@ -89,6 +93,10 @@ tomli==2.2.1
     # via appdaemon (pyproject.toml)
 tomli-w==1.2.0
     # via appdaemon (pyproject.toml)
+typing-extensions==4.12.2
+    # via
+    #   pydantic
+    #   pydantic-core
 urllib3==2.3.0
     # via requests
 uvloop==0.21.0 ; sys_platform != "win32"

@@ -4,7 +4,7 @@
 #
 #    pip-compile --extra=dev --output-file=dev-requirements.txt pyproject.toml
 #
-aiohappyeyeballs==2.4.4
+aiohappyeyeballs==2.4.6
     # via aiohttp
 aiohttp==3.11.12
     # via
@@ -41,7 +41,6 @@ charset-normalizer==3.4.1
     # via requests
 click==8.1.8
     # via
-    #   appdaemon (pyproject.toml)
     #   black
     #   pip-tools
 deepdiff==8.2.0
@@ -153,6 +152,10 @@ tomli==2.2.1
     # via appdaemon (pyproject.toml)
 tomli-w==1.2.0
     # via appdaemon (pyproject.toml)
+typing-extensions==4.12.2
+    # via
+    #   pydantic
+    #   pydantic-core
 urllib3==2.3.0
     # via requests
 uvloop==0.21.0 ; sys_platform != "win32"

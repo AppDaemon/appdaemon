@@ -4,7 +4,7 @@
 #
 #    pip-compile --extra=doc --output-file=doc-requirements.txt pyproject.toml
 #
-aiohappyeyeballs==2.4.4
+aiohappyeyeballs==2.4.6
     # via aiohttp
 aiohttp==3.11.12
     # via
@@ -40,9 +40,7 @@ certifi==2025.1.31
 charset-normalizer==3.4.1
     # via requests
 click==8.1.8
-    # via
-    #   appdaemon (pyproject.toml)
-    #   uvicorn
+    # via uvicorn
 colorama==0.4.6
     # via sphinx-autobuild
 deepdiff==8.2.0
@@ -104,6 +102,10 @@ propcache==0.2.1
     # via
     #   aiohttp
     #   yarl
+pydantic==2.10.6
+    # via appdaemon (pyproject.toml)
+pydantic-core==2.27.2
+    # via pydantic
 pygments==2.19.1
     # via
     #   appdaemon (pyproject.toml)
@@ -166,6 +168,10 @@ tomli==2.2.1
     # via appdaemon (pyproject.toml)
 tomli-w==1.2.0
     # via appdaemon (pyproject.toml)
+typing-extensions==4.12.2
+    # via
+    #   pydantic
+    #   pydantic-core
 urllib3==2.3.0
     # via requests
 uvicorn==0.34.0

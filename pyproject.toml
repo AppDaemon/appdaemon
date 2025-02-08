@@ -28,7 +28,8 @@ dependencies = [
     'sockjs >= 0.11,< 0.14',
     'uvloop==0.21.0; sys_platform != "win32"',
     'tomli==2.2.1',
-    'tomli_w >= 1.0,< 1.3'
+    'tomli_w >= 1.0,< 1.3',
+    'pydantic ~= 2.10.6',
 ]
 
 classifiers= [
@@ -137,19 +138,19 @@ indent-width = 4
 target-version = "py310"
 
 # Enable pycodestyle (`E`) and Pyflakes (`F`) codes by default.
-select = ["E", "F"]
-ignore = []
+lint.select = ["E", "F"]
+lint.ignore = []
 
 # Allow autofix for all enabled rules (when `--fix`) is provided.
-fixable = ["E", "F", "UP"]
-unfixable = []
+lint.fixable = ["E", "F", "UP"]
+lint.unfixable = []
 
 # Allow unused variables when underscore-prefixed.
 lint.dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
-per-file-ignores = {}
+lint.per-file-ignores = {}
 
-[tool.ruff.mccabe]
+[tool.ruff.lint.mccabe]
 # Unlike Flake8, default to a complexity level of 10.
 max-complexity = 10
 
