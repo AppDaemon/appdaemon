@@ -53,6 +53,8 @@ class AppConfig(BaseApp, extra="allow"):
     log: Optional[str] = None
     log_level: Optional[str] = None
 
+    priority: float = 50.0
+
     def __getitem__(self, key: str):
         return getattr(self, key)
 

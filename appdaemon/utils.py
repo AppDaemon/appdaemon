@@ -995,11 +995,11 @@ def has_collapsed_kwargs(func):
 
 def deprecation_warnings(model: BaseModel, logger: Logger):
     for field in model.model_fields_set:
-        if field in model.__pydantic_extra__:
+        if model.__pydantic_extra__ is not None and field in model.__pydantic_extra__:
             logger.warning(f"Extra config field '{field}'. This will be ignored")
         elif (info := model.model_fields.get(field)) and info.deprecated:
             logger.warning(f"Deprecated field '{field}': {info.deprecation_message}")
-        
+
         match attr := getattr(model, field):
             case dict():
                 for val in attr.values():

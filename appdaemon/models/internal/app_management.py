@@ -1,9 +1,10 @@
 import uuid
-from copy import copy
+from copy import copy, deepcopy
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from pathlib import Path
 from typing import Any, Literal, Optional
+
 
 from ...dependency import find_all_dependents, topo_sort
 from ...dependency_manager import DependencyManager
@@ -68,7 +69,23 @@ class LoadingActions:
         """
         items = copy(self.init_set)
         items |= find_all_dependents(items, dm.app_deps.rev_graph)
-        order = [n for n in topo_sort(dm.app_deps.dep_graph) if n in items]
+        priorities = {
+            app_name: dm.app_deps.app_config.root[app_name].priority
+            for app_name in items
+        }
+        priority_deps = {
+            app_name: set(
+                dep for dep, dep_priority in priorities.items()
+                if dep_priority < app_priority
+            )
+            for app_name, app_priority in priorities.items()
+        }
+
+        dep_graph = deepcopy(dm.app_deps.dep_graph)
+        for app, deps in dep_graph.items():
+            deps |= priority_deps.get(app, set())
+
+        order = [n for n in topo_sort(dep_graph) if n in items]
         return order
 
     @property
