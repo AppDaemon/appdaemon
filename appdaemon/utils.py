@@ -27,7 +27,7 @@ import dateutil.parser
 import tomli
 import tomli_w
 import yaml
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 from appdaemon.version import __version__  # noqa: F401
 from appdaemon.version import __version_comments__  # noqa: F401
@@ -991,3 +991,19 @@ def has_collapsed_kwargs(func):
     params = inspect.signature(func).parameters
     p = list(params.values())[-1]
     return p.kind == p.POSITIONAL_OR_KEYWORD
+
+
+def deprecation_warnings(model: BaseModel, logger: Logger):
+    for field in model.model_fields_set:
+        if field in model.__pydantic_extra__:
+            logger.warning(f"Extra config field '{field}'. This will be ignored")
+        elif (info := model.model_fields.get(field)) and info.deprecated:
+            logger.warning(f"Deprecated field '{field}': {info.deprecation_message}")
+        
+        match attr := getattr(model, field):
+            case dict():
+                for val in attr.values():
+                    if isinstance(val, BaseModel):
+                        deprecation_warnings(val, logger)
+            case BaseModel():
+                deprecation_warnings(attr, logger)

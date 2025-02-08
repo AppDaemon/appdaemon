@@ -24,7 +24,7 @@ class ModuleLoggingLevels(RootModel):
     root: dict[str, str] = {"_events": "WARNING"}
 
 
-class AppDaemonConfig(BaseModel):
+class AppDaemonConfig(BaseModel, extra="allow"):
     latitude: float
     longitude: float
     elevation: int

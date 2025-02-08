@@ -406,11 +406,7 @@ class ADMain:
         )
         self.logger.info("Configuration read from: %s", config_file)
 
-        for field in ad_config_model.model_fields_set:
-            if field in ad_config_model.__pydantic_extra__:
-                self.logger.warning(f"Extra config field '{field}'. This will be ignored")
-            elif (info := ad_config_model.model_fields.get(field)) and info.deprecated:
-                self.logger.warning(f"Deprecated field '{field}': {info.deprecation_message}")
+        utils.deprecation_warnings(ad_config_model, self.logger)
 
         self.logging.dump_log_config()
         self.logger.debug("AppDaemon Section: %s", config.get("appdaemon"))
