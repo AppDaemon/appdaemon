@@ -1,23 +1,26 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/docker-existing-dockerfile
 {
-	"name": "Pyhton 3.12",
+	"name": "Python 3.12",
 	"build": {
 		// Sets the run context to one level up instead of the .devcontainer folder.
 		"context": "../..",
 		// Update the 'dockerFile' property if you aren't using the standard 'Dockerfile' filename.
 		"dockerfile": "../Dockerfile",
 		"args": {
-            "PYTHON_RELEASE": "3.12" // This overrides the default of 3.13
+            "PYTHON_RELEASE": "3.12", // This overrides the default of 3.13
+			"REMOTE_USER": "${localEnv:USER}",
+        	"REMOTE_UID": "${localEnv:REMOTE_UID:1000}",
+        	"REMOTE_GID": "${localEnv:REMOTE_GID:1000}"
        }
 	},
-
+	"remoteUser": "${localEnv:USER}",
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	//"forwardPorts": ["4949:4949"],
-	"appPort": [ "4949:4949" ],
+	"appPort": [ "5012:5012" ],
 	// Uncomment the next line to run commands after the container is created.
 	// "postCreateCommand": "cat /etc/os-release",
 
@@ -34,10 +37,7 @@
 			"extensions": [
 				"ms-python.python",
 				"njpwerner.autodocstring",
-				//"ms-python.black-formatter",
-				//"ms-python.isort",
 				"shd101wyy.markdown-preview-enhanced",
-				//"ms-python.pylint",
 				"DavidAnson.vscode-markdownlint",
 				"ms-python.debugpy",
 				"njqdev.vscode-python-typehint",
@@ -49,7 +49,8 @@
 				"eamodio.gitlens",
 				"Gruntfuggly.todo-tree",
 				"tamasfe.even-better-toml",
-				"Postman.postman-for-vscode"
+				"Postman.postman-for-vscode",
+				"GitHub.copilot"
 			]
 
 		}
