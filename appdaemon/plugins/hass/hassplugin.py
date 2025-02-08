@@ -1,5 +1,5 @@
 """
-Interface with Home Assistant, send and recieve evets, state etc.
+Interface with Home Assistant, send and receive evets, state etc.
 """
 
 import asyncio
@@ -102,7 +102,7 @@ class HassPlugin(PluginBase):
         self.queues = {}
 
     async def process_response(self, response):
-        # We recieved a response from the WS, match it up with the caller
+        # We received a response from the WS, match it up with the caller
         if "id" in response and response["id"] in self.queues:
             q = self.queues[response["id"]]
             await q.put(response)
@@ -158,7 +158,7 @@ class HassPlugin(PluginBase):
             # self.logger.info(f"Response: {response}")
             # We got a valid response
 
-            # Set the AD response code and timeing
+            # Set the AD response code and timing
             response["ad_status"] = "OK"
             now = await self.AD.sched.get_now_ts()
 

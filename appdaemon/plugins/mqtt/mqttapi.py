@@ -116,7 +116,7 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
 
             binary (bool, optional): If wanting the payload to be returned as binary, this should
                 be specified. If not given, AD will return the payload as decoded data. It should
-                be noted that it is not possible to have different apps receieve both binary and non-binary
+                be noted that it is not possible to have different apps receive both binary and non-binary
                 data on the same topic
 
         Returns:

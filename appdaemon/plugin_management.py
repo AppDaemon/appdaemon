@@ -288,7 +288,7 @@ class Plugins:
             if not self.stopping:
                 self.plugin_meta[namespace] = meta
 
-                if namespaces != []:  # there are multiple namesapces
+                if namespaces != []:  # there are multiple namespaces
                     for namesp in namespaces:
                         if state[namesp] is not None:
                             await utils.run_in_executor(

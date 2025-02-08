@@ -84,7 +84,7 @@ the table:
    keep track of things like the number of times a motion sensor has
    been activated, or how long it has been since a door opened
 -  All the power of Python - use any of Python's libraries, create your
-   own modules, share variables, refactor and re-use code, create a
+   own modules, share variables, refactor and reuse code, create a
    single app to do everything, or multiple apps for individual tasks -
    nothing is off-limits!
 

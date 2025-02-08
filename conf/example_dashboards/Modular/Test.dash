@@ -87,7 +87,7 @@ side_humidity:
   #precision: 0
   entity: sensor.side_humidity_corrected
   #state_map:
-  #  "49.0": Realy Cold
+  #  "49.0": Really Cold
 
 garage:
   widget_type: cover

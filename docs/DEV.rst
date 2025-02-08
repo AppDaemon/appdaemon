@@ -134,7 +134,7 @@ It uses the ``pyproject.toml`` as the source from which to read the project depe
 Each file has the ``pip-compile`` command used to generated them as a reference.
 
 The runtime ``requirements.txt`` file is fundamental for efficiently building the ``Docker`` images: thanks to the Docker build cache,
-the dependencies are only installed the first time in the build process, and are re-used from the Docker cache in subsequent builds.
+the dependencies are only installed the first time in the build process, and are reused from the Docker cache in subsequent builds.
 This improves dramatically the build times, especially when there is the need to compile native dependencies.
 See :ref:`Docker build` for more information.
 

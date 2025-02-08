@@ -262,7 +262,7 @@ Security:
   insecure_message: "The following items are insecure :"
   securing_message: "I have secured the following items: "
   failed_message: "The following items failed to secure: "
-  alarm_cancel_message: ["Alarm has been cancelled", "uh oh, canceling alarm", "oh noes!"]
+  alarm_cancel_message: ["Alarm has been cancelled", "uh oh, canceling alarm", "oh no!"]
   alarm_arm_message: "Alarm is armed"
   alarm_disarm_message: "Alarm is disarmed"
   alarm_entity: alarm_control_panel.ha_alarm
@@ -304,7 +304,7 @@ Security:
         service: cover/close_cover
         timeout: 20
         #state_map:
-        #  locked: "bannana"
+        #  locked: "banana"
         #  unlocked: "fruitbat"
     Garage Motion:
       binary_sensor.garage_sensor:
