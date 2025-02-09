@@ -1,6 +1,6 @@
-from copy import deepcopy
 import sys
 from abc import ABC
+from copy import deepcopy
 from pathlib import Path
 from typing import Annotated, Any, Iterable, Iterator, Literal, Optional, Union
 
@@ -17,6 +17,7 @@ class GlobalModules(RootModel):
 
 
 class BaseApp(BaseModel, ABC):
+    """Abstract class to contain logic that's common to both apps and global modules"""
     name: str
     config_path: Optional[Path] = None  # Needs to remain optional because it gets set later
     module_name: str = Field(alias="module")
@@ -25,7 +26,8 @@ class BaseApp(BaseModel, ABC):
     dependencies: set[str] = Field(default_factory=set)
     """Other apps that this app depends on. They are guaranteed to be loaded and started before this one.
     """
-    disable: bool = False
+    disable: bool = False    
+    priority: float = 50.0
 
     @property
     def module_is_loaded(self) -> bool:
@@ -52,8 +54,6 @@ class AppConfig(BaseApp, extra="allow"):
     pin_thread: Optional[int] = None
     log: Optional[str] = None
     log_level: Optional[str] = None
-
-    priority: float = 50.0
 
     def __getitem__(self, key: str):
         return getattr(self, key)
