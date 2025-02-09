@@ -24,7 +24,7 @@ from appdaemon.plugin_management import PluginBase
 
 from .exceptions import HAEventsSubError
 from .models import HASSMetaData
-from .utils import hass_check, looped_coro
+from .utils import hass_check, looped_coro, ServiceCallStatus
 
 
 class HASSWebsocketResponse(BaseModel):
@@ -323,13 +323,24 @@ class HassPlugin(PluginBase):
         try:
             result: dict = await asyncio.wait_for(future, timeout=timeout)
         except asyncio.TimeoutError:
+            ad_status = ServiceCallStatus.TIMEOUT
+            result = {"success": False}
             if not silent:
-                self.logger.warning(f"Timed out [{timeout:.0f}s] waiting for request: %s", request)
-            return {"success": "timeout", "ad_duration": timeout}
+                self.logger.warning(f"Timed out [{timeout:.0f}s] waiting for request: {request}", )
+        except asyncio.CancelledError:
+            ad_status = ServiceCallStatus.TERMINATING
+            result = {"success": False}
+            if not silent:
+                self.logger.warning(f"AppDaemon started shut down while waiting for the response from the request: {request}")
         else:
-            travel_time = perf_counter() - send_time
-            result.update({"ad_duration": travel_time})
-            return result
+            ad_status = ServiceCallStatus.OK
+        
+        travel_time = perf_counter() - send_time
+        result.update({
+            "ad_status": ad_status.name,
+            "ad_duration": travel_time,
+        })
+        return result
 
     @hass_check
     async def http_method(
@@ -622,11 +633,11 @@ class HassPlugin(PluginBase):
 
         service_properties = {
             prop: val
-            for entry in self.services
-            if domain == entry["domain"]
+            for entry in self.services                  # For each service entry,
+            if domain == entry["domain"]                # if the domain matches
             for name, info in entry["services"].items()
-            if name == service
-            for prop, val in info.items()
+            if name == service                          # and the service name matches,
+            for prop, val in info.items()               # get each of the properties
         }
 
         if return_response is None:
@@ -647,15 +658,7 @@ class HassPlugin(PluginBase):
             error_text=f'Error in callback {callback.__name__} for service {domain}/{service}'
             cb_safety_decorator = utils.warning_decorator(error_text=error_text)
 
-        if return_response is False:
-            task = self.AD.loop.create_task(send_coro)
-            if callback is not None:
-                @cb_safety_decorator
-                def cb_future(self, f: asyncio.Future):
-                    # Includes the self parameter for the loggers in the decorator to work
-                    return callback(f.result())
-                task.add_done_callback(cb_future)
-        else:
+        if return_response:
             try:
                 res = await asyncio.wait_for(send_coro, timeout=hass_timeout)
             except asyncio.TimeoutError:
@@ -669,6 +672,14 @@ class HassPlugin(PluginBase):
 
                     await cb_safe(self)
                 return res
+        else:
+            task = self.AD.loop.create_task(send_coro)
+            if callback is not None:
+                @cb_safety_decorator
+                def cb_future(self, f: asyncio.Future):
+                    # Includes the self parameter for the loggers in the decorator to work
+                    return callback(f.result())
+                task.add_done_callback(cb_future)
 
     #
     # Events

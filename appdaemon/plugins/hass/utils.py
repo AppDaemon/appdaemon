@@ -1,9 +1,16 @@
 import asyncio
 import functools
+from enum import Enum, auto
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .hassplugin import HassPlugin
+
+
+class ServiceCallStatus(Enum):
+    OK = auto()
+    TIMEOUT =auto()
+    TERMINATING = auto()
 
 
 def looped_coro(coro, sleep_time: int | float):
