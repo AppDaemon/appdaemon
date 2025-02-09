@@ -12,7 +12,7 @@ ARG REMOTE_GID
 RUN addgroup --gid ${REMOTE_GID} ${REMOTE_USER}
 RUN adduser --disabled-password --uid ${REMOTE_UID} --gid ${REMOTE_GID} ${REMOTE_USER}
 
-ENV HOME /home/${REMOTE_USER}
+ENV HOME=/home/${REMOTE_USER}
 
 USER ${REMOTE_USER}
 

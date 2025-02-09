@@ -231,9 +231,9 @@ class PluginManagement:
     plugin_objs: Dict[str, PluginBase]
     """Dictionary storing the instantiated plugin objects.
     {<namespace>: {
-        "object": <PluginBase>,
-        "active": <bool>,
-        "name": <str>
+    "object": <PluginBase>,
+    "active": <bool>,
+    "name": <str>
     }}
     """
     required_meta = ["latitude", "longitude", "elevation", "time_zone"]
