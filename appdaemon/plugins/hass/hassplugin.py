@@ -220,17 +220,18 @@ class HassPlugin(PluginBase):
 
     @utils.warning_decorator(error_text="Unexpected error during receive_result")
     async def receive_result(self, resp: dict):
+        silent = self._silent_results.pop(resp["id"], False) or \
+            self.AD.config.suppress_log_messages
+
         if (future := self._result_futures.pop(resp["id"], None)) is not None:
             if not future.done():
                 future.set_result(resp)
             else:
-                if not self.config.suppress_log_messages:
+                if not silent:
                     self.logger.warning(f'Request already timed out for {resp["id"]}')
         else:
-            self.logger.warning(f"Received result without a matching future: {resp}")
-
-        silent = self._silent_results.pop(resp["id"], False) or \
-            self.AD.config.suppress_log_messages
+            if not silent:
+                self.logger.warning(f"Received result without a matching future: {resp}")
 
         if not silent:
             match resp["success"]:
