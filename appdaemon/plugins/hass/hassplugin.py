@@ -224,7 +224,8 @@ class HassPlugin(PluginBase):
             if not future.done():
                 future.set_result(resp)
             else:
-                self.logger.warning(f'Request already timed out for {resp["id"]}')
+                if not self.config.suppress_log_messages:
+                    self.logger.warning(f'Request already timed out for {resp["id"]}')
         else:
             self.logger.warning(f"Received result without a matching future: {resp}")
 
