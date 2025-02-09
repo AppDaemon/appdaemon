@@ -286,7 +286,13 @@ class HassPlugin(PluginBase):
             # ? 'entity_registry_updated'
                 self.logger.debug('Unrecognized event %s', typ)
 
-    async def websocket_send_json(self, timeout: float = 5.0, silent: bool = False, **request) -> dict:
+    @utils.warning_decorator(error_text="Unexpected error during websocket send")
+    async def websocket_send_json(
+        self,
+        timeout: float | None = None,
+        silent: bool = False,
+        **request
+    ) -> dict:
         """
         Sends a json request over the websocket and gets the response.
 
@@ -326,7 +332,7 @@ class HassPlugin(PluginBase):
             ad_status = ServiceCallStatus.TIMEOUT
             result = {"success": False}
             if not silent:
-                self.logger.warning(f"Timed out [{timeout:.0f}s] waiting for request: {request}", )
+                self.logger.warning(f"Timed out [{timeout:.0f}s] waiting for request: {request}")
         except asyncio.CancelledError:
             ad_status = ServiceCallStatus.TERMINATING
             result = {"success": False}
@@ -347,7 +353,7 @@ class HassPlugin(PluginBase):
         self,
         method: Literal['get', 'post', 'delete'],
         endpoint: str,
-        timeout: float = 5.0,
+        timeout: float = 10.0,
         **kwargs
     ) -> dict | None:
         """
@@ -357,7 +363,7 @@ class HassPlugin(PluginBase):
         Args:
             typ (Literal['get', 'post', 'delete']): Type of HTTP method to use
             endpoint (str): Home Assistant REST endpoint to use. For example '/api/states'
-            timeout (float, optional): Timeout for the method in seconds. Defaults to 5.0.
+            timeout (float, optional): Timeout for the method in seconds. Defaults to 10s.
             **kwargs (optional): Zero or more keyword arguments. These get used as the data
                 for the method, as appropriate.
 
@@ -602,7 +608,7 @@ class HassPlugin(PluginBase):
         domain: str,
         service: str,
         target: str | None = None,
-        hass_timeout: float | None = None,
+        hass_timeout: int | float | None = 10,
         return_response: bool | None = None,
         callback: Callable | None = None,
         suppress_log_messages: bool = False,
@@ -652,27 +658,18 @@ class HassPlugin(PluginBase):
         if target is not None:
             req["target"] = target
 
-        send_coro = self.websocket_send_json(silent=suppress_log_messages, **req)
+        send_coro = self.websocket_send_json(
+            timeout=hass_timeout,
+            silent=suppress_log_messages,
+            **req
+        )
 
         if callback is not None:
             error_text=f'Error in callback {callback.__name__} for service {domain}/{service}'
             cb_safety_decorator = utils.warning_decorator(error_text=error_text)
 
-        if return_response:
-            try:
-                res = await asyncio.wait_for(send_coro, timeout=hass_timeout)
-            except asyncio.TimeoutError:
-                self.logger.error(f"Timed out [{hass_timeout:.0f}s] during service call: {req}")
-            else:
-                if callback is not None:
-                    @cb_safety_decorator
-                    async def cb_safe(self):
-                        # Includes the self parameter for the loggers in the decorator to work
-                        callback(res)
-
-                    await cb_safe(self)
-                return res
-        else:
+        # This check is a little weird, but it's to distinguish False from None, which is falsey
+        if return_response is False:
             task = self.AD.loop.create_task(send_coro)
             if callback is not None:
                 @cb_safety_decorator
@@ -680,7 +677,17 @@ class HassPlugin(PluginBase):
                     # Includes the self parameter for the loggers in the decorator to work
                     return callback(f.result())
                 task.add_done_callback(cb_future)
+        else:
+            res = await send_coro
+            if callback is not None:
+                @cb_safety_decorator
+                async def cb_safe(self):
+                    # Includes the self parameter for the loggers in the decorator to work
+                    callback(res)
 
+                await cb_safe(self)
+            return res
+        
     #
     # Events
     #

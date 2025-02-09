@@ -1810,7 +1810,7 @@ class ADAPI:
         return_result: bool = True,
         callback: Callable | None = None,
         hass_result: bool = True,
-        hass_timeout: float = True,
+        hass_timeout: float = 10,
         suppress_log_messages: bool = False,
         **data,
     ) -> Any: ...
