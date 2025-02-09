@@ -26,7 +26,7 @@ class BaseApp(BaseModel, ABC):
     dependencies: set[str] = Field(default_factory=set)
     """Other apps that this app depends on. They are guaranteed to be loaded and started before this one.
     """
-    disable: bool = False    
+    disable: bool = False
     priority: float = 50.0
 
     @property

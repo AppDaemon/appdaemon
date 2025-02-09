@@ -341,7 +341,7 @@ class HassPlugin(PluginBase):
                 self.logger.warning(f"AppDaemon started shut down while waiting for the response from the request: {request}")
         else:
             ad_status = ServiceCallStatus.OK
-        
+
         travel_time = perf_counter() - send_time
         result.update({
             "ad_status": ad_status.name,
@@ -688,7 +688,7 @@ class HassPlugin(PluginBase):
 
                 await cb_safe(self)
             return res
-        
+
     #
     # Events
     #
