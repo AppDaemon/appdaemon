@@ -5,7 +5,6 @@ from enum import Enum, auto
 from pathlib import Path
 from typing import Any, Literal, Optional
 
-
 from ...dependency import find_all_dependents, topo_sort
 from ...dependency_manager import DependencyManager
 
@@ -23,6 +22,7 @@ class UpdateMode(Enum):
 
     INIT = auto()
     NORMAL = auto()
+    PLUGIN_FAILED = auto()
     PLUGIN_RESTART = auto()
     TERMINATE = auto()
 

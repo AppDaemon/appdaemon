@@ -473,13 +473,15 @@ class HassPlugin(PluginBase):
                         "Disconnected from Home Assistant, retrying in %s seconds",
                         self.config.retry_secs,
                     )
+                    if self.is_ready:
+                        # Will only run the first time through the loop after a failure
+                        await self.AD.plugins.notify_plugin_stopped(self.name, self.namespace)
                     self.ready_event.clear()
+
                     await asyncio.sleep(self.config.retry_secs)
 
             # always do this block, no matter what
             finally:
-                # notify plugin stopped
-                await self.AD.plugins.notify_plugin_stopped(self.name, self.namespace)
                 # remove callback from getting local events
                 await self.AD.callbacks.clear_callbacks(self.name)
 

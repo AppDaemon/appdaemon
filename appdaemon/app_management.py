@@ -13,7 +13,7 @@ from copy import copy
 from functools import partial, reduce, wraps
 from logging import Logger
 from pathlib import Path
-from typing import TYPE_CHECKING, Iterable, Literal, Set, Union, Generator
+from typing import TYPE_CHECKING, Generator, Iterable, Literal, Set, Union
 
 from pydantic import ValidationError
 
@@ -864,14 +864,17 @@ class AppManagement:
 
             if mode == UpdateMode.TERMINATE:
                 update_actions.modules = LoadingActions()
-                update_actions.apps = LoadingActions(
-                    term=self.get_managed_app_names())
+                all_apps = self.get_managed_app_names()
+                update_actions.apps = LoadingActions(term=all_apps)
             # else:
             # self._add_reload_apps(update_actions)
             # self._check_for_deleted_modules(update_actions)
 
-            if mode == UpdateMode.PLUGIN_RESTART:
-                await self._restart_plugin_apps(plugin_ns, update_actions)
+            match mode:
+                case UpdateMode.PLUGIN_FAILED:
+                    await self._stop_plugin_apps(plugin_ns, update_actions)
+                case UpdateMode.PLUGIN_RESTART:
+                    await self._restart_plugin_apps(plugin_ns, update_actions)
 
             await self._import_modules(update_actions)
 
@@ -1006,21 +1009,29 @@ class AppManagement:
                 self.logger.info("Deletion affects apps %s", affected)
                 update_actions.apps.term |= affected
 
+    def get_namespace_apps(self, namespace: str) -> set[str]:
+        return set(
+            app_name
+            for app_name, cfg in self.app_config.root.items()   # For each config key
+            if isinstance(cfg, AppConfig) and                   # The config key is for an app
+            (mo := self.objects.get(app_name)) and              # There's a valid ManagedObject
+            mo.object.namespace == namespace                    # Its namespace matches
+        )
+
+    async def _stop_plugin_apps(self, plugin_ns: str | None, update_actions: UpdateActions):
+        if plugin_ns is not None:
+            self.logger.info(f"Stopping apps from namespace '{plugin_ns}' because the plugin failed")
+            app_names = self.get_namespace_apps(plugin_ns)
+            deps = self.dependency_manager.app_deps.get_dependents(app_names)
+            update_actions.apps.term |= deps
+
     async def _restart_plugin_apps(self, plugin_ns: str | None, update_actions: UpdateActions):
         """If a plugin ever re-connects after the initial startup, the apps that use it's plugin
         all need to be restarted. The apps that belong to the plugin are determined by namespace.
         """
         if plugin_ns is not None:
             self.logger.info(f"Processing restart for plugin namespace '{plugin_ns}'")
-
-            app_names = set(
-                app
-                for app, cfg in self.app_config.root.items()    # For each config key
-                if isinstance(cfg, AppConfig) and               # The config key is for an app
-                (mo := self.objects.get(app)) and               # There's a valid ManagedObject
-                mo.object.namespace == plugin_ns                # Its namespace matches the plugins
-            )
-
+            app_names = self.get_namespace_apps(plugin_ns)
             deps = self.dependency_manager.app_deps.get_dependents(app_names)
             update_actions.apps.reload |= deps
 
@@ -1077,8 +1088,7 @@ class AppManagement:
                 self.dependency_manager)
             for app_name in start_order:
                 if isinstance((cfg := self.app_config.root[app_name]), AppConfig):
-                    rel_path = cfg.config_path.relative_to(
-                        self.AD.app_dir.parent)
+                    rel_path = self.app_rel_path(app_name)
 
                     @utils.warning_decorator(
                         success_text=f"Started '{app_name}'",

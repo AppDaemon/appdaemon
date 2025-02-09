@@ -414,10 +414,15 @@ class PluginManagement:
         else:
             raise NameError(f"Bad namespace: {namespace}")
 
-    async def notify_plugin_stopped(self, name, namespace):
+    async def notify_plugin_stopped(self, name: str, namespace: str):
         self.plugin_objs[namespace]["active"] = False
         data = {"event_type": "plugin_stopped", "data": {"name": name}}
         await self.AD.events.process_event(namespace, data)
+        self.AD.loop.create_task(
+            self.AD.app_management.check_app_updates(
+                plugin_ns=namespace,
+                mode=UpdateMode.PLUGIN_FAILED
+        ))
 
     def get_plugin_meta(self, namespace: str) -> dict:
         return self.plugin_meta.get(namespace, {})
