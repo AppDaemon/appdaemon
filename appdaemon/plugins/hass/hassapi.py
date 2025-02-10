@@ -1107,13 +1107,13 @@ class Hass(ADBase, ADAPI):
                 from. Defaults to "calendar.localcalendar".
             days (int): The number of days to look ahead for events. Defaults to 1.
             namespace(str, optional): If provided, changes the namespace for the
-                service call. Defaults to the current namespace of the app, so 
+                service call. Defaults to the current namespace of the app, so
                 it's safe to ignore this parameter most of the time. See the
                 section on `namespaces <APPGUIDE.html#namespaces>`__ for a detailed
                 description.
 
         Returns:
-            list[dict]: A list of dicts representing the calendar events. 
+            list[dict]: A list of dicts representing the calendar events.
 
         Examples:
             >>> events = self.get_calendar_events()
