@@ -878,7 +878,7 @@ class AppManagement:
                 case UpdateMode.PLUGIN_FAILED:
                     await self._stop_plugin_apps(plugin_ns, update_actions)
                 case UpdateMode.PLUGIN_RESTART:
-                    await self._restart_plugin_apps(plugin_ns, update_actions)
+                    await self._start_plugin_apps(plugin_ns, update_actions)
 
             await self._import_modules(update_actions)
 
@@ -1028,15 +1028,16 @@ class AppManagement:
             deps = self.dependency_manager.app_deps.get_dependents(app_names)
             update_actions.apps.term |= deps
 
-    async def _restart_plugin_apps(self, plugin_ns: str | None, update_actions: UpdateActions):
+    async def _start_plugin_apps(self, plugin_ns: str | None, update_actions: UpdateActions):
         """If a plugin ever re-connects after the initial startup, the apps that use it's plugin
-        all need to be restarted. The apps that belong to the plugin are determined by namespace.
+        all need to be started. They should already have been stopped by the plugin disconnecting.
+        The apps that belong to the plugin are determined by namespace.
         """
         if plugin_ns is not None:
             self.logger.info(f"Processing restart for plugin namespace '{plugin_ns}'")
             app_names = self.get_namespace_apps(plugin_ns)
             deps = self.dependency_manager.app_deps.get_dependents(app_names)
-            update_actions.apps.reload |= deps
+            update_actions.apps.init |= deps
 
     async def _stop_apps(self, update_actions: UpdateActions):
         """Terminate apps. Returns the set of app names that failed to properly terminate.
