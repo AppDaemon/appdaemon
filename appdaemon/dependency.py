@@ -233,6 +233,7 @@ def topo_sort(graph: dict[str, set[str]]) -> list[str]:
         if node not in visited:
             visit(node)
             if cycle_detected:
-                raise CircularDependency(f"Visited {visited} already and was going visit {node} again")
+                deps = graph[node]
+                raise CircularDependency(f"Visited {visited} already, but {node} depends on {deps}")
 
     return stack

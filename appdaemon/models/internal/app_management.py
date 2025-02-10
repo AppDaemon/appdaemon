@@ -1,3 +1,4 @@
+from logging import Logger
 import uuid
 from copy import copy, deepcopy
 from dataclasses import dataclass, field
@@ -7,6 +8,7 @@ from typing import Any, Literal, Optional
 
 from ...dependency import find_all_dependents, topo_sort
 from ...dependency_manager import DependencyManager
+
 
 
 class UpdateMode(Enum):
@@ -62,7 +64,7 @@ class LoadingActions:
         order = [n for n in topo_sort(dm.python_deps.dep_graph) if n in items]
         return order
 
-    def start_sort(self, dm: DependencyManager) -> list[str]:
+    def start_sort(self, dm: DependencyManager, logger: Logger = None) -> list[str]:
         """Finds the apps that need to be started.
 
         Uses a dependency graph to sort the internal ``init`` and ``reload`` sets together
@@ -83,7 +85,14 @@ class LoadingActions:
 
         dep_graph = deepcopy(dm.app_deps.dep_graph)
         for app, deps in dep_graph.items():
-            deps |= priority_deps.get(app, set())
+            # need to make sure the app isn't in it's own dependencies
+            for dep in priority_deps.get(app, set()):
+                sub_deps = find_all_dependents({app}, dm.app_deps.rev_graph)
+                if dep in sub_deps:
+                    if logger is not None:
+                        logger.warning(f'Applying priority will cause a circular dependency: {app} -> {dep}')
+                else:
+                    deps.add(dep)
 
         order = [n for n in topo_sort(dep_graph) if n in items]
         return order

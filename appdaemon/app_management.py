@@ -720,7 +720,7 @@ class AppManagement:
             self.app_config.root.update(freshly_read_cfg.root)
 
         if update_actions.apps.init_set:
-            # If there are any new apps, the dependency graph needs to be updated
+            # If there are any new/modified apps, the dependency graph needs to be updated
             self.dependency_manager.app_deps.refresh_dep_graph()
 
         if self.AD.threading.pin_apps:
@@ -921,8 +921,7 @@ class AppManagement:
                 package_parents = set(p.parent for p in top_packages_dirs)
 
                 # Combine import directories. Having the list sorted will prioritize parent folders over children during import
-                import_dirs = sorted(
-                    module_parents | package_parents, reverse=True)
+                import_dirs = sorted(module_parents | package_parents, reverse=True)
 
                 for path in import_dirs:
                     self.add_to_import_path(path)
@@ -1088,8 +1087,7 @@ class AppManagement:
             await self.AD.threading.calculate_pin_threads()
 
             # Need to recalculate start order in case creating the app object fails
-            start_order = update_actions.apps.start_sort(
-                self.dependency_manager)
+            start_order = update_actions.apps.start_sort(self.dependency_manager, self.logger)
             for app_name in start_order:
                 if isinstance((cfg := self.app_config.root[app_name]), AppConfig):
                     rel_path = self.app_rel_path(app_name)
