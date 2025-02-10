@@ -698,7 +698,7 @@ class AppManagement:
                     continue
 
                 if name not in current_apps:
-                    self.logger.info("New app config: %s", name)
+                    self.logger.info(f"New app config: {name}")
                     update_actions.apps.init.add(name)
                 else:
                     # If an app exists, compare to the current config
@@ -718,6 +718,10 @@ class AppManagement:
                 self.logger.info("App config deleted: %s", name)
 
             self.app_config.root.update(freshly_read_cfg.root)
+
+        if update_actions.apps.init_set:
+            # If there are any new apps, the dependency graph needs to be updated
+            self.dependency_manager.app_deps.refresh_dep_graph()
 
         if self.AD.threading.pin_apps:
             active_apps = self.app_config.active_app_count
