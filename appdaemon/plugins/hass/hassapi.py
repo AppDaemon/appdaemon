@@ -1088,6 +1088,53 @@ class Hass(ADBase, ADAPI):
             seek_position=seek_position
         )
 
+    # Calendar
+
+    def get_calendar_events(
+        self,
+        entity_id: str = "calendar.localcalendar",
+        days: int = 1,
+        namespace: str | None = None
+    ) -> list[dict[str, str | datetime]]:
+        """
+        Retrieve calendar events for a specified entity within a given number of days.
+
+        Each dict contains the following keys: ``summary``, ``description``, ``start``,
+        and ``end``. The ``start`` and ``end`` keys are converted to ``datetime`` objects.
+
+        Args:
+            entity_id (str): The ID of the calendar entity to retrieve events
+                from. Defaults to "calendar.localcalendar".
+            days (int): The number of days to look ahead for events. Defaults to 1.
+            namespace(str, optional): If provided, changes the namespace for the
+                service call. Defaults to the current namespace of the app, so 
+                it's safe to ignore this parameter most of the time. See the
+                section on `namespaces <APPGUIDE.html#namespaces>`__ for a detailed
+                description.
+
+        Returns:
+            list[dict]: A list of dicts representing the calendar events. 
+
+        Examples:
+            >>> events = self.get_calendar_events()
+            >>> for event in events:
+            >>>     self.log(f'{event["summary"]} starts at {event["start"]}')
+        """
+        res = self.call_service(
+            'calendar/get_events',
+            namespace=namespace,
+            entity_id=entity_id,
+            duration={'days': days},
+        )
+        if res['success']:
+            return [
+                {
+                    k: datetime.isoformat(v) if v in ('start', 'end') else v
+                    for k, v in event.items()
+                }
+                for event in res['result']['response'][entity_id]['events']
+            ]
+
     #
     # Template functions
     # Functions that use self.render_template
