@@ -111,7 +111,10 @@ class Services:
                     return
 
             self.services[namespace][domain][service] = {
-                "callback": callback, "__name": name, **kwargs}
+                "callback": callback,
+                "__name": name,
+                **kwargs
+            }
 
             if __silent is False:
                 data = {
@@ -125,8 +128,7 @@ class Services:
                 if name not in self.app_registered_services:
                     self.app_registered_services[name] = set()
 
-                self.app_registered_services[name].add(
-                    f"{namespace}:{domain}:{service}")
+                self.app_registered_services[name].add(f"{namespace}:{domain}:{service}")
 
     def deregister_service(self, namespace: str, domain: str, service: str, __name: str) -> bool:
         """Used to unregister a service"""
@@ -193,10 +195,10 @@ class Services:
         with self.services_lock:
             return [
                 {"namespace": namespace, "domain": domain, "service": service}
-                for namespace in self.services
-                if not (ns != "global" and namespace != ns)
-                for domain in namespace
-                for service in domain
+                for namespace, ns_services in self.services.items()
+                if ns == "global" or ns == namespace
+                for domain, domain_services in ns_services.items()
+                for service in domain_services
             ]
 
     async def call_service(
