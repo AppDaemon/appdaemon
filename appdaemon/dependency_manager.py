@@ -78,7 +78,7 @@ class AppDeps(Dependencies):
         super().__post_init__()
 
     def refresh_dep_graph(self):
-        """This causes the all app config files to get read from disk"""
+        """Refreshes the dependency graphs by iterating through the app config"""
         self.dep_graph = self.app_config.depedency_graph()
         self.rev_graph = reverse_graph(self.dep_graph)
 
