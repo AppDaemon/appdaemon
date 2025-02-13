@@ -40,6 +40,7 @@
 - The ``--toml`` flag has been deprecated. AppDaemon will now work transparently with either yaml or toml files, allowing the user to mix and match and convert from one format to another over time. In the event of a conflict, the yaml file will take precedence.
 
 
+
 ## 4.4.2 (2023-04-16)
 
 **Features**
