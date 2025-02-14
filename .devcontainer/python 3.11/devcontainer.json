@@ -29,7 +29,7 @@
 	// "remoteUser": "devcontainer"
 
 	"mounts": [
-		"source=${localEnv:HOME}${localEnv:USERPROFILE}/production/,target=/conf,type=bind,consistency=cached"
+		"source=${localEnv:HOME}${localEnv:USERPROFILE}/,target=/conf,type=bind,consistency=cached"
 	],
 
 	// Configure tool-specific properties.
