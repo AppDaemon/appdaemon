@@ -887,6 +887,8 @@ class Threading:
         app = await self.AD.app_management.get_app_instance(name, objectid)
         if app is not None:
             try:
+                self.increment_callback_counter(app, name)
+
                 if _type == "scheduler":
                     try:
                         await self.update_thread_info("async", callback, name, _type, _id, silent)
@@ -1010,6 +1012,8 @@ class Threading:
             app = utils.run_coroutine_threadsafe(self, self.AD.app_management.get_app_instance(name, objectid))
             if app is not None:
                 try:
+                    self.increment_callback_counter(app, name)
+
                     if _type == "scheduler":
                         try:
                             utils.run_coroutine_threadsafe(
@@ -1193,3 +1197,14 @@ class Threading:
                     "Logged an error to %s",
                     self.AD.logging.get_filename("error_log"),
                 )
+
+    def increment_callback_counter(self, app, name):
+        try:
+            app.callback_counter += 1
+        except AttributeError:
+            error_logger = logging.getLogger("Error.{}".format(name))
+            error_logger.warning("-" * 60)
+            error_logger.warning("Unexpected error in worker for App %s:", name)
+            error_logger.warning("-" * 60)
+            error_logger.warning(traceback.format_exc())
+            error_logger.warning("-" * 60)
