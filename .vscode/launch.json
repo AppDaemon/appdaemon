@@ -13,7 +13,7 @@
             "request": "launch",
             "module": "appdaemon",
             "justMyCode": true,
-            "args": "-c /conf/ad_config/dev_test"
+            "args": "-c /home/appdaemon/ad_config/dev_test"
         },
         {
             "name": "AppDaemon Appdir Test",
@@ -29,7 +29,7 @@
             "request": "launch",
             "module": "appdaemon",
             "justMyCode": true,
-            "args": "-c /conf/ad_config/production"
+            "args": "-c /home/appdaemon/ad_config/production"
         },
     ]
 }

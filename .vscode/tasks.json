@@ -49,8 +49,8 @@
         },
         {
             "label": "Build Package",
-            "command": "python",
-            "args": ["-m", "build"],
+            "command": "uv",
+            "args": ["build"],
             "type": "shell",
             "presentation":
                 {
@@ -64,8 +64,8 @@
         },
         {
             "label": "Build Runtime Requirements",
-            "command": "pip-compile",
-            "args": ["--resolver=backtracking",  "--upgrade", "pyproject.toml"],
+            "command": "uv",
+            "args": ["pip", "compile", "--resolver=backtracking",  "--upgrade", "pyproject.toml"],
             "type": "shell",
             "presentation":
                 {
@@ -79,8 +79,8 @@
         },
         {
             "label": "Build Dev Requirements",
-            "command": "pip-compile",
-            "args": ["--extra=dev", "--output-file=dev-requirements.txt", "--resolver=backtracking",  "--upgrade", "pyproject.toml"],
+            "command": "uv",
+            "args": ["pip", "compile", "--extra=dev", "--output-file=dev-requirements.txt", "--resolver=backtracking",  "--upgrade", "pyproject.toml"],
             "type": "shell",
             "presentation":
                 {
@@ -94,8 +94,8 @@
         },
         {
             "label": "Build Doc Requirements",
-            "command": "pip-compile",
-            "args": ["--extra=doc", "--output-file=doc-requirements.txt", "--resolver=backtracking", "--upgrade", "pyproject.toml"],
+            "command": "uv",
+            "args": ["pip", "compile", "--extra=doc", "--output-file=doc-requirements.txt", "--resolver=backtracking", "--upgrade", "pyproject.toml"],
             "type": "shell",
             "presentation":
                 {
