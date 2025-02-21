@@ -73,7 +73,7 @@ doc = [
 
 # Define the main CLI script
 [project.scripts]
-appdaemon = "appdaemon.__main__:main_click"
+appdaemon = "appdaemon.__main__:main"
 
 # Use setuptools as the build system
 [build-system]
