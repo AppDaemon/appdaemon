@@ -145,12 +145,7 @@ class ADMain:
 
             # Initialize Dashboard/API/admin
 
-            if http is not None and (
-                hadashboard is not None or
-                admin is not None or
-                aui is not None or
-                api is not False
-            ):
+            if http is not None and (hadashboard is not None or admin is not None or aui is not None or api is not False):
                 self.logger.info("Initializing HTTP")
                 self.http_object = HTTP(
                     self.AD,
@@ -257,37 +252,43 @@ class ADMain:
 
         pidfile = args.pidfile
 
-        default_config_files = ["appdaemon.yaml", "appdaemon.toml"]
-        default_config_paths = [
-            Path("~/.homeassistant").expanduser(),
-            Path("/etc/appdaemon"),
-            Path("/conf")
+        default_config_files = [
+            "appdaemon.toml",
+            "appdaemon.yaml",
         ]
+        default_config_paths = [Path("~/.homeassistant").expanduser(), Path("/etc/appdaemon"), Path("/conf")]
 
-        if args.configfile is not None:
-            config_file = Path(args.configfile).resolve()
-            if args.config is not None:
-                config_dir = Path(args.config).resolve()
-            else:
-                config_dir = config_file.parent
-        else:
-            if args.config is not None:
-                config_dir = Path(args.config).resolve()
-                for file in default_config_files:
-                    if (config_file := (config_dir / file)).exists():
-                        break
+        try:
+            if args.configfile is not None:
+                config_file = Path(args.configfile).resolve()
+                if args.config is not None:
+                    config_dir = Path(args.config).resolve()
                 else:
-                    raise NoADConfig
+                    config_dir = config_file.parent
             else:
-                all_default_config_paths = itertools.product(default_config_files, default_config_paths)
-                for file in all_default_config_paths:
-                    if (config_file := file).exists():
-                        break
+                if args.config is not None:
+                    config_dir = Path(args.config).resolve()
+                    for file in default_config_files:
+                        if (config_file := (config_dir / file)).exists():
+                            break
+                    else:
+                        raise NoADConfig(f"{config_file} not found")
                 else:
-                    raise NoADConfig
+                    all_default_config_paths = itertools.product(default_config_files, default_config_paths)
+                    for file in all_default_config_paths:
+                        dir = file[1]
+                        final_path = dir / file[0]
+                        if (config_file := final_path).exists():
+                            break
+                    else:
+                        raise NoADConfig(f"No valid configuration file found in default locations: {[str(d) for d in default_config_paths]}")
 
-        assert config_file.exists(), f"{config_file} does not exist"
-        assert os.access(config_file, os.R_OK), f"{config_file} is not readable"
+            assert config_file.exists(), f"{config_file} does not exist"
+            assert os.access(config_file, os.R_OK), f"{config_file} is not readable"
+        except (AssertionError, NoADConfig) as e:
+            print(f"FATAL: Error accessing configuration: {e}")
+            sys.exit(1)
+
         try:
             config = utils.read_config_file(config_file)
             ad_kwargs = config["appdaemon"]
