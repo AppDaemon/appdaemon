@@ -1809,7 +1809,6 @@ class ADAPI:
         timeout: int | float | None = None,
         return_result: bool = True,
         callback: Callable | None = None,
-        hass_result: bool = True,
         hass_timeout: float = 10,
         suppress_log_messages: bool = False,
         **data,
@@ -1850,13 +1849,6 @@ class ADAPI:
                 return values this may seem pointless, but it does force the call to be synchronous with respect to Home Assistant
                 whcih can in turn highlight slow performing services if they timeout or trigger thread warnings.
             callback: The non-async callback to be executed when complete.
-            hass_result (False, Home Assistant Specific): Mark the service call to Home Assistant as returnng a
-                value. If set to ``True``, the call to Home Assistant will specifically request a return result.
-                If this flag is set for a service that does not return a result, Home Assistant will respond with an error,
-                which AppDaemon will log. If this flag is NOT set for a service that does returns a result,
-                Home Assistant will respond with an error, which AppDaemon will log. Note: if you specify ``hass_result``
-                you must also set ``return_result`` or the result from HomeAssistant will not be
-                propagated to your app. See `Some Notes on Service Calls <APPGUIDE.html#some-notes-on-service-calls>`__
             hass_timeout (Home Assistant Specific): time in seconds to wait for Home Assistant's
                 response for this specific service call. If not specified defaults to the value of
                 the ``q_timeout`` parameter in the HASS plugin configuration, which itself defaults
@@ -1886,7 +1878,6 @@ class ADAPI:
                     start_date_time="2024-08-25 00:00:00",
                     end_date_time="2024-08-27 00:00:00",
                     return_result=True,
-                    hass_result=True,
                     hass_timeout=10
                 )
 

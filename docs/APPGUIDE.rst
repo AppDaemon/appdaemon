@@ -3138,15 +3138,11 @@ to propagate return values from Home Assitant service calls to the App. As a res
 service calls even if no return data is requested, this is beneficial as it is now possible to detect errors that were previously unreported. In addition, waiting for the
 response also allows the app and AppDaemon to identify poorly performing Home Assistant services (such as ZWave communication slowdowns) that previously would have gone unnoticed.
 
-To tell AppDaemon that you are expecting Home Assistant to return a value, set the ``hass_result`` parameter to True. In addition, you should also set either the ``callback`` or ``return_result``
-flags depending on how you want to recieve the result - both methods are supported. In order to force the call to be synchronous for a Home Assistant service that does not return a value, simply set ``return_result``
-to ``True`` but don't set ``hass_result`` to anything.
+To tell AppDaemon that you are expecting Home Assistant to return a value, set the ``return_result`` parameter to True. In addition, you should also set either the ``callback`` or ``return_result``
+flags depending on how you want to recieve the result - both methods are supported. This will force the call to be synchronous for a Home Assistant service that does not return a value, and will also
+return any results from HomeAssistant if the underlying service call supports it.
 
-Note that Home Assistant requires that you tell it explicitly whether or not you want a result. If you ask for a result from a service that doesn't return one, you will get an error.
-If you don't ask for a result from a service that returns one, you will also get an error, so be sure to read the HomeAssistant docs and specify ``hass_result`` only if the
-Home Assistant service returns a value.
-
-Specifically for Home Assistant service calls there is also an optional ``timeout`` value that specifies how long to wait for the response from Home Assistant before returning to the
+Specifically for Home Assistant service calls there is also an optional ``hass_timeout`` value that specifies how long to wait for the response from Home Assistant before returning to the
 app with an error. There are a couple of other timers already in AppDaemon that are related and will give information on slow service.
 
 * The callback tracking timer will issue warnings if a callback takes longer than 10 seconds to return
@@ -3166,7 +3162,6 @@ Here are a couple of examples of getting results from HomeAssistant services:
                 start_date_time="2024-08-25 00:00:00",
                 end_date_time="2024-08-27 00:00:00",
                 return_result=True,
-                hass_result=True,
                 hass_timeout=10,
             )
 
@@ -3175,8 +3170,8 @@ Here are a couple of examples of getting results from HomeAssistant services:
             entity_id="calendar.home",
             start_date_time="2024-08-25 00:00:00",
             end_date_time="2024-08-27 00:00:00",
-            hass_result=True,
             hass_timeout=10,
+            return_result=True,
             callback=self.calendar_cb,
         )
 
@@ -3226,7 +3221,6 @@ This example shows how to use the return data with full error handling:
             start_date_time="2024-08-25 00:00:00",
             end_date_time="2024-08-27 00:00:00",
             return_result=True,
-            hass_result=True,
             hass_timeout=10,
         )
 
