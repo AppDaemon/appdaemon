@@ -145,35 +145,27 @@ class Sequences:
         self.AD.futures.cancel_futures(name)
         await self.AD.state.set_state("_sequences", "rules", entity_id, state="idle")
 
-    async def prep_sequence(self, _name: str, namespace: str, sequence: str | list[dict]):
-        ephemeral_entity = False
-        loop = False
+    async def prep_sequence(self, namespace: str, sequence: str | list[dict[str, dict[str, str]]]):
+        match sequence:
+            case str():
+                seq_eid = sequence
+                if not self.sequence_exists(seq_eid):
+                    self.logger.warning('Unknown sequence "%s" in run_sequence()', sequence)
+                    return
 
-        if isinstance(sequence, str):
-            entity_id = sequence
-            if not self.sequence_exists(entity_id):
-                self.logger.warning('Unknown sequence "%s" in run_sequence()', sequence)
-                return
+                entity = await self.get_state(sequence, attribute="all")
+                seq = entity["attributes"]["steps"]
+                loop = entity["attributes"]["loop"]
+                ns = entity["attributes"].get("namespace", namespace)
+            case list():
+                ns = namespace
+                seq = sequence
+                loop = False
+                seq_eid = f"sequence.{uuid.uuid4().hex}"
+                await self.add_entity(seq_eid, "active", steps=sequence)
 
-            entity = await self.AD.state.get_state("_services", "rules", sequence, attribute="all")
-            seq = entity["attributes"]["steps"]
-            loop = entity["attributes"]["loop"]
-            ns = entity["attributes"].get("namespace", namespace)
-
-        else:
-            #
-            # Assume it's a list with the actual commands in it
-            #
-            entity_id = "sequence.{}".format(uuid.uuid4().hex)
-            # Create an ephemeral entity for it
-            ephemeral_entity = True
-
-            await self.AD.state.add_entity("rules", entity_id, "idle", attributes={"steps": sequence})
-
-            seq = sequence
-            ns = namespace
-
-        coro = await self.do_steps(ns, entity_id, seq, ephemeral_entity, loop)
+        ephemeral_entity = not isinstance(sequence, str)
+        coro = await self.do_steps(ns, seq_eid, seq, ephemeral_entity, loop)
         return coro
 
     async def do_steps(self, namespace, entity_id, seq, ephemeral_entity, loop):
