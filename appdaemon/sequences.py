@@ -39,9 +39,6 @@ class Sequences:
             attributes=kwargs
         )
 
-    # async def get_state(self):
-    #     return
-
     async def set_state(self, entity_id: str, state: str, replace: bool = False, **kwargs):
         return await self.AD.state.set_state(
             name="_sequences",
@@ -51,20 +48,28 @@ class Sequences:
             replace=replace,
             **kwargs
         )
+    
+    async def get_state(self, entity_id: str, attribute: str = None, copy: bool = True):
+        return await self.AD.state.get_state(
+            name="_sequences",
+            namespace=self.namespace,
+            entity_id=entity_id,
+            attribute=attribute,
+            copy=copy
+        )
 
-    async def run_sequence_service(self, namespace, domain, service, kwargs):
-        if "entity_id" not in kwargs:
+    async def run_sequence_service(self, namespace: str, domain: str, service: str, kwargs):
+        if entity_id := kwargs.get("entity_id"):
+            match service:
+                case "run":
+                    return await self.run_sequence("_services", namespace, entity_id)
+                case "cancel":
+                    if isinstance(entity_id, str):
+                        return await self.cancel_sequence(entity_id)
+        else:
             self.logger.warning(
-                "entity_id not given in service call, so will not be executing %s", service)
-            return
-
-        entity_id = kwargs["entity_id"]
-
-        if service == "run":
-            return await self.run_sequence("_services", namespace, entity_id)
-
-        elif service == "cancel" and isinstance(entity_id, str):
-            return await self.cancel_sequence(entity_id)
+                f"entity_id not given in service call, so will not be executing {service}"
+            )
 
     async def add_sequences(self, sequences: SequenceConfig):
         self.logger.debug(f'Adding sequences: {set(sequences.root.keys())}')
