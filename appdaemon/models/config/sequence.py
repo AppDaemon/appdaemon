@@ -1,7 +1,7 @@
 from datetime import timedelta
 from typing import Annotated, Any, Literal, Union
 
-from pydantic import BaseModel, BeforeValidator, Discriminator, Field, PlainSerializer, RootModel, Tag, ValidationError, WrapSerializer
+from pydantic import BaseModel, BeforeValidator, Discriminator, Field, PlainSerializer, RootModel, Tag, ValidationError, WrapSerializer, model_validator
 
 
 def validate_timedelta(v: Any):
@@ -19,26 +19,44 @@ TimeType = Annotated[
 ]
 
 
-class SleepStep(BaseModel):
+class SequenceStep(BaseModel):
+    pass
+
+
+class SleepStep(SequenceStep):
     sleep: TimeType
 
 
-class WaitStateStep(BaseModel):
+class WaitStateStep(SequenceStep):
     entity_id: str
     state: Any
     timeout: TimeType = timedelta(minutes=15)
     namespace: str = "default"
 
 
-class LoopStep(BaseModel):
-    times: int
+class LoopStep(SequenceStep):
     interval: TimeType
+    times: int = 1
 
 
-class ServiceCallStep(BaseModel, extra="allow"):
+class ServiceCallStep(SequenceStep, extra="allow"):
     service: str
+    domain: str
+    namespace: str | None = None
     loop_step: LoopStep | None = None
     # any of the extra kwargs will go to the service call
+
+    @model_validator(mode='before')
+    @classmethod
+    def split_domain(cls, data: dict):
+        if "domain" not in data:
+            data["domain"], data["service"] = data["service"].split("/", 2)
+        return data
+
+
+class SubSequenceStep(SequenceStep):
+    sequence: str
+    namespace: str = "default"
 
 
 def service_call_validator(v: dict[str, dict[str, Any]]):

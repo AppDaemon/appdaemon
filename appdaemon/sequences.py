@@ -5,9 +5,7 @@ import uuid
 from logging import Logger
 from typing import TYPE_CHECKING
 
-from appdaemon.entity import Entity
-from appdaemon.exceptions import TimeOutException
-from appdaemon.models.config.sequence import SequenceConfig
+from .models.config.sequence import SequenceConfig, SequenceStep, ServiceCallStep, SleepStep, SubSequenceStep, WaitStateStep
 
 if TYPE_CHECKING:
     from .appdaemon import AppDaemon
@@ -127,6 +125,8 @@ class Sequences:
         return task
 
     async def cancel_sequence(self, sequence):
+        self.logger.debug(f'Cancelling sequence: {sequence}')
+
         if isinstance(sequence, str):
             if "." in sequence:
                 # the entity given
@@ -168,75 +168,53 @@ class Sequences:
         coro = await self.do_steps(ns, seq_eid, seq, ephemeral_entity, loop)
         return coro
 
-    async def do_steps(self, namespace, entity_id, seq, ephemeral_entity, loop):
-        await self.AD.state.set_state("_sequences", "rules", entity_id, state="active")
+    async def do_steps(
+        self,
+        namespace: str,
+        entity_id: str,
+        seq: list[SequenceStep],
+        ephemeral_entity: bool,
+        loop: bool
+    ):
+        await self.set_state(entity_id, "active")
         try:
             while True:
                 steps = copy.deepcopy(seq)
                 for step in steps:
-                    for command, parameters in step.items():
-                        if isinstance(parameters, dict) and "namespace" in parameters:
-                            ns = parameters.pop("namespace")
-                        else:
-                            ns = namespace
-
-                        if command == "sleep":
-                            await asyncio.sleep(float(parameters))
-
-                        elif command == "sequence":
-                            # Running a sub-sequence so just recurse
-                            await self.prep_sequence("_sequence", namespace, parameters)
-
-                        elif command == "wait_state":
-                            if ephemeral_entity is True:
-                                self.logger.warning(
-                                    "Cannot process command 'wait_state', as not supported in sequence")
-                                continue
-
-                            _, entity_name = entity_id.split(".")
-                            name = f"sequence_{entity_name}"
-
-                            wait_entity = parameters.get("entity_id")
-
-                            if wait_entity is None:
-                                self.logger.warning(
-                                    "Cannot process command 'wait_state', as entity_id not given")
-                                continue
-
-                            state = parameters.get("state")
-                            attribute = parameters.get("attribute")
-                            duration = parameters.get("duration", 0)
-                            timeout = parameters.get("timeout", 15 * 60)
-
-                            # now we create the wait entity object
-                            entity_object = Entity(
-                                self.logger, self.AD, name, ns, wait_entity)
-                            if not await entity_object.exists():
-                                self.logger.warning(
-                                    f"Waiting for an entity {wait_entity}, in sequence "
-                                    f"{entity_name}, that doesn't exist"
+                    try:
+                        match step:
+                            case ServiceCallStep():
+                                kwargs = {
+                                    "namespace": step.namespace or namespace,
+                                    "domain": step.domain,
+                                    "service": step.service,
+                                    "name": "sequence",
+                                    "data": step.model_extra
+                                }
+                                
+                                if loop_step := step.loop_step:
+                                    for _ in range(loop_step.times):
+                                        await self.AD.services.call_service(**kwargs)
+                                        await asyncio.sleep(loop_step.interval.total_seconds())
+                                else:
+                                    await self.AD.services.call_service(**kwargs)
+                            case SleepStep():
+                                await asyncio.sleep(step.sleep.total_seconds())
+                            case WaitStateStep():
+                                if ephemeral_entity:
+                                    self.logger.warning(
+                                        "Cannot process command 'wait_state', as not supported in sequence")
+                                    continue
+                            case SubSequenceStep():
+                                await self.prep_sequence(
+                                    namespace=step.namespace or namespace,
+                                    sequence=entity_id
                                 )
+                    except Exception:
+                        ...
+                        pass
 
-                            try:
-                                await entity_object.wait_state(state, attribute, duration, timeout)
-                            except TimeOutException:
-                                self.logger.warning(
-                                    f"{entity_name} sequence wait for {wait_entity} timed out, "
-                                    "so continuing sequence"
-                                )
-
-                        else:
-                            domain, service = str.split(command, "/")
-                            # parameters["__name"] = entity_id
-                            loop_step = parameters.pop("loop_step", None)
-                            params = copy.deepcopy(parameters)
-                            await self.AD.services.call_service(ns, domain, service, entity_id, params)
-
-                            # we need to loop this command multiple times
-                            if isinstance(loop_step, dict):
-                                await self.loop_step(ns, command, parameters, loop_step)
-
-                if loop is not True:
+                if not loop:
                     break
 
         except Exception:
@@ -247,7 +225,7 @@ class Sequences:
             self.logger.error("-" * 60)
 
         finally:
-            await self.AD.state.set_state("_sequences", "rules", entity_id, state="idle")
+            await self.set_state(entity_id, "idle")
 
             if ephemeral_entity is True:
                 await self.AD.state.remove_entity("rules", entity_id)
