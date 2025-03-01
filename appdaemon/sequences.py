@@ -105,11 +105,12 @@ class Sequences:
             await self.cancel_sequence(sequence)
             await self.AD.state.remove_entity("rules", "sequence.{}".format(sequence))
 
-    async def run_sequence(self, _name: str, namespace: str, sequence: str):
+    async def run_sequence(self, calling_app: str, namespace: str, sequence: str):
+        """Prepares the sequence and creates a task to run it"""
         if isinstance(sequence, str):
             if "." in sequence:
                 # the entity given
-                _, sequence_name = sequence.split(".")
+                _, sequence_name = sequence.split(".", 2)
 
             else:  # just name given
                 sequence_name = sequence
@@ -118,18 +119,12 @@ class Sequences:
             name = f"sequence_{sequence_name}"
 
         else:
-            name = _name
+            name = calling_app
 
-        coro = self.prep_sequence(_name, namespace, sequence)
-
-        #
-        # OK, lets run it
-        #
-
-        future = asyncio.create_task(coro)
-        self.AD.futures.add_future(name, future)
-
-        return future
+        coro = self.prep_sequence(namespace, sequence)
+        task = asyncio.create_task(coro)
+        self.AD.futures.add_future(name, task)
+        return task
 
     async def cancel_sequence(self, sequence):
         if isinstance(sequence, str):
