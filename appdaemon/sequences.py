@@ -46,7 +46,7 @@ class Sequences:
             replace=replace,
             **kwargs
         )
-    
+
     async def get_state(self, entity_id: str, attribute: str = None, copy: bool = True):
         return await self.AD.state.get_state(
             name="_sequences",
@@ -191,7 +191,7 @@ class Sequences:
                                     "name": "sequence",
                                     "data": step.model_extra
                                 }
-                                
+
                                 if loop_step := step.loop_step:
                                     for _ in range(loop_step.times):
                                         await self.AD.services.call_service(**kwargs)
