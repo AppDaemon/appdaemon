@@ -49,7 +49,7 @@ class ServiceCallStep(SequenceStep, extra="allow"):
     @model_validator(mode='before')
     @classmethod
     def split_domain(cls, data: dict):
-        if "domain" not in data:
+        if isinstance(data, dict) and not data.get("domain"):
             data["domain"], data["service"] = data["service"].split("/", 2)
         return data
 
