@@ -37,7 +37,7 @@ class Sequences:
             attributes=kwargs
         )
 
-    async def set_state(self, entity_id: str, state: str, replace: bool = False, **kwargs):
+    async def set_state(self, entity_id: str, state: str = None, replace: bool = False, **kwargs):
         return await self.AD.state.set_state(
             name="_sequences",
             namespace=self.namespace,
@@ -47,7 +47,7 @@ class Sequences:
             **kwargs
         )
 
-    async def get_state(self, entity_id: str, attribute: str = None, copy: bool = True):
+    async def get_state(self, entity_id: str = None, attribute: str = None, copy: bool = True):
         return await self.AD.state.get_state(
             name="_sequences",
             namespace=self.namespace,
