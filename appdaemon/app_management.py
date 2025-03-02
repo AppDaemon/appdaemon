@@ -162,14 +162,6 @@ class AppManagement:
         return self.app_config.root.get('sequence')
 
     @property
-    def valid_sequences(self) -> Generator[str, None, None]:
-        """Sequences are considered valid after they pass through the pydantic
-        models, which happens when they're read from file.
-        """
-        if (seq_cfg := self.sequence_config) is not None:
-            yield from seq_cfg.root.keys()
-
-    @property
     def valid_apps(self) -> set[str]:
         return self.running_apps | self.loaded_globals
 
@@ -550,16 +542,6 @@ class AppManagement:
             pin_thread=-1,
             running=False,
             use_dictionary_unpacking=use_dictionary_unpacking,
-        )
-
-    def init_sequence_object(self, name: str, object: Sequence):
-        """Add the sequence object to the internal dictionary of ``ManagedObjects``"""
-        self.objects[name] = ManagedObject(
-            type="sequence",
-            object=object, # I don't think this ever gets used.
-            pin_app=False,
-            pin_thread=-1,
-            running=False
         )
 
     async def terminate_sequence(self, name: str) -> bool:
@@ -1124,10 +1106,6 @@ class AppManagement:
                             raise
 
                 await safe_import(self)
-
-    async def _init_sequences(self):
-        if self.sequence_config is not None:
-            await self.AD.sequences.add_sequences(self.sequence_config)
 
     async def _handle_sequence_change(self, update_actions: UpdateActions):
         # Determine sequences that are currently running
