@@ -476,19 +476,22 @@ class State:
             data = {"event_type": "__AD_ENTITY_REMOVED", "data": {"entity_id": entity_id}}
             self.AD.loop.create_task(self.AD.events.process_event(namespace, data))
 
-    async def add_entity(self, namespace: str, entity: str, state: Dict, attributes: Optional[Dict] = None):
+    async def add_entity(
+        self,
+        namespace: str,
+        entity: str,
+        state: str | dict,
+        attributes: Optional[dict] = None
+    ):
         if self.entity_exists(namespace, entity):
+            self.logger.warning(f"{entity} already exists in {namespace}")
             return
-
-        attrs = {}
-        if isinstance(attributes, dict):
-            attrs.update(attributes)
 
         state = {
             "entity_id": entity,
             "state": state,
-            "last_changed": utils.dt_to_str(datetime.datetime(1970, 1, 1, 0, 0, 0, 0)),
-            "attributes": attrs,
+            "last_changed": "never",
+            "attributes": attributes or {},
         }
 
         self.state[namespace][entity] = state
