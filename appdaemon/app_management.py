@@ -9,11 +9,12 @@ import subprocess
 import sys
 import traceback
 from collections import OrderedDict
+from collections.abc import Generator
 from copy import copy
 from functools import partial, reduce, wraps
 from logging import Logger
 from pathlib import Path
-from typing import TYPE_CHECKING, Generator, Iterable, Literal, Set, Union
+from typing import TYPE_CHECKING, Iterable, Literal, Set, Union
 
 from pydantic import ValidationError
 
