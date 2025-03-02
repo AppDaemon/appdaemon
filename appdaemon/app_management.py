@@ -9,7 +9,6 @@ import subprocess
 import sys
 import traceback
 from collections import OrderedDict
-from collections.abc import Generator
 from copy import copy
 from functools import partial, reduce, wraps
 from logging import Logger
@@ -22,7 +21,6 @@ from appdaemon.dependency import DependencyResolutionFail, get_full_module_name
 from appdaemon.dependency_manager import DependencyManager
 from appdaemon.models.config import AllAppConfig, AppConfig, GlobalModule
 from appdaemon.models.config.app import SequenceConfig
-from appdaemon.models.config.sequence import Sequence
 from appdaemon.models.internal.file_check import FileCheck
 
 from . import exceptions as ade
@@ -1190,10 +1188,13 @@ class AppManagement:
             else:
                 app_config[app] = kwargs
 
-        app_directory: Path = self.AD.app_dir / \
-            kwargs.pop("app_dir", "ad_apps")
-        app_file: Path = app_directory / \
-            kwargs.pop("app_file", f"{app}{self.ext}")
+        if app_module is None or app_class is None:
+            self.logger.error(
+                "Could not create app %s, as module and class is required", app)
+            return False
+
+        app_directory: Path = self.AD.app_dir / kwargs.pop("app_dir", "ad_apps")
+        app_file: Path = app_directory / kwargs.pop("app_file", f"{app}{self.ext}")
         app_directory = app_file.parent  # in case the given app_file is multi level
 
         try:
