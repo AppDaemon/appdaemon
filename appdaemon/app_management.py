@@ -612,8 +612,13 @@ class AppManagement:
 
         def update(d1: dict, d2: dict) -> dict:
             """Internal funciton to log warnings if an app's name gets repeated."""
-            if overlap := set(k for k in d2 if k in d1):
-                self.logger.warning(f"Apps re-defined: {overlap}")
+            if overlap := set(k.lower() for k in d2 if k in d1):
+                # There's a special case for the sequences in order to merge them if they're defined in multiple files
+                if "sequence" in overlap:
+                    d1["sequence"].update(d2.pop("sequence"))
+                else:
+                    self.logger.warning(f"Apps re-defined: {overlap}")
+
             return d1.update(d2) or d1
 
         models = [
@@ -621,34 +626,6 @@ class AppManagement:
         ]
         combined_configs = reduce(update, models, {})
         return AllAppConfig.model_validate(combined_configs)
-
-    async def check_sequence_update(self, sequence_config):
-        if self.app_config.get("sequences", {}) != sequence_config:
-            #
-            # now remove the old ones no longer needed
-            #
-            deleted_sequences = []
-            for sequence, config in self.app_config.get("sequence", {}).items():
-                if sequence not in sequence_config:
-                    deleted_sequences.append(sequence)
-
-            if deleted_sequences != []:
-                await self.AD.sequences.remove_sequences(deleted_sequences)
-
-            modified_sequences = {}
-
-            #
-            # now load up the modified one
-            #
-            for sequence, config in sequence_config.items():
-                if (sequence not in self.app_config.get("sequence", {})) or self.app_config.get("sequence", {}).get(
-                    sequence
-                ) != sequence_config.get(sequence):
-                    # meaning it has been modified
-                    modified_sequences[sequence] = config
-
-            if modified_sequences != {}:
-                await self.AD.sequences.add_sequences(modified_sequences)
 
     async def check_app_config_files(self, update_actions: UpdateActions):
         """Updates self.mtimes_config and self.app_config"""
