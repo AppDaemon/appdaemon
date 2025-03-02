@@ -55,6 +55,16 @@ class Sequences:
             attribute=attribute,
             copy=copy
         )
+    
+    def sequence_running(self, entity_id: str) -> bool:
+        return self.get_state(entity_id, copy=False) == "active"
+
+    async def running_sequences(self):
+        return {
+            entity_id: state
+            for entity_id, state in (await self.get_state(copy=False)).items()
+            if state.get("state") == "active"
+        }
 
     async def run_sequence_service(self, namespace: str, domain: str, service: str, kwargs):
         if entity_id := kwargs.get("entity_id"):
