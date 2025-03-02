@@ -483,6 +483,7 @@ class State:
         state: str | dict,
         attributes: Optional[dict] = None
     ):
+        """Adds an entity to the internal state registry and fires the ``__AD_ENTITY_ADDED`` event"""
         if self.entity_exists(namespace, entity):
             return
 
@@ -659,7 +660,7 @@ class State:
         Fires the ``state_changed`` event under the namespace
 
         Args:
-            name:
+            name: Only used for a log message
             namespace:
             entity:
             __silent:
@@ -677,8 +678,10 @@ class State:
         self.logger.debug("Old state: %s", old_state)
         self.logger.debug("New state: %s", new_state)
 
-        if not self.entity_exists(namespace, entity) and not _silent:
-            self.logger.info("%s: Entity %s created in namespace: %s", name, entity, namespace)
+        if not self.entity_exists(namespace, entity):
+            await self.add_entity(namespace, entity, new_state["state"], new_state.get("attributes"))
+            if not _silent:
+                self.logger.info("%s: Entity %s created in namespace: %s", name, entity, namespace)
 
         # Fire the plugin's state update if it has one
 
