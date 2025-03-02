@@ -832,14 +832,13 @@ class AppManagement:
             if mode == UpdateMode.INIT:
                 await self._process_import_paths()
                 await self._init_dep_manager()
-                await self._init_sequences()
 
             update_actions = UpdateActions()
 
             await self.check_app_config_files(update_actions)
 
             # TODO: handle sequence reload here
-            ...
+            await self._handle_sequence_change(update_actions)
 
             try:
                 await self.check_app_python_files(update_actions)
@@ -1130,6 +1129,28 @@ class AppManagement:
         if self.sequence_config is not None:
             await self.AD.sequences.add_sequences(self.sequence_config)
 
+    async def _handle_sequence_change(self, update_actions: UpdateActions):
+        # Determine sequences that are currently running
+        running_sequences = await self.AD.sequences.running_sequences()
+
+        # Ensure sequences are cancelled if need be
+        for seq in update_actions.sequences.term_set:
+            await self.AD.sequences.cancel_sequence(seq)
+
+        # Update the sequence steps in the internal sequence entity
+        if update_actions.sequences.changes:
+            await self.AD.sequences.update_sequence_entities(self.sequence_config)
+
+        # Restart sequences that were running at the time of the change
+        for seq in update_actions.sequences.init_set:
+            seq_eid = f'sequence.{seq}'
+            if prev_state := running_sequences.get(seq_eid):
+                await self.AD.sequences.run_sequence(
+                    "_sequences",
+                    prev_state["attributes"]["running_namespace"],
+                    sequence=seq_eid,
+                )
+
     def apps_per_module(self, module_name: str) -> Set[str]:
         """Finds which apps came from a given module name.
 
@@ -1190,11 +1211,6 @@ class AppManagement:
 
             else:
                 app_config[app] = kwargs
-
-        if app_module is None or app_class is None:
-            self.logger.error(
-                "Could not create app %s, as module and class is required", app)
-            return False
 
         app_directory: Path = self.AD.app_dir / \
             kwargs.pop("app_dir", "ad_apps")

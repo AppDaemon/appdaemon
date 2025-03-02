@@ -79,27 +79,22 @@ class Sequences:
                 f"entity_id not given in service call, so will not be executing {service}"
             )
 
-    async def add_sequences(self, sequences: SequenceConfig):
-        self.logger.debug(f'Adding sequences: {set(sequences.root.keys())}')
-
+    async def update_sequence_entities(self, sequences: SequenceConfig):
         for seq_name, seq_cfg in sequences.root.items():
+            entity = f"sequence.{seq_name}"
+
             attributes = {
+                "entity_id": entity,
+                "state": "idle",
                 "friendly_name": seq_cfg.name or seq_name,
                 "loop": seq_cfg.loop,
                 "steps": seq_cfg.steps
             }
 
-            if seq_cfg.namespace is not None:
-                attributes["namespace"] = seq_cfg.namespace
-
-            entity = f"sequence.{seq_name}"
             if self.sequence_exists(entity):
-                # means existing before so in case already running already
-                await self.cancel_sequence(seq_name)
-                await self.set_state(entity, state="idle", replace=True, **attributes)
+                await self.set_state(replace=True, **attributes)
             else:
-                # it doesn't exist so add it
-                await self.add_entity(entity, state="idle", **attributes)
+                await self.add_entity(**attributes)
 
             # create sequence objects
             self.AD.app_management.init_sequence_object(f"sequence_{seq_name}", seq_cfg)
@@ -186,7 +181,7 @@ class Sequences:
         ephemeral_entity: bool,
         loop: bool
     ):
-        await self.set_state(entity_id, "active")
+        await self.set_state(entity_id, "active", running_namespace=namespace)
         try:
             while True:
                 steps = copy.deepcopy(seq)
@@ -209,6 +204,7 @@ class Sequences:
                                 else:
                                     await self.AD.services.call_service(**kwargs)
                             case SleepStep():
+                                self.logger.debug(f"Sleeping for {step.sleep}")
                                 await asyncio.sleep(step.sleep.total_seconds())
                             case WaitStateStep():
                                 if ephemeral_entity:
@@ -220,9 +216,9 @@ class Sequences:
                                     namespace=step.namespace or namespace,
                                     sequence=entity_id
                                 )
-                    except Exception:
-                        ...
-                        pass
+                    except Exception as e:
+                        self.logger.error(f"Unexpected error in do_steps(): {e}")
+                        raise
 
                 if not loop:
                     break

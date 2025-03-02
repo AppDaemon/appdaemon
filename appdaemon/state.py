@@ -484,7 +484,6 @@ class State:
         attributes: Optional[dict] = None
     ):
         if self.entity_exists(namespace, entity):
-            self.logger.warning(f"{entity} already exists in {namespace}")
             return
 
         state = {
