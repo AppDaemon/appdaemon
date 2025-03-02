@@ -1,6 +1,6 @@
 import asyncio
-import functools
-from typing import TYPE_CHECKING, Dict, List, Union
+from collections import defaultdict
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from appdaemon.appdaemon import AppDaemon
@@ -8,39 +8,35 @@ if TYPE_CHECKING:
 
 class Futures:
     """Subsystem container for managing :class:`~asyncio.Future` objects
-
-    Attributes:
-        AD: Reference to the AppDaemon container object
     """
 
     AD: "AppDaemon"
-    futures: Dict[str, List[Union[asyncio.Future, asyncio.Task]]] = {}
+    """Reference to the top-level AppDaemon container object"""
+    futures: dict[str , list[asyncio.Future]]
+    """Dictionary of futures registered by app name"""
 
     def __init__(self, ad: "AppDaemon"):
         self.AD = ad
+        self.logger = self.AD.logging.get_child("_futures")
+        self.futures = defaultdict(list)
 
-    def add_future(self, app_name: str, future_or_task: Union[asyncio.Future, asyncio.Task]):
-        future_or_task.add_done_callback(functools.partial(self.remove_future, app_name))
-        if app_name not in self.futures:
-            self.futures[app_name] = []
+    def add_future(self, app_name: str, future: asyncio.Future):
+        """Add a future to the registry and a callback that removes itself after it finishes."""
+        self.futures[app_name].append(future)
+        future.add_done_callback(lambda f: self.futures[app_name].remove(f))
+        if isinstance(future, asyncio.Task):
+            self.logger.debug(f"Registered a task in {app_name}: {future.get_name()}")
+        else:
+            self.logger.debug(f"Registered a future in {app_name}: {future}")
 
-        self.futures[app_name].append(future_or_task)
-        self.AD.logger.debug("Registered a future in %s: %s", app_name, future_or_task)
-
-    def remove_future(self, app_name: str, future_or_task: Union[asyncio.Future, asyncio.Task]):
-        if app_name in self.futures:
-            self.futures[app_name].remove(future_or_task)
-            self.AD.logger.debug("Future removed from registry %s", future_or_task)
-
-        if not future_or_task.done() and not future_or_task.cancelled():
-            self.AD.logger.debug("Cancelling future %s", future_or_task)
-            future_or_task.cancel()
+    def cancel_future(self, future: asyncio.Future):
+        if not future.done() and not future.cancelled():
+            if isinstance(future, asyncio.Task):
+                self.logger.debug(f"Cancelling task {future.get_name()}")
+            else:
+                self.logger.debug(f"Cancelling future {future}")
+            future.cancel()
 
     def cancel_futures(self, app_name: str):
-        if app_name not in self.futures:
-            return
-
-        for f in self.futures[app_name]:
-            if not f.done() and not f.cancelled():
-                self.AD.logger.debug("Cancelling future %s", f)
-                f.cancel()
+        for f in self.futures.pop(app_name, []):
+            self.cancel_future(f)
