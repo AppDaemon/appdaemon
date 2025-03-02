@@ -657,15 +657,18 @@ class AppManagement:
             for name, cfg in freshly_read_cfg.app_definitions():
                 if isinstance(cfg, SequenceConfig):
                     # Need to handle new, changed, and deleted sequences
-                    existing_sequences = set(self.valid_sequences)
+                    existing_sequences = set(
+                        seq_eid.split('.')[-1]
+                        for seq_eid in (await self.AD.sequences.get_state(copy=False)).keys()
+                    )
                     new_sequences = set(n for n in cfg.root if n not in existing_sequences)
                     update_actions.sequences.init |= new_sequences
 
-                    # Only the changed files will be in the freshly_loaded_config
+                    # Only the changed files will be in the freshly_read_cfg
                     # deleted_sequences = set(n for n in existing_sequences if n not in cfg.root)
                     # update_actions.sequences.term |= deleted_sequences
 
-                    overlaped_sequences = set(n for n in cfg.root if n in existing_sequences)
+                    overlaped_sequences = set(cfg.root.keys()) & existing_sequences
                     for seq_name in overlaped_sequences:
                         current_seq = self.sequence_config.root[seq_name]
                         new_seq = cfg.root[seq_name]
