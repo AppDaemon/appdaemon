@@ -563,6 +563,7 @@ class AppManagement:
 
     async def terminate_sequence(self, name: str) -> bool:
         """Terminate the sequence"""
+        assert self.objects.get(name, {}).get('type') == "sequence", f"'{name}' is not a sequence"
 
         if name in self.objects:
             del self.objects[name]
