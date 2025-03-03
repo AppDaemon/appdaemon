@@ -74,3 +74,6 @@ class NoInitializeMethod(Exception):
 
 class BadInitializeMethod(Exception):
     pass
+
+class ConfigReadFailure(Exception):
+    pass

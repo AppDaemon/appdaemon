@@ -1,4 +1,5 @@
 from datetime import timedelta
+from pathlib import Path
 from typing import Annotated, Any, Literal, Union
 
 from pydantic import BaseModel, BeforeValidator, Discriminator, Field, PlainSerializer, RootModel, Tag, ValidationError, WrapSerializer, model_validator
@@ -111,6 +112,9 @@ class Sequence(BaseModel, extra="forbid"):
     namespace: str = "default"
     loop: bool = False
     hot_reload: bool = False
+    """If true, apps that have run this sequence will be reloaded if the sequence definition changes while it's running."""
+    config_path: Path | None = None # Needs to remain optional because it gets set later
+    """The path to the file that defines this sequence"""
 
 
 class SequenceConfig(RootModel):

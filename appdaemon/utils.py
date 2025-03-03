@@ -375,12 +375,14 @@ def warning_decorator(
                     header=error_text,
                     exception_text=''.join(traceback.format_exception(e, limit=-1))
                 )
-                ...
+            except ade.ConfigReadFailure as e: 
+                logger.warning(f'Failed to read config file: {e}')
+                if self.AD.logging.separate_error_log():
+                    error_logger.warning(f'Failed to read config file: {e}')
             except ade.AppDependencyError as e:
                 logger.warning(f'Dependency error: {e}')
                 if self.AD.logging.separate_error_log():
                     error_logger.warning(f'Dependency error: {e}')
-                ...
             except (ade.AppInstantiationError, ade.AppInitializeError, ade.AppModuleNotFound) as e:
                 logger.warning(e)
                 log_warning_block(
@@ -388,14 +390,12 @@ def warning_decorator(
                     header=error_text,
                     exception_text=''.join(traceback.format_exception(e, limit=-2))
                 )
-                ...
             except ValidationError as e:
                 log_warning_block(
                     error_logger,
                     header=error_text,
                     exception_text=str(e)
                 )
-                ...
             except Exception as e:
                 log_warning_block(
                     error_logger,
@@ -741,15 +741,26 @@ def read_config_file(file: Path) -> dict[str, dict | list]:
 
     This includes all the mechanics for including secrets and environment variables.
     """
-    file = Path(file) if not isinstance(file, Path) else file
-    match file.suffix:
-        case ".yaml":
-            return read_yaml_config(file)
-        case ".toml":
-            return read_toml_config(file)
-        case _:
-            raise ValueError(f"ERROR: unknown file extension: {file.suffix}")
+    try:
+        file = Path(file) if not isinstance(file, Path) else file
+        match file.suffix:
+            case ".yaml":
+                full_cfg = read_yaml_config(file)
+            case ".toml":
+                full_cfg = read_toml_config(file)
+            case _:
+                raise ValueError(f"ERROR: unknown file extension: {file.suffix}")
 
+        for key, cfg in full_cfg.items():
+            if key == "sequence":
+                for seq_cfg in cfg.values():
+                    seq_cfg["config_path"] = file
+            else:
+                cfg["config_path"] = file
+
+        return full_cfg
+    except Exception as exc:
+        raise ade.ConfigReadFailure(file.as_posix()) from exc
 
 def read_toml_config(path: Path):
     with path.open("rb") as f:
