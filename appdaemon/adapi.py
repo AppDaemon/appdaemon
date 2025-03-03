@@ -1936,6 +1936,8 @@ class ADAPI:
 
             >>> handle = self.run_sequence("sequence.front_room_scene")
 
+            >>> handle = self.run_sequence("front_room_scene")
+
             Run an inline sequence.
 
             >>> handle = self.run_sequence([{"light/turn_on": {"entity_id": "light.office_1"}}, {"sleep": 5}, {"light.turn_off":
