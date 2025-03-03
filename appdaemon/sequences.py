@@ -141,9 +141,16 @@ class Sequences:
             loop=cfg.loop
         )
         task = asyncio.create_task(coro, name=seq_eid)
+        self.AD.futures.add_future(calling_app, task)
+
         if ephemeral_entity:
             task.add_done_callback(lambda _: self.AD.state.remove_entity(self.namespace, seq_eid))
-        self.AD.futures.add_future(calling_app, task)
+
+        if cfg.hot_reload:
+            deps = self.AD.app_management.dependency_manager.app_deps.dep_graph.get(calling_app, set())
+            deps.add(seq_eid)
+            task.add_done_callback(lambda _: deps.remove(seq_eid))
+
         return task
 
     async def cancel_sequence(self, sequence: str):
@@ -160,15 +167,13 @@ class Sequences:
         steps: list[SequenceStep],
         loop: bool = False
     ):
-        await self.set_state(entity_id, "active", running_namespace=namespace)
+        await self.set_state(entity_id, "active")
         try:
             while True:
                 for step in steps:
                     await self._exec_step(step, namespace)
-
                 if not loop:
                     break
-
         finally:
             await self.set_state(entity_id, "idle")
 

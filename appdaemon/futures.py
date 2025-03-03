@@ -23,11 +23,16 @@ class Futures:
     def add_future(self, app_name: str, future: asyncio.Future):
         """Add a future to the registry and a callback that removes itself after it finishes."""
         self.futures[app_name].append(future)
-        future.add_done_callback(lambda f: self.futures[app_name].remove(f))
+        def safe_remove(f):
+            try:
+                self.futures[app_name].remove(f)
+            except ValueError:
+                pass
+        future.add_done_callback(safe_remove)
         if isinstance(future, asyncio.Task):
-            self.logger.debug(f"Registered a task in {app_name}: {future.get_name()}")
+            self.logger.debug(f"Registered a task for {app_name}: {future.get_name()}")
         else:
-            self.logger.debug(f"Registered a future in {app_name}: {future}")
+            self.logger.debug(f"Registered a future for {app_name}: {future}")
 
     def cancel_future(self, future: asyncio.Future):
         if not future.done() and not future.cancelled():

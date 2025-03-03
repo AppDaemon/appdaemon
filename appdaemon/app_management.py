@@ -653,7 +653,12 @@ class AppManagement:
                         current_seq = self.sequence_config.root[seq_name]
                         new_seq = cfg.root[seq_name]
                         if new_seq != current_seq:
+                            self.logger.info(f"Sequence config modified: {seq_name}")
                             update_actions.sequences.reload.add(seq_name)
+                            seq_eid = self.AD.sequences.normalized(seq_name)
+                            update_actions.apps.reload |= self.dependency_manager.app_deps.get_dependents(seq_eid)
+                            update_actions.apps.reload.remove(seq_eid)
+
                     continue
 
                 if name in self.non_apps:
@@ -1106,9 +1111,6 @@ class AppManagement:
                 await safe_import(self)
 
     async def _handle_sequence_change(self, update_actions: UpdateActions):
-        # Determine sequences that are currently running
-        running_sequences = await self.AD.sequences.running_sequences()
-
         # Ensure sequences are cancelled if need be
         for seq in update_actions.sequences.term_set:
             await self.AD.sequences.cancel_sequence(seq)
@@ -1116,16 +1118,6 @@ class AppManagement:
         # Update the sequence steps in the internal sequence entity
         if update_actions.sequences.changes:
             await self.AD.sequences.update_sequence_entities(self.sequence_config)
-
-        # Restart sequences that were running at the time of the change
-        for seq in update_actions.sequences.init_set:
-            seq_eid = f'sequence.{seq}'
-            if prev_state := running_sequences.get(seq_eid):
-                await self.AD.sequences.run_sequence(
-                    "_sequences",
-                    prev_state["attributes"]["running_namespace"],
-                    sequence=seq_eid,
-                )
 
     def apps_per_module(self, module_name: str) -> Set[str]:
         """Finds which apps came from a given module name.

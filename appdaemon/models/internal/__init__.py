@@ -1,2 +1,2 @@
-"""This package contains pydantic models for internal parts of AppAdaemon
+"""This sub-package contains pydantic models for internal parts of AppAdaemon
 """

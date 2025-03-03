@@ -105,11 +105,12 @@ SequenceStep = Annotated[
 ]
 
 
-class Sequence(BaseModel):
+class Sequence(BaseModel, extra="forbid"):
     steps: list[SequenceStep]
     name: str | None = None
     namespace: str = "default"
     loop: bool = False
+    hot_reload: bool = False
 
 
 class SequenceConfig(RootModel):
