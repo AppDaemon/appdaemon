@@ -636,7 +636,7 @@ class AppManagement:
             current_apps = self.valid_apps
             for name, cfg in freshly_read_cfg.app_definitions():
                 if isinstance(cfg, SequenceConfig):
-                    self._compare_sequences(update_actions, cfg)
+                    self._compare_sequences(update_actions, cfg, files_to_read)
                     continue
 
                 if name in self.non_apps:
@@ -647,8 +647,9 @@ class AppManagement:
                     update_actions.apps.init.add(name)
                 else:
                     # If an app exists, compare to the current config
-                    # if not utils.deep_compare(cfg, self.app_config.root[name]):
-                    if cfg != self.app_config.root[name]:
+                    prev_app = self.app_config.root[name].model_dump()
+                    current_app = cfg.model_dump()
+                    if not utils.deep_compare(current_app, prev_app):
                         self.logger.info("App config modified: %s", name)
                         update_actions.apps.reload.add(name)
 
@@ -690,9 +691,6 @@ class AppManagement:
                 f"Loaded an empty config file: {file.relative_to(self.AD.app_dir.parent)}"
             )
         config_model = AllAppConfig.model_validate(raw_cfg)
-        for cfg in config_model.root.values():
-            if isinstance(cfg, (AppConfig, GlobalModule)):
-                cfg.config_path = file
         return config_model
 
     # noinspection PyBroadException
@@ -800,8 +798,7 @@ class AppManagement:
 
             await self.check_app_config_files(update_actions)
 
-            # TODO: handle sequence reload here
-            await self._handle_sequence_change(update_actions)
+            await self._handle_sequence_change(update_actions, mode)
 
             try:
                 await self.check_app_python_files(update_actions)
@@ -1088,38 +1085,42 @@ class AppManagement:
 
                 await safe_import(self)
 
-    async def _compare_sequences(self, update_actions: UpdateActions, cfg: SequenceConfig):
+    def _compare_sequences(self, update_actions: UpdateActions, cfg: SequenceConfig, changed_files: Iterable[Path]):
         """Adds apps to the update actions based on sequence changes, if need be"""
         # Need to handle new, changed, and deleted sequences
-        existing_sequences = set(
-            seq_eid.split('.')[-1]
-            for seq_eid in (await self.AD.sequences.get_state(copy=False)).keys()
-        )
+        existing_sequences = set(self.sequence_config.root.keys())
         new_sequences = set(n for n in cfg.root if n not in existing_sequences)
         update_actions.sequences.init |= new_sequences
+        for seq in new_sequences:
+            self.logger.info(f"New sequence config: {seq}")
 
-        # Only the changed files will be in the freshly_read_cfg
-        # deleted_sequences = set(n for n in existing_sequences if n not in cfg.root)
-        # update_actions.sequences.term |= deleted_sequences
+        # Find the apps that were previously defined by these files
+        prev_apps = set(
+            k for k, v in self.sequence_config.root.items()
+            if v.config_path in changed_files
+        )
+        for app in prev_apps:
+            if app not in cfg.root:
+                update_actions.sequences.term.add(app)
+                self.logger.info(f"Sequence config deleted: {app}")
 
         overlaped_sequences = set(cfg.root.keys()) & existing_sequences
         for seq_name in overlaped_sequences:
             current_seq = self.sequence_config.root[seq_name]
             new_seq = cfg.root[seq_name]
-            if new_seq != current_seq:
+            if not utils.deep_compare(new_seq.model_dump(), current_seq.model_dump()):
                 self.logger.info(f"Sequence config modified: {seq_name}")
                 update_actions.sequences.reload.add(seq_name)
                 seq_eid = self.AD.sequences.normalized(seq_name)
                 update_actions.apps.reload |= self.dependency_manager.app_deps.get_dependents(seq_eid)
                 update_actions.apps.reload.remove(seq_eid)
 
-    async def _handle_sequence_change(self, update_actions: UpdateActions):
+    async def _handle_sequence_change(self, update_actions: UpdateActions, update_mode: UpdateMode):
         # Ensure sequences are cancelled if need be
-        for seq in update_actions.sequences.term_set:
-            await self.AD.sequences.cancel_sequence(seq)
+        await self.AD.sequences.remove_sequences(update_actions.sequences.term_set)
 
         # Update the sequence steps in the internal sequence entity
-        if update_actions.sequences.changes:
+        if update_actions.sequences.changes or update_mode == UpdateMode.INIT:
             await self.AD.sequences.update_sequence_entities(self.sequence_config)
 
     def apps_per_module(self, module_name: str) -> Set[str]:
