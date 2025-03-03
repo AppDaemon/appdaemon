@@ -75,5 +75,14 @@ class NoInitializeMethod(Exception):
 class BadInitializeMethod(Exception):
     pass
 
+
 class ConfigReadFailure(Exception):
+    pass
+
+
+class BadSequence(Exception):
+    pass
+
+
+class BadSequenceStep(Exception):
     pass

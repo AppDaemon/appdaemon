@@ -4,6 +4,8 @@ from typing import Annotated, Any, Literal, Union
 
 from pydantic import BaseModel, BeforeValidator, Discriminator, Field, PlainSerializer, RootModel, Tag, ValidationError, WrapSerializer, model_validator
 
+from ... import exceptions as ade
+
 
 def validate_timedelta(v: Any):
     match v:
@@ -62,9 +64,12 @@ class SubSequenceStep(SequenceStep):
 
 def service_call_validator(v: dict[str, dict[str, Any]]):
     """Puts the name of the domain/name of the service into the diction"""
-    service = next(iter(v.keys()))
-    v[service]["service"] = service
-    return v[service]
+    try:
+        service = next(iter(v.keys()))
+        v[service]["service"] = service
+        return v[service]
+    except Exception as exc:
+        raise ade.BadSequenceStep(f'Bad service call step: {v}') from exc
 
 
 def service_call_serializer(value: Any, handler, info):
@@ -83,11 +88,6 @@ def step_discriminator(v: Any):
                 return "wait"
             else:
                 return "service_call"
-        # case ServiceCallStep() | SleepStep() | WaitStateStep():
-        #     ...
-        # case _:
-        #     raise ValueError(f"Bad step: {v}")
-    return v
 
 
 # This type wraps up the logic for determining the type of each step

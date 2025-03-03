@@ -4,6 +4,9 @@ from collections.abc import Iterable
 from logging import Logger
 from typing import TYPE_CHECKING
 
+from pydantic import ValidationError
+
+from . import exceptions as ade
 from . import utils
 from .models.config.sequence import Sequence, SequenceConfig, SequenceStep, ServiceCallStep, SleepStep, SubSequenceStep, WaitStateStep
 
@@ -111,34 +114,41 @@ class Sequences:
         sequence: str | list[dict[str, dict[str, str]]]
     ):
         """Prepares the sequence and creates a task to run it"""
-        match sequence:
-            # Sequence was defined in the config
-            case str():
-                ephemeral_entity = False
-                seq_eid = self.normalized(sequence)
-                seq_name = sequence.split('.', 2)[1]
+        try:
+            match sequence:
+                # Sequence was defined in the config
+                case str():
+                    ephemeral_entity = False
+                    seq_eid = self.normalized(sequence)
+                    seq_name = sequence.split('.', 2)[1]
 
-                if (cfg := self.config.root.get(seq_name)) is None:
-                    self.logger.warning(f'Unknown sequence "{seq_name}" in run_sequence()')
-                    return
-                
-                if self.sequence_running(seq_eid):
-                    self.logger.warning(f"Sequence '{seq_name}' is already running")
-                    return
+                    if (cfg := self.config.root.get(seq_name)) is None:
+                        self.logger.warning(f'Unknown sequence "{seq_name}" in run_sequence()')
+                        return
 
-            # Sequence was defined in-line
-            case list():
-                ephemeral_entity = True
-                seq_name = uuid.uuid4().hex
-                seq_eid = f"sequence.{seq_name}"
-                # TODO: Handle bad inline sequence
-                cfg = Sequence(
-                    name=seq_eid,
-                    namespace=namespace,
-                    steps=sequence
-                )
+                    if self.sequence_running(seq_eid):
+                        self.logger.warning(f"Sequence '{seq_name}' is already running")
+                        return
+
+                # Sequence was defined in-line
+                case list():
+                    ephemeral_entity = True
+                    seq_name = uuid.uuid4().hex
+                    seq_eid = f"sequence.{seq_name}"
+                    try:
+                        cfg = Sequence(
+                            name=seq_eid,
+                            namespace=namespace,
+                            steps=sequence
+                        )
+                    except ValidationError as e:
+                        self.logger.error(f"Error creating inline sequence:\n{e}")
+                        return
+        except Exception as e:
+            raise ade.BadSequence(f"Bad sequence definition: {sequence}") from e
 
         coro = self._exec_seq(
+            calling_app=calling_app,
             namespace=namespace,
             entity_id=seq_eid,
             steps=cfg.steps,
@@ -148,7 +158,10 @@ class Sequences:
         self.AD.futures.add_future(calling_app, task)
 
         if ephemeral_entity:
-            task.add_done_callback(lambda _: self.AD.state.remove_entity(self.namespace, seq_eid))
+            task.add_done_callback(
+                lambda _: self.AD.loop.create_task(
+                    self.AD.state.remove_entity(self.namespace, seq_eid)
+            ))
 
         if cfg.hot_reload:
             deps = self.AD.app_management.dependency_manager.app_deps.dep_graph.get(calling_app, set())
@@ -166,6 +179,7 @@ class Sequences:
 
     async def _exec_seq(
         self,
+        calling_app: str,
         namespace: str,
         entity_id: str,
         steps: list[SequenceStep],
@@ -175,14 +189,14 @@ class Sequences:
         try:
             while True:
                 for step in steps:
-                    await self._exec_step(step, namespace)
+                    await self._exec_step(step, namespace, calling_app)
                 if not loop:
                     break
         finally:
             await self.set_state(entity_id, "idle")
 
     @utils.warning_decorator(error_text="Unexpected error executing sequence step")
-    async def _exec_step(self, step: SequenceStep, default_namespace: str):
+    async def _exec_step(self, step: SequenceStep, default_namespace: str, calling_app: str):
         match step:
             case ServiceCallStep():
                 kwargs = {
@@ -205,9 +219,10 @@ class Sequences:
             case WaitStateStep():
                 self.logger.warning("Cannot process command 'wait_state', as not supported in sequence")
             case SubSequenceStep():
-                await self.prep_sequence(
-                    namespace=step.namespace or self.namespace,
-                    sequence=step.entity_id
+                await self.run_sequence(
+                    calling_app=calling_app,
+                    namespace=step.namespace or default_namespace,
+                    sequence=self.normalized(step.sequence)
                 )
 
     #
