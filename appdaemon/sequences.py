@@ -121,6 +121,10 @@ class Sequences:
                 if (cfg := self.config.root.get(seq_name)) is None:
                     self.logger.warning(f'Unknown sequence "{seq_name}" in run_sequence()')
                     return
+                
+                if self.sequence_running(seq_eid):
+                    self.logger.warning(f"Sequence '{seq_name}' is already running")
+                    return
 
             # Sequence was defined in-line
             case list():
