@@ -9,11 +9,11 @@ also creates the loop and kicks everything off
 
 import argparse
 import asyncio
+import functools
 import itertools
 import json
 import logging
 import os
-import platform
 import signal
 import sys
 from pathlib import Path
@@ -64,47 +64,32 @@ class ADMain:
         self.http_object = None
         self.logger = None
 
-    def init_signals(self):
-        """Setup signal handling."""
-
-        # Windows does not support SIGUSR1 or SIGUSR2
-        if platform.system() != "Windows":
-            signal.signal(signal.SIGUSR1, self.handle_sig)
-            signal.signal(signal.SIGINT, self.handle_sig)
-            signal.signal(signal.SIGHUP, self.handle_sig)
-            signal.signal(signal.SIGTERM, self.handle_sig)
-
     # noinspection PyUnusedLocal
-    def handle_sig(self, signum, frame):
+    def handle_sig(self, signum: int):
         """Function to handle signals.
 
-        SIGUSR1 will result in internal info being dumped to the DIAG log
-        SIGHUP will force a reload of all apps
-        SIGINT and SIGTEM both result in AD shutting down
-
-        Args:
-            signum: Signal number being processed.
-            frame: frame - unused
-
-        Returns:
-            None.
-
+        Signals:
+            SIGUSR1 will result in internal info being dumped to the DIAG log
+            SIGHUP will force a reload of all apps
+            SIGINT and SIGTEM both result in AD shutting down
         """
-
-        if signum == signal.SIGUSR1:
-            self.AD.thread_async.call_async_no_wait(self.AD.sched.dump_schedule)
-            self.AD.thread_async.call_async_no_wait(self.AD.callbacks.dump_callbacks)
-            self.AD.thread_async.call_async_no_wait(self.AD.threading.dump_threads)
-            self.AD.thread_async.call_async_no_wait(self.AD.app_management.dump_objects)
-            self.AD.thread_async.call_async_no_wait(self.AD.sched.dump_sun)
-        if signum == signal.SIGHUP:
-            self.AD.thread_async.call_async_no_wait(self.AD.app_management.check_app_updates, mode=UpdateMode.TERMINATE)
-        if signum == signal.SIGINT:
-            self.logger.info("Keyboard interrupt")
-            self.stop()
-        if signum == signal.SIGTERM:
-            self.logger.info("SIGTERM Received")
-            self.stop()
+        match signum:
+            case signal.SIGUSR1:
+                self.AD.thread_async.call_async_no_wait(self.AD.sched.dump_schedule)
+                self.AD.thread_async.call_async_no_wait(self.AD.callbacks.dump_callbacks)
+                self.AD.thread_async.call_async_no_wait(self.AD.threading.dump_threads)
+                self.AD.thread_async.call_async_no_wait(self.AD.app_management.dump_objects)
+                self.AD.thread_async.call_async_no_wait(self.AD.sched.dump_sun)
+            case signal.SIGHUP:
+                self.AD.thread_async.call_async_no_wait(self.AD.app_management.check_app_updates, mode=UpdateMode.TERMINATE)
+            case signal.SIGINT:
+                self.logger.info("Keyboard interrupt")
+                self.stop()
+            case signal.SIGTERM:
+                self.logger.info("SIGTERM Received")
+                self.stop()
+            case _:
+                self.logger.error(f'Unhandled signal: {signal.Signals(signum).name}')
 
     def stop(self):
         """Called by the signal handler to shut AD down.
@@ -142,6 +127,14 @@ class ADMain:
             # Initialize AppDaemon
 
             self.AD = ad.AppDaemon(self.logging, loop, ad_config_model)
+
+            for sig in signal.Signals:
+                callback = functools.partial(self.handle_sig, sig)
+                try:
+                    loop.add_signal_handler(sig.value, callback)
+                except RuntimeError:
+                    # This happens for some signals on some operating systems, no problem
+                    continue
 
             # Initialize Dashboard/API/admin
 
@@ -196,8 +189,6 @@ class ADMain:
         Parse command line arguments, load configuration, set up logging.
 
         """
-
-        self.init_signals()
 
         # Get command line args
 
