@@ -88,6 +88,8 @@ class ADMain:
             case signal.SIGTERM:
                 self.logger.info("SIGTERM Received")
                 self.stop()
+            case signal.SIGWINCH:
+                ... # disregard window changes
             case _:
                 self.logger.error(f'Unhandled signal: {signal.Signals(signum).name}')
 
