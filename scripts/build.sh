@@ -17,4 +17,4 @@ else
     python -m build
 fi
 
-docker build -t acockburn/appdaemon:${1:-"local-dev"} .
+docker build --pull -t acockburn/appdaemon:${1:-"local-dev"} .
