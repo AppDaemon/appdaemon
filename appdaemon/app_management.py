@@ -58,7 +58,6 @@ class AppManagement:
     active_apps: Set[str]
     inactive_apps: Set[str]
     non_apps: Set[str] = {"global_modules", "sequence"}
-    apps_initialized: bool = False
     check_app_updates_profile_stats: str = ""
     check_updates_lock: asyncio.Lock = asyncio.Lock()
 
@@ -227,8 +226,7 @@ class AppManagement:
 
     async def terminate(self):
         self.logger.debug("terminate() called for app_management")
-        if self.apps_initialized is True:
-            await self.check_app_updates(mode=UpdateMode.TERMINATE)
+        await self.check_app_updates(mode=UpdateMode.TERMINATE)
 
     async def dump_objects(self):
         self.diag.info("--------------------------------------------------")
