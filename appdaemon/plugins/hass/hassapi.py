@@ -1094,6 +1094,8 @@ class Hass(ADBase, ADAPI):
         self,
         entity_id: str = "calendar.localcalendar",
         days: int = 1,
+        hours: int = None,
+        minutes: int = None,
         namespace: str | None = None
     ) -> list[dict[str, str | datetime]]:
         """
@@ -1106,6 +1108,8 @@ class Hass(ADBase, ADAPI):
             entity_id (str): The ID of the calendar entity to retrieve events
                 from. Defaults to "calendar.localcalendar".
             days (int): The number of days to look ahead for events. Defaults to 1.
+            hours (int, optional): The number of hours to look ahead for events. Defaults to None.
+            minutes (int, optional): The number of minutes to look ahead for events. Defaults to None.
             namespace(str, optional): If provided, changes the namespace for the
                 service call. Defaults to the current namespace of the app, so
                 it's safe to ignore this parameter most of the time. See the
@@ -1120,16 +1124,23 @@ class Hass(ADBase, ADAPI):
             >>> for event in events:
             >>>     self.log(f'{event["summary"]} starts at {event["start"]}')
         """
+        duration = {
+            'days': days,
+            'hours': hours,
+            'minutes': minutes,
+        }
+        duration = {k:v for k,v in duration.items() if v is not None}
+
         res = self.call_service(
             'calendar/get_events',
             namespace=namespace,
             entity_id=entity_id,
-            duration={'days': days},
+            duration=duration,
         )
         if res['success']:
             return [
                 {
-                    k: datetime.isoformat(v) if v in ('start', 'end') else v
+                    k: datetime.fromisoformat(v) if k in ('start', 'end') else v
                     for k, v in event.items()
                 }
                 for event in res['result']['response'][entity_id]['events']
