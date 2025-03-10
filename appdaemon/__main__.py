@@ -413,27 +413,6 @@ class ADMain:
         self.logger.debug("AppDaemon Section: %s", config.get("appdaemon"))
         self.logger.debug("HADashboard Section: %s", config.get("hadashboard"))
 
-        exit = False
-
-        if "time_zone" not in config["appdaemon"]:
-            self.logger.error("time_zone not specified in appdaemon.yaml")
-            exit = True
-
-        if "latitude" not in config["appdaemon"]:
-            self.logger.error("latitude not specified in appdaemon.yaml")
-            exit = True
-
-        if "longitude" not in config["appdaemon"]:
-            self.logger.error("longitude not specified in appdaemon.yaml")
-            exit = True
-
-        if "elevation" not in config["appdaemon"]:
-            self.logger.error("elevation not specified in appdaemon.yaml")
-            exit = True
-
-        if exit is True:
-            sys.exit(1)
-
         if pidfile is not None:
             self.logger.info("Using pidfile: %s", pidfile)
             dir = os.path.dirname(pidfile)
