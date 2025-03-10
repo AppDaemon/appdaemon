@@ -177,6 +177,7 @@ class Sequences:
                 if isinstance(future, asyncio.Task) and future.get_name() == sequence:
                     self.AD.futures.cancel_future(future)
 
+    @utils.warning_decorator(error_text='Unexpected error executing sequence')
     async def _exec_seq(
         self,
         calling_app: str,
@@ -188,14 +189,16 @@ class Sequences:
         await self.set_state(entity_id, "active")
         try:
             while True:
-                for step in steps:
+                for i, step in enumerate(steps):
                     await self._exec_step(step, namespace, calling_app)
                 if not loop:
                     break
+        except (ade.NamespaceException, ade.DomainException, ade.ServiceException) as e:
+            logger = self.AD.logging.get_error().getChild(calling_app)
+            logger.error(f'Error in sequence step {i}: {e}')
         finally:
             await self.set_state(entity_id, "idle")
 
-    @utils.warning_decorator(error_text="Unexpected error executing sequence step")
     async def _exec_step(self, step: SequenceStep, default_namespace: str, calling_app: str):
         match step:
             case ServiceCallStep():

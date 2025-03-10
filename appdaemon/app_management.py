@@ -5,6 +5,7 @@ import io
 import logging
 import os
 import pstats
+import shutil
 import subprocess
 import sys
 import traceback
@@ -1039,9 +1040,14 @@ class AppManagement:
                     async def safe_start(self: "AppManagement"):
                         try:
                             await self.start_app(app_name)
-                        except Exception:
+                        except Exception as e:
                             update_actions.apps.failed.add(app_name)
-                            raise
+                            logger = self.AD.logging.get_child(app_name)
+                            width = shutil.get_terminal_size().columns - 35 - len(app_name)
+                            logger.error('=' * width)
+                            ade.log_exception_chain(e, logger)
+                            logger.error('=' * width)
+                            # raise
 
                     if await self.get_state(app_name) != "compile_error":
                         await safe_start(self)
