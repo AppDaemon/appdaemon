@@ -145,7 +145,7 @@ class Sequences:
                         self.logger.error(f"Error creating inline sequence:\n{e}")
                         return
         except Exception as e:
-            raise ade.BadSequence(f"Bad sequence definition: {sequence}") from e
+            raise ade.BadSequence("Bad sequence definition", bad_seq=sequence) from e
 
         coro = self._exec_seq(
             calling_app=calling_app,

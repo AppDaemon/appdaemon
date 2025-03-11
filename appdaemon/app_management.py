@@ -103,15 +103,6 @@ class AppManagement:
         }
         for service in services:
             register(service=service)
-        # self.AD.services.register_service("admin", "app", "start", self.manage_services)
-        # self.AD.services.register_service("admin", "app", "stop", self.manage_services)
-        # self.AD.services.register_service("admin", "app", "restart", self.manage_services)
-        # self.AD.services.register_service("admin", "app", "disable", self.manage_services)
-        # self.AD.services.register_service("admin", "app", "enable", self.manage_services)
-        # self.AD.services.register_service("admin", "app", "reload", self.manage_services)
-        # self.AD.services.register_service("admin", "app", "create", self.manage_services)
-        # self.AD.services.register_service("admin", "app", "edit", self.manage_services)
-        # self.AD.services.register_service("admin", "app", "remove", self.manage_services)
 
         self.mtimes_python = FileCheck()
 
@@ -1045,7 +1036,7 @@ class AppManagement:
                             logger = self.AD.logging.get_child(app_name)
                             width = shutil.get_terminal_size().columns - 35 - len(app_name)
                             logger.error('=' * width)
-                            ade.log_exception_chain(e, logger)
+                            ade.log_exception_chain(e, logger, self.AD.app_dir)
                             logger.error('=' * width)
                             # raise
 

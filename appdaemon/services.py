@@ -85,8 +85,7 @@ class Services:
             name = kwargs.get("__name")
             # first we confirm if the namespace exists
             if name and namespace not in self.AD.state.state:
-                raise NamespaceException(
-                    f"Namespace {namespace}, doesn't exist")
+                raise NamespaceException(f"Namespace {namespace}, doesn't exist")
 
             elif not callable(callback):
                 raise ValueError(f"The given callback {callback} is not a callable function")
@@ -222,16 +221,15 @@ class Services:
             data = {}
 
         with self.services_lock:
-            if namespace not in self.services:
-                raise NamespaceException(f"Unknown namespace {namespace} in call_service from {name}")
-
-            if domain not in self.services[namespace]:
-                raise DomainException(
-                    f"Unknown domain ({namespace}/{domain}) in call_service from {name}")
-
-            if service not in self.services[namespace][domain]:
-                raise ServiceException(
-                    f"Unknown service ({namespace}/{domain}/{service}) in call_service from {name}")
+            suffix = f'in call_service from {name}'
+            if ns_services := self.services.get(namespace):
+                if domain_services := ns_services.get(domain):
+                    if service not in domain_services:
+                        raise ServiceException(f"Service '{service}' is not in the domain '{domain}' {suffix}")
+                else:
+                    raise DomainException(f"Domain '{domain}' is not in namespace '{namespace}' {suffix}")
+            else:
+                raise NamespaceException(f"Unknown namespace '{namespace}' {suffix}")
 
             # If we have namespace in data it's an override for the domain of the eventual service call, as distinct
             # from the namespace the call itself is executed from. e.g. set_state() is in the AppDaemon namespace but
@@ -247,8 +245,7 @@ class Services:
             match isasync := service_def.pop("__async", 'auto'):
                 case 'auto':
                     # Remove any wrappers from the funcref before determining if it's async or not
-                    isasync = asyncio.iscoroutinefunction(
-                        utils.unwrapped(funcref))
+                    isasync = asyncio.iscoroutinefunction(utils.unwrapped(funcref))
                 case bool():
                     pass  # isasync already set as a bool from above
                 case _:

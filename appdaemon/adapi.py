@@ -19,6 +19,8 @@ from appdaemon.appdaemon import AppDaemon
 from appdaemon.entity import Entity
 from appdaemon.logging import Logging
 
+from . import exceptions as ade
+
 if TYPE_CHECKING:
     from .models.config.app import AppConfig
     from .plugin_management import PluginBase
@@ -1908,8 +1910,10 @@ class ADAPI:
                 case Iterable():
                     for e in eid:
                         self._check_entity(namespace, e)
-
-        return await self.AD.services.call_service(namespace, *service.split("/", 2), name=self.name, data=data)
+        try:
+            return await self.AD.services.call_service(namespace, *service.split("/", 2), name=self.name, data=data)
+        except (ade.NamespaceException, ade.DomainException, ade.ServiceException) as exc:
+            raise ade.BadUserServiceCall(f"Bad service call: '{service}' in namespace '{namespace}'") from exc
 
     # Sequences
 
@@ -2620,10 +2624,12 @@ class ADAPI:
         assert isinstance(delay, timedelta), f"Invalid delay: {delay}"
         self.logger.debug(f"Registering run_in in {delay.total_seconds():.1f}s for {self.name}")
         exec_time = (await self.get_now()) + delay
+        partial_func = functools.partial(callback, *args, **kwargs)
+        wrapped_func = ade.wrap_app_method(partial_func)
         return await self.AD.sched.insert_schedule(
             name=self.name,
             aware_dt=exec_time,
-            callback=functools.partial(callback, *args, **kwargs),
+            callback=wrapped_func,
             random_start=random_start,
             random_end=random_end,
             pin=pin,
