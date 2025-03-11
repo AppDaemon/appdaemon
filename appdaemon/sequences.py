@@ -23,6 +23,7 @@ class Sequences:
 
     AD: "AppDaemon"
     logger: Logger
+    error: Logger
     namespace: str = "rules"
 
     def __init__(self, ad: "AppDaemon"):
@@ -178,6 +179,7 @@ class Sequences:
                     self.AD.futures.cancel_future(future)
 
     @utils.warning_decorator(error_text='Unexpected error executing sequence')
+    @ade.wrap_async_method
     async def _exec_seq(
         self,
         calling_app: str,
@@ -190,12 +192,20 @@ class Sequences:
         try:
             while True:
                 for i, step in enumerate(steps):
-                    await self._exec_step(step, namespace, calling_app)
+                    # wrapped = ade.wrap_async_method(self._exec_step)
+                    # coro = wrapped(step, namespace, calling_app)
+                    # await coro
+                    # pass
+                    try:
+                        await self._exec_step(step, namespace, calling_app)
+                    except ade.AppDaemonException as exc:
+                        raise ade.BadSequenceStep(f'Step failed during _exec_seq: {step}') from exc
                 if not loop:
                     break
-        except (ade.NamespaceException, ade.DomainException, ade.ServiceException) as e:
-            logger = self.AD.logging.get_error().getChild(calling_app)
-            logger.error(f'Error in sequence step {i}: {e}')
+        except ade.AppDaemonException as e:
+            # logger = self.AD.logging.get_error().getChild(calling_app)
+            # logger.error(f'Error in sequence step {i}: {e}')
+            raise ade.BadSequence('Bad sequence _exec_seq', bad_seq=steps) from e
         finally:
             await self.set_state(entity_id, "idle")
 

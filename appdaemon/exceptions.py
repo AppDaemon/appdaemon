@@ -2,6 +2,7 @@
 Exceptions used by appdaemon
 
 """
+from collections.abc import Coroutine
 from dataclasses import dataclass
 import functools
 import json
@@ -44,6 +45,7 @@ def log_exception_block(exception: Exception, logger: Logger, app_name: str, bas
 
 
 def log_user_line(logger: Logger, exception: Exception, base: Path, indent: int):
+    # chain = get_exception_cause_chain(exception)
     if user_line := get_user_line(exception, base):
         line, filename = user_line
         filename = Path(filename).relative_to(base.parent)
@@ -66,10 +68,10 @@ def log_exception_chain(
 
     match exception:
         case BadSequence():
-            if isinstance(exception.__cause__, BadSequenceStep):
-                cause = exception.__cause__
-                cause_name = cause.__class__.__name__
-                logger.error(f'  {indent}{cause_name}: {cause}')
+            # if isinstance(exception.__cause__, BadSequenceStep):
+            cause = exception.__cause__
+            cause_name = cause.__class__.__name__
+            logger.error(f'  {indent}{cause_name}: {cause}')
 
             offset = get_log_offset(logger.name.split('.')[-1]) * ' '
             seq_str = json.dumps(exception.bad_seq, indent=2, default=str)
@@ -81,6 +83,11 @@ def log_exception_chain(
 
             logger.error(seq_str)
             return # Doesn't really matter what happened to directly cause this
+
+        case BadUserServiceCall():
+            log_exception_chain(exception.__cause__, logger, base, level + 1, line)
+            log_user_line(logger, exception, base, indent)
+            return
 
     if exception.__cause__:
         log_exception_chain(exception.__cause__, logger, base, level + 1, line)
@@ -103,8 +110,22 @@ def wrap_app_method(method: Callable):
             logger = app.err
 
             return method(*args, **kwargs)
-        except BadUserServiceCall as exc:
+        except AppDaemonException as exc:
             log_exception_block(exc, logger, app.name, app.app_dir)
+
+    return wrapped
+
+
+def wrap_async_method(method: Coroutine[Any, Any, Any]):
+    @functools.wraps(method)
+    async def wrapped(self, *args, **kwargs):
+        try:
+            return await method(self, *args, **kwargs)
+        except AppDaemonException as exc:
+            # self = args[0]
+            logger = self.error
+            log_exception_block(exc, logger, kwargs['calling_app'], self.AD.app_dir)
+            pass
 
     return wrapped
 
