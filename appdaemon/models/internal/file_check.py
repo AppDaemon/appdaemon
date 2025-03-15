@@ -1,7 +1,8 @@
 from datetime import datetime
 from logging import Logger
 from pathlib import Path
-from typing import Any, Dict, Iterable, Set
+from typing import Any
+from collections.abc import Iterable
 
 from pydantic import BaseModel, Field
 
@@ -20,10 +21,10 @@ class FileCheck(BaseModel):
         deleted: Set of deleted Path objects
     """
 
-    mtimes: Dict[Path, float] = Field(default_factory=dict)
-    new: Set[Path] = Field(default_factory=set)
-    modified: Set[Path] = Field(default_factory=set)
-    deleted: Set[Path] = Field(default_factory=set)
+    mtimes: dict[Path, float] = Field(default_factory=dict)
+    new: set[Path] = Field(default_factory=set)
+    modified: set[Path] = Field(default_factory=set)
+    deleted: set[Path] = Field(default_factory=set)
 
     @classmethod
     def from_paths(cls, iter: Iterable[Path]):

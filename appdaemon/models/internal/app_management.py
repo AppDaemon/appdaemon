@@ -4,7 +4,7 @@ from copy import copy, deepcopy
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from pathlib import Path
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
 from ...dependency import find_all_dependents, topo_sort
 from ...dependency_manager import DependencyManager
@@ -124,8 +124,8 @@ class ManagedObject:
     type: Literal["app", "plugin", "sequence"]
     object: Any
     id: str = field(default_factory=lambda: uuid.uuid4().hex)
-    module_path: Optional[Path] = None
+    module_path: Path | None = None
     pin_app: bool = None
-    pin_thread: Optional[int] = None
+    pin_thread: int | None = None
     running: bool = False
     use_dictionary_unpacking: bool = False

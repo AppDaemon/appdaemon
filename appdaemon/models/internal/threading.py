@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from typing import Any, Callable, Literal
+from typing import Any, Literal
+from collections.abc import Callable
 
 
 @dataclass(slots=True)
