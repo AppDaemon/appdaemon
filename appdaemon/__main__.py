@@ -23,6 +23,7 @@ from pydantic import ValidationError
 
 import appdaemon.appdaemon as ad
 import appdaemon.utils as utils
+from appdaemon import exceptions as ade
 from appdaemon.app_management import UpdateMode
 from appdaemon.appdaemon import AppDaemon
 from appdaemon.exceptions import StartupAbortedException
@@ -125,10 +126,11 @@ class ADMain:
                 uvloop.install()
 
             loop: asyncio.BaseEventLoop = asyncio.new_event_loop()
-
+            
             # Initialize AppDaemon
 
             self.AD = ad.AppDaemon(self.logging, loop, ad_config_model)
+            loop.set_exception_handler(functools.partial(ade.exception_handler, self.AD))
 
             for sig in signal.Signals:
                 callback = functools.partial(self.handle_sig, sig)

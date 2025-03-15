@@ -3,23 +3,18 @@ Exceptions used by appdaemon
 
 """
 import asyncio
-from collections.abc import Coroutine, Iterable
-from dataclasses import dataclass
-import functools
 import json
 import logging
-from re import I
-import shutil
 import traceback
 from abc import ABC
+from collections.abc import Iterable
+from dataclasses import dataclass, field
 from logging import Logger
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
-from collections.abc import Callable
 
 if TYPE_CHECKING:
-    from .adbase import ADBase
-
+    from .appdaemon import AppDaemon
 
 @dataclass
 class AppDaemonException(Exception, ABC):
@@ -31,9 +26,9 @@ class AppDaemonException(Exception, ABC):
             super(Exception, self).__init__(msg)
 
 
-def exception_handler(loop: asyncio.AbstractEventLoop, context: dict):
+def exception_handler(appdaemon: "AppDaemon", loop: asyncio.AbstractEventLoop, context: dict):
     """Handler to attach to the main event loop as a backstop for any async exception"""
-    user_exception_block(logging.getLogger('Error'), context['exception'])
+    user_exception_block(logging.getLogger('Error'), context['exception'], appdaemon.app_dir)
 
 
 def user_exception_block(logger: Logger, exception: AppDaemonException, app_dir: Path):
@@ -47,7 +42,12 @@ def user_exception_block(logger: Logger, exception: AppDaemonException, app_dir:
     # pass
     for i, exc in enumerate(chain):
         indent = ' ' * i * 2
-        logger.error(f'{indent}{exc.__class__.__name__}: {exc}')
+        for i, line in enumerate(str(exc).splitlines()):
+            if i == 0:
+                logger.error(f'{indent}{exc.__class__.__name__}: {line}')
+            else:
+                logger.error(f'{indent}  {line}')
+
         if user_line := get_user_line(exc, app_dir):
             for line, filename in list(user_line)[-1:]:
                 logger.error(f'{indent}{filename} line {line}')
@@ -85,127 +85,73 @@ def get_exception_cause_chain(exception: Exception, current_chain: list[Exceptio
         return current_chain
 
 
-def get_log_offset(app_name: str) -> int:
-    return 35 + len(app_name)
-
-
-# def log_exception_block(exception: Exception, logger: Logger, app_name: str, base: Path):
-#     width = shutil.get_terminal_size().columns - get_log_offset(app_name)
-#     chain = get_exception_cause_chain(exception)
-#     logger.error('=' * width)
-#     log_exception_chain(exception, logger, base)
-#     logger.error('=' * width)
-
-
-def log_user_line(logger: Logger, exception: Exception, base: Path, indent: int):
-    # chain = get_exception_cause_chain(exception)
-    if user_line := get_user_line(exception, base):
-        line, filename = user_line
-        filename = Path(filename).relative_to(base.parent)
-        logger.error(f'{indent}  {filename.as_posix()} line {line}')
-
-
-def log_exception_chain(
-    exception: Exception,
-    logger: Logger,
-    base: Path,
-    level: int = 0,
-    line: tuple = None,
-):
-    """Function to prettily format chains of exceptions that from repeatedly
-    using the ``raise ... from ...`` syntax."""
-    indent = level * 2 * ' '
-    exc_name = exception.__class__.__name__
-
-    logger.error(f'{indent}{exc_name}: {exception}')
-
-    match exception:
-        case SequenceExecutionFail():
-            # if isinstance(exception.__cause__, BadSequenceStep):
-            cause = exception.__cause__
-            cause_name = cause.__class__.__name__
-            logger.error(f'  {indent}{cause_name}: {cause}')
-
-            offset = get_log_offset(logger.name.split('.')[-1]) * ' '
-            seq_str = json.dumps(exception.bad_seq, indent=2, default=str)
-            seq_str = '\n'.join(
-                f'{indent}{offset}  {line}' if i != 0 else f'{indent}  {line}'
-                for i, line in enumerate(seq_str.splitlines())
-            )
-            log_user_line(logger, exception, base, indent)
-
-            logger.error(seq_str)
-            return # Doesn't really matter what happened to directly cause this
-
-        case BadUserServiceCall():
-            log_exception_chain(exception.__cause__, logger, base, level + 1, line)
-            log_user_line(logger, exception, base, indent)
-            return
-
-    if exception.__cause__:
-        log_exception_chain(exception.__cause__, logger, base, level + 1, line)
-
-
-def wrap_app_method(method: Callable):
-    @functools.wraps(method)
-    def wrapped(*args, **kwargs):
-        try:
-            # Check if the method is a functools.partial object
-            if isinstance(method, functools.partial):
-                original_method = method.func
-            else:
-                original_method = method
-
-            app: ADBase = original_method.__self__
-            logger = app.err
-
-            return method(*args, **kwargs)
-        except AppDaemonException as exc:
-            # log_exception_block(exc, logger, app.name, app.app_dir)
-            raise exc
-
-    return wrapped
-
-
-# def wrap_async_method(method: Coroutine[Any, Any, Any]):
-#     @functools.wraps(method)
-#     async def wrapped(self, *args, **kwargs):
-#         try:
-#             return await method(self, *args, **kwargs)
-#         except AppDaemonException as exc:
-#             # self = args[0]
-#             logger = self.error
-#             log_exception_block(exc, logger, kwargs['calling_app'], self.AD.app_dir)
-#             pass
-
-#     return wrapped
-
-
+# Used in the adstream module
 class RequestHandlerException(AppDaemonException):
     pass
 
 
+@dataclass
 class NamespaceException(AppDaemonException):
-    pass
+    namespace: str
+
+    def __str__(self):
+        return f"Unknown namespace '{self.namespace}'"
 
 
 @dataclass
 class DomainException(AppDaemonException):
     namespace: str
     domain: str
+
+    def __str__(self):
+        return f"domain '{self.domain}' does not exist in namespace '{self.namespace}'"
+
+
+@dataclass
+class ServiceException(AppDaemonException):
+    namespace: str
+    domain: str
     service: str
 
-
-class ServiceException(AppDaemonException):
-    pass
-
-
-class AppException(AppDaemonException):
-    pass
+    def __str__(self):
+        return f"domain '{self.domain}' exists in namespace '{self.namespace}', but does not contain service '{self.service}'"
 
 
-class HandlerException(AppDaemonException):
-    pass
+@dataclass
+class CallbackException(AppDaemonException):
+    callback: str
+    app_name: str
+
+    def __str__(self):
+        return f"error in method '{self.callback}' for app '{self.app_name}'"
+    
+
+@dataclass
+class StateCallbackFail(AppDaemonException):
+    app_name: str
+    entity_id: str
+    args: dict[str, Any]
+
+    def __str__(self):
+        return f"State callback failed for '{self.entity_id}' in app '{self.app_name}'"
+
+
+@dataclass
+class SchedulerCallbackFail(AppDaemonException):
+    app_name: str
+    args: tuple[Any, ...] = field(default_factory=tuple)
+    kwargs: dict[str, Any] = field(default_factory=dict)
+
+    def __str__(self):
+        base = f"Scheduler callback failed for app '{self.app_name}'"
+
+        if self.args:
+            base += f'\nargs: {self.args}'
+
+        if self.kwargs:
+            base += f'\nkwargs: {json.dumps(self.kwargs, indent=4, default=str)}'
+
+        return base
 
 
 class TimeOutException(AppDaemonException):
@@ -276,8 +222,12 @@ class BadSchedulerCallback(AppDaemonException):
     pass
 
 
+@dataclass
 class BadSequenceStepDefinition(AppDaemonException):
-    pass
+    step: Any
+
+    def __str__(self):
+        return f"Bad sequence step definition: {self.step}"
 
 
 @dataclass

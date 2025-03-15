@@ -24,12 +24,14 @@ from appdaemon.thread_async import ThreadAsync
 from appdaemon.threads import Threading
 from appdaemon.utility_loop import Utility
 
+from .utils import Singleton
+
 if TYPE_CHECKING:
     from appdaemon.http import HTTP
     from appdaemon.logging import Logging
 
 
-class AppDaemon:
+class AppDaemon(metaclass=Singleton):
     """Top-level container for the subsystem objects. This gets passed to the subsystem objects and stored in them as the ``self.AD`` attribute.
 
     Asyncio:

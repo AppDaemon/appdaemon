@@ -719,7 +719,10 @@ class ADAPI:
             "." in entity_id and
             not self.AD.state.entity_exists(namespace, entity_id)
         ):
-            self.logger.warning("%s: Entity %s not found in namespace %s", self.name, entity_id, namespace)
+            if namespace == "default":
+                self.logger.warning(f"Entity {entity_id} not found in the default namespace")
+            else:
+                self.logger.warning(f"Entity {entity_id} not found in namespace {namespace}")
 
     @staticmethod
     def get_ad_version() -> str:
@@ -1911,10 +1914,8 @@ class ADAPI:
                 case Iterable():
                     for e in eid:
                         self._check_entity(namespace, e)
-        try:
-            return await self.AD.services.call_service(namespace, *service.split("/", 2), name=self.name, data=data)
-        except (ade.NamespaceException, ade.DomainException, ade.ServiceException) as exc:
-            raise ade.BadUserServiceCall(f"Bad service call: '{service}' in namespace '{namespace}'") from exc
+
+        return await self.AD.services.call_service(namespace, *service.split("/", 2), name=self.name, data=data)
 
     # Sequences
 

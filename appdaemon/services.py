@@ -225,12 +225,11 @@ class Services:
             if ns_services := self.services.get(namespace):
                 if domain_services := ns_services.get(domain):
                     if service not in domain_services:
-                        raise ServiceException(f"Service '{service}' is not in the domain '{domain}' {suffix}")
+                        raise ServiceException(namespace, domain, service)
                 else:
-                    # raise DomainException(f"Domain '{domain}' is not in namespace '{namespace}' {suffix}")
-                    raise DomainException(namespace, domain, service)
+                    raise DomainException(namespace, domain)
             else:
-                raise NamespaceException(f"Unknown namespace '{namespace}' {suffix}")
+                raise NamespaceException(namespace)
 
             # If we have namespace in data it's an override for the domain of the eventual service call, as distinct
             # from the namespace the call itself is executed from. e.g. set_state() is in the AppDaemon namespace but

@@ -12,12 +12,14 @@ from logging import Logger
 from queue import Queue
 from random import randint
 from threading import Thread
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any
+from collections.abc import Callable
 
 import iso8601
 
 from . import utils
 from .models.config.app import AppConfig
+from . import exceptions as ade
 
 if TYPE_CHECKING:
     from .adbase import ADBase
@@ -911,7 +913,7 @@ class Threading:
         _id = args["id"]
         objectid = args["objectid"]
         name = args["name"]
-        error_logger = logging.getLogger("Error.{}".format(name))
+        error_logger = logging.getLogger(f"Error.{name}")
         args["kwargs"]["__thread_id"] = thread_id
 
         if isinstance(funcref, functools.partial):
@@ -1010,12 +1012,18 @@ class Threading:
                         self.report_callback_sig(name, "event", funcref, args)
 
             except ade.AppDaemonException as exc:
-                raise exc
-            except Exception:
+                raise exc # gets caught in the handler attached to the loop
+            except Exception as exc:
+                match args['type']:
+                    case 'state':
+                        raise ade.StateCallbackFail(name, entity, args) from exc
+                    case 'scheduler':
+                        raise ade.SchedulerCallbackFail(name, args) from exc
+                raise ade.CallbackException(funcref.__name__, app_name=name) from exc
+
                 with self.log_lock:
                     error_logger.warning("-" * 60)
-                    error_logger.warning(
-                        "Unexpected error in worker for App %s:", name)
+                    error_logger.warning("Unexpected error in worker for App %s:", name)
                     error_logger.warning("Worker Ags: %s", args)
                     error_logger.warning("-" * 60)
                     error_logger.warning(traceback.format_exc())
@@ -1163,20 +1171,38 @@ class Threading:
                             self.report_callback_sig(
                                 name, "event", funcref, args)
 
-                except Exception:
-                    with self.log_lock:
-                        error_logger.warning("-" * 60)
-                        error_logger.warning(
-                            "Unexpected error in worker for App %s:", name)
-                        error_logger.warning("Worker Ags: %s", args)
-                        error_logger.warning("-" * 60)
-                        error_logger.warning(traceback.format_exc())
-                        error_logger.warning("-" * 60)
-                        if self.AD.logging.separate_error_log() is True:
-                            self.logger.warning(
-                                "Logged an error to %s",
-                                self.AD.logging.get_filename("error_log"),
-                            )
+                except ade.AppDaemonException as exc:
+                    ade.user_exception_block(error_logger, exc, self.AD.app_dir)
+                except Exception as exc:
+                    try:
+                        match args['type']:
+                            case 'state':
+                                raise ade.StateCallbackFail(name, entity, args) from exc
+                            case 'scheduler':
+                                partial_func = args['function']
+                                keywords = partial_func.keywords
+                                keywords.update(args['kwargs'])
+                                raise ade.SchedulerCallbackFail(
+                                    name,
+                                    partial_func.args,
+                                    keywords,
+                                ) from exc
+                    except ade.AppDaemonException as e:
+                        ade.user_exception_block(error_logger, e, self.AD.app_dir)
+
+                    # with self.log_lock:
+                    #     error_logger.warning("-" * 60)
+                    #     error_logger.warning(
+                    #         "Unexpected error in worker for App %s:", name)
+                    #     error_logger.warning("Worker Ags: %s", args)
+                    #     error_logger.warning("-" * 60)
+                    #     error_logger.warning(traceback.format_exc())
+                    #     error_logger.warning("-" * 60)
+                    #     if self.AD.logging.separate_error_log() is True:
+                    #         self.logger.warning(
+                    #             "Logged an error to %s",
+                    #             self.AD.logging.get_filename("error_log"),
+                    #         )
                 finally:
                     utils.run_coroutine_threadsafe(
                         self,
