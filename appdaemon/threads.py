@@ -40,14 +40,14 @@ class Threading:
     """Standard python logger named ``Diag``
     """
     thread_count: int
-    threads: Dict[str, Dict[str, Union[Thread, Queue]]]
+    threads: dict[str, dict[str, Thread | Queue]]
     """Dictionary with keys of the thread ID (string beginning with `thread-`) and values of
     another dictionary with `thread` and `queue` keys that have values of
     :class:`~threading.Thread` and :class:`~queue.Queue` objects respectively.
     """
 
     last_stats_time: datetime.datetime = datetime.datetime.fromtimestamp(0)
-    callback_list: List[Dict]
+    callback_list: list[dict]
 
     pin_threads: int = 0
     total_threads: int
@@ -510,7 +510,12 @@ class Threading:
     # Pinning
     #
 
-    async def add_thread(self, silent: bool = False, pinthread: bool = False, id: Optional[Union[int, str]] = None):
+    async def add_thread(
+        self,
+        silent: bool = False,
+        pinthread: bool = False,
+        id: int | str | None = None,
+    ):
         if id is None:
             tid = self.thread_count
         else:
