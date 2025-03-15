@@ -2,7 +2,7 @@ import threading
 from functools import wraps
 from logging import Logger
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, List
+from typing import TYPE_CHECKING
 
 from . import adapi
 
@@ -51,10 +51,10 @@ class ADBase:
     AD: "AppDaemon"
     config_model: "AppConfig"
 
-    config: Dict
+    config: dict
     """Dictionary of the AppDaemon configuration
     """
-    args: Dict
+    args: dict
     """Dictionary of the app configuration
     """
 
@@ -69,8 +69,8 @@ class ADBase:
     err: Logger
 
     lock: threading.RLock
-    user_logs: Dict
-    constraints: List
+    user_logs: dict
+    constraints: list
 
     def __init__(self, ad: "AppDaemon", config_model: "AppConfig"):
         self.AD = ad

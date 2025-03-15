@@ -4,7 +4,8 @@ import traceback
 import uuid
 from copy import deepcopy
 from logging import Logger
-from typing import TYPE_CHECKING, Any, Callable, Dict, overload
+from typing import TYPE_CHECKING, Any, overload
+from collections.abc import Callable
 
 import appdaemon.utils as utils
 
@@ -108,7 +109,7 @@ class Events:
 
             await self.AD.state.add_entity(
                 "admin",
-                "event_callback.{}".format(handle),
+                f"event_callback.{handle}",
                 "active",
                 {
                     "app": name,
@@ -140,7 +141,7 @@ class Events:
         async with self.AD.callbacks.callbacks_lock:
             if name in self.AD.callbacks.callbacks and handle in self.AD.callbacks.callbacks[name]:
                 del self.AD.callbacks.callbacks[name][handle]
-                await self.AD.state.remove_entity("admin", "event_callback.{}".format(handle))
+                await self.AD.state.remove_entity("admin", f"event_callback.{handle}")
                 executed = True
 
             if name in self.AD.callbacks.callbacks and self.AD.callbacks.callbacks[name] == {}:
@@ -148,7 +149,7 @@ class Events:
 
         if not executed:
             self.logger.warning(
-                "Invalid callback handle '{}' in cancel_event_callback() from app {}".format(handle, name)
+                f"Invalid callback handle '{handle}' in cancel_event_callback() from app {name}"
             )
 
         return executed
@@ -173,7 +174,7 @@ class Events:
                 callback = self.AD.callbacks.callbacks[name][handle]
                 return callback["event"], callback["kwargs"].copy()
             else:
-                raise ValueError("Invalid handle: {}".format(handle))
+                raise ValueError(f"Invalid handle: {handle}")
 
     async def fire_event(self, namespace: str, event: str, **kwargs):
         """Fires an event.
@@ -203,7 +204,7 @@ class Events:
             # Just fire the event locally
             await self.AD.events.process_event(namespace, {"event_type": event, "data": kwargs})
 
-    async def process_event(self, namespace: str, data: Dict[str, Any]):
+    async def process_event(self, namespace: str, data: dict[str, Any]):
         """Processes an event that has been received either locally or from a plugin.
 
         Args:

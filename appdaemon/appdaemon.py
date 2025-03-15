@@ -109,7 +109,7 @@ class AppDaemon:
     """Flag for whether ``disable_apps`` was set in the AppDaemon config
     """
 
-    admin_loop: Optional[AdminLoop] = None
+    admin_loop: AdminLoop | None = None
     http: Optional["HTTP"] = None
     global_lock: RLock = Field(default_factory=RLock)
 

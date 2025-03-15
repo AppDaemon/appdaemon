@@ -3,7 +3,8 @@ import uuid
 from collections.abc import Iterable
 from datetime import datetime, timedelta
 from logging import Logger
-from typing import TYPE_CHECKING, Any, Callable, Optional, Union, overload
+from typing import TYPE_CHECKING, Any, overload
+from collections.abc import Callable
 
 import appdaemon.utils as utils
 from appdaemon.exceptions import TimeOutException
@@ -159,14 +160,14 @@ class Entity:
         oneshot: bool | None = None,
         pin: bool | None = None,
         pin_thread: int | None = None,
-        **kwargs: Optional[Any]
+        **kwargs: Any | None
     ) -> str | list[str]: ...
 
     @utils.sync_decorator
     async def listen_state(
         self,
         callback: Callable,
-        **kwargs: Optional[Any]
+        **kwargs: Any | None
     ) -> str:
         """Registers a callback to react to state changes.
 
@@ -283,7 +284,7 @@ class Entity:
         )
 
     @utils.sync_decorator
-    async def add(self, state: Union[str, int, float] = None, attributes: dict = None) -> None:
+    async def add(self, state: str | int | float = None, attributes: dict = None) -> None:
         """Adds a non-existent entity, by creating it within a namespaces.
 
         It should be noted that this api call, is mainly for creating AD internal entities.
@@ -329,7 +330,7 @@ class Entity:
     ) -> Any: ...
 
     @utils.sync_decorator
-    async def call_service(self, service: str, namespace: str | None = None, **kwargs: Optional[Any]) -> Any:
+    async def call_service(self, service: str, namespace: str | None = None, **kwargs: Any | None) -> Any:
         """Calls an entity supported Service within AppDaemon.
 
         This function can call only services that are tied to the entity, and provide any required parameters.
@@ -362,9 +363,9 @@ class Entity:
     async def wait_state(
         self,
         state: Any,
-        attribute: Union[str, int] = None,
-        duration: Union[int, float] = 0,
-        timeout: Union[int, float] = None,
+        attribute: str | int = None,
+        duration: int | float = 0,
+        timeout: int | float = None,
     ) -> None:
         """Used to wait for the state of an entity's attribute
 
@@ -492,7 +493,7 @@ class Entity:
         return await self.call_service("turn_on", **kwargs)
 
     @utils.sync_decorator
-    async def turn_off(self, **kwargs: Optional[Any]) -> Any:
+    async def turn_off(self, **kwargs: Any | None) -> Any:
         """Generic function, used to turn the entity OFF if supported.
         This function will attempt to call the `turn_off` service if registered,
         either by an app or plugin within the entity's namespace. So therefore its
@@ -511,7 +512,7 @@ class Entity:
         return await self.call_service("turn_off", **kwargs)
 
     @utils.sync_decorator
-    async def toggle(self, **kwargs: Optional[Any]) -> Any:
+    async def toggle(self, **kwargs: Any | None) -> Any:
         """Generic function, used to toggle the entity ON/OFF if supported.
         This function will attempt to call the `toggle` service if registered,
         either by an app or plugin within the entity's namespace. So therefore its

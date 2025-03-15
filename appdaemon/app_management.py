@@ -14,7 +14,8 @@ from copy import copy
 from functools import partial, reduce, wraps
 from logging import Logger
 from pathlib import Path
-from typing import TYPE_CHECKING, Iterable, Literal, Set, Union
+from typing import TYPE_CHECKING, Literal
+from collections.abc import Iterable
 
 from pydantic import ValidationError
 
@@ -56,15 +57,15 @@ class AppManagement:
     - ``self.init_plugin_object``
     - ``self.init_sequence_object``
     """
-    active_apps: Set[str]
-    inactive_apps: Set[str]
-    non_apps: Set[str] = {"global_modules", "sequence"}
+    active_apps: set[str]
+    inactive_apps: set[str]
+    non_apps: set[str] = {"global_modules", "sequence"}
     check_app_updates_profile_stats: str = ""
     check_updates_lock: asyncio.Lock = asyncio.Lock()
 
     dependency_manager: DependencyManager
 
-    reversed_graph: dict[str, Set[str]] = {}
+    reversed_graph: dict[str, set[str]] = {}
     """Dictionary that maps full module names to sets of those that depend on them
     """
 
@@ -124,7 +125,7 @@ class AppManagement:
         return self.dependency_manager.python_deps.files
 
     @property
-    def module_dependencies(self) -> dict[str, Set[str]]:
+    def module_dependencies(self) -> dict[str, set[str]]:
         return self.dependency_manager.python_deps.dep_graph
 
     @property
@@ -307,7 +308,7 @@ class AppManagement:
             return False
 
         except Exception:
-            error_logger = logging.getLogger("Error.{}".format(app_name))
+            error_logger = logging.getLogger(f"Error.{app_name}")
             error_logger.warning("-" * 60)
             error_logger.warning(
                 "Unexpected error running terminate() for %s", app_name)
@@ -410,7 +411,7 @@ class AppManagement:
                 self.logger.debug("Stopping app '%s'", app_name)
             await self.terminate_app(app_name, delete)
         except Exception:
-            error_logger = logging.getLogger("Error.{}".format(app_name))
+            error_logger = logging.getLogger(f"Error.{app_name}")
             error_logger.warning("-" * 60)
             error_logger.warning(
                 "Unexpected error terminating app: %s:", app_name)
@@ -514,7 +515,7 @@ class AppManagement:
             module_path = await utils.run_in_executor(self, os.path.abspath, mod_obj.__file__)
             await self.set_state(app_name, state="created", module_path=module_path)
 
-    def get_managed_app_names(self, include_globals: bool = False) -> Set[str]:
+    def get_managed_app_names(self, include_globals: bool = False) -> set[str]:
         apps = set(name for name, o in self.objects.items() if o.type == "app")
         if include_globals:
             apps |= set(name for name, cfg in self.app_config.root.items()
@@ -738,10 +739,10 @@ class AppManagement:
 
     @staticmethod
     def check_file(file: str):
-        with open(file, "r"):
+        with open(file):
             pass
 
-    def add_to_import_path(self, path: Union[str, Path]):
+    def add_to_import_path(self, path: str | Path):
         path = str(path)
         self.logger.debug("Adding directory to import path: %s", path)
         sys.path.insert(0, path)
@@ -1045,7 +1046,7 @@ class AppManagement:
                 elif isinstance(cfg, GlobalModule):
                     assert cfg.module_name in sys.modules, f'{cfg.module_name} not in sys.modules'
 
-    async def _import_modules(self, update_actions: UpdateActions) -> Set[str]:
+    async def _import_modules(self, update_actions: UpdateActions) -> set[str]:
         """Calls ``self.import_module`` for each module in the list
 
         This is what handles importing all the modules safely. If any of them fail to import, that failure is cascaded through the dependencies.
@@ -1118,7 +1119,7 @@ class AppManagement:
         if update_actions.sequences.changes or update_mode == UpdateMode.INIT:
             await self.AD.sequences.update_sequence_entities(self.sequence_config)
 
-    def apps_per_module(self, module_name: str) -> Set[str]:
+    def apps_per_module(self, module_name: str) -> set[str]:
         """Finds which apps came from a given module name.
 
         Returns a set of app names that are either app configs or gobal modules that directly refer to the given module by name.
@@ -1129,7 +1130,7 @@ class AppManagement:
             if isinstance(cfg, (AppConfig, GlobalModule)) and cfg.module_name == module_name
         )
 
-    def apps_per_global_module(self, module_name: str) -> Set[str]:
+    def apps_per_global_module(self, module_name: str) -> set[str]:
         """Finds which apps depend on a given global module"""
         return set(
             app_name
