@@ -1009,6 +1009,8 @@ class Threading:
                     except TypeError:
                         self.report_callback_sig(name, "event", funcref, args)
 
+            except ade.AppDaemonException as exc:
+                raise exc
             except Exception:
                 with self.log_lock:
                     error_logger.warning("-" * 60)

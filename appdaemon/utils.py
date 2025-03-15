@@ -375,6 +375,8 @@ def warning_decorator(
                     header=error_text,
                     exception_text=''.join(traceback.format_exception(e, limit=-1))
                 )
+            except ade.AppDaemonException as e:
+                raise e
             except ade.ConfigReadFailure as e:
                 logger.warning(f'Failed to read config file: {e}')
                 log_warning_block(

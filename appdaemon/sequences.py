@@ -108,12 +108,12 @@ class Sequences:
             await self.cancel_sequence(sequence)
             await self.AD.state.remove_entity(self.namespace, self.normalized(sequence))
 
-    async def run_sequence(
+    def run_sequence(
         self,
         calling_app: str,
         namespace: str,
-        sequence: str | list[dict[str, dict[str, str]]]
-    ):
+        sequence: str | list[dict[str, dict[str, str]]],
+    ) -> asyncio.Task:
         """Prepares the sequence and creates a task to run it"""
         try:
             match sequence:
@@ -146,7 +146,7 @@ class Sequences:
                         self.logger.error(f"Error creating inline sequence:\n{e}")
                         return
         except Exception as e:
-            raise ade.BadSequence("Bad sequence definition", bad_seq=sequence) from e
+            raise ade.SequenceExecutionFail("Bad sequence definition", bad_seq=sequence) from e
 
         coro = self._exec_seq(
             calling_app=calling_app,
@@ -179,7 +179,6 @@ class Sequences:
                     self.AD.futures.cancel_future(future)
 
     @utils.warning_decorator(error_text='Unexpected error executing sequence')
-    @ade.wrap_async_method
     async def _exec_seq(
         self,
         calling_app: str,
@@ -192,20 +191,12 @@ class Sequences:
         try:
             while True:
                 for i, step in enumerate(steps):
-                    # wrapped = ade.wrap_async_method(self._exec_step)
-                    # coro = wrapped(step, namespace, calling_app)
-                    # await coro
-                    # pass
                     try:
                         await self._exec_step(step, namespace, calling_app)
                     except ade.AppDaemonException as exc:
-                        raise ade.BadSequenceStep(f'Step failed during _exec_seq: {step}') from exc
+                        raise ade.SequenceStepExecutionFail(step) from exc
                 if not loop:
                     break
-        except ade.AppDaemonException as e:
-            # logger = self.AD.logging.get_error().getChild(calling_app)
-            # logger.error(f'Error in sequence step {i}: {e}')
-            raise ade.BadSequence('Bad sequence _exec_seq', bad_seq=steps) from e
         finally:
             await self.set_state(entity_id, "idle")
 
@@ -232,11 +223,12 @@ class Sequences:
             case WaitStateStep():
                 self.logger.warning("Cannot process command 'wait_state', as not supported in sequence")
             case SubSequenceStep():
-                await self.run_sequence(
+                task = self.run_sequence(
                     calling_app=calling_app,
                     namespace=step.namespace or default_namespace,
                     sequence=self.normalized(step.sequence)
                 )
+                await task
 
     #
     # Placeholder for constraints

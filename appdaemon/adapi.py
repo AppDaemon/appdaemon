@@ -10,7 +10,8 @@ from concurrent.futures import Future
 from datetime import timedelta
 from logging import Logger
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, overload
+from typing import TYPE_CHECKING, Any, overload
+from collections.abc import Callable
 
 import iso8601
 
@@ -42,13 +43,13 @@ class ADAPI:
     config_model: "AppConfig"
     """Pydantic model of the app configuration
     """
-    config: Dict[str, Any]
+    config: dict[str, Any]
     """Dictionary of the AppDaemon configuration
     """
-    app_config: Dict[str, Any]
+    app_config: dict[str, Any]
     """Dictionary of the full app configuration, which includes all apps
     """
-    args: Dict[str, Any]
+    args: dict[str, Any]
     """Dictionary of this app's configuration
     """
 
@@ -1822,7 +1823,7 @@ class ADAPI:
         service: str,
         namespace: str | None = None,
         timeout: int | float | None = None,  # Used by utils.sync_decorator
-        **data: Optional[Any],
+        **data: Any | None,
     ) -> Any:
         """Calls a Service within AppDaemon.
 
@@ -1950,7 +1951,13 @@ class ADAPI:
         """
         namespace = namespace or self.namespace
         self.logger.debug("Calling run_sequence() for %s from %s", sequence, self.name)
-        return await self.AD.sequences.run_sequence(self.name, namespace, sequence)
+
+        try:
+            task = self.AD.sequences.run_sequence(self.name, namespace, sequence)
+            return await task
+        except ade.AppDaemonException as e:
+            new_exc = ade.SequenceExecutionFail(f"run_sequence() failed from app '{self.name}'")
+            raise new_exc from e
 
     @utils.sync_decorator
     async def cancel_sequence(self, sequence: str | list[str] | Future) -> None:
@@ -2624,12 +2631,11 @@ class ADAPI:
         assert isinstance(delay, timedelta), f"Invalid delay: {delay}"
         self.logger.debug(f"Registering run_in in {delay.total_seconds():.1f}s for {self.name}")
         exec_time = (await self.get_now()) + delay
-        partial_func = functools.partial(callback, *args, **kwargs)
-        wrapped_func = ade.wrap_app_method(partial_func)
+        sched_func = functools.partial(callback, *args, **kwargs)
         return await self.AD.sched.insert_schedule(
             name=self.name,
             aware_dt=exec_time,
-            callback=wrapped_func,
+            callback=sched_func,
             random_start=random_start,
             random_end=random_end,
             pin=pin,
@@ -3555,7 +3561,7 @@ class ADAPI:
         return self.get_entity(entity_id).get_callbacks()
 
     @utils.sync_decorator
-    async def depends_on_module(self, *modules: List[str]) -> None:
+    async def depends_on_module(self, *modules: list[str]) -> None:
         """Registers a global_modules dependency for an app.
 
         Args:

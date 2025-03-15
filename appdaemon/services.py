@@ -227,7 +227,8 @@ class Services:
                     if service not in domain_services:
                         raise ServiceException(f"Service '{service}' is not in the domain '{domain}' {suffix}")
                 else:
-                    raise DomainException(f"Domain '{domain}' is not in namespace '{namespace}' {suffix}")
+                    # raise DomainException(f"Domain '{domain}' is not in namespace '{namespace}' {suffix}")
+                    raise DomainException(namespace, domain, service)
             else:
                 raise NamespaceException(f"Unknown namespace '{namespace}' {suffix}")
 

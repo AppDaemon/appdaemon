@@ -396,7 +396,7 @@ class AppManagement:
                 await self.set_state(app_name, state="initialize_error")
                 self.objects[app_name].running = False
                 self.logger.warning(f"App '{app_name}' failed to start")
-                raise ade.AppInitializeError(f"Error during initialize method for '{app_name}'") from e
+                raise ade.InitializationFail(app_name) from e
             else:
                 self.objects[app_name].running = True
 
@@ -429,7 +429,7 @@ class AppManagement:
         await self.stop_app(app, delete=False)
         try:
             await self.start_app(app)
-        except (ade.AppDependencyError, ade.AppInitializeError) as e:
+        except ade.AppDaemonException as e:
             self.logger.warning(e)
 
     def get_app_debug_level(self, name: str):
@@ -1032,14 +1032,13 @@ class AppManagement:
                     async def safe_start(self: "AppManagement"):
                         try:
                             await self.start_app(app_name)
+                        except ade.AppDaemonException as e:
+                            update_actions.apps.failed.add(app_name)
+                            logger = self.AD.logging.get_error().getChild(app_name)
+                            ade.user_exception_block(logger, e, self.AD.app_dir)
                         except Exception as e:
                             update_actions.apps.failed.add(app_name)
-                            logger = self.AD.logging.get_child(app_name)
-                            width = shutil.get_terminal_size().columns - 35 - len(app_name)
-                            logger.error('=' * width)
-                            ade.log_exception_chain(e, logger, self.AD.app_dir)
-                            logger.error('=' * width)
-                            # raise
+                            raise  # any exceptions will be handled by the warning_decorator
 
                     if await self.get_state(app_name) != "compile_error":
                         await safe_start(self)

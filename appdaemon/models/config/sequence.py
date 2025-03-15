@@ -69,7 +69,7 @@ def service_call_validator(v: dict[str, dict[str, Any]]):
         v[service]["service"] = service
         return v[service]
     except Exception as exc:
-        raise ade.BadSequenceStep(f'Bad service call step: {v}') from exc
+        raise ade.BadSequenceStepDefinition(f'Bad service call step: {v}') from exc
 
 
 def service_call_serializer(value: Any, handler, info):
