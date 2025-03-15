@@ -2,7 +2,8 @@ import sys
 from abc import ABC
 from copy import deepcopy
 from pathlib import Path
-from typing import Annotated, Any, Iterable, Iterator, Literal, Optional, Union
+from typing import Annotated, Any, Literal
+from collections.abc import Iterable, Iterator
 
 from pydantic import BaseModel, Discriminator, Field, RootModel, Tag, field_validator
 from pydantic_core import PydanticUndefinedType
@@ -19,7 +20,7 @@ class GlobalModules(RootModel):
 class BaseApp(BaseModel, ABC):
     """Abstract class to contain logic that's common to both apps and global modules"""
     name: str
-    config_path: Optional[Path] = None  # Needs to remain optional because it gets set later
+    config_path: Path | None = None  # Needs to remain optional because it gets set later
     module_name: str = Field(alias="module")
     """Importable module name.
     """
@@ -35,7 +36,7 @@ class BaseApp(BaseModel, ABC):
 
     @field_validator("dependencies", mode="before")
     @classmethod
-    def coerce_to_list(cls, value: Union[str, set[str]]) -> set[str]:
+    def coerce_to_list(cls, value: str | set[str]) -> set[str]:
         return set((value,)) if isinstance(value, str) else value
 
 
@@ -50,10 +51,10 @@ class AppConfig(BaseApp, extra="allow"):
     class_name: str = Field(alias="class")
     """Name of the class to use for the app. Must be accessible as an attribute of the imported `module_name`
     """
-    pin_app: Optional[bool] = None
-    pin_thread: Optional[int] = None
-    log: Optional[str] = None
-    log_level: Optional[str] = None
+    pin_app: bool | None = None
+    pin_thread: int | None = None
+    log: str | None = None
+    log_level: str | None = None
 
     def __getitem__(self, key: str):
         return getattr(self, key)
@@ -74,10 +75,7 @@ def discriminate_app(v: Any):
 
 
 AppOrGlobal = Annotated[
-    Union[
-        Annotated[AppConfig, Tag("app")],
-        Annotated[GlobalModule, Tag("global")]
-    ],
+    Annotated[AppConfig, Tag("app")] | Annotated[GlobalModule, Tag("global")],
     Field(discriminator=Discriminator(discriminate_app))
 ]
 
@@ -85,7 +83,7 @@ AppOrGlobal = Annotated[
 class AllAppConfig(RootModel):
     root: dict[
         str | Literal["global_modules", "sequence"],
-        Union[AppOrGlobal, GlobalModules, SequenceConfig]
+        AppOrGlobal | GlobalModules | SequenceConfig
     ] = Field(default_factory=dict)
 
     @field_validator("root", mode="before")

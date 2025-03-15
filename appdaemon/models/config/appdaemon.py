@@ -1,7 +1,8 @@
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Annotated, Any, Callable, Literal, Union
+from typing import Annotated, Any, Literal
+from collections.abc import Callable
 
 import pytz
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Discriminator, Field, RootModel, Tag, field_validator, model_validator
@@ -32,7 +33,7 @@ class AppDaemonConfig(BaseModel, extra="allow"):
     plugins: dict[
         str,
         Annotated[
-            Union[Annotated[HASSConfig, Tag("hass")], Annotated[MQTTConfig, Tag("mqtt")]],
+            Annotated[HASSConfig, Tag("hass")] | Annotated[MQTTConfig, Tag("mqtt")],
             Discriminator(plugin_discriminator),
         ],
     ] = Field(default_factory=dict)
@@ -130,7 +131,7 @@ class AppDaemonConfig(BaseModel, extra="allow"):
 
     @field_validator("loglevel", mode="before")
     @classmethod
-    def convert_loglevel(cls, v: Union[str, int]):
+    def convert_loglevel(cls, v: str | int):
         if isinstance(v, int):
             return logging._levelToName[int]
         elif isinstance(v, str):
