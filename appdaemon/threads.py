@@ -930,111 +930,62 @@ class Threading:
         app = self.AD.app_management.get_app_instance(name, objectid)
         if app is not None:
             try:
-                if _type == "scheduler":
-                    try:
-                        await self.update_thread_info("async", callback, name, _type, _id, silent)
-                        if use_dictionary_unpacking is True:
-                            await funcref(**self.AD.sched.sanitize_timer_kwargs(app, args["kwargs"]))
-                        else:
-                            await funcref(self.AD.sched.sanitize_timer_kwargs(app, args["kwargs"]))
-                    except TypeError:
-                        self.report_callback_sig(
-                            name, "scheduler", funcref, args)
+                pos_args = tuple()
+                kwargs = dict()
+                match _type:
+                    case "scheduler":
+                        kwargs = self.AD.sched.sanitize_timer_kwargs(app, args["kwargs"])
 
-                elif _type == "state":
-                    try:
-                        entity = args["entity"]
-                        attr = args["attribute"]
-                        old_state = args["old_state"]
-                        new_state = args["new_state"]
-                        await self.update_thread_info("async", callback, name, _type, _id, silent)
-                        if use_dictionary_unpacking is True:
-                            await funcref(
-                                entity,
-                                attr,
-                                old_state,
-                                new_state,
-                                **self.AD.state.sanitize_state_kwargs(app, args["kwargs"]),
-                            )
-                        else:
-                            await funcref(
-                                entity,
-                                attr,
-                                old_state,
-                                new_state,
-                                self.AD.state.sanitize_state_kwargs(
-                                    app, args["kwargs"]),
-                            )
-                    except TypeError:
-                        self.report_callback_sig(name, "state", funcref, args)
+                    case "state":
+                        pos_args = (
+                            args["entity"],
+                            args["attribute"],
+                            args["old_state"],
+                            args["new_state"],
+                        )
+                        kwargs = self.AD.state.sanitize_state_kwargs(app, args["kwargs"])
 
-                elif _type == "log":
-                    data = args["data"]
-                    try:
-                        await self.update_thread_info("async", callback, name, _type, _id, silent)
-                        if use_dictionary_unpacking is True:
-                            await funcref(
-                                data["app_name"],
-                                data["ts"],
-                                data["level"],
-                                data["log_type"],
-                                data["message"],
-                                **self.AD.logging.sanitize_log_kwargs(app, args["kwargs"]),
-                            )
-                        else:
-                            await funcref(
-                                data["app_name"],
-                                data["ts"],
-                                data["level"],
-                                data["log_type"],
-                                data["message"],
-                                self.AD.logging.sanitize_log_kwargs(
-                                    app, args["kwargs"]),
-                            )
-                    except TypeError:
-                        self.report_callback_sig(
-                            name, "log_event", funcref, args)
+                    case "log":
+                        data = args["data"]
+                        pos_args = (
+                            data["app_name"],
+                            data["ts"],
+                            data["level"],
+                            data["log_type"],
+                            data["message"],
+                        )
+                        kwargs = self.AD.logging.sanitize_log_kwargs(app, args["kwargs"])                        
 
-                elif _type == "event":
-                    data = args["data"]
-                    try:
-                        await self.update_thread_info("async", callback, name, _type, _id, silent)
-                        if use_dictionary_unpacking is True:
-                            await funcref(
-                                args["event"], data, **self.AD.events.sanitize_event_kwargs(app, args["kwargs"])
-                            )
-                        else:
-                            await funcref(
-                                args["event"], data, self.AD.events.sanitize_event_kwargs(
-                                    app, args["kwargs"])
-                            )
-                    except TypeError:
-                        self.report_callback_sig(name, "event", funcref, args)
+                    case "event":
+                        data = args["data"]
+                        pos_args = (args["event"], data)
+                        kwargs = self.AD.events.sanitize_event_kwargs(app, args["kwargs"])
 
+                await self.update_thread_info("async", callback, name, _type, _id, silent)
+                if use_dictionary_unpacking is True:
+                    await funcref(*pos_args, **kwargs)
+                else:
+                    await funcref(*pos_args, kwargs)
+
+            except TypeError:
+                self.report_callback_sig(name, _type, funcref, args)
             except ade.AppDaemonException as exc:
+                # Pass the exception to the main thread. It should already have the relevant information
                 raise exc # gets caught in the handler attached to the loop
             except Exception as exc:
-                match args['type']:
-                    case 'state':
-                        raise ade.StateCallbackFail(name, entity, args) from exc
-                    case 'scheduler':
-                        raise ade.SchedulerCallbackFail(name, args) from exc
-                raise ade.CallbackException(funcref.__name__, app_name=name) from exc
-
-                with self.log_lock:
-                    error_logger.warning("-" * 60)
-                    error_logger.warning("Unexpected error in worker for App %s:", name)
-                    error_logger.warning("Worker Ags: %s", args)
-                    error_logger.warning("-" * 60)
-                    error_logger.warning(traceback.format_exc())
-                    error_logger.warning("-" * 60)
                 if self.AD.logging.separate_error_log() is True:
                     self.logger.warning(
                         "Logged an error to %s",
                         self.AD.logging.get_filename("error_log"),
                     )
+
+                match args['type']:
+                    case 'state':
+                        raise ade.StateCallbackFail(name, args["entity"], args) from exc
+                    case 'scheduler':
+                        raise ade.SchedulerCallbackFail(name, pos_args, kwargs) from exc
+                raise ade.CallbackException(funcref.__name__, app_name=name) from exc
             finally:
-                pass
                 await self.update_thread_info("async", "idle", name, _type, _id, silent)
 
         else:
@@ -1056,15 +1007,6 @@ class Threading:
             error_logger = logging.getLogger(f"Error.{name}")
             args["kwargs"]["__thread_id"] = thread_id
 
-            # if funcref is None:
-            #     self.logger.error(f'funcref is None: {args}')
-            #     continue
-
-            if isinstance(funcref, functools.partial):
-                callback = f'{funcref.func.__name__}() in {name}'
-            else:
-                callback = f'{funcref.__name__}() in {name}'
-
             silent = False
             if "__silent" in args["kwargs"]:
                 silent = args["kwargs"]["__silent"]
@@ -1074,146 +1016,65 @@ class Threading:
             app = self.AD.app_management.get_app_instance(name, objectid)
             if app is not None:
                 try:
-                    if _type == "scheduler":
-                        try:
-                            utils.run_coroutine_threadsafe(
-                                self,
-                                self.update_thread_info(
-                                    thread_id, callback, name, _type, _id, silent),
+                    pos_args = tuple()
+                    kwargs = dict()
+                    match args["type"]:
+                        case "scheduler":
+                            kwargs = self.AD.sched.sanitize_timer_kwargs(app, args["kwargs"])
+
+                        case "state":
+                            pos_args = (
+                                args["entity"],
+                                args["attribute"],
+                                args["old_state"],
+                                args["new_state"],
                             )
-                            if use_dictionary_unpacking is True:
-                                funcref(**self.AD.sched.sanitize_timer_kwargs(app, args["kwargs"]))
-                            else:
-                                funcref(self.AD.sched.sanitize_timer_kwargs(app, args["kwargs"]))
-                        except TypeError:
-                            self.report_callback_sig(
-                                name, "scheduler", funcref, args)
+                            kwargs = self.AD.state.sanitize_state_kwargs(app, args["kwargs"])
 
-                    elif _type == "state":
-                        try:
-                            entity = args["entity"]
-                            attr = args["attribute"]
-                            old_state = args["old_state"]
-                            new_state = args["new_state"]
-                            utils.run_coroutine_threadsafe(
-                                self,
-                                self.update_thread_info(
-                                    thread_id, callback, name, _type, _id, silent),
+                        case "log":
+                            data = args["data"]
+                            pos_args = (
+                                data["app_name"],
+                                data["ts"],
+                                data["level"],
+                                data["log_type"],
+                                data["message"],
                             )
-                            if use_dictionary_unpacking is True:
-                                funcref(
-                                    entity,
-                                    attr,
-                                    old_state,
-                                    new_state,
-                                    **self.AD.state.sanitize_state_kwargs(app, args["kwargs"]),
-                                )
-                            else:
-                                funcref(
-                                    entity,
-                                    attr,
-                                    old_state,
-                                    new_state,
-                                    self.AD.state.sanitize_state_kwargs(
-                                        app, args["kwargs"]),
-                                )
-                        except TypeError:
-                            self.report_callback_sig(
-                                name, "state", funcref, args)
+                            kwargs = self.AD.logging.sanitize_log_kwargs(app, args["kwargs"])
 
-                    if _type == "log":
-                        data = args["data"]
+                        case "event":
+                            pos_args = (args["event"], args["data"])
+                            kwargs = self.AD.events.sanitize_event_kwargs(app, args["kwargs"])
+                    
+                    if use_dictionary_unpacking:
+                        funcref = functools.partial(funcref, *pos_args, **kwargs)
+                    else:
+                        funcref = functools.partial(funcref, *pos_args, kwargs)
+
+                    callback = f'{funcref.func.__name__}() in {name}'
+                    update_coro = self.update_thread_info(thread_id, callback, name, _type, _id, silent)
+                    utils.run_coroutine_threadsafe(self, update_coro)
+
+                    @ade.wrap_sync(error_logger, self.AD.app_dir, callback)
+                    def safe_callback():
                         try:
-                            utils.run_coroutine_threadsafe(
-                                self,
-                                self.update_thread_info(
-                                    thread_id, callback, name, _type, _id, silent),
-                            )
-                            if use_dictionary_unpacking is True:
-                                funcref(
-                                    data["app_name"],
-                                    data["ts"],
-                                    data["level"],
-                                    data["log_type"],
-                                    data["message"],
-                                    **self.AD.logging.sanitize_log_kwargs(app, args["kwargs"]),
-                                )
-                            else:
-                                funcref(
-                                    data["app_name"],
-                                    data["ts"],
-                                    data["level"],
-                                    data["log_type"],
-                                    data["message"],
-                                    self.AD.logging.sanitize_log_kwargs(
-                                        app, args["kwargs"]),
-                                )
-                        except TypeError:
-                            self.report_callback_sig(
-                                name, "log_event", funcref, args)
+                            funcref()
+                        except Exception as exc:
+                            match args['type']:
+                                case 'state':
+                                    raise ade.StateCallbackFail(name, args["entity"], args) from exc
+                                case 'scheduler':
+                                    raise ade.SchedulerCallbackFail(name, funcref.args, funcref.keywords) from exc
+                                case _:
+                                    raise ade.CallbackException(funcref.__name__, app_name=name) from exc
+                    safe_callback()
 
-                    elif _type == "event":
-                        data = args["data"]
-                        try:
-                            utils.run_coroutine_threadsafe(
-                                self,
-                                self.update_thread_info(
-                                    thread_id, callback, name, _type, _id, silent),
-                            )
-                            if use_dictionary_unpacking is True:
-                                funcref(
-                                    args["event"], data, **self.AD.events.sanitize_event_kwargs(app, args["kwargs"])
-                                )
-                            else:
-                                funcref(args["event"], data, self.AD.events.sanitize_event_kwargs(
-                                    app, args["kwargs"]))
-                        except TypeError:
-                            self.report_callback_sig(
-                                name, "event", funcref, args)
-
-                except ade.AppDaemonException as exc:
-                    ade.user_exception_block(error_logger, exc, self.AD.app_dir)
-                except Exception as exc:
-                    try:
-                        match args['type']:
-                            case 'state':
-                                raise ade.StateCallbackFail(name, entity, args) from exc
-                            case 'scheduler':
-                                partial_func = args['function']
-                                keywords = partial_func.keywords
-                                keywords.update(args['kwargs'])
-                                raise ade.SchedulerCallbackFail(
-                                    name,
-                                    partial_func.args,
-                                    keywords,
-                                ) from exc
-                    except ade.AppDaemonException as e:
-                        ade.user_exception_block(error_logger, e, self.AD.app_dir)
-
-                    # with self.log_lock:
-                    #     error_logger.warning("-" * 60)
-                    #     error_logger.warning(
-                    #         "Unexpected error in worker for App %s:", name)
-                    #     error_logger.warning("Worker Ags: %s", args)
-                    #     error_logger.warning("-" * 60)
-                    #     error_logger.warning(traceback.format_exc())
-                    #     error_logger.warning("-" * 60)
-                    #     if self.AD.logging.separate_error_log() is True:
-                    #         self.logger.warning(
-                    #             "Logged an error to %s",
-                    #             self.AD.logging.get_filename("error_log"),
-                    #         )
                 finally:
-                    utils.run_coroutine_threadsafe(
-                        self,
-                        self.update_thread_info(
-                            thread_id, "idle", name, _type, _id, silent),
-                    )
-
+                    update_coro = self.update_thread_info(thread_id, "idle", name, _type, _id, silent)
+                    utils.run_coroutine_threadsafe(self, update_coro)
             else:
                 if not self.AD.stopping:
-                    self.logger.warning(
-                        "Found stale callback for %s - discarding", name)
+                    self.logger.warning(f"Found stale callback for {name} - discarding")
 
             q.task_done()
 

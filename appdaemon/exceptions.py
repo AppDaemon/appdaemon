@@ -3,6 +3,7 @@ Exceptions used by appdaemon
 
 """
 import asyncio
+import functools
 import json
 import logging
 import traceback
@@ -31,15 +32,19 @@ def exception_handler(appdaemon: "AppDaemon", loop: asyncio.AbstractEventLoop, c
     user_exception_block(logging.getLogger('Error'), context['exception'], appdaemon.app_dir)
 
 
-def user_exception_block(logger: Logger, exception: AppDaemonException, app_dir: Path):
+def user_exception_block(logger: Logger, exception: AppDaemonException, app_dir: Path, header: str | None = None):
     """Function to generate a user-friendly block of text for an exception. Gets the whole chain of exception causes to decide what to do.
     """
-    chain = get_exception_cause_chain(exception)
-    logger.error('=' * 75)
+    width = 75
+    if header is not None:
+        header = f'{"=" * 5} {header} {"=" * (width - 5 - len(header))}'
+    else:
+        header = '=' * width
+    logger.error(header)
 
-    # lines = get_cause_lines(chain)
-    # user_lines = {exc.__class__.__name__: list(get_user_line(exc, app_dir)) for exc in chain}
-    # pass
+
+    chain = get_exception_cause_chain(exception)
+    
     for i, exc in enumerate(chain):
         indent = ' ' * i * 2
         for i, line in enumerate(str(exc).splitlines()):
@@ -49,17 +54,9 @@ def user_exception_block(logger: Logger, exception: AppDaemonException, app_dir:
                 logger.error(f'{indent}  {line}')
 
         if user_line := get_user_line(exc, app_dir):
-            for line, filename in list(user_line)[-1:]:
-                logger.error(f'{indent}{filename} line {line}')
+            for line, filename, func_name in list(user_line):
+                logger.error(f'{indent}{filename} line {line} in {func_name}')
     logger.error('=' * 75)
-
-
-def task_finisher(task: asyncio.Task, new_exc: AppDaemonException, logger: Logger, app_name: str):
-    try:
-        if exc := task.exception():
-            raise new_exc from exc
-    except AppDaemonException as final:
-        user_exception_block(logger, final)
 
 
 def get_cause_lines(chain: Iterable[Exception]) -> dict[Exception, list[traceback.FrameSummary]]:
@@ -73,7 +70,7 @@ def get_user_line(exception: Exception, base: Path):
         for filename, line, func, _ in tb:
             path = Path(filename)
             if path.is_relative_to(base):
-                yield line, path.relative_to(base.parent)
+                yield line, path.relative_to(base.parent), func
 
 
 def get_exception_cause_chain(exception: Exception, current_chain: list[Exception] | None = None):
@@ -83,6 +80,41 @@ def get_exception_cause_chain(exception: Exception, current_chain: list[Exceptio
         return get_exception_cause_chain(cause, current_chain)
     else:
         return current_chain
+
+
+def wrap_async(logger: Logger, app_dir: Path, header: str | None = None):
+    def decorator(func):
+        @functools.wraps(func)
+        async def wrapper(*args, **kwargs):
+            try:
+                return await func(*args, **kwargs)
+            except AppDaemonException as e:
+                user_exception_block(logger, e, app_dir, header)
+            except Exception as e:
+                logger.error('=' * 75)
+                logger.error(f'Unexpected error: {e}')
+                logger.error('=' * 75)
+        return wrapper
+    return decorator
+
+
+def wrap_sync(logger: Logger, app_dir: Path, header: str | None = None):
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except AppDaemonException as e:
+                user_exception_block(logger, e, app_dir, header)
+            except Exception as e:
+                logger.error('=' * 75)
+                logger.error(f'Unexpected error: {e}')
+                formatted = traceback.format_exc()
+                for line in formatted.splitlines():
+                    logger.error(line)
+                logger.error('=' * 75)
+        return wrapper
+    return decorator
 
 
 # Used in the adstream module
@@ -143,7 +175,7 @@ class SchedulerCallbackFail(AppDaemonException):
     kwargs: dict[str, Any] = field(default_factory=dict)
 
     def __str__(self):
-        base = f"Scheduler callback failed for app '{self.app_name}'"
+        base = f"Scheduled callback failed for app '{self.app_name}'"
 
         if self.args:
             base += f'\nargs: {self.args}'
@@ -208,8 +240,9 @@ class BadUserServiceCall(AppDaemonException):
     pass
 
 
+@dataclass
 class ConfigReadFailure(AppDaemonException):
-    pass
+    file: Path
 
 
 @dataclass

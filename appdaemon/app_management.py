@@ -551,19 +551,9 @@ class AppManagement:
         async def config_model_factory():
             """Creates a generator that sets the config_path of app configs"""
             for path in config_files:
-                rel_path = path.relative_to(self.AD.app_dir.parent)
-
-                @utils.warning_decorator(
-                    success_text=f"Read {rel_path}",
-                    error_text=f"Unexepected error while reading {rel_path}",
-                )
+                @ade.wrap_async(self.error, self.AD.app_dir, f"Reading user apps")
                 async def safe_read(self: "AppManagement", path: Path) -> AllAppConfig:
-                    try:
-                        return await self.read_config_file(path)
-                    except ValidationError as e:
-                        self.logger.warning(f'User config file failed validation {rel_path}')
-                        # e.rel_path = rel_path
-                        raise e
+                    return await self.read_config_file(path)
 
                 new_cfg = await safe_read(self, path)
                 if new_cfg is None:
@@ -882,12 +872,15 @@ class AppManagement:
     async def _init_dep_manager(self):
         @utils.warning_decorator(error_text="Error while creating dependency manager")
         async def safe_dep_create(self: "AppManagement"):
-            self.dependency_manager = DependencyManager(
-                python_files=await self.get_python_files(),
-                config_files=await self.get_app_config_files()
-            )
-            self.config_filecheck.mtimes = {}
-            self.python_filecheck.mtimes = {}
+            try:
+                self.dependency_manager = DependencyManager(
+                    python_files=await self.get_python_files(),
+                    config_files=await self.get_app_config_files()
+                )
+                self.config_filecheck.mtimes = {}
+                self.python_filecheck.mtimes = {}
+            except ade.AppDaemonException as e:
+                raise
 
         await safe_dep_create(self)
 

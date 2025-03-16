@@ -1,3 +1,4 @@
+import logging
 import sys
 from abc import ABC
 from copy import deepcopy
@@ -8,6 +9,7 @@ from collections.abc import Iterable, Iterator
 from pydantic import BaseModel, Discriminator, Field, RootModel, Tag, field_validator
 from pydantic_core import PydanticUndefinedType
 
+from ... import exceptions as ade
 from ...dependency import reverse_graph
 from ...utils import read_config_file
 from .sequence import SequenceConfig
@@ -114,14 +116,16 @@ class AllAppConfig(RootModel):
         return cls.model_validate(read_config_file(path))
 
     @classmethod
-    def from_config_files(cls, paths: Iterable[Path]):
-        try:
-            paths = iter(paths)
-            cfg = read_config_file(next(paths))
-        except StopIteration:
+    def from_config_files(cls, paths: Iterable[Path], app_dir: Path | None = None):
+        if not isinstance(paths, list):
+            paths = list(paths)
+        
+        if len(paths) == 0:
             return cls()
-        else:
-            for p in paths:
+
+        cfg = {}
+        for p in paths:
+            try:
                 for new, new_cfg in read_config_file(p).items():
                     if new in cfg:
                         match new:
@@ -135,6 +139,10 @@ class AllAppConfig(RootModel):
                                 cfg[new].update(new_cfg)
                     else:
                         cfg[new] = new_cfg
+            except ade.ConfigReadFailure as e:
+                logging.getLogger('AppDaemon').warning(f'Failed to read file: {e}')
+                continue
+        else:
             return cls.model_validate(cfg)
 
     def depedency_graph(self) -> dict[str, set[str]]:

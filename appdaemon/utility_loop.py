@@ -6,11 +6,12 @@ import traceback
 from logging import Logger
 from typing import TYPE_CHECKING
 
-import appdaemon.utils as utils
-from appdaemon.app_management import UpdateMode
+from .app_management import UpdateMode
+from . import exceptions as ade
+from . import utils
 
 if TYPE_CHECKING:
-    from appdaemon.appdaemon import AppDaemon
+    from .appdaemon import AppDaemon
 
 
 class Utility:
@@ -200,6 +201,9 @@ class Utility:
                         state=str(uptime),
                     )
 
+                except ade.AppDaemonException as e:
+                    ade.user_exception_block(self.AD.logging.error, e, self.AD.app_dir)
+                    continue
                 except Exception:
                     self.logger.warning("-" * 60)
                     self.logger.warning("Unexpected error during utility()")

@@ -451,7 +451,8 @@ async def run_in_executor(self, fn, *args, **kwargs) -> Any:
 
 
 def run_coroutine_threadsafe(self: 'ADBase', coro: Coroutine, timeout: float | None = None) -> Any:
-    """This runs an instantiated coroutine (async) from sync code.
+    """This runs an instantiated coroutine (async) from sync code. This handles the logic for cancelling
+    coroutines that run too long.
 
     Args:
         self (ADBase): Needs to have a ``self.AD`` attribute with the ``AppDaemon`` object.
@@ -762,12 +763,15 @@ def read_config_file(file: Path) -> dict[str, dict | list]:
             if key == "sequence":
                 for seq_cfg in cfg.values():
                     seq_cfg["config_path"] = file
-            else:
+            elif key == 'logs':
+                continue
+            elif cfg is not None:
                 cfg["config_path"] = file
 
         return full_cfg
     except Exception as exc:
-        raise ade.ConfigReadFailure(file.as_posix()) from exc
+        raise ade.ConfigReadFailure(file) from exc
+
 
 def read_toml_config(path: Path):
     with path.open("rb") as f:
