@@ -679,7 +679,7 @@ class State:
         self.logger.debug("New state: %s", new_state)
 
         if not self.entity_exists(namespace, entity):
-            await self.add_entity(namespace, entity, new_state["state"], new_state.get("attributes"))
+            await self.add_entity(namespace, entity, new_state.get("state"), new_state.get("attributes"))
             if not _silent:
                 self.logger.info("%s: Entity %s created in namespace: %s", name, entity, namespace)
 
