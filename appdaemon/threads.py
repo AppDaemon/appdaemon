@@ -981,10 +981,10 @@ class Threading:
 
                 match args['type']:
                     case 'state':
-                        raise ade.StateCallbackFail(name, args["entity"], args) from exc
+                        raise ade.StateCallbackFail(name, funcref.args, funcref.keywords) from exc
                     case 'scheduler':
-                        raise ade.SchedulerCallbackFail(name, pos_args, kwargs) from exc
-                raise ade.CallbackException(funcref.__name__, app_name=name) from exc
+                        raise ade.SchedulerCallbackFail(name, funcref.args, funcref.keywords) from exc
+                raise ade.AppCallbackFail(funcref.__name__, app_name=name) from exc
             finally:
                 await self.update_thread_info("async", "idle", name, _type, _id, silent)
 
@@ -1061,12 +1061,14 @@ class Threading:
                             funcref()
                         except Exception as exc:
                             match args['type']:
-                                case 'state':
-                                    raise ade.StateCallbackFail(name, args["entity"], args) from exc
+                                case "event":
+                                    raise ade.EventCallbackFail(name, funcref.args, funcref.keywords, args["event"]) from exc
                                 case 'scheduler':
                                     raise ade.SchedulerCallbackFail(name, funcref.args, funcref.keywords) from exc
+                                case 'state':
+                                    raise ade.StateCallbackFail(name, funcref.args, funcref.keywords, args["entity"]) from exc
                                 case _:
-                                    raise ade.CallbackException(funcref.__name__, app_name=name) from exc
+                                    raise ade.AppCallbackFail(name, funcref.args, funcref.keywords) from exc
                     safe_callback()
 
                 finally:

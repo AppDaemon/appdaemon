@@ -36,12 +36,12 @@ def user_exception_block(logger: Logger, exception: AppDaemonException, app_dir:
     """Function to generate a user-friendly block of text for an exception. Gets the whole chain of exception causes to decide what to do.
     """
     width = 75
+    inset = 5
     if header is not None:
-        header = f'{"=" * 5} {header} {"=" * (width - 5 - len(header))}'
+        header = f'{"=" * inset}  {header}  {"=" * (width - inset - len(header))}'
     else:
         header = '=' * width
     logger.error(header)
-
 
     chain = get_exception_cause_chain(exception)
     
@@ -56,6 +56,15 @@ def user_exception_block(logger: Logger, exception: AppDaemonException, app_dir:
         if user_line := get_user_line(exc, app_dir):
             for line, filename, func_name in list(user_line):
                 logger.error(f'{indent}{filename} line {line} in {func_name}')
+    logger.error('=' * 75)
+
+
+def unexpected_block(logger: Logger, exception: Exception):
+    logger.error('=' * 75)
+    logger.error(f'Unexpected error: {exception}')
+    formatted = traceback.format_exc()
+    for line in formatted.splitlines():
+        logger.error(line)
     logger.error('=' * 75)
 
 
@@ -91,9 +100,7 @@ def wrap_async(logger: Logger, app_dir: Path, header: str | None = None):
             except AppDaemonException as e:
                 user_exception_block(logger, e, app_dir, header)
             except Exception as e:
-                logger.error('=' * 75)
-                logger.error(f'Unexpected error: {e}')
-                logger.error('=' * 75)
+                unexpected_block(logger, e)
         return wrapper
     return decorator
 
@@ -107,12 +114,7 @@ def wrap_sync(logger: Logger, app_dir: Path, header: str | None = None):
             except AppDaemonException as e:
                 user_exception_block(logger, e, app_dir, header)
             except Exception as e:
-                logger.error('=' * 75)
-                logger.error(f'Unexpected error: {e}')
-                formatted = traceback.format_exc()
-                for line in formatted.splitlines():
-                    logger.error(line)
-                logger.error('=' * 75)
+                unexpected_block(logger, e)
         return wrapper
     return decorator
 
@@ -150,32 +152,13 @@ class ServiceException(AppDaemonException):
 
 
 @dataclass
-class CallbackException(AppDaemonException):
-    callback: str
-    app_name: str
-
-    def __str__(self):
-        return f"error in method '{self.callback}' for app '{self.app_name}'"
-    
-
-@dataclass
-class StateCallbackFail(AppDaemonException):
-    app_name: str
-    entity_id: str
-    args: dict[str, Any]
-
-    def __str__(self):
-        return f"State callback failed for '{self.entity_id}' in app '{self.app_name}'"
-
-
-@dataclass
-class SchedulerCallbackFail(AppDaemonException):
+class AppCallbackFail(AppDaemonException):
     app_name: str
     args: tuple[Any, ...] = field(default_factory=tuple)
     kwargs: dict[str, Any] = field(default_factory=dict)
 
-    def __str__(self):
-        base = f"Scheduled callback failed for app '{self.app_name}'"
+    def __str__(self, base: str | None = None):
+        base = base or f"Callback failed for app '{self.app_name}'"
 
         if self.args:
             base += f'\nargs: {self.args}'
@@ -184,6 +167,37 @@ class SchedulerCallbackFail(AppDaemonException):
             base += f'\nkwargs: {json.dumps(self.kwargs, indent=4, default=str)}'
 
         return base
+
+
+@dataclass
+class StateCallbackFail(AppCallbackFail):
+    entity: str | None = None
+
+    def __str__(self):
+        return super().__str__(f"State callback failed for '{self.entity}' from '{self.app_name}'")
+
+
+@dataclass
+class SchedulerCallbackFail(AppCallbackFail):
+    def __str__(self):
+        return super().__str__(f"Scheduled callback failed for app '{self.app_name}'")
+
+
+@dataclass
+class EventCallbackFail(AppCallbackFail):
+    event: str | None = None
+
+    def __str__(self):
+        return super().__str__(f"Event callback failed for '{self.event}' from '{self.app_name}'")
+
+
+@dataclass
+class CallbackException(AppDaemonException):
+    callback: str
+    app_name: str
+
+    def __str__(self):
+        return f"error in method '{self.callback}' for app '{self.app_name}'"
 
 
 class TimeOutException(AppDaemonException):
