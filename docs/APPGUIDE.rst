@@ -31,17 +31,23 @@ by importing from the supplied ``hassapi`` module. The start of an App might loo
 
 .. code:: python
 
-    import hassapi as hass
+    from appdaemon.plugins.hass.hassapi import Hass
 
-    class OutsideLights(hass.Hass):
+
+    class OutsideLights(Hass):
+        def initialize(self):
+            ...
 
 For MQTT you would use the mqttapi module:
 
 .. code:: python
 
-    import mqttapi as mqtt
+    from appdaemon.plugins.mqtt.mqttapi import Mqtt
 
-    class OutsideLights(mqtt.Mqtt):
+
+    class OutsideLights(Mqtt):
+        def initialize(self):
+            ...
 
 When configured as an app in the config file (more on that later) the
 lifecycle of the App begins. It will be instantiated as an object by
@@ -108,22 +114,20 @@ comments):
 
 .. code:: python
 
-    import hassapi as hass
-    import datetime
+    from appdaemon.plugins.hass.hassapi import Hass
+
 
     # Declare Class
-    class NightLight(hass.Hass):
-      #initialize() function which will be called at startup and reload
-      def initialize(self):
-        # Create a time object for 7pm
-        time = datetime.time(19, 00, 0)
-        # Schedule a daily callback that will call run_daily() at 7pm every night
-        self.run_daily(self.run_daily_callback, time)
+    class NightLight(Hass):
+        # function which will be called at startup and reload
+        def initialize(self):
+            # Schedule a daily callback that will call run_daily() at 7pm every night
+            self.run_daily(self.run_daily_callback, "19:00:00")
 
-       # Our callback function will be called by the scheduler every day at 7pm
-      def run_daily_callback(self, cb_args):
-        # Call to Home Assistant to turn the porch light on
-        self.turn_on("light.porch")
+        # Our callback function will be called by the scheduler every day at 7pm
+        def run_daily_callback(self, **kwargs):
+            # Call to Home Assistant to turn the porch light on
+            self.turn_on("light.porch")
 
 To summarize - an App's lifecycle consists of being initialized, which
 allows it to set one or more states and/or schedule callbacks. When
@@ -339,24 +343,25 @@ Which can be accessed as a list in python with:
 .. code:: python
 
     for entity in self.args["entities"]:
-      do some stuff
+        ... # do some stuff
 
 Also, this opens the door to really complex parameter structures if
 required:
 
-.. code:: python
+.. code:: yaml
 
     sensors:
       sensor1:
-        type:thermometer
+        type: thermometer
         warning_level: 30
         units: degrees
       sensor2:
-        type:moisture
+        type: moisture
         warning_level: 100
-        units: %
+        units: "%"
 
-It is also possible to get some constants like the app directory within apps. This can be accessed using the attribute ``self.app_dir``
+It is also possible to get some constants like the app directory within apps. This can
+be accessed using the attribute ``self.app_dir``.
 
 Secrets
 ~~~~~~~
@@ -439,7 +444,7 @@ An example storing data in a yaml file can be seen below:
 .. code:: yaml
 
     appdaemon:
-        plugins: !include /home/ubuntu/dev/conf/plugins.yaml
+      plugins: !include /home/ubuntu/dev/conf/plugins.yaml
 
 The tag can also be referred to in the ``apps.yaml`` file as follows:
 
@@ -577,8 +582,8 @@ we add ``global: true`` to the description:
 .. code:: yaml
 
     my_global_module:
-        module: globals
-        global: true
+      module: globals
+      global: true
 
 This means that the file ``globals.py`` anywhere within the apps directory hierarchy is marked as a global module.
 Any App may simply import ``globals`` and use its variables and functions. Marking multiple modules
@@ -587,11 +592,11 @@ as global can be achieved creating an entry for each module:
 .. code:: yaml
 
     my_global_module:
-        module: globals
-        global: true
+      module: globals
+      global: true
     my_other_global_module:
-        module: other_globals
-        global: true
+      module: other_globals
+      global: true
 
 Once we have marked the global modules, the next step is to configure any apps that are dependant upon them. This is done by adding them to the standard  ``dependencies`` field to the App description, e.g.:
 
@@ -650,29 +655,29 @@ To make an App explicitly reload when only this plugin and no other is restarted
 .. code:: yaml
 
     appname:
-        module: some_module
-        class: some_class
-        plugin: HASS
+      module: some_module
+      class: some_class
+      plugin: HASS
 
 If you have more than one plugin, you can make an App dependent on more than one plugin by specifying a YAML list:
 
 .. code:: yaml
 
     appname:
-        module: some_module
-        class: some_class
-        plugin:
-          - HASS
-          - OTHERPLUGIN
+      module: some_module
+      class: some_class
+      plugin:
+        - HASS
+        - OTHERPLUGIN
 
 If you want to prevent the App from reloading at all, just set the ``plugin`` parameter to some value that doesn't match any plugin name, e.g.:
 
 .. code:: yaml
 
     appname:
-        module: some_module
-        class: some_class
-        plugin: NONE
+      module: some_module
+      class: some_class
+      plugin: NONE
 
 Note, that this only effects reloading at plugin restart time:
 
@@ -1012,7 +1017,7 @@ Consider the following App which schedules 1000 callbacks all to run at the exac
             for i in range (1000):
                 self.run_at(self.hass_cb, target)
 
-        def hass_cb(self, cb_args):
+        def hass_cb(self, **kwargs):
             self.important_var += 1
             self.log(self.important_var)
 
@@ -1060,7 +1065,7 @@ However, if we add the decorator to the callback function like so:
                 self.run_at(self.hass_cb, target)
 
         @ad.app_lock
-        def hass_cb(self, cb_args):
+        def hass_cb(self, **kwargs):
             self.important_var += 1
             self.log(self.important_var)
 
@@ -1252,20 +1257,21 @@ AppDaemon will automatically detect all the App's coroutines and will schedule t
 This also works for ``initialize()`` and ``terminate()``. Apps can be a mix of `sync` and `async` callbacks as desired.
 A fully async app might look like this:
 
-.. code:: PYTHON
+.. code:: python
 
-    import hassapi as hass
+    from appdaemon.plugins.hass.hassapi import Hass
 
-    class AsyncApp(hass.Hass):
 
+    class AsyncApp(Hass):
         async def initialize(self):
+            # Runs self.hass_cb in 10 seconds
             # Maybe access an async library to initialize something
             self.run_in(self.hass_cb, 10)
 
         async def my_function(self):
-            # More async stuff here
+            ... # More async stuff here
 
-        async def hass_cb(self, cb_args):
+        async def hass_cb(self, **kwargs):
             # do some async stuff
 
             # Sleeps are perfectly acceptable
@@ -1381,9 +1387,11 @@ There are 4 kinds of callback in AppDaemon, each with their own methods in ``ADA
 Event Callbacks
 ~~~~~~~~~~~~~~~
 
-`More information on events <#events>`__
+`More information <#events>`__ on events in AppDaemon.
 
-Apps can regsiter event callbacks with calls to :meth:`self.listen_event(...) <appdaemon.adapi.ADAPI.listen_event>`.
+Users can regsiter event callbacks with calls to :meth:`self.listen_event(...) <appdaemon.adapi.ADAPI.listen_event>`.
+AppDaemon will handle executing the callback when the event is fired.
+
 For example, this registers a callback for an event ``some_event``:
 
 .. code:: python
@@ -1397,8 +1405,8 @@ Event callbacks are expected to have a specific signature, which looks like this
     def my_callback(self, event_name, data, **kwargs):
         ... # do some useful work here
 
-For legacy compatibility, callbacks like this will also work. The type
-needed is automatically determined when it's called.
+For legacy compatibility, callbacks without the keyword argument expansion will still work.
+AppDaemon will automatically determine the correct way to call the function when it executes it.
 
 .. code:: python
 
@@ -1432,15 +1440,36 @@ More examples:
 Scheduler Callbacks
 ~~~~~~~~~~~~~~~~~~~
 
+`More information <#the-scheduler>`__ about AppDaemon's scheduler.
+
+Users can schedule callbacks in the AppDaemon scheduler using various time-based methods such as
+``run_in``, ``run_at``, ``run_daily``, etc. AppDaemon will handle executing the callback at the scheduled time.
+
+Scheduled callbacks are expected to have a specific signature, which looks like this:
+
+.. code:: python
+
+    def my_callback(self, **kwargs):
+        ... # do some useful work here
+
+For legacy compatibility, callbacks without the keyword argument expansion will still work.
+AppDaemon will automatically determine the correct way to call the function when it executes it.
+
+.. code:: python
+
+    def my_callback(self, kwargs):
+        ... # do some useful work here
+
 State Callbacks
 ~~~~~~~~~~~~~~~
 
-Apps can register callbacks for state changes with calls to
-:meth:`self.listen_state(...) <appdaemon.adapi.ADAPI.listen_state>`.
-
 `More information <#state-operations>`__ on states in AppDaemon.
 
-For example, this registers a callback for all state changes on entity ``binary_sensor.drive``:
+Users can register callbacks for state changes with calls to
+:meth:`self.listen_state(...) <appdaemon.adapi.ADAPI.listen_state>`. AppDaemon will handle executing
+the callback when the state changes.
+
+For example, this registers a callback for all state changes on the entity ``binary_sensor.drive``:
 
 .. code:: python
 
@@ -1452,24 +1481,20 @@ This example only executes when the state changes to ``on``:
 
     self.listen_state(self.my_callback, "binary_sensor.drive", new="on")
 
-State callbacks are expected to have a specific signature, which looks like this:
+State callbacks can be named anything, but are expected to have a specific signature, which looks like this:
 
 .. code:: python
 
     def my_callback(self, entity, attribute, old, new, **kwargs):
         ... # do some useful work here
 
-For legacy compatibility, callbacks like this will also work. The type 
-needed is automatically determined when it's called.
+For legacy compatibility, callbacks without the keyword argument expansion will still work.
+AppDaemon will automatically determine the correct way to call the function when it executes it.
 
 .. code:: python
 
     def my_callback(self, entity, attribute, old, new, kwargs):
         ... # do some useful work here
-
-You can call the function whatever you like - you will reference it in
-the :meth:`self.listen_state(...) <appdaemon.adapi.ADAPI.listen_state>`
-call, and you can create as many callback functions as you need.
 
 .. The cb_args dictionary will also contain a field called ``handle`` that
 .. provides the callback with the handle that identifies the
@@ -1481,7 +1506,8 @@ Log Callbacks
 Constraints
 ~~~~~~~~~~~
 
-Refer to `callback constraints <#callback-constraints>`_
+Constraints can be applied when registering a callback. Refer to
+`callback level constraints <#callback-level-constraints>`_ for more information.
 
 User Arguments
 ~~~~~~~~~~~~~~
@@ -1491,29 +1517,41 @@ callback via the standard Python ``**kwargs`` mechanism. Keyword arguments
 are then available as a standard Python dictionary in the callback.
 
 The only restriction is that they cannot be the same as any constraint name
-for obvious reasons. For example, to pass the parameter ``arg1="home assistant"``
+for obvious reasons. For example, to pass the parameter ``arg1=123``
 through to a callback you would register a callback as follows:
 
 .. code:: python
 
-    self.listen_state(self.motion, "binary_sensor.drive", arg1="home assistant")
+    self.listen_state(self.motion, "binary_sensor.motion_sensor_01", arg1=123)
 
-Then in the callback the parameter would be available as follows:
+The value is available in the callback as follows. Note that ``arg1`` can be renamed
+to anything as long as it doesn't conflict with the names of other arguments.
+
+.. code:: python
+
+    def motion(self, entity, attribute, old, new, arg1, **kwargs):
+        self.log(f"Arg1 is {arg1}")
+
+Which is equivalent to:
 
 .. code:: python
 
     def motion(self, entity, attribute, old, new, **kwargs):
-        arg1 = kwargs['arg1']
+        arg1 = kwargs["arg1"]
         self.log(f"Arg1 is {arg1}")
 
 Events
 ------
 
-Events are a fundamental part of how AppDaemon works under the
-covers. AD receives important events from all of its plugins and communicates them to apps as required. For instance, the MQTT plugin will generate an event when a message is received; The HASS plugin will generate an event when a service is called, or when it starts or stops.
+Events are a fundamental part of how AppDaemon works internally. Plugins fire
+events and AppDaemon communicates them to apps as required.
 
-`Callbacks <#event-callbacks>`_
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+For instance, the MQTT plugin will fire an event when a message is
+received, and the HASS plugin will fire events for all Home Assistant
+events.
+
+`Event Callbacks <#event-callbacks>`_
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Refer to the callbacks section for more information.
 
@@ -1661,17 +1699,21 @@ message.
 State Operations
 ----------------
 
-AppDaemon maintains a master state list segmented by namespace. As plugins notify state changes, AppDaemon listens and stores the updated state locally.
-
-The MQTT plugin does not use state at all, and it relies on events to trigger actions, whereas the Home Assistant plugin makes extensive use of state.
+AppDaemon maintains a master state dictionary in memory locally, which is segmented
+by namespace. When a plugin gets notified of state changes, AppDaemon updates
+the states namespaces associated with that plugin.
 
 AppDaemon internally fires an event when an entity changes state. This occurs for every
 state change of every entity, as well as every attribute change. Apps can respond to any
 or all of these events by registering a callback, which AppDaemon will call when the event
-gets fired. Apps register callbacks using a ``self.listen_state(...)`` call.
+gets fired. Apps register callbacks using a :meth:`self.listen_state(...) <appdaemon.adapi.ADAPI.listen_state>`
+call.
 
-`Callbacks <#state-callbacks>`_
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The MQTT plugin does not use state at all, and it relies on events to trigger
+actions, whereas the Home Assistant plugin makes extensive use of state.
+
+`State Change Callbacks <#state-callbacks>`_
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Refer to the callbacks section for more information.
 
@@ -1735,52 +1777,13 @@ The Scheduler
 -------------
 
 AppDaemon contains a powerful scheduler that is able to run with microsecond
-resolution to fire off specific events at set times, or after set
-delays, or even relative to sunrise and sunset.
+resolution to fire off specific events at set times, or after set delays, or
+even relative to sunrise and sunset.
 
-About Schedule Callbacks
-~~~~~~~~~~~~~~~~~~~~~~~~
+`Scheduled Callbacks <#scheduler-callbacks>`_
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-As with State Change callbacks, Scheduler Callbacks expect to call into
-functions with a known and specific signature and a class defined
-Scheduler callback function should look like this:
-
-.. code:: python
-
-      def my_callback(self, cb_args):
-        <do some useful work here>
-
-Or if you are using dictionary unpacking (see `here <APPGUIDE.html#kwargs>`__):
-
-.. code:: python
-
-      def my_callback(self, **kwargs):
-        <do some useful work here>
-
-
-
-You can call the function whatever you like; you will reference it in
-the Scheduler call, and you can create as many callback functions as you
-need.
-
-The parameters have the following meanings:
-
-self
-^^^^
-
-A standard Python object reference
-
-cb_args/\*\*kwargs
-^^^^^^^^^^^^^^^^^^
-
-A dictionary containing Zero or more keyword arguments to be supplied to
-the callback.
-
-Creation of Scheduler Callbacks
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Scheduler callbacks are created through use of a number of convenience
-functions which can be used to suit the situation.
+Refer to the callbacks section for more information.
 
 Scheduler Randomization
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -1805,14 +1808,14 @@ For example:
 .. code:: python
 
     # Run a callback in 2 minutes minus a random number of seconds between 0 and 60, e.g. run between 60 and 120 seconds from now
-    self.handle = self.run_in(callback, 120, random_start = -60)
+    self.handle = self.run_in(callback, 120, random_start=-60)
     # Run a callback in 2 minutes plus a random number of seconds between 0 and 60, e.g. run between 120 and 180 seconds from now
-    self.handle = self.run_in(callback, 120, random_end = 60, **kwargs)
+    self.handle = self.run_in(callback, 120, random_end=60, **kwargs)
     # Run a callback in 2 minutes plus or minus a random number of seconds between 0 and 60, e.g. run between 60 and 180 seconds from now
-    self.handle = self.run_in(callback, 120, random_start = -60, random_end = 60)
+    self.handle = self.run_in(callback, 120, random_start=-60, random_end=60)
 
 Sunrise and Sunset
-------------------
+~~~~~~~~~~~~~~~~~~
 
 AppDaemon has a number of features to allow easy tracking of sunrise and
 sunset as well as a couple of scheduler functions. Note that the
@@ -2095,15 +2098,14 @@ Here is an example of an App using the API:
 
 .. code:: python
 
-    import hassapi as hass
+    from appdaemon.plugins.hass.hassapi import Hass
 
-    class API(hass.Hass):
 
+    class API(Hass):
         def initialize(self):
             self.register_endpoint(my_callback, "test_endpoint")
 
-        def my_callback(self, json_obj, cb_args):
-
+        def my_callback(self, json_obj, **kwargs):
             self.log(json_obj)
 
             response = {"message": "Hello World"}
@@ -2113,7 +2115,7 @@ Here is an example of an App using the API:
 The callback will accept `GET` or `POST` requests. If the request is a `POST` AppDaemon
 will attempt to decode JSON arguments and supply them in the
 args parameter. If the method is `GET`, any arguments will also be
-supplied via the args parameter. cb_args (or \*\*kwargs) will be supplied with
+supplied via the args parameter. \*\*kwargs will be supplied with
 any parameters defined at the time of the `register_endpoint()`.
 
 The response must be a python structure that can be mapped to JSON, or
