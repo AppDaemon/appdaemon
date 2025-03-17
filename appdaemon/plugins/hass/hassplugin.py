@@ -660,8 +660,13 @@ class HassPlugin(PluginBase):
             if not resp.get("optional"):
                 req["return_response"] = True
 
-        if target is not None:
-            req["target"] = target
+        match target:
+            case None:
+                pass
+            case str():
+                req["target"] = {"entity_id": target}
+            case _:
+                req["target"] = target
 
         send_coro = self.websocket_send_json(
             timeout=hass_timeout,
