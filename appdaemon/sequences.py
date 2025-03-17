@@ -87,18 +87,21 @@ class Sequences:
                 f"entity_id not given in service call, so will not be executing {service}"
             )
 
-    async def update_sequence_entities(self, config: SequenceConfig):
-        for seq_name, cfg in config.root.items():
-            # Entities will get created if they don't exist
-            await self.set_state(
-                entity_id=self.normalized(seq_name),
-                state="idle",
-                friendly_name=cfg.name or seq_name,
-                loop=cfg.loop,
-                steps=cfg.steps,
-                replace=True,
-                _silent=True,
-            )
+    async def update_sequence_entities(self, config: SequenceConfig | None = None):
+        if config is None:
+            return
+        else:
+            for seq_name, cfg in config.root.items():
+                # Entities will get created if they don't exist
+                await self.set_state(
+                    entity_id=self.normalized(seq_name),
+                    state="idle",
+                    friendly_name=cfg.name or seq_name,
+                    loop=cfg.loop,
+                    steps=cfg.steps,
+                    replace=True,
+                    _silent=True,
+                )
 
     async def remove_sequences(self, sequences: str | Iterable[str]):
         if isinstance(sequences, str):
