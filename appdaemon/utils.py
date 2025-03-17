@@ -377,26 +377,6 @@ def warning_decorator(
                 )
             except ade.AppDaemonException as e:
                 raise e
-            except ade.ConfigReadFailure as e:
-                logger.warning(f'Failed to read config file: {e}')
-                log_warning_block(
-                    error_logger,
-                    header=error_text,
-                    exception_text=''.join(traceback.format_exception(e, limit=1))
-                )
-                if self.AD.logging.separate_error_log():
-                    error_logger.warning(f'Failed to read config file: {e}')
-            except ade.AppDependencyError as e:
-                logger.warning(f'Dependency error: {e}')
-                if self.AD.logging.separate_error_log():
-                    error_logger.warning(f'Dependency error: {e}')
-            except (ade.AppInstantiationError, ade.AppInitializeError, ade.AppModuleNotFound) as e:
-                logger.warning(e)
-                log_warning_block(
-                    error_logger,
-                    header=error_text,
-                    exception_text=''.join(traceback.format_exception(e, limit=-2))
-                )
             except ValidationError as e:
                 log_warning_block(
                     error_logger,
@@ -683,6 +663,8 @@ def check_path(type, logger, inpath, pathtype="directory", permissions=None):  #
 
 
 def str_to_dt(time):
+    if time == 'never':
+        return time
     return dateutil.parser.parse(time)
 
 
@@ -1002,6 +984,10 @@ def has_expanded_kwargs(func):
     Handles unwrapping (removing decorators) if necessary.
     """
     func = unwrapped(func)
+
+    if isinstance(func, functools.partial):
+        func = func.func
+
     return any(
         param.kind == param.VAR_KEYWORD
         for param in inspect.signature(func).parameters.values()
