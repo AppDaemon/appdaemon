@@ -1146,6 +1146,48 @@ class Hass(ADBase, ADAPI):
                 for event in res['result']['response'][entity_id]['events']
             ]
 
+    # Scripts
+
+    def run_script(
+        self,
+        entity_id: str,
+        namespace: str | None = None,
+        return_immediately: bool = True,
+        **kwargs
+    ) -> dict:
+        """Runs a script in Home Assistant
+
+        Args:
+            entity_id (str): The entity ID of the script to run, if it doesn't start with ``script``, it will be added.
+            namespace (str, optional): The namespace to use. Defaults to the namespace of the calling app.
+            return_immediately (bool, optional): Whether to return immediately or wait for the script
+                to complete. Defaults to True. See the Home Assistant documentation for more information.
+                https://www.home-assistant.io/integrations/script/#waiting-for-script-to-complete
+            **kwargs: Additional keyword arguments to pass to the service call.
+
+        Returns:
+            dict: The result of the service call.        
+        """
+        if entity_id.startswith('script.'):
+            domain, script_name = entity_id.split('.', 1)
+        elif entity_id.startswith('script/'):
+            domain, script_name = entity_id.split('/', 1)
+
+        entity_id = f'{domain}.{script_name}'
+
+        if return_immediately:
+            service = 'script/turn_on'
+            service_data = {"variables": kwargs}
+        else:
+            service = f'{domain}/{script_name}'
+            service_data = kwargs
+
+        return self.call_service(
+            service, namespace,
+            entity_id=entity_id,
+            service_data=service_data,
+        )
+
     #
     # Template functions
     # Functions that use self.render_template
