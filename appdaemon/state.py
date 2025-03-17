@@ -1,4 +1,5 @@
 import datetime
+import threading
 import traceback
 import uuid
 from copy import copy, deepcopy
@@ -31,6 +32,7 @@ class State:
 
         self.state = {"default": {}, "admin": {}, "rules": {}}
         self.logger = ad.logging.get_child("_state")
+        self.error = ad.logging.get_error()
         self.app_added_namespaces = set()
 
         # Initialize User Defined Namespaces
@@ -104,28 +106,24 @@ class State:
         else:
             self.logger.warning("Namespace %s doesn't exists", namespace)
 
-    @utils.executor_decorator
-    def add_persistent_namespace(self, namespace: str, writeback: str) -> Path:
-        """Used to add a database file for a created namespace"""
+    @utils.warning_decorator(error_text='Unexpected error in add_persistent_namespace')
+    async def add_persistent_namespace(self, namespace: str, writeback: str) -> Path:
+        """Used to add a database file for a created namespace.
+        
+        Needs to be an async method to make sure it gets run from the event loop in the
+        main thread. Otherwise, the DbfilenameShelf can get messed up because it's not
+        thread-safe. In some systems, it'll complain about being accessed from multiple
+        threads."""
 
-        try:
-            if namespace in self.state and isinstance(self.state[namespace], utils.PersistentDict):
-                self.logger.info("Persistent namespace '%s' already initialized", namespace)
-                return
+        if isinstance(self.state.get(namespace), utils.PersistentDict):
+            self.logger.info(f"Persistent namespace '{namespace}' already initialized")
+            return
 
-            ns_db_path = self.namespace_db_path(namespace).as_posix()
-            safe = bool(writeback == "safe")
-            self.state[namespace] = utils.PersistentDict(ns_db_path, safe)
-
-            self.logger.info("Persistent namespace '%s' initialized", namespace)
-
-        except Exception:
-            self.logger.warning("-" * 60)
-            self.logger.warning("Unexpected error in namespace setup")
-            self.logger.warning("-" * 60)
-            self.logger.warning(traceback.format_exc())
-            self.logger.warning("-" * 60)
-
+        ns_db_path = self.namespace_db_path(namespace)
+        safe = writeback == "safe"
+        self.state[namespace] = utils.PersistentDict(ns_db_path, safe)
+        current_thread = threading.current_thread().getName()
+        self.logger.info(f"Persistent namespace '{namespace}' initialized from {current_thread}")
         return ns_db_path
 
     @utils.executor_decorator
