@@ -637,7 +637,10 @@ class HassPlugin(PluginBase):
         if domain == "template" and service == "render":
             return await self.render_template(namespace, data)
 
-        req = {"type": "call_service", "domain": domain, "service": service, "service_data": data}
+        service_data = data.pop('service_data', {})
+        service_data.update(data)
+
+        req = {"type": "call_service", "domain": domain, "service": service, "service_data": service_data}
 
         service_properties = {
             prop: val
