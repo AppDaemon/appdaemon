@@ -685,42 +685,28 @@ Note, that this only effects reloading at plugin restart time:
 Callback Constraints
 --------------------
 
-Callback constraints are a feature of AppDaemon that removes the need
-for repetition of some common coding checks. Many Apps will wish to
+Constraints are a feature of AppDaemon that removes the need
+for repetition of some common coding checks. Many apps will wish to
 process their callbacks only when certain conditions are met, e.g.,
 someone is home, and it's after sunset. These kinds of conditions crop
-up a lot, and use of callback constraints can significantly simplify the
+up a lot, and use of app constraints can significantly simplify the
 logic required within callbacks.
 
-Put simply, callback constraints are one or more conditions on callback
-execution that can be applied to an individual App. App's callbacks
+Put simply, constraints are one or more conditions on callback
+execution that can be applied in different ways. App's callbacks
 will only be executed if all of the constraints are met. If a constraint
 is absent, it will not be checked for.
 
-For example, a time callback constraint can be added to an App by
-adding a parameter to its configuration like this:
+Applying Constraints
+~~~~~~~~~~~~~~~~~~~~
 
-.. code:: yaml
+Constraints can be applied to callbacks in various ways:
 
-    some_app:
-      module: some_module
-      class: SomeClass
-      constrain_start_time: sunrise
-      constrain_end_time: sunset
+App Constraints
+^^^^^^^^^^^^^^^
 
-Now, although the ``initialize()`` function will be called for
-SomeClass, and it will have a chance to register as many callbacks as it
-desires, none of the callbacks will execute, in this case, unless it is between sunrise and sunset.
-
-Another callback constraint is the ``state``. This is an only callback constraint, that cannot be used at app level.
-It is useful, is wanting to evaluate a state, to check if its within a certain range or in a list.
-An example can be seen below:
-
-...code:: python
-
-    >>>  self.listen_state(self.state_cb, "light.0x0017880103ea737f_light", attribute="brightness", constrain_state=lambda  x: x>150)
-
-This will only execute the callback, if the brightness level of the entity is greater than `150`
+Users can define constraints at the app level in the configuration file. Theese constraints
+apply to every callback registered by that app.
 
 An App can have as many or as few constraints as are required. When more than one
 constraint is present, they must all evaluate to true to allow the
@@ -730,10 +716,45 @@ callback that would otherwise be blocked due to constraint failure
 will now be called. Similarly, if one of the constraints becomes false,
 the next callback that would otherwise have been called will be blocked.
 
-AppDaemon Constraints
-~~~~~~~~~~~~~~~~~~~~~~~
+For example, an app constraint based on time can be added to an App by
+adding parameters to its configuration like this:
 
-AppDaemon itself supplies the time constraint:
+.. code:: yaml
+
+    some_app:
+      module: some_module
+      class: SomeClass
+      constrain_start_time: sunrise
+      constrain_end_time: sunset
+
+The ``initialize()`` function will be called for ``SomeClass``, during which
+it can still register as many callbacks as it desires. However, because constraints defined
+in the configuration file are checked before any callback for that app is executed, no
+callbacks will be executed for ``some_app`` unless it is between sunrise and sunset.
+
+State Constraints
+^^^^^^^^^^^^^^^^^
+
+State constraints are a way to constrain callbacks based on the state of an entity. This is useful
+when wanting to evaluate a state, to check if it is within a certain range or in a list. They can only be
+applied when registering a callback, and will only apply to that registration.
+
+For example:
+
+.. code:: python
+
+    self.listen_state(
+        self.state_cb,
+        "light.0x0017880103ea737f_light",
+        attribute="brightness",
+        constrain_state=lambda  x: x > 150)
+
+This constraint will prevent the execution of the callback unless the brightness is a value greater than 150.
+
+AppDaemon Constraints
+~~~~~~~~~~~~~~~~~~~~~
+
+Some constraints are supplied by AppDaemon itself and are available to all apps.
 
 time
 ^^^^
@@ -1297,8 +1318,192 @@ ASYNC Threading Considerations
 - If you have a 100% async environment, you can prevent the creation of any threads by setting ``total_threads: 0`` in ``appdaemon.yaml``
 
 
+Callbacks
+---------
+
+A large proportion of home automation revolves around waiting for
+something to happen and then reacting to it - a light level drops, the
+sun rises, a door opens, etc. Apps are able to register callbacks
+for these events, and AppDaemon will handle calling them as necessary.
+
+Apps in AppDaemon are merely groups of these callbacks, so when the callbacks
+are not being executed, apps consume very little resources.
+
+There are 4 kinds of callback in AppDaemon, each with their own methods in ``ADAPI``.
+
+.. list-table:: AppDaemon Callbacks
+    :header-rows: 1
+
+    * - Type
+      - API Method
+      - Description
+    * - Event
+      - ``listen_event()``
+      - react to a specific event being fired
+    * - Scheduler
+      - ``run_once()``, ``run_in()``, ``run_at()``, etc.
+      - react to a specific time or interval
+    * - State
+      - ``listen_state()``
+      - react to a change in state
+    * - Log
+      - ``???``
+      - called whenever a log entry is made
+
+Callback Constraints
+~~~~~~~~~~~~~~~~~~~~
+
+Users can add constraints when registering callbacks that prevent the callback from being executed
+unless certain conditions are met. These constraints only apply to the specific callback and
+registration that they're used with.
+
+Currently only the HASS plugin supports constraints because it's the only plugin that maintains an
+internal state.
+
+.. list-table:: HASS-Specific Constraints
+    :header-rows: 1
+
+    * - Argument
+      - Value
+      - Description
+    * - ``constrain_presence``
+      - ``everyone``, ``anyone``, or ``noone``
+      - Constrain based on presence of device trackers
+    * - ``constrain_person``
+      - ``<entity_id>``
+      - Constrain based on entities in the ``person`` domain
+    * - ``constrain_input_boolean``
+      - ``<entity_id>, <value>``
+      - Constrain based on the value of an `input boolean <https://www.home-assistant.io/integrations/input_boolean/>`__
+    * - ``constrain_input_select``
+      - ``<entity_id>,<vallue>``
+      - Constrain based on the value of an `input select <https://www.home-assistant.io/integrations/input_select/>`__
+
+
+.. When registering a callback, you can add constraints identical to the
+.. Application level constraints described earlier. The difference is that
+.. a constraint applied to an individual callback only affects that
+.. callback and no other. The constraints are applied by adding Python
+.. keyword-value style arguments after the positional arguments. The
+.. parameters themselves are named identically to the previously described
+.. constraints and have identical functionality. For instance, adding:
+
+.. .. code:: python
+
+..     constrain_presence="everyone"
+
+.. to a HASS callback registration will ensure that the callback is only run if
+.. the callback conditions are met, and in addition everyone is present
+.. although any other callbacks might run whenever their event fires if
+.. they have no constraints.
+
+For example:
+
+.. code:: python
+
+    self.listen_state(self.motion, "binary_sensor.drive", constrain_presence="everyone")
+
+    constraint = "input_select.house_mode,Day"
+    # multiple values will also work
+    # constraint = "input_select.house_mode,Day,Evening,Night"
+    self.listen_state(self.motion, "input_select.drive", constrain_input_select=constraint)
+
+User Arguments
+~~~~~~~~~~~~~~~
+
+Users are able to specify additional keyword arguments to be passed to the
+callback via the standard Python ``**kwargs`` mechanism. There keyword arguments
+are then available as a standard Python dictionary in the callback.
+
+Any callback can allow the App creator to pass through
+arbitrary keyword arguments that will be presented to the callback when
+it is run. The arguments are added after the positional parameters, just
+like the constraints. The only restriction is that they cannot be the
+same as any constraint name for obvious reasons. For example, to pass
+the parameter ``arg1 = "home assistant"`` through to a callback you
+would register a callback as follows:
+
+.. code:: python
+
+    self.listen_state(self.motion, "binary_sensor.drive", arg1="home assistant")
+
+Then in the callback it is presented back to the function as a
+dictionary and you could use it as follows:
+
+.. code:: python
+
+    def motion(self, entity, attribute, old, new, kwargs):
+        self.log("Arg1 is {}".format(cb_args["arg1"]))
+
 State Operations
 ----------------
+
+AppDaemon internally fires an event when an entity changes state. This occurs for every
+state change of every entity, as well as every attribute change. Apps can respond to any
+or all of these events by registering a callback, which AppDaemon will call when the event
+gets fired. Apps register callbacks using a ``self.listen_state(...)`` call.
+
+State Callbacks
+~~~~~~~~~~~~~~~
+
+When calling back into the App, the App must provide a class function
+with a known signature for AppDaemon to call. The callback will provide
+various information to the function to enable the function to respond
+appropriately. For state callbacks, a class defined callback function
+should look like this:
+
+.. code:: python
+
+      def my_callback(self, entity, attribute, old, new, **kwargs):
+        <do some useful work here>
+
+For legacy compatibility, callbacks like this will also work. The type 
+needed is automatically determined when it's called.
+
+.. code:: python
+
+      def my_callback(self, entity, attribute, old, new, kwargs):
+        <do some useful work here>
+
+You can call the function whatever you like - you will reference it in
+the ``listen_state()`` call, and you can create as many callback
+functions as you need.
+
+The parameters have the following meanings:
+
+self
+^^^^
+
+A standard Python object reference.
+
+entity
+^^^^^^
+
+Name of the entity the callback was requested for or ``None``.
+
+attribute
+^^^^^^^^^
+
+Name of the attribute the callback was requested for or ``None``.
+
+old
+^^^
+
+The value of the state before the state change.
+
+new
+  The value of the state after the state change.
+
+``old`` and ``new`` will have varying types depending on the type of
+callback.
+
+cb_args/\*\*kwargs
+^^^^^^^^^^^^^^^^^^
+
+A dictionary containing any constraints and/or additional user specific
+keyword arguments supplied to the ``listen_state()`` call.
+
+The cb_args dictionary will also contain a field called ``handle`` that provides the callback with the handle that identifies the ``listen_state()`` entry that resulted in the callback.
 
 AppDaemon maintains a master state list segmented by namespace. As plugins notify state changes, AppDaemon listens and stores the updated state locally.
 
@@ -1347,212 +1552,6 @@ Similarly, accessing any of the entity attributes is also possible:
 .. code:: python
 
     name = self.entities.binary_sensor.downstairs_sensor.attributes.friendly_name
-
-About Callbacks
-~~~~~~~~~~~~~~~
-
-A large proportion of home automation revolves around waiting for
-something to happen and then reacting to it; a light level drops, the
-sun rises, a door opens, etc. Plugins keep track of every state
-change that occurs within the system, and they streams that information to
-AppDaemon almost immediately.
-
-A single App however usually doesn't care about the majority of
-state changes going on in the system; Apps usually care about something
-very specific, like a specific sensor or light. Apps need a way to be
-notified when a state change happens that they care about, and be able
-to ignore the rest. They do this by registering callbacks. A
-callback allows the App to describe exactly what it is interested in,
-and tells AppDaemon to make a call into its code in a specific place to
-be able to react to it - this is a very familiar concept to anyone
-familiar with event-based programming.
-
-There are 4 types of callbacks within AppDaemon:
-
--  State Callbacks - react to a change in state
--  Scheduler Callbacks - react to a specific time or interval
--  Event Callbacks - react to specific Home Assistant and AppDaemon
-   events.
-- Log Callbacks - called whenever a log entry is made
-
-All callbacks allow users to specify additional parameters to be
-handed to the callback via the standard Python ``**cb_args`` mechanism
-for greater flexibility, these additional arguments are handed to the
-callback as a standard Python dictionary,
-
-About Registering Callbacks
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Each of the various types of callback have their own function or
-functions for registering the callback:
-
--  ``listen_state()`` for state callbacks
--  Various scheduler calls such as ``run_once()`` for scheduling
-   callbacks
--  ``listen_event()`` for event callbacks.
-
-Each type of callback shares a number of common mechanisms that increase
-flexibility.
-
-Callback Level Constraints
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-When registering a callback, you can add constraints identical to the
-Application level constraints described earlier. The difference is that
-a constraint applied to an individual callback only affects that
-callback and no other. The constraints are applied by adding Python
-keyword-value style arguments after the positional arguments. The
-parameters themselves are named identically to the previously described
-constraints and have identical functionality. For instance, adding:
-
-.. code:: python
-
-    constrain_presence="everyone"
-
-to a HASS callback registration will ensure that the callback is only run if
-the callback conditions are met, and in addition everyone is present
-although any other callbacks might run whenever their event fires if
-they have no constraints.
-
-For example:
-
-.. code:: python
-
-    self.listen_state(self.motion, "binary_sensor.drive", constrain_presence="everyone")
-
-User Arguments
-^^^^^^^^^^^^^^
-
-Any callback can allow the App creator to pass through
-arbitrary keyword arguments that will be presented to the callback when
-it is run. The arguments are added after the positional parameters, just
-like the constraints. The only restriction is that they cannot be the
-same as any constraint name for obvious reasons. For example, to pass
-the parameter ``arg1 = "home assistant"`` through to a callback you
-would register a callback as follows:
-
-.. code:: python
-
-    self.listen_state(self.motion, "binary_sensor.drive", arg1="home assistant")
-
-Then in the callback it is presented back to the function as a
-dictionary and you could use it as follows:
-
-.. code:: python
-
-    def motion(self, entity, attribute, old, new, cb_args):
-        self.log("Arg1 is {}".format(cb_args["arg1"]))
-
-KWARGS
-^^^^^^
-
-The above mechanism for passing arguments to callbacks was originally referred to
-as the "kwargs" mechanism. This has caused some confusion over the years and was originally
-named due to a misunderstanding of the function of the python dictionary unpack function on
-the part of the developer. It has been pointed out many times that a more natural and pythonic
-way to handle this would be via use of the ``**`` operator when handing parameters to a callback.
-As of AppDamoen 4.3.0, it is now possible to switch AppDaemon globally to the use of the ``**``
-operator for user arguments by specifying ``use_dictionary_unpacking: true`` in
-the AppDaemon config file. When this capability is enabled, AppDaemon will hand parameters to
-callbacks vis the ``**`` operator rather than passing a dictionary containing the arguments:
-
-.. code:: python
-
-    def motion(self, entity, attribute, old, new, **kwargs):
-        self.log("Arg1 is {}".format(kwargs["arg1"]))
-
-It now makes more sense to rewite the callback's method signature to the following if desired:
-
-.. code:: python
-
-    def motion(self, *args, **kwargs):
-        self.log("Arg1 is {}".format(kwargs["arg1"]))
-
-This was previously possible but kwargs appeared as a dictionary in the positional parameter
-list for args, not in kwargs as might have been expected.
-
-This capability can also be enabled on a per app basis by setting the argument
-``use_dictionary_unpacking`` to ``true`` or ``false`` in the apps configuration file
-- this will override the global setting in the appdaemon config file if any.
-
-Although this is a minor change, it is important to many people and rights an ancient wrong
-in the design of AppDaemon.
-
-Please note, that in order to avoid confusion, the docs have been changed to call the old kwargs
-dictionary ``cb_args``.
-
-State Callbacks
-~~~~~~~~~~~~~~~
-
-AppDaemons's state callbacks allow an App to listen to a wide variety of
-events, from every state change in the system, right down to a change of
-a single attribute of a particular entity. Setting up a callback is done
-using a single API call ``listen_state()`` which takes various arguments
-to allow it to do all of the above. Apps can register as many or as few
-callbacks as they want.
-
-About State Callback Functions
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-When calling back into the App, the App must provide a class function
-with a known signature for AppDaemon to call. The callback will provide
-various information to the function to enable the function to respond
-appropriately. For state callbacks, a class defined callback function
-should look like this:
-
-.. code:: python
-
-      def my_callback(self, entity, attribute, old, new, cb_args):
-        <do some useful work here>
-
-Or if you are using dictionary unpacking (see `here <APPGUIDE.html#kwargs>`__):
-
-.. code:: python
-
-      def my_callback(self, entity, attribute, old, new, **kwargs):
-        <do some useful work here>
-
-You can call the function whatever you like - you will reference it in
-the ``listen_state()`` call, and you can create as many callback
-functions as you need.
-
-The parameters have the following meanings:
-
-self
-^^^^
-
-A standard Python object reference.
-
-entity
-^^^^^^
-
-Name of the entity the callback was requested for or ``None``.
-
-attribute
-^^^^^^^^^
-
-Name of the attribute the callback was requested for or ``None``.
-
-old
-^^^
-
-The value of the state before the state change.
-
-new
-^^^
-
-The value of the state after the state change.
-
-``old`` and ``new`` will have varying types depending on the type of
-callback.
-
-cb_args/\*\*kwargs
-^^^^^^^^^^^^^^^^^^
-
-A dictionary containing any constraints and/or additional user specific
-keyword arguments supplied to the ``listen_state()`` call.
-
-The cb_args dictionary will also contain a field called ``handle`` that provides the callback with the handle that identifies the ``listen_state()`` entry that resulted in the callback.
 
 Publishing State from an App
 ----------------------------
@@ -1756,7 +1755,7 @@ event\_name
 data
   Any data that the system supplied with the event as a dict.
 
-cb_args
+kwargs
   A dictionary containing Zero or more user keyword arguments to be supplied to the callback.
 
 listen\_event()
