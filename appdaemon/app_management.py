@@ -553,7 +553,10 @@ class AppManagement:
             for path in config_files:
                 @ade.wrap_async(self.error, self.AD.app_dir, f"Reading user apps")
                 async def safe_read(self: "AppManagement", path: Path) -> AllAppConfig:
-                    return await self.read_config_file(path)
+                    try:
+                        return await self.read_config_file(path)
+                    except ValidationError as exc:
+                        raise ade.BadAppConfig(path) from exc
 
                 new_cfg = await safe_read(self, path)
                 if new_cfg is None:
@@ -879,6 +882,8 @@ class AppManagement:
                 )
                 self.config_filecheck.mtimes = {}
                 self.python_filecheck.mtimes = {}
+            except ValidationError as e:
+                raise ade.BadAppConfig("Error creating dependency manager") from e
             except ade.AppDaemonException as e:
                 raise
 
