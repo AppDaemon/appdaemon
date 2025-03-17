@@ -685,6 +685,10 @@ Note, that this only effects reloading at plugin restart time:
 Callback Constraints
 --------------------
 
+Users can add constraints when registering callbacks that prevent the callback from being executed
+unless certain conditions are met. These constraints only apply to the specific callback and
+registration that they're used with.
+
 Constraints are a feature of AppDaemon that removes the need
 for repetition of some common coding checks. Many apps will wish to
 process their callbacks only when certain conditions are met, e.g.,
@@ -702,8 +706,8 @@ Applying Constraints
 
 Constraints can be applied to callbacks in various ways:
 
-App Constraints
-^^^^^^^^^^^^^^^
+App Level Constraints
+^^^^^^^^^^^^^^^^^^^^^
 
 Users can define constraints at the app level in the configuration file. Theese constraints
 apply to every callback registered by that app.
@@ -732,8 +736,26 @@ it can still register as many callbacks as it desires. However, because constrai
 in the configuration file are checked before any callback for that app is executed, no
 callbacks will be executed for ``some_app`` unless it is between sunrise and sunset.
 
-State Constraints
-^^^^^^^^^^^^^^^^^
+Callback Level Constraints
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Constraints can also be applied when registering a callback that will only be applied to that callback.
+
+For example:
+
+.. code:: python
+
+    self.listen_state(self.motion, "binary_sensor.drive", constrain_presence="everyone")
+
+.. code::python
+
+    constraint = "input_select.house_mode,Day"
+    self.listen_state(self.motion, "input_select.drive", constrain_input_select=constraint)
+
+.. code:: python
+
+    constraint = "input_select.house_mode,Day,Evening,Night"
+    self.listen_state(self.motion, "input_select.drive", constrain_input_select=constraint)
 
 State constraints are a way to constrain callbacks based on the state of an entity. This is useful
 when wanting to evaluate a state, to check if it is within a certain range or in a list. They can only be
@@ -804,21 +826,33 @@ Other constraints may be supplied by the plugin in use.
 HASS Plugin Constraints
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-The HASS plugin supplies several additional different types of constraints:
+The HASS plugin supplies several types of constraints:
 
--  input\_boolean
--  input\_select
--  presence
--  time (see `AppDaemon Constraints <APPGUIDE.html#time>`__)
+.. list-table:: HASS-Specific Constraints
+    :header-rows: 1
 
-They are described individually below.
+    * - Argument
+      - Value
+      - Description
+    * - ``constrain_input_boolean``
+      - ``<entity_id>, <value>``
+      - Constrain based on the value of an `input boolean <https://www.home-assistant.io/integrations/input_boolean/>`__
+    * - ``constrain_input_select``
+      - ``<entity_id>,<vallue>``
+      - Constrain based on the value of an `input select <https://www.home-assistant.io/integrations/input_select/>`__
+    * - ``constrain_presence``
+      - ``everyone``, ``anyone``, or ``noone``
+      - Constrain based on presence of device trackers
+    * - ``constrain_person``
+      - ``<entity_id>``
+      - Constrain based on entities in the ``person`` domain
 
-input\_boolean
-^^^^^^^^^^^^^^
+constrain\_input\_boolean
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
-By default, the input\_boolean constraint prevents callbacks unless the
+By default, ``constrain_input_boolean`` prevents callbacks unless the
 specified input\_boolean is set to ``on``. This is useful to allow certain
-Apps to be turned on and off from the user interface. For example:
+apps to be turned on and off from the user interface, for example:
 
 .. code:: yaml
 
@@ -828,8 +862,8 @@ Apps to be turned on and off from the user interface. For example:
       constrain_input_boolean: input_boolean.enable_motion_detection
 
 If you want to reverse the logic so the constraint is only called when
-the input\_boolean is off, use the optional state parameter by appending,
-``off`` to the argument, e.g.:
+the input\_boolean is ``off``, use the optional state parameter by appending
+``,off`` to the argument, for example:
 
 .. code:: yaml
 
@@ -839,7 +873,7 @@ the input\_boolean is off, use the optional state parameter by appending,
       constrain_input_boolean: input_boolean.enable_motion_detection,off
 
 If you want to constrain on multiple input_boolean entities, you can provide
-the constraints as a yaml list
+the constraints as a yaml list, for example:
 
 .. code:: yaml
 
@@ -850,14 +884,14 @@ the constraints as a yaml list
         - input_boolean.enable_motion_detection
         - binary_sensor.weekend,off
 
-Note that the default behavior if the input_boolean doesn't exist so to not constrain.
+Note that the default behavior if the input_boolean doesn't exist is to not constrain.
 
-input\_select
-^^^^^^^^^^^^^
+constrain\_input\_select
+^^^^^^^^^^^^^^^^^^^^^^^^
 
-The input\_select constraint prevents callbacks unless the specified
+The ``constrain_input_select`` constraint prevents callbacks unless the specified
 input\_select is set to one or more of the nominated (comma separated)
-values. This is useful to allow certain Apps to be turned on and off
+values. This is useful to allow certain apps to be enabled/disabled
 according to some flag, e.g., a house mode flag.
 
 .. code:: yaml
@@ -880,10 +914,10 @@ the constraints as a yaml list
         - input_select.house_mode,Day
         - sensor.day_of_week,Monday,Wednesday,Friday
 
-presence
-^^^^^^^^
+constrain\_presence
+^^^^^^^^^^^^^^^^^^^
 
-The presence constraint will constrain based on presence of device
+The ``constrain_presence`` constraint will constrain based on presence of device
 trackers. It takes 3 possible values:
 
 - ``noone`` - only allow callback execution when no one is home
@@ -898,13 +932,10 @@ trackers. It takes 3 possible values:
     # or
     constrain_presence: noone
 
-Callback constraints can also be applied to individual callbacks within
-Apps, see later for more details.
+constrain\_person
+^^^^^^^^^^^^^^^^^
 
-person
-^^^^^^^^
-
-The person constraint will constrain based on presence of person entities
+The ``constrain_person`` constraint will constrain based on presence of person entities
 trackers. It takes 3 possible values:
 
 - ``noone`` - only allow callback execution when no one is home
@@ -918,9 +949,6 @@ trackers. It takes 3 possible values:
     constrain_person: everyone
     # or
     constrain_person: noone
-
-Callback constraints can also be applied to individual callbacks within
-Apps, see later for more details.
 
 AppDaemon and Threading
 -----------------------
@@ -1350,98 +1378,135 @@ There are 4 kinds of callback in AppDaemon, each with their own methods in ``ADA
       - ``???``
       - called whenever a log entry is made
 
-Callback Constraints
-~~~~~~~~~~~~~~~~~~~~
-
-Users can add constraints when registering callbacks that prevent the callback from being executed
-unless certain conditions are met. These constraints only apply to the specific callback and
-registration that they're used with.
-
-Currently only the HASS plugin supports constraints because it's the only plugin that maintains an
-internal state.
-
-.. list-table:: HASS-Specific Constraints
-    :header-rows: 1
-
-    * - Argument
-      - Value
-      - Description
-    * - ``constrain_presence``
-      - ``everyone``, ``anyone``, or ``noone``
-      - Constrain based on presence of device trackers
-    * - ``constrain_person``
-      - ``<entity_id>``
-      - Constrain based on entities in the ``person`` domain
-    * - ``constrain_input_boolean``
-      - ``<entity_id>, <value>``
-      - Constrain based on the value of an `input boolean <https://www.home-assistant.io/integrations/input_boolean/>`__
-    * - ``constrain_input_select``
-      - ``<entity_id>,<vallue>``
-      - Constrain based on the value of an `input select <https://www.home-assistant.io/integrations/input_select/>`__
-
-
-.. When registering a callback, you can add constraints identical to the
-.. Application level constraints described earlier. The difference is that
-.. a constraint applied to an individual callback only affects that
-.. callback and no other. The constraints are applied by adding Python
-.. keyword-value style arguments after the positional arguments. The
-.. parameters themselves are named identically to the previously described
-.. constraints and have identical functionality. For instance, adding:
-
-.. .. code:: python
-
-..     constrain_presence="everyone"
-
-.. to a HASS callback registration will ensure that the callback is only run if
-.. the callback conditions are met, and in addition everyone is present
-.. although any other callbacks might run whenever their event fires if
-.. they have no constraints.
-
-For example:
-
-.. code:: python
-
-    self.listen_state(self.motion, "binary_sensor.drive", constrain_presence="everyone")
-
-    constraint = "input_select.house_mode,Day"
-    # multiple values will also work
-    # constraint = "input_select.house_mode,Day,Evening,Night"
-    self.listen_state(self.motion, "input_select.drive", constrain_input_select=constraint)
-
-User Arguments
+Event Callbacks
 ~~~~~~~~~~~~~~~
 
-Users are able to specify additional keyword arguments to be passed to the
-callback via the standard Python ``**kwargs`` mechanism. There keyword arguments
-are then available as a standard Python dictionary in the callback.
+`More information on events <#events>`__
 
-Any callback can allow the App creator to pass through
-arbitrary keyword arguments that will be presented to the callback when
-it is run. The arguments are added after the positional parameters, just
-like the constraints. The only restriction is that they cannot be the
-same as any constraint name for obvious reasons. For example, to pass
-the parameter ``arg1 = "home assistant"`` through to a callback you
-would register a callback as follows:
+Apps can regsiter event callbacks with calls to ``self.listen_event(...)``. For example, this registers
+a callback for an event ``some_event``:
 
 .. code:: python
 
-    self.listen_state(self.motion, "binary_sensor.drive", arg1="home assistant")
+    self.listen_event(self.my_callback, "some_event")
 
-Then in the callback it is presented back to the function as a
-dictionary and you could use it as follows:
+Event callbacks are expected to have a specific signature, which looks like this:
 
 .. code:: python
 
-    def motion(self, entity, attribute, old, new, kwargs):
-        self.log("Arg1 is {}".format(cb_args["arg1"]))
+    def my_callback(self, event_name, data, **kwargs):
+        ... # do some useful work here
 
-State Operations
-----------------
+For legacy compatibility, callbacks like this will also work. The type
+needed is automatically determined when it's called.
 
-AppDaemon internally fires an event when an entity changes state. This occurs for every
-state change of every entity, as well as every attribute change. Apps can respond to any
-or all of these events by registering a callback, which AppDaemon will call when the event
-gets fired. Apps register callbacks using a ``self.listen_state(...)`` call.
+.. code:: python
+
+    def my_callback(self, event_name, data, kwargs):
+        ... # do some useful work here
+
+Additional keyword arguments can be passed to the callback when it is registered. These
+will be passed to the callback when it is called. For example:
+
+.. code:: python
+
+    self.listen_event(self.my_callback, "some_event", my_kwarg=123)
+
+.. code:: python
+
+    def my_callback(self, event_name, data, **kwargs):
+        self.log(f'My kwarg: {kwargs["my_kwarg"]}')
+
+The parameters have the following meanings:
+
+self
+  A standard Python object reference.
+
+event\_name
+  Name of the event that was called, e.g., ``call_service``.
+
+data
+  Any data that the system supplied with the event as a dict. This data is supplied as part of the event by AppDaemon.
+
+kwargs
+  A dictionary containing zero or more keyword arguments defined by the user when the callback was registered.
+
+
+listen\_event()
+~~~~~~~~~~~~~~~
+
+Listen event sets up a callback for a specific event, or any event.
+
+Synopsis
+^^^^^^^^
+
+.. code:: python
+
+    handle = listen_event(function, event = None, cb_args):
+
+Returns
+^^^^^^^
+
+A handle that can be used to cancel the callback.
+
+Parameters
+^^^^^^^^^^
+
+function
+''''''''
+
+The function to be called when the event is fired.
+
+event
+'''''
+
+Name of the event to subscribe to. Can be a standard HASS or MQTT plugin
+event such as ``service_registered`` or in the case of HASS, an arbitrary custom event such
+as ``"MODE_CHANGE"``. If no event is specified, ``listen_event()`` will
+subscribe to all events.
+
+wargs (optional)
+'''''''''''''''''''''
+
+One or more keyword value pairs representing App specific parameters to
+supply to the callback. If the keywords match values within the event
+data, they will act as filters, meaning that if they don't match the
+values, the callback will not fire. If the values are callable, they will
+be invoked and if they return ``True`` they'll be considered a match.
+
+As an example of this, a Minimote controller when activated will
+generate an event called ``zwave_js_value_notification``, along with 2 pieces
+of data that are specific to the event - ``node_id`` and ``value``. If
+you include keyword values for either of those, the values supplied to
+the ``listen_event()`` 1 call must match the values in the event or it
+will not fire. If the keywords do not match any of the data in the event,
+they are simply ignored.
+
+Filtering will work with any event type, but it will be necessary to
+figure out the data associated with the event to understand what values
+can be filtered on. This can be achieved by examining Home Assistant's
+logfiles when the event fires.
+
+Examples
+^^^^^^^^
+
+.. code:: python
+
+    self.listen_event(self.mode_event, "MODE_CHANGE")
+    # Listen for a minimote event activating scene 3:
+    self.listen_event(self.generic_event, "zwave_js_value_notification", value = 3)
+    # Listen for a minimote event activating scene 3 from a specific minimote:
+    self.listen_event(self.generic_event, "zwave_js_value_notification", node_id = "11", value = 3)
+    # Listen for a minimote event activating scene 3 from one of several minimotes:
+    self.listen_event(self.generic_event, "zwave_js_value_notification", node_id = lambda x: x in ["11", "14", "22"], value = 3)
+
+
+
+
+
+
+Scheduler Callbacks
+~~~~~~~~~~~~~~~~~~~
 
 State Callbacks
 ~~~~~~~~~~~~~~~
@@ -1472,42 +1537,73 @@ functions as you need.
 The parameters have the following meanings:
 
 self
-^^^^
-
-A standard Python object reference.
+  A standard Python object reference.
 
 entity
-^^^^^^
-
-Name of the entity the callback was requested for or ``None``.
+  Name of the entity the callback was requested for or ``None``.
 
 attribute
-^^^^^^^^^
-
-Name of the attribute the callback was requested for or ``None``.
+  Name of the attribute the callback was requested for or ``None``.
 
 old
-^^^
-
-The value of the state before the state change.
+  The value of the state before the state change.
 
 new
   The value of the state after the state change.
 
-``old`` and ``new`` will have varying types depending on the type of
-callback.
-
-cb_args/\*\*kwargs
-^^^^^^^^^^^^^^^^^^
-
-A dictionary containing any constraints and/or additional user specific
-keyword arguments supplied to the ``listen_state()`` call.
+kwargs
+  A dictionary containing any constraints and/or additional user specific
+  keyword arguments supplied to the ``listen_state()`` call.
 
 The cb_args dictionary will also contain a field called ``handle`` that provides the callback with the handle that identifies the ``listen_state()`` entry that resulted in the callback.
+
+Log Callbacks
+~~~~~~~~~~~~~
+
+Constraints
+~~~~~~~~~~~
+
+Refer to `callback constraints <#callback-constraints>`_
+
+User Arguments
+~~~~~~~~~~~~~~
+
+Users are able to specify additional keyword arguments to be passed to the
+callback via the standard Python ``**kwargs`` mechanism. Keyword arguments
+are then available as a standard Python dictionary in the callback.
+
+The only restriction is that they cannot be the same as any constraint name
+for obvious reasons. For example, to pass the parameter ``arg1="home assistant"``
+through to a callback you would register a callback as follows:
+
+.. code:: python
+
+    self.listen_state(self.motion, "binary_sensor.drive", arg1="home assistant")
+
+Then in the callback the parameter would be available as follows:
+
+.. code:: python
+
+    def motion(self, entity, attribute, old, new, **kwargs):
+        arg1 = kwargs['arg1']
+        self.log(f"Arg1 is {arg1}")
+
+State Operations
+----------------
 
 AppDaemon maintains a master state list segmented by namespace. As plugins notify state changes, AppDaemon listens and stores the updated state locally.
 
 The MQTT plugin does not use state at all, and it relies on events to trigger actions, whereas the Home Assistant plugin makes extensive use of state.
+
+AppDaemon internally fires an event when an entity changes state. This occurs for every
+state change of every entity, as well as every attribute change. Apps can respond to any
+or all of these events by registering a callback, which AppDaemon will call when the event
+gets fired. Apps register callbacks using a ``self.listen_state(...)`` call.
+
+`Callbacks <#state-callbacks>`_
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Refer to the callbacks section for more information.
 
 A note on Home Assistant State
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1554,7 +1650,7 @@ Similarly, accessing any of the entity attributes is also possible:
     name = self.entities.binary_sensor.downstairs_sensor.attributes.friendly_name
 
 Publishing State from an App
-----------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Using AppDaemon, it is possible to explicitly publish state from an App.
 The published state can contain whatever you want, and is treated
@@ -1676,36 +1772,14 @@ do not by default return results when used.
 Events
 ------
 
-About Events
-~~~~~~~~~~~~
-
 Events are a fundamental part of how AppDaemon works under the
 covers. AD receives important events from all of its plugins and communicates them to apps as required. For instance, the MQTT plugin will generate an event when a message is received; The HASS plugin will generate an event when a service is called, or when it starts or stops.
 
-Events and MQTT
-~~~~~~~~~~~~~~~
+`Callbacks <#event-callbacks>`_
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The MQTT plugin uses events as its primary (and only interface) to MQTT. The model is fairly simple - every time an MQTT message is received, and event of type ``MQTT_MESSAGE`` is fired. Apps are able to subscribe to this event and process it appropriately.
-
-Events and Home Assistant
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-We have already seen how state changes can be propagated to AppDaemon via the HASS plugin - a state change however is merely an example of an event within Home Assistant. There are several other event types, among them are:
-
--  ``homeassistant_start``
--  ``homeassistant_stop``
--  ``state_changed``
--  ``service_registered``
--  ``call_service``
--  ``service_executed``
--  ``platform_discovered``
--  ``component_loaded``
-
-Using the HASS plugin, it is possible to subscribe to specific events as well
-as fire off events.
-
-AppDaemon Specific Events
-~~~~~~~~~~~~~~~~~~~~~~~~~
+AppDaemon Events
+~~~~~~~~~~~~~~~~
 
 In addition to the HASS and MQTT supplied events, AppDaemon adds 3 more
 events. These are internal to AppDaemon and are not visible on the Home
@@ -1721,110 +1795,27 @@ Assistant bus:
 - ``stream_connected`` - fired when a stream client connects like the Admin User Interface. It is fired within the `admin` namespace
 - ``stream_disconnected`` - fired when a stream client disconnects like the Admin User Interface. It is fired within the `admin` namespace
 
-Event Callbacks
+Home Assistant Events
 ~~~~~~~~~~~~~~~~~~~~~
 
-As with State Change and Scheduler callbacks, Event Callbacks expect to
-call into functions with a known and specific signature and a class
-defined Scheduler callback function should look like this:
+We have already seen how state changes can be propagated to AppDaemon via the HASS plugin - a state change however is merely an example of an event within Home Assistant. There are several other event types, among them are:
 
-.. code:: python
+-  ``homeassistant_start``
+-  ``homeassistant_stop``
+-  ``state_changed``
+-  ``service_registered``
+-  ``call_service``
+-  ``service_executed``
+-  ``platform_discovered``
+-  ``component_loaded``
 
-      def my_callback(self, event_name, data, kwargs):
-        <do some useful work here>
+Using the HASS plugin, it is possible to subscribe to specific events as well
+as fire off events.
 
-Or if you are using dictionary unpacking (see `here <APPGUIDE.html#kwargs>`__):
+MQTT Events
+~~~~~~~~~~~
 
-.. code:: python
-
-      def my_callback(self, event_name, data, **kwargs):
-        <do some useful work here>
-
-You can call the function whatever you like - you will reference it in
-the Scheduler call, and you can create as many callback functions as you
-need.
-
-The parameters have the following meanings:
-
-self
-  A standard Python object reference.
-
-event\_name
-  Name of the event that was called, e.g., ``call_service``.
-
-data
-  Any data that the system supplied with the event as a dict.
-
-kwargs
-  A dictionary containing Zero or more user keyword arguments to be supplied to the callback.
-
-listen\_event()
-~~~~~~~~~~~~~~~
-
-Listen event sets up a callback for a specific event, or any event.
-
-Synopsis
-^^^^^^^^
-
-.. code:: python
-
-    handle = listen_event(function, event = None, cb_args):
-
-Returns
-^^^^^^^
-
-A handle that can be used to cancel the callback.
-
-Parameters
-^^^^^^^^^^
-
-function
-''''''''
-
-The function to be called when the event is fired.
-
-event
-'''''
-
-Name of the event to subscribe to. Can be a standard HASS or MQTT plugin
-event such as ``service_registered`` or in the case of HASS, an arbitrary custom event such
-as ``"MODE_CHANGE"``. If no event is specified, ``listen_event()`` will
-subscribe to all events.
-
-wargs (optional)
-'''''''''''''''''''''
-
-One or more keyword value pairs representing App specific parameters to
-supply to the callback. If the keywords match values within the event
-data, they will act as filters, meaning that if they don't match the
-values, the callback will not fire. If the values are callable, they will
-be invoked and if they return ``True`` they'll be considered a match.
-
-As an example of this, a Minimote controller when activated will
-generate an event called ``zwave_js_value_notification``, along with 2 pieces
-of data that are specific to the event - ``node_id`` and ``value``. If
-you include keyword values for either of those, the values supplied to
-the ``listen_event()`` 1 call must match the values in the event or it
-will not fire. If the keywords do not match any of the data in the event,
-they are simply ignored.
-
-Filtering will work with any event type, but it will be necessary to
-figure out the data associated with the event to understand what values
-can be filtered on. This can be achieved by examining Home Assistant's
-logfiles when the event fires.
-
-Examples
-^^^^^^^^
-
-.. code:: python
-
-    self.listen_event(self.mode_event, "MODE_CHANGE")
-    # Listen for a minimote event activating scene 3:
-    self.listen_event(self.generic_event, "zwave_js_value_notification", value = 3)
-    # Listen for a minimote event activating scene 3 from a specific minimote:
-    self.listen_event(self.generic_event, "zwave_js_value_notification", node_id = "11", value = 3)
-    # Listen for a minimote event activating scene 3 from one of several minimotes:
-    self.listen_event(self.generic_event, "zwave_js_value_notification", node_id = lambda x: x in ["11", "14", "22"], value = 3)
+The MQTT plugin uses events as its primary (and only interface) to MQTT. The model is fairly simple - every time an MQTT message is received, and event of type ``MQTT_MESSAGE`` is fired. Apps are able to subscribe to this event and process it appropriately.
 
 Use of Events for Signalling between Home Assistant and AppDaemon
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
