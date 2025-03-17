@@ -4,6 +4,7 @@ Exceptions used by appdaemon
 """
 import asyncio
 import functools
+import inspect
 import json
 import logging
 import traceback
@@ -16,6 +17,15 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from .appdaemon import AppDaemon
+
+
+# This has to go here to prevent circular imports because the utils module already imports this one
+def get_callback_sig(funcref) -> str:
+    if isinstance(funcref, functools.partial):
+        funcref = funcref.func
+    sig = inspect.signature(funcref)
+    return f"{funcref.__qualname__}{sig}"
+
 
 @dataclass
 class AppDaemonException(Exception, ABC):
@@ -44,6 +54,9 @@ def user_exception_block(logger: Logger, exception: AppDaemonException, app_dir:
     logger.error(header)
 
     chain = get_exception_cause_chain(exception)
+
+    if isinstance(chain[-1], TypeError):
+        chain.pop(-1)
     
     for i, exc in enumerate(chain):
         indent = ' ' * i * 2
@@ -153,34 +166,48 @@ class ServiceException(AppDaemonException):
 
 @dataclass
 class AppCallbackFail(AppDaemonException):
+    """Base class for exceptions caused by callbacks made in user apps."""
     app_name: str
-    args: tuple[Any, ...] = field(default_factory=tuple)
-    kwargs: dict[str, Any] = field(default_factory=dict)
+    funcref: functools.partial
 
     def __str__(self, base: str | None = None):
         base = base or f"Callback failed for app '{self.app_name}'"
 
-        if self.args:
-            base += f'\nargs: {self.args}'
+        if args := self.funcref.args:
+            base += f'\nargs: {args}'
 
-        if self.kwargs:
-            base += f'\nkwargs: {json.dumps(self.kwargs, indent=4, default=str)}'
+        if kwargs := self.funcref.keywords:
+            base += f'\nkwargs: {json.dumps(kwargs, indent=4, default=str)}'
 
         return base
 
 
 @dataclass
 class StateCallbackFail(AppCallbackFail):
-    entity: str | None = None
+    entity: str
 
     def __str__(self):
-        return super().__str__(f"State callback failed for '{self.entity}' from '{self.app_name}'")
+        res = super().__str__(f"State callback failed for '{self.entity}' from '{self.app_name}'")
+
+        # Type errors are a special case where we can give some more advice about how the callback should be written
+        if isinstance(self.__cause__, TypeError):
+            res += f'\n{self.__cause__}'
+            res += '\nState callbacks should have the following signature:'
+            res += '\n  state_callback(self, entity, attribute, old, new, **kwargs)'
+            res += '\nSee https://appdaemon.readthedocs.io/en/latest/APPGUIDE.html#state-callbacks for more information'
+
+        return res
 
 
 @dataclass
 class SchedulerCallbackFail(AppCallbackFail):
     def __str__(self):
-        return super().__str__(f"Scheduled callback failed for app '{self.app_name}'")
+        res = super().__str__(f"Scheduled callback failed for app '{self.app_name}'")
+
+        if isinstance(self.__cause__, TypeError):
+            res += f'\nCallback has signature: {get_callback_sig(self.funcref)}'
+            res += f'\n{self.__cause__}\n'
+        return res
 
 
 @dataclass
@@ -188,7 +215,14 @@ class EventCallbackFail(AppCallbackFail):
     event: str | None = None
 
     def __str__(self):
-        return super().__str__(f"Event callback failed for '{self.event}' from '{self.app_name}'")
+        res = super().__str__(f"Scheduled callback failed for app '{self.app_name}'")
+
+        if isinstance(self.__cause__, TypeError):
+            res += f'\n{self.__cause__}'
+            res += '\nState callbacks should have the following signature:'
+            res += '\n  my_callback(self, event_name, data, **kwargs):'
+            res += '\nSee https://appdaemon.readthedocs.io/en/latest/APPGUIDE.html#event-callbacks for more information'
+        return res
 
 
 @dataclass

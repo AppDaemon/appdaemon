@@ -437,7 +437,11 @@ class Threading:
                     attribute="time_called",
                 )
             )
-            duration = (now - start).total_seconds()
+            if start == "never":
+                duration = 0.0
+            else:
+                duration = (now - start).total_seconds()
+    
             if self.AD.sched.realtime is True and duration >= self.AD.thread_duration_warning_threshold:
                 thread_name = f"thread.{thread_id}"
                 callback = await self.get_state("_threading", "admin", thread_name)
@@ -916,16 +920,9 @@ class Threading:
         error_logger = logging.getLogger(f"Error.{name}")
         args["kwargs"]["__thread_id"] = thread_id
 
-        if isinstance(funcref, functools.partial):
-            callback = f'{funcref.func.__name__}() in {name}'
-        else:
-            callback = f'{funcref.__name__}() in {name}'
-
         silent = False
         if "__silent" in args["kwargs"]:
             silent = args["kwargs"]["__silent"]
-
-        use_dictionary_unpacking = utils.has_expanded_kwargs(funcref)
 
         app = self.AD.app_management.get_app_instance(name, objectid)
         if app is not None:
@@ -961,33 +958,37 @@ class Threading:
                         pos_args = (args["event"], data)
                         kwargs = self.AD.events.sanitize_event_kwargs(app, args["kwargs"])
 
-                await self.update_thread_info("async", callback, name, _type, _id, silent)
-                if use_dictionary_unpacking is True:
-                    await funcref(*pos_args, **kwargs)
+                use_dictionary_unpacking = utils.has_expanded_kwargs(funcref)
+                if use_dictionary_unpacking:
+                    funcref = functools.partial(funcref, *pos_args, **kwargs)
                 else:
-                    await funcref(*pos_args, kwargs)
+                    funcref = functools.partial(funcref, *pos_args, kwargs)
 
-            except TypeError:
-                self.report_callback_sig(name, _type, funcref, args)
-            except ade.AppDaemonException as exc:
-                # Pass the exception to the main thread. It should already have the relevant information
-                raise exc # gets caught in the handler attached to the loop
-            except Exception as exc:
-                if self.AD.logging.separate_error_log() is True:
-                    self.logger.warning(
-                        "Logged an error to %s",
-                        self.AD.logging.get_filename("error_log"),
-                    )
+                callback = f'{funcref.func.__name__}() in {name}'
+                await self.update_thread_info("async", callback, name, _type, _id, silent)
 
-                match args['type']:
-                    case 'state':
-                        raise ade.StateCallbackFail(name, funcref.args, funcref.keywords) from exc
-                    case 'scheduler':
-                        raise ade.SchedulerCallbackFail(name, funcref.args, funcref.keywords) from exc
-                raise ade.AppCallbackFail(funcref.__name__, app_name=name) from exc
+                @ade.wrap_async(error_logger, self.AD.app_dir, callback)
+                async def safe_callback():
+                    """Wraps actually calling the function for the callback with logic to transform exceptions based
+                    on the callback type"""
+                    try:
+                        await funcref()
+                    except Exception as exc:
+                        # positional arguments common to all the AppCallbackFail exceptions
+                        pos_args = (name, funcref.args, funcref.keywords)
+                        match args['type']:
+                            case "event":
+                                raise ade.EventCallbackFail(*pos_args, args["event"]) from exc
+                            case 'scheduler':
+                                raise ade.SchedulerCallbackFail(*pos_args) from exc
+                            case 'state':
+                                raise ade.StateCallbackFail(*pos_args, args["entity"]) from exc
+                            case _:
+                                raise ade.AppCallbackFail(*pos_args) from exc
+                await safe_callback()
+
             finally:
                 await self.update_thread_info("async", "idle", name, _type, _id, silent)
-
         else:
             if not self.AD.stopping:
                 self.logger.warning(
@@ -1010,8 +1011,6 @@ class Threading:
             silent = False
             if "__silent" in args["kwargs"]:
                 silent = args["kwargs"]["__silent"]
-
-            use_dictionary_unpacking = utils.has_expanded_kwargs(funcref)
 
             app = self.AD.app_management.get_app_instance(name, objectid)
             if app is not None:
@@ -1046,39 +1045,44 @@ class Threading:
                             pos_args = (args["event"], args["data"])
                             kwargs = self.AD.events.sanitize_event_kwargs(app, args["kwargs"])
                     
+                    use_dictionary_unpacking = utils.has_expanded_kwargs(funcref)
                     if use_dictionary_unpacking:
                         funcref = functools.partial(funcref, *pos_args, **kwargs)
                     else:
                         funcref = functools.partial(funcref, *pos_args, kwargs)
 
-                    callback = f'{funcref.func.__name__}() in {name}'
+                    callback = f'{funcref.func.__qualname__} for {name}'
                     update_coro = self.update_thread_info(thread_id, callback, name, _type, _id, silent)
                     utils.run_coroutine_threadsafe(self, update_coro)
 
                     @ade.wrap_sync(error_logger, self.AD.app_dir, callback)
                     def safe_callback():
+                        """Wraps actually calling the function for the callback with logic to transform exceptions based
+                        on the callback type"""
                         try:
                             funcref()
                         except Exception as exc:
+                            # positional arguments common to all the AppCallbackFail exceptions
+                            exc_args = (name, funcref)
                             match args['type']:
                                 case "event":
-                                    raise ade.EventCallbackFail(name, funcref.args, funcref.keywords, args["event"]) from exc
+                                    raise ade.EventCallbackFail(*exc_args, args["event"]) from exc
                                 case 'scheduler':
-                                    raise ade.SchedulerCallbackFail(name, funcref.args, funcref.keywords) from exc
+                                    raise ade.SchedulerCallbackFail(*exc_args) from exc
                                 case 'state':
-                                    raise ade.StateCallbackFail(name, funcref.args, funcref.keywords, args["entity"]) from exc
+                                    raise ade.StateCallbackFail(*exc_args, args["entity"]) from exc
                                 case _:
-                                    raise ade.AppCallbackFail(name, funcref.args, funcref.keywords) from exc
+                                    raise ade.AppCallbackFail(*exc_args) from exc
                     safe_callback()
 
                 finally:
                     update_coro = self.update_thread_info(thread_id, "idle", name, _type, _id, silent)
                     utils.run_coroutine_threadsafe(self, update_coro)
+                    q.task_done() # Have this in multiple places to ensure it gets called even if an exception is raised
             else:
                 if not self.AD.stopping:
                     self.logger.warning(f"Found stale callback for {name} - discarding")
-
-            q.task_done()
+                q.task_done()
 
     def report_callback_sig(self, name, type, funcref, args):
         error_logger = logging.getLogger("Error.{}".format(name))

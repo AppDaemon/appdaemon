@@ -1722,7 +1722,7 @@ Assistant bus:
 - ``stream_connected`` - fired when a stream client connects like the Admin User Interface. It is fired within the `admin` namespace
 - ``stream_disconnected`` - fired when a stream client disconnects like the Admin User Interface. It is fired within the `admin` namespace
 
-About Event Callbacks
+Event Callbacks
 ~~~~~~~~~~~~~~~~~~~~~
 
 As with State Change and Scheduler callbacks, Event Callbacks expect to
@@ -1731,14 +1731,14 @@ defined Scheduler callback function should look like this:
 
 .. code:: python
 
-      def my_callback(self, event_name, data, cb_args):
+      def my_callback(self, event_name, data, kwargs):
         <do some useful work here>
 
 Or if you are using dictionary unpacking (see `here <APPGUIDE.html#kwargs>`__):
 
 .. code:: python
 
-      def my_callback(self, entity, attribute, old, new, **kwargs):
+      def my_callback(self, event_name, data, **kwargs):
         <do some useful work here>
 
 You can call the function whatever you like - you will reference it in
