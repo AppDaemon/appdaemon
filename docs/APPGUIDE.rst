@@ -1372,16 +1372,16 @@ There are 4 kinds of callback in AppDaemon, each with their own methods in ``ADA
       - API Method
       - Description
     * - Event
-      - ``listen_event()``
+      - :meth:`listen_event() <appdaemon.adapi.ADAPI.listen_event>`
       - react to a specific event being fired
     * - Scheduler
       - ``run_once()``, ``run_in()``, ``run_at()``, etc.
       - react to a specific time or interval
     * - State
-      - ``listen_state()``
+      - :meth:`listen_state() <appdaemon.adapi.ADAPI.listen_state>`
       - react to a change in state
     * - Log
-      - ``???``
+      - :meth:`listen_log() <appdaemon.adapi.ADAPI.listen_log>`
       - called whenever a log entry is made
 
 Event Callbacks
