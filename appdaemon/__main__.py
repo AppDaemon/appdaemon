@@ -176,7 +176,9 @@ class ADMain:
         except StartupAbortedException as e:
             # We got an unrecoverable error during startup so print it out and quit
             self.logger.error(f"AppDaemon terminated with errors: {e}")
-        except Exception:
+        except ade.ConfigReadFailure as e:
+            ade.user_exception_block(self.logger, e, self.AD.app_dir)
+        except Exception as e:
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error during run()")
             self.logger.warning("-" * 60, exc_info=True)
@@ -321,6 +323,9 @@ class ADMain:
         except ValidationError as e:
             print(f"Configuration error in: {config_file}")
             print(e)
+            sys.exit(1)
+        except ade.ConfigReadFailure as e:
+            ade.user_exception_block(logging.getLogger(), e, config_dir, 'Reading AppDaemon configuration')
             sys.exit(1)
         except Exception as e:
             print(f"Unexpected error loading config file: {config_file}")
