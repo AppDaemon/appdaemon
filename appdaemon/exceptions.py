@@ -15,6 +15,8 @@ from logging import Logger
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from pydantic import ValidationError
+
 if TYPE_CHECKING:
     from .appdaemon import AppDaemon
 
@@ -60,6 +62,15 @@ def user_exception_block(logger: Logger, exception: AppDaemonException, app_dir:
     
     for i, exc in enumerate(chain):
         indent = ' ' * i * 2
+
+        if isinstance(exc, ValidationError):
+            errors = exc.errors()
+            if errors[0]['type'] == 'missing':
+                app_name = errors[0]['loc'][0]
+                field = errors[0]['loc'][-1]
+                logger.error(f"{indent}App '{app_name}' is missing required field: {field}")
+                continue
+
         for i, line in enumerate(str(exc).splitlines()):
             if i == 0:
                 logger.error(f'{indent}{exc.__class__.__name__}: {line}')
@@ -232,6 +243,11 @@ class CallbackException(AppDaemonException):
 
     def __str__(self):
         return f"error in method '{self.callback}' for app '{self.app_name}'"
+
+
+@dataclass
+class BadAppConfig(AppDaemonException):
+    path: Path
 
 
 class TimeOutException(AppDaemonException):
