@@ -1383,8 +1383,8 @@ Event Callbacks
 
 `More information on events <#events>`__
 
-Apps can regsiter event callbacks with calls to ``self.listen_event(...)``. For example, this registers
-a callback for an event ``some_event``:
+Apps can regsiter event callbacks with calls to :meth:`self.listen_event(...) <appdaemon.adapi.ADAPI.listen_event>`.
+For example, this registers a callback for an event ``some_event``:
 
 .. code:: python
 
@@ -1417,78 +1417,7 @@ will be passed to the callback when it is called. For example:
     def my_callback(self, event_name, data, **kwargs):
         self.log(f'My kwarg: {kwargs["my_kwarg"]}')
 
-The parameters have the following meanings:
-
-self
-  A standard Python object reference.
-
-event\_name
-  Name of the event that was called, e.g., ``call_service``.
-
-data
-  Any data that the system supplied with the event as a dict. This data is supplied as part of the event by AppDaemon.
-
-kwargs
-  A dictionary containing zero or more keyword arguments defined by the user when the callback was registered.
-
-
-listen\_event()
-~~~~~~~~~~~~~~~
-
-Listen event sets up a callback for a specific event, or any event.
-
-Synopsis
-^^^^^^^^
-
-.. code:: python
-
-    handle = listen_event(function, event = None, cb_args):
-
-Returns
-^^^^^^^
-
-A handle that can be used to cancel the callback.
-
-Parameters
-^^^^^^^^^^
-
-function
-''''''''
-
-The function to be called when the event is fired.
-
-event
-'''''
-
-Name of the event to subscribe to. Can be a standard HASS or MQTT plugin
-event such as ``service_registered`` or in the case of HASS, an arbitrary custom event such
-as ``"MODE_CHANGE"``. If no event is specified, ``listen_event()`` will
-subscribe to all events.
-
-wargs (optional)
-'''''''''''''''''''''
-
-One or more keyword value pairs representing App specific parameters to
-supply to the callback. If the keywords match values within the event
-data, they will act as filters, meaning that if they don't match the
-values, the callback will not fire. If the values are callable, they will
-be invoked and if they return ``True`` they'll be considered a match.
-
-As an example of this, a Minimote controller when activated will
-generate an event called ``zwave_js_value_notification``, along with 2 pieces
-of data that are specific to the event - ``node_id`` and ``value``. If
-you include keyword values for either of those, the values supplied to
-the ``listen_event()`` 1 call must match the values in the event or it
-will not fire. If the keywords do not match any of the data in the event,
-they are simply ignored.
-
-Filtering will work with any event type, but it will be necessary to
-figure out the data associated with the event to understand what values
-can be filtered on. This can be achieved by examining Home Assistant's
-logfiles when the event fires.
-
-Examples
-^^^^^^^^
+More examples:
 
 .. code:: python
 
@@ -1500,62 +1429,51 @@ Examples
     # Listen for a minimote event activating scene 3 from one of several minimotes:
     self.listen_event(self.generic_event, "zwave_js_value_notification", node_id = lambda x: x in ["11", "14", "22"], value = 3)
 
-
-
-
-
-
 Scheduler Callbacks
 ~~~~~~~~~~~~~~~~~~~
 
 State Callbacks
 ~~~~~~~~~~~~~~~
 
-When calling back into the App, the App must provide a class function
-with a known signature for AppDaemon to call. The callback will provide
-various information to the function to enable the function to respond
-appropriately. For state callbacks, a class defined callback function
-should look like this:
+Apps can register callbacks for state changes with calls to
+:meth:`self.listen_state(...) <appdaemon.adapi.ADAPI.listen_state>`.
+
+`More information <#state-operations>`__ on states in AppDaemon.
+
+For example, this registers a callback for all state changes on entity ``binary_sensor.drive``:
 
 .. code:: python
 
-      def my_callback(self, entity, attribute, old, new, **kwargs):
-        <do some useful work here>
+    self.listen_state(self.my_callback, "binary_sensor.drive")
+
+This example only executes when the state changes to ``on``:
+
+.. code:: python
+
+    self.listen_state(self.my_callback, "binary_sensor.drive", new="on")
+
+State callbacks are expected to have a specific signature, which looks like this:
+
+.. code:: python
+
+    def my_callback(self, entity, attribute, old, new, **kwargs):
+        ... # do some useful work here
 
 For legacy compatibility, callbacks like this will also work. The type 
 needed is automatically determined when it's called.
 
 .. code:: python
 
-      def my_callback(self, entity, attribute, old, new, kwargs):
-        <do some useful work here>
+    def my_callback(self, entity, attribute, old, new, kwargs):
+        ... # do some useful work here
 
 You can call the function whatever you like - you will reference it in
-the ``listen_state()`` call, and you can create as many callback
-functions as you need.
+the :meth:`self.listen_state(...) <appdaemon.adapi.ADAPI.listen_state>`
+call, and you can create as many callback functions as you need.
 
-The parameters have the following meanings:
-
-self
-  A standard Python object reference.
-
-entity
-  Name of the entity the callback was requested for or ``None``.
-
-attribute
-  Name of the attribute the callback was requested for or ``None``.
-
-old
-  The value of the state before the state change.
-
-new
-  The value of the state after the state change.
-
-kwargs
-  A dictionary containing any constraints and/or additional user specific
-  keyword arguments supplied to the ``listen_state()`` call.
-
-The cb_args dictionary will also contain a field called ``handle`` that provides the callback with the handle that identifies the ``listen_state()`` entry that resulted in the callback.
+.. The cb_args dictionary will also contain a field called ``handle`` that
+.. provides the callback with the handle that identifies the
+.. :meth:`self.listen_state(...) <appdaemon.adapi.ADAPI.listen_state>` entry that resulted in the callback.
 
 Log Callbacks
 ~~~~~~~~~~~~~
