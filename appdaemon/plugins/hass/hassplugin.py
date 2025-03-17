@@ -640,10 +640,12 @@ class HassPlugin(PluginBase):
 
         # https://developers.home-assistant.io/docs/api/websocket#calling-a-service-action
 
+        req = {"type": "call_service", "domain": domain, "service": service}
+
         service_data = data.pop('service_data', {})
         service_data.update(data)
-
-        req = {"type": "call_service", "domain": domain, "service": service, "service_data": service_data}
+        if service_data:
+            req["service_data"] = service_data
 
         service_properties = {
             prop: val
