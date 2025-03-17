@@ -609,7 +609,8 @@ class HassPlugin(PluginBase):
         namespace: str,
         domain: str,
         service: str,
-        target: str | None = None,
+        target: str | dict | None = None,
+        entity_id: str | None = None,
         hass_timeout: int | float | None = 10,
         return_response: bool | None = None,
         callback: Callable | None = None,
@@ -637,6 +638,8 @@ class HassPlugin(PluginBase):
         if domain == "template" and service == "render":
             return await self.render_template(namespace, data)
 
+        # https://developers.home-assistant.io/docs/api/websocket#calling-a-service-action
+
         service_data = data.pop('service_data', {})
         service_data.update(data)
 
@@ -662,9 +665,14 @@ class HassPlugin(PluginBase):
 
         match target:
             case None:
-                pass
+                if isinstance(entity_id, str):
+                    req["target"] = {"entity_id": entity_id}
             case str():
                 req["target"] = {"entity_id": target}
+                if entity_id is not None and entity_id != target:
+                    self.logger.warning(
+                        f"Entity ID '{entity_id}' has been overriden by target "
+                        f"'{target}' for service '{domain}/{service}'")
             case _:
                 req["target"] = target
 
