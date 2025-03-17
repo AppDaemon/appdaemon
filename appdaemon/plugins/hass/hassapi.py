@@ -1172,6 +1172,9 @@ class Hass(ADBase, ADAPI):
             domain, script_name = entity_id.split('.', 1)
         elif entity_id.startswith('script/'):
             domain, script_name = entity_id.split('/', 1)
+        else:
+            domain = 'script'
+            script_name = entity_id
 
         entity_id = f'{domain}.{script_name}'
 
