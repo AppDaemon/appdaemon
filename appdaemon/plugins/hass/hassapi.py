@@ -1,9 +1,11 @@
 import re
 from ast import literal_eval
 from collections.abc import Iterable
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, Callable, Literal, Type, overload
 
+from ... import exceptions as ade
 from ... import utils
 from ...adapi import ADAPI
 from ...adbase import ADBase
@@ -17,6 +19,20 @@ from .notifications import AndroidNotification
 
 if TYPE_CHECKING:
     from ...models.config.app import AppConfig
+
+
+@dataclass
+class ScriptNotFound(ade.AppDaemonException):
+    script_name: str
+    namespace: str
+    plugin_name: str
+    domain: str = field(init=False, default="script")
+
+    def __str__(self):
+        res = f"'{self.script_name}' not found in plugin '{self.plugin_name}'"
+        if self.namespace != "default":
+            res += f" with namespace '{self.namespace}'"
+        return res
 
 
 class Hass(ADBase, ADAPI):
@@ -1185,11 +1201,16 @@ class Hass(ADBase, ADAPI):
             service = f'{domain}/{script_name}'
             service_data = kwargs
 
-        return self.call_service(
-            service, namespace,
-            entity_id=entity_id,
-            service_data=service_data,
-        )
+        try:
+            namespace = namespace or self.namespace
+            return self.call_service(
+                service, namespace,
+                entity_id=entity_id,
+                service_data=service_data,
+            )
+        except ade.ServiceException as e:
+            plugin_name = self.AD.plugins.get_plugin_from_namespace(namespace)
+            raise ScriptNotFound(script_name, namespace, plugin_name)
 
     #
     # Template functions
