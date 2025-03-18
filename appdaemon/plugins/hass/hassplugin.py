@@ -307,7 +307,12 @@ class HassPlugin(PluginBase):
 
             if not silent:
                 # include this in the "not auth" section so we don't accidentally put the token in the logs
-                self.logger.debug(f"Sending JSON: {request}")
+                req_json = json.dumps(request, indent=4, default=str)
+                for i, line in enumerate(req_json.splitlines()):
+                    if i == 0:
+                        self.logger.debug(f"Sending JSON: {line}")
+                    else:
+                        self.logger.debug(line)
 
         send_time = perf_counter()
         try:
@@ -623,12 +628,6 @@ class HassPlugin(PluginBase):
         """
         # if we get a request for not our namespace something has gone very wrong
         assert namespace == self.namespace
-
-        #
-        # If data is a string just assume it's an entity_id
-        #
-        if isinstance(data, str):
-            data = {"entity_id": data}
 
         if domain == "database":
             assert service == "history", "Use the 'history' service with 'database'"

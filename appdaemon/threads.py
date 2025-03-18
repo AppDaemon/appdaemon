@@ -441,7 +441,7 @@ class Threading:
                 duration = 0.0
             else:
                 duration = (now - start).total_seconds()
-    
+
             if self.AD.sched.realtime is True and duration >= self.AD.thread_duration_warning_threshold:
                 thread_name = f"thread.{thread_id}"
                 callback = await self.get_state("_threading", "admin", thread_name)
@@ -951,7 +951,7 @@ class Threading:
                             data["log_type"],
                             data["message"],
                         )
-                        kwargs = self.AD.logging.sanitize_log_kwargs(app, args["kwargs"])                        
+                        kwargs = self.AD.logging.sanitize_log_kwargs(app, args["kwargs"])
 
                     case "event":
                         data = args["data"]
@@ -1044,7 +1044,7 @@ class Threading:
                         case "event":
                             pos_args = (args["event"], args["data"])
                             kwargs = self.AD.events.sanitize_event_kwargs(app, args["kwargs"])
-                    
+
                     use_dictionary_unpacking = utils.has_expanded_kwargs(funcref)
                     if use_dictionary_unpacking:
                         funcref = functools.partial(funcref, *pos_args, **kwargs)

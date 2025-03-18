@@ -1,11 +1,11 @@
 import asyncio
 import cProfile
 import importlib
+import inspect
 import io
 import logging
 import os
 import pstats
-import shutil
 import subprocess
 import sys
 import traceback
@@ -187,7 +187,12 @@ class AppManagement:
         await self.AD.state.remove_entity("admin", f"app.{name}")
 
     def app_rel_path(self, app_name: str) -> Path:
-        return self.app_config.root[app_name].config_path.relative_to(self.AD.app_dir)
+        return self.app_config.root[app_name].config_path.relative_to(self.AD.app_dir.parent)
+
+    def mod_rel_path(self, app_obj: object) -> Path:
+        module_path = Path(sys.modules[app_obj.__module__].__file__)
+        rel_path = module_path.relative_to(self.AD.app_dir.parent)
+        return rel_path
 
     async def init_admin_stats(self):
         # create sensors
@@ -257,23 +262,18 @@ class AppManagement:
         self.objects[name].pin_thread = thread
 
     async def initialize_app(self, app_name: str):
-        try:
-            init_func = self.objects[app_name].object.initialize
-        except KeyError:
-            raise ade.NoObject(f"No internal object for '{app_name}'")
-        except AttributeError:
-            app_cfg = self.app_config[app_name]
-            module_path = Path(sys.modules[app_cfg.module_name].__file__)
-            rel_path = module_path.relative_to(self.AD.app_dir.parent)
-            raise ade.NoInitializeMethod(
-                f"Class {app_cfg.class_name} in {rel_path} does not have an initialize method"
-            )
+        assert app_name in self.objects, 'Something is very wrong'
+        app_obj = self.objects[app_name].object
+        rel_path = self.mod_rel_path(app_obj)
 
-        if utils.count_positional_arguments(init_func) != 0:
-            class_name = self.app_config[app_name].class_name
-            raise ade.BadInitializeMethod(
-                f"Wrong number of arguments for initialize method of {class_name}"
-            )
+        try:
+            init_func = app_obj.initialize
+        except AttributeError:
+            raise ade.NoInitializeMethod(app_obj.__class__, rel_path)
+
+        signature = inspect.signature(init_func)
+        if len(signature.parameters) != 0:
+            raise ade.BadInitializeMethod(app_obj.__class__, rel_path, signature)
 
         # Call its initialize function
         await self.set_state(app_name, state="initializing")
@@ -282,15 +282,6 @@ class AppManagement:
             await init_func()
         else:
             await utils.run_in_executor(self, init_func)
-
-        await self.increase_active_apps(app_name)
-        await self.set_state(app_name, state="idle")
-
-        event_data = {
-            "event_type": "app_initialized",
-            "data": {"app": app_name}
-        }
-        await self.AD.events.process_event("admin", event_data)
 
     async def terminate_app(self, app_name: str, delete: bool = True) -> bool:
         try:
@@ -359,46 +350,57 @@ class AppManagement:
         Args:
             app (str): Name of the app to start
         """
+        if self.app_config[app_name].disable:
+            self.logger.debug(f"Skip starting disabled app: '{app_name}'")
+            return
+
         # first we check if running already
         if self.is_app_running(app_name):
-            self.logger.warning(
-                "Cannot start app %s, as it is already running", app_name)
+            self.logger.warning(f"Cannot start app {app_name}, as it is already running")
             return
 
         # assert dependencies
         dependencies = self.app_config.root[app_name].dependencies
         for dep_name in dependencies:
             rel_path = self.app_rel_path(app_name)
+            exc_args = (
+                app_name,
+                rel_path,
+                dep_name,
+                dependencies
+            )
             if (dep_cfg := self.app_config.root.get(dep_name)):
                 match dep_cfg:
                     case AppConfig():
                         # There is a valid app configuration for this dependency
                         if not (obj := self.objects.get(dep_name)) or not obj.running:
                             # If the object isn't in the self.objects dict or it's there, but not running
-                            raise ade.AppDependencyError(f"'{app_name}' from ./{rel_path} depends on '{dep_name}', but it's not running")
+                            raise ade.DependencyNotRunning(*exc_args)
                     case GlobalModule():
                         if dep_name not in sys.modules:
-                            raise ade.AppDependencyError(
-                                f"'{app_name}' from ./{rel_path} depends on '{dep_name}', but it's not loaded"
-                            )
+                            raise ade.GlobalNotLoaded(*exc_args)
             else:
-                raise ade.AppDependencyError(
-                    f"'{app_name}' references '{dep_name}' in ./{rel_path} but it wasn't found anywhere"
-                )
+                raise ade.AppDependencyError(*exc_args)
 
+        try:
+            await self.initialize_app(app_name)
+        except Exception as e:
+            self.logger.warning(f"App '{app_name}' failed to start")
 
-        if self.app_config[app_name].disable:
-            pass
+            await self.increase_inactive_apps(app_name)
+            await self.set_state(app_name, state="initialize_error")
+            self.objects[app_name].running = False
+            raise ade.InitializationFail(app_name) from e
         else:
-            try:
-                await self.initialize_app(app_name)
-            except Exception as e:
-                await self.set_state(app_name, state="initialize_error")
-                self.objects[app_name].running = False
-                self.logger.warning(f"App '{app_name}' failed to start")
-                raise ade.InitializationFail(app_name) from e
-            else:
-                self.objects[app_name].running = True
+            await self.increase_active_apps(app_name)
+            await self.set_state(app_name, state="idle")
+            self.objects[app_name].running = True
+
+            event_data = {
+                "event_type": "app_initialized",
+                "data": {"app": app_name}
+            }
+            await self.AD.events.process_event("admin", event_data)
 
     async def stop_app(self, app_name: str, delete: bool = False) -> bool:
         """Stops the app
@@ -447,7 +449,7 @@ class AppManagement:
 
         Raises:
             PinOutofRange: Caused by passing in an invalid value for pin_thread
-            AppClassNotFound: When there's a problem getting the class definition from the loaded module
+            MissingAppClass: When there's a problem getting the class definition from the loaded module
             AppClassSignatureError: When the class has the wrong number of inputs on its __init__ method
             AppInstantiationError: When there's another, unknown error creating the class from its definition
         """
@@ -473,47 +475,34 @@ class AppManagement:
             pin = -1
 
         # This module should already be loaded and stored in sys.modules
-        try:
-            mod_obj = await utils.run_in_executor(self, importlib.import_module, module_name)
-        except ModuleNotFoundError as exc:
-            rel_path = self.app_rel_path(app_name)
-            raise ade.AppModuleNotFound(
-                f"Unable to import '{module_name}' as defined for app '{app_name}' in {rel_path}"
-            ) from exc
+        mod_obj = await utils.run_in_executor(self, importlib.import_module, module_name)
 
         try:
             app_class = getattr(mod_obj, class_name)
         except AttributeError as exc:
-            raise ade.AppClassNotFound(
-                f"Unable to find '{class_name}' in module '{mod_obj.__file__}' as defined in app '{app_name}'"
+            raise ade.MissingAppClass(
+                app_name,
+                mod_obj.__name__,
+                Path(mod_obj.__file__).relative_to(self.AD.app_dir.parent),
+                class_name
             ) from exc
 
         if utils.count_positional_arguments(app_class.__init__) != 3:
-            raise ade.AppClassSignatureError(
-                f"Class '{class_name}' takes the wrong number of arguments. Check the inheritance"
-            )
+            raise ade.BadClassSignature(class_name)
 
-        try:
-            new_obj = app_class(self.AD, cfg)
-        except Exception as exc:
-            await self.set_state(app_name, state="compile_error")
-            await self.increase_inactive_apps(app_name)
-            raise ade.AppInstantiationError(
-                f"Error when creating class '{class_name}' for app named '{app_name}'"
-            ) from exc
-        else:
-            self.objects[app_name] = ManagedObject(
-                type="app",
-                object=new_obj,
-                pin_app=self.AD.threading.app_should_be_pinned(app_name),
-                pin_thread=pin,
-                running=False,
-                module_path=Path(mod_obj.__file__),
-            )
+        new_obj = app_class(self.AD, cfg)
+        self.objects[app_name] = ManagedObject(
+            type="app",
+            object=new_obj,
+            pin_app=self.AD.threading.app_should_be_pinned(app_name),
+            pin_thread=pin,
+            running=False,
+            module_path=Path(mod_obj.__file__),
+        )
 
-            # load the module path into app entity
-            module_path = await utils.run_in_executor(self, os.path.abspath, mod_obj.__file__)
-            await self.set_state(app_name, state="created", module_path=module_path)
+        # load the module path into app entity
+        module_path = await utils.run_in_executor(self, os.path.abspath, mod_obj.__file__)
+        await self.set_state(app_name, state="created", module_path=module_path)
 
     def get_managed_app_names(self, include_globals: bool = False) -> set[str]:
         apps = set(name for name, o in self.objects.items() if o.type == "app")
@@ -551,7 +540,7 @@ class AppManagement:
         async def config_model_factory():
             """Creates a generator that sets the config_path of app configs"""
             for path in config_files:
-                @ade.wrap_async(self.error, self.AD.app_dir, f"Reading user apps")
+                @ade.wrap_async(self.error, self.AD.app_dir, "Reading user apps")
                 async def safe_read(self: "AppManagement", path: Path) -> AllAppConfig:
                     try:
                         return await self.read_config_file(path)
@@ -884,7 +873,7 @@ class AppManagement:
                 self.python_filecheck.mtimes = {}
             except ValidationError as e:
                 raise ade.BadAppConfig("Error creating dependency manager") from e
-            except ade.AppDaemonException as e:
+            except ade.AppDaemonException:
                 raise
 
         await safe_dep_create(self)
@@ -999,18 +988,17 @@ class AppManagement:
 
             for app_name in start_order:
                 if isinstance((cfg := self.app_config.root[app_name]), AppConfig):
-                    rel_path = cfg.config_path.relative_to(
-                        self.AD.app_dir.parent)
-
-                    @utils.warning_decorator(
-                        error_text=f"Error creating the app object for '{app_name}' from {rel_path}"
-                    )
+                    @ade.wrap_async(
+                        self.error, self.AD.app_dir,
+                        f"'{app_name}' instantiation")
                     async def safe_create(self: "AppManagement"):
                         try:
                             await self.create_app_object(app_name)
-                        except Exception:
+                        except Exception as exc:
                             update_actions.apps.failed.add(app_name)
-                            raise  # any exceptions will be handled by the warning_decorator
+                            await self.set_state(app_name, state="compile_error")
+                            await self.increase_inactive_apps(app_name)
+                            raise ade.AppInstantiationError(app_name) from exc
 
                     await safe_create(self)
 
@@ -1021,22 +1009,15 @@ class AppManagement:
             start_order = update_actions.apps.start_sort(self.dependency_manager, self.logger)
             for app_name in start_order:
                 if isinstance((cfg := self.app_config.root[app_name]), AppConfig):
-                    rel_path = self.app_rel_path(app_name)
-
-                    @utils.warning_decorator(
-                        success_text=f"Started '{app_name}'",
-                        error_text=f"Error starting app '{app_name}' from {rel_path}",
-                    )
+                    @ade.wrap_async(
+                        self.error, self.AD.app_dir,
+                        f"Failed to start '{app_name}'")
                     async def safe_start(self: "AppManagement"):
                         try:
                             await self.start_app(app_name)
-                        except ade.AppDaemonException as e:
+                        except Exception as exc:
                             update_actions.apps.failed.add(app_name)
-                            logger = self.AD.logging.get_error().getChild(app_name)
-                            ade.user_exception_block(logger, e, self.AD.app_dir)
-                        except Exception as e:
-                            update_actions.apps.failed.add(app_name)
-                            raise  # any exceptions will be handled by the warning_decorator
+                            raise ade.StartFailure(app_name) from exc
 
                     if await self.get_state(app_name) != "compile_error":
                         await safe_start(self)

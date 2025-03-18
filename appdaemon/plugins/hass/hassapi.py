@@ -1182,7 +1182,7 @@ class Hass(ADBase, ADAPI):
             **kwargs: Additional keyword arguments to pass to the service call.
 
         Returns:
-            dict: The result of the service call.        
+            dict: The result of the service call.
         """
         if entity_id.startswith('script.'):
             domain, script_name = entity_id.split('.', 1)
@@ -1208,7 +1208,7 @@ class Hass(ADBase, ADAPI):
                 entity_id=entity_id,
                 service_data=service_data,
             )
-        except ade.ServiceException as e:
+        except ade.ServiceException:
             plugin_name = self.AD.plugins.get_plugin_from_namespace(namespace)
             raise ScriptNotFound(script_name, namespace, plugin_name)
 

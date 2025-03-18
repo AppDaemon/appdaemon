@@ -109,7 +109,7 @@ class State:
     @utils.warning_decorator(error_text='Unexpected error in add_persistent_namespace')
     async def add_persistent_namespace(self, namespace: str, writeback: str) -> Path:
         """Used to add a database file for a created namespace.
-        
+
         Needs to be an async method to make sure it gets run from the event loop in the
         main thread. Otherwise, the DbfilenameShelf can get messed up because it's not
         thread-safe. In some systems, it'll complain about being accessed from multiple

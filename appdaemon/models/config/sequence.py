@@ -68,7 +68,7 @@ def service_call_validator(v: dict[str, dict[str, Any]]):
         service = next(iter(v.keys()))
         v[service]["service"] = service
         return v[service]
-    except Exception as exc:
+    except Exception:
         raise ade.BadSequenceStepDefinition(v)
 
 

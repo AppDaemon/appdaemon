@@ -10,10 +10,10 @@ import logging
 import traceback
 from abc import ABC
 from collections.abc import Iterable
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from logging import Logger
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Type
 
 from pydantic import ValidationError
 
@@ -59,7 +59,7 @@ def user_exception_block(logger: Logger, exception: AppDaemonException, app_dir:
 
     if isinstance(chain[-1], TypeError):
         chain.pop(-1)
-    
+
     for i, exc in enumerate(chain):
         indent = ' ' * i * 2
 
@@ -78,7 +78,7 @@ def user_exception_block(logger: Logger, exception: AppDaemonException, app_dir:
                 logger.error(f'{indent}  {line}')
 
         if user_line := get_user_line(exc, app_dir):
-            for line, filename, func_name in list(user_line):
+            for line, filename, func_name in list(user_line)[::-1]:
                 logger.error(f'{indent}{filename} line {line} in {func_name}')
     logger.error('=' * 75)
 
@@ -258,46 +258,124 @@ class StartupAbortedException(AppDaemonException):
     pass
 
 
-class AppClassNotFound(AppDaemonException):
-    pass
+@dataclass
+class StartFailure(AppDaemonException):
+    app_name: str
+
+    def __str__(self):
+        return f"App '{self.app_name}' failed to start"
+
+
+@dataclass
+class MissingAppClass(AppDaemonException):
+    app_name: str
+    module: str
+    file: Path
+    class_name: str
+
+    def __str__(self):
+        res = f"{self.module} does not have a class named '{self.class_name}'\n"
+        res += f"Module path: {self.file}"
+        return res
 
 
 class PinOutofRange(AppDaemonException):
     pass
 
 
-class AppClassSignatureError(AppDaemonException):
-    pass
+@dataclass
+class BadClassSignature(AppDaemonException):
+    class_name: str
+
+    def __str__(self):
+        return f"Class '{self.class_name}' takes the wrong number of arguments. Check the inheritance"
 
 
+@dataclass
 class AppDependencyError(AppDaemonException):
-    pass
+    app_name: str
+    rel_path: Path
+    dep_name: str
+    dependencies: set[str]
+
+    def __str__(self, base: str = ''):
+        res = base
+        res += f"\nall dependencies: {self.dependencies}"
+        res += f"\n{self.rel_path}"
+        return res
 
 
+@dataclass
+class DependencyMissing(AppDependencyError):
+    def __str__(self):
+        return super().__str__(f"'{self.app_name}' depends on '{self.dep_name}', but it's wasn't found")
+
+
+@dataclass
+class DependencyNotRunning(AppDependencyError):
+    def __str__(self):
+        return super().__str__(f"'{self.app_name}' depends on '{self.dep_name}', but it's not running")
+
+
+@dataclass
+class GlobalNotLoaded(AppDependencyError):
+    def __str__(self):
+        return super().__str__(f"'{self.app_name}' depends on '{self.dep_name}', but it's not loaded")
+
+
+@dataclass
 class AppModuleNotFound(AppDaemonException):
-    pass
+    module_name: str
+
+    def __str__(self):
+        return f"Unable to import '{self.module_name}'"
 
 
+@dataclass
 class AppInstantiationError(AppDaemonException):
-    pass
+    app_name: str
+    # class_name: str
+
+    def __str__(self):
+        return f"Failed to create object for '{self.app_name}'"
 
 
-class NoObject(AppDaemonException):
-    pass
-
-
+@dataclass
 class NoInitializeMethod(AppDaemonException):
-    pass
+    class_ref: Type
+    module_path: Path
+
+    def __str__(self):
+        res = f"{self.class_ref} does not have an initialize method\n"
+        res += f"{self.module_path}"
+        return res
 
 
+@dataclass
 class BadInitializeMethod(AppDaemonException):
-    pass
+    class_ref: Type
+    module_path: Path
+    signature: inspect.Signature
+
+    def __str__(self):
+        res = f"{self.class_ref} has a bad initialize method\n"
+        res += f"{self.class_ref.__name__}.initialize{self.signature}\n"
+        res += f"{self.module_path}"
+        return res
 
 
 @dataclass
 class InitializationFail(AppDaemonException):
     app_name: str
-    msg: str = ''
+
+    def __str__(self):
+        res = f"initialize() method failed for app '{self.app_name}'"
+        if isinstance(self.__cause__, TypeError):
+            res += f'\n{self.__cause__}'
+            res += '\ninitialize() should be structured like this:'
+            res += '\n  def initialize(self):'
+            # res += '\n      ...'
+        return res
 
 
 class BadUserServiceCall(AppDaemonException):

@@ -265,6 +265,20 @@ def convert_timedelta(s: str | int | float) -> timedelta:
                     return timedelta(days=day, hours=hour, minutes=min, seconds=sec)
 
 
+def format_timedelta(td: timedelta) -> str:
+    seconds = td.total_seconds()
+    if seconds == 0:
+        return 'No time'
+    elif seconds < 0.1:
+        return f"{seconds * 10**3:.3f}ms"
+    elif seconds < 1:
+        return f"{seconds * 10**3:.0f}ms"
+    elif seconds < 10:
+        return f"{td.total_seconds():.1f}s"
+    else:
+        return str(td).split(".")[0]
+
+
 def deep_compare(check: dict, data: dict) -> bool:
     """Compares 2 nested dictionaries of values"""
     data = data or {} # Replaces a None value with an empty dict

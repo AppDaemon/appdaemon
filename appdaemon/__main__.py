@@ -126,7 +126,7 @@ class ADMain:
                 uvloop.install()
 
             loop: asyncio.BaseEventLoop = asyncio.new_event_loop()
-            
+
             # Initialize AppDaemon
 
             self.AD = ad.AppDaemon(self.logging, loop, ad_config_model)
@@ -178,7 +178,7 @@ class ADMain:
             self.logger.error(f"AppDaemon terminated with errors: {e}")
         except ade.ConfigReadFailure as e:
             ade.user_exception_block(self.logger, e, self.AD.app_dir)
-        except Exception as e:
+        except Exception:
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error during run()")
             self.logger.warning("-" * 60, exc_info=True)

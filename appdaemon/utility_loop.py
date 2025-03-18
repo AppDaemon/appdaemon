@@ -3,12 +3,14 @@
 import asyncio
 import datetime
 import traceback
+from datetime import timedelta
 from logging import Logger
+from time import perf_counter
 from typing import TYPE_CHECKING
 
-from .app_management import UpdateMode
 from . import exceptions as ade
 from . import utils
+from .app_management import UpdateMode
 
 if TYPE_CHECKING:
     from .appdaemon import AppDaemon
@@ -50,6 +52,17 @@ class Utility:
 
         self.logger.debug("stop() called for utility")
         self.stopping = True
+
+    async def get_uptime(self) -> timedelta:
+        """Utility function to return the uptime of AppDaemon
+
+        Returns:
+            datetime.timedelta: The uptime of AppDaemon
+
+        """
+        uptime = self.booted - await self.AD.sched.get_now()
+        rounded_uptime = timedelta(seconds=round(uptime.total_seconds()))
+        return rounded_uptime
 
     async def loop(self):
         """The main utility loop.
@@ -150,18 +163,15 @@ class Utility:
             # Start the loop proper
 
             while not self.stopping:
-                s1 = 0
-                e1 = 0
-
-                start_time = datetime.datetime.now().timestamp()
-
+                loop_start = perf_counter()
+                check_app_duration = timedelta()
                 try:
                     if self.AD.apps is True:
-                        if self.AD.production_mode is False:
+                        if not self.AD.production_mode:
                             # Check to see if config has changed
-                            s1 = datetime.datetime.now().timestamp()
+                            check_app_start = perf_counter()
                             await self.AD.app_management.check_app_updates()
-                            e1 = datetime.datetime.now().timestamp()
+                            check_app_duration = timedelta(seconds=perf_counter() - check_app_start)
 
                     # Call me suspicious, but lets update state from the plugins periodically
 
@@ -191,49 +201,43 @@ class Utility:
                     await self.AD.plugins.get_plugin_perf_data()
 
                     # Update uptime sensor
-
-                    uptime = (await self.AD.sched.get_now()).replace(microsecond=0) - self.booted.replace(microsecond=0)
-
                     await self.AD.state.set_state(
                         "_utility",
                         "admin",
                         "sensor.appdaemon_uptime",
-                        state=str(uptime),
+                        state=str(await self.get_uptime()),
                     )
 
-                except ade.AppDaemonException as e:
-                    ade.user_exception_block(self.AD.logging.error, e, self.AD.app_dir)
-                    continue
+                except ade.AppDaemonException as exc:
+                    ade.user_exception_block(self.AD.logging.error, exc, self.AD.app_dir)
                 except Exception:
                     self.logger.warning("-" * 60)
                     self.logger.warning("Unexpected error during utility()")
                     self.logger.warning("-" * 60)
                     self.logger.warning(traceback.format_exc())
                     self.logger.warning("-" * 60)
+                finally:
+                    loop_duration = timedelta(seconds=perf_counter() - loop_start)
+                    other_duration = loop_duration - check_app_duration
 
-                end_time = datetime.datetime.now().timestamp()
-
-                loop_duration = (int((end_time - start_time) * 1000) / 1000) * 1000
-                check_app_updates_duration = (int((e1 - s1) * 1000) / 1000) * 1000
-
-                self.logger.debug(
-                    "Util loop compute time: %sms, check_config()=%sms, other=%sms",
-                    loop_duration,
-                    check_app_updates_duration,
-                    loop_duration - check_app_updates_duration,
-                )
-                if self.AD.sched.realtime is True and loop_duration > (self.AD.max_utility_skew * 1000):
-                    self.logger.warning(
-                        "Excessive time spent in utility loop: %sms, %sms in check_app_updates(), %sms in other",
-                        loop_duration,
-                        check_app_updates_duration,
-                        loop_duration - check_app_updates_duration,
+                    self.logger.debug(
+                        "Util loop compute time: %s, check_app_updates: %s, other: %s",
+                        utils.format_timedelta(loop_duration),
+                        utils.format_timedelta(check_app_duration),
+                        utils.format_timedelta(other_duration),
                     )
-                    if self.AD.check_app_updates_profile:
-                        self.logger.info("Profile information for Utility Loop")
-                        self.logger.info(self.AD.app_management.check_app_updates_profile_stats)
-
-                await asyncio.sleep(self.AD.utility_delay)
+                    if self.AD.sched.realtime and loop_duration > self.AD.max_utility_skew:
+                        self.logger.warning(
+                            "Excessive time spent in utility loop: %s, %s in check_app_updates(), %s in other",
+                            utils.format_timedelta(loop_duration),
+                            utils.format_timedelta(check_app_duration),
+                            utils.format_timedelta(other_duration),
+                        )
+                        if self.AD.check_app_updates_profile:
+                            self.logger.info("Profile information for Utility Loop")
+                            self.logger.info(self.AD.app_management.check_app_updates_profile_stats)
+                    else:
+                        await asyncio.sleep(self.AD.utility_delay)
 
             #
             # Shutting down now

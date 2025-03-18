@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Annotated, Any, Literal
 from collections.abc import Callable
@@ -62,7 +62,10 @@ class AppDaemonConfig(BaseModel, extra="allow"):
     admin_delay: int = 1
     plugin_performance_update: int = 10
     """How often in seconds to update the admin entities with the plugin performance data"""
-    max_utility_skew: float = 2
+    max_utility_skew: timedelta = Field(
+        default_factory=lambda: timedelta(seconds=2),
+        before_validator=lambda v: timedelta(seconds=v)
+    )
     check_app_updates_profile: bool = False
     production_mode: bool = False
     invalid_config_warnings: bool = True

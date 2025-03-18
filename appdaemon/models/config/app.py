@@ -119,7 +119,7 @@ class AllAppConfig(RootModel):
     def from_config_files(cls, paths: Iterable[Path], app_dir: Path | None = None):
         if not isinstance(paths, list):
             paths = list(paths)
-        
+
         if len(paths) == 0:
             return cls()
 
@@ -129,7 +129,7 @@ class AllAppConfig(RootModel):
                 for new, new_cfg in read_config_file(p).items():
                     try:
                         cls.model_validate({new: new_cfg})
-                    except ValidationError as e:
+                    except ValidationError:
                         continue
 
                     if new in cfg:
