@@ -221,7 +221,6 @@ class Services:
             data = {}
 
         with self.services_lock:
-            suffix = f'in call_service from {name}'
             if ns_services := self.services.get(namespace):
                 if domain_services := ns_services.get(domain):
                     if service not in domain_services:
