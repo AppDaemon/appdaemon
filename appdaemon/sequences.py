@@ -58,8 +58,9 @@ class Sequences:
             copy=copy
         )
 
-    def sequence_running(self, sequence: str) -> bool:
-        return self.get_state(sequence, copy=False) == "active"
+    async def sequence_running(self, sequence: str) -> bool:
+        state = await self.get_state(sequence, copy=False)
+        return state == "active"
 
     async def running_sequences(self):
         return {entity_id: state for entity_id, state in (await self.get_state()).items() if state.get("state") == "active"}
@@ -99,7 +100,7 @@ class Sequences:
             await self.cancel_sequence(sequence)
             await self.AD.state.remove_entity(self.namespace, self.normalized(sequence))
 
-    def run_sequence(
+    async def run_sequence(
         self,
         calling_app: str,
         namespace: str,
@@ -118,7 +119,8 @@ class Sequences:
                         self.logger.warning(f'Unknown sequence "{seq_name}" in run_sequence()')
                         return
 
-                    if self.sequence_running(seq_eid):
+                    is_running = await self.sequence_running(seq_eid)
+                    if is_running:
                         self.logger.warning(f"Sequence '{seq_name}' is already running")
                         return
 
