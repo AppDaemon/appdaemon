@@ -158,6 +158,14 @@ def wrap_sync(logger: Logger, app_dir: Path, header: str | None = None):
 class RequestHandlerException(AppDaemonException):
     pass
 
+@dataclass
+class PersistentNamespaceFailed(AppDaemonException):
+    namespace: str
+    path: Path
+
+    def __str__(self):
+        return f"Failed to create persistent namespace '{self.namespace}' at '{self.path}'"
+
 
 @dataclass
 class NamespaceException(AppDaemonException):

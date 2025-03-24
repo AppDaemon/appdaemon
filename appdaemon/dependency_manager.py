@@ -16,6 +16,7 @@ class Dependencies(ABC):
     ext: str = field(init=False)  # this has to be defined by the children classes
     dep_graph: dict[str, set[str]] = field(init=False)
     rev_graph: dict[str, set[str]] = field(init=False)
+    bad_files: set[Path] = field(default_factory=set, init=False)
 
     def __post_init__(self):
         self.refresh_dep_graph()
@@ -54,7 +55,7 @@ class PythonDeps(Dependencies):
 
     def refresh_dep_graph(self):
         """This causes the all python files to get read from disk"""
-        self.dep_graph = get_dependency_graph(self.files)
+        self.dep_graph = get_dependency_graph(self.files, exclude=self.bad_files)
         self.rev_graph = reverse_graph(self.dep_graph)
 
     def modules_to_import(self) -> set[str]:

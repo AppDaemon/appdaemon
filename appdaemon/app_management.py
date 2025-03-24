@@ -674,20 +674,19 @@ class AppManagement:
     @utils.executor_decorator
     def import_module(self, module_name: str) -> int:
         """Reads an app into memory by importing or reloading the module it needs"""
-        if mod := sys.modules.get(module_name):
-            try:
-                # this check is to skip modules that don't come from the app directory
-                Path(mod.__file__).relative_to(self.AD.app_dir)
-            except ValueError:
-                # self.logger.debug("Skipping '%s'", module_name)
-                pass
-            else:
+        try:
+            if mod := sys.modules.get(module_name):
                 self.logger.debug("Reloading '%s'", module_name)
                 importlib.reload(mod)
-        else:
-            if not module_name.startswith("appdaemon"):
-                self.logger.debug("Importing '%s'", module_name)
-                importlib.import_module(module_name)
+            else:
+                # this check is to skip modules that don't come from the app directory
+                if not module_name.startswith("appdaemon"):
+                    self.logger.debug("Importing '%s'", module_name)
+                    importlib.import_module(module_name)
+        except SyntaxError as exc:
+            path = Path(exc.filename)
+            self.dependency_manager.python_deps.bad_files.add(path)
+            raise exc
 
     @utils.executor_decorator
     def _process_filters(self):
