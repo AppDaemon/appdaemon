@@ -124,7 +124,7 @@ class State:
         else:
             self.logger.warning("Namespace %s doesn't exists", namespace)
 
-    @utils.warning_decorator(error_text='Unexpected error in add_persistent_namespace')
+    # @utils.warning_decorator(error_text='Unexpected error in add_persistent_namespace')
     async def add_persistent_namespace(self, namespace: str, writeback: str) -> Path:
         """Used to add a database file for a created namespace.
 
@@ -139,7 +139,10 @@ class State:
 
         ns_db_path = self.namespace_db_path(namespace)
         safe = writeback == "safe"
-        self.state[namespace] = utils.PersistentDict(ns_db_path, safe)
+        try:
+            self.state[namespace] = utils.PersistentDict(ns_db_path, safe)
+        except Exception as exc:
+            raise ade.PersistentNamespaceFailed(namespace, ns_db_path) from exc
         current_thread = threading.current_thread().getName()
         self.logger.info(f"Persistent namespace '{namespace}' initialized from {current_thread}")
         return ns_db_path
