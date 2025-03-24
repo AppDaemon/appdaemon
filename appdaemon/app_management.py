@@ -685,7 +685,8 @@ class AppManagement:
                     importlib.import_module(module_name)
         except SyntaxError as exc:
             path = Path(exc.filename)
-            self.dependency_manager.python_deps.bad_files.add(path)
+            mtime = self.dependency_manager.python_deps.files.mtimes.get(path)
+            self.dependency_manager.python_deps.bad_files.add((path, mtime))
             raise exc
 
     @utils.executor_decorator

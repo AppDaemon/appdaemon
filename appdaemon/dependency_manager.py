@@ -23,6 +23,12 @@ class Dependencies(ABC):
 
     def update(self, new_files: Iterable[Path]):
         self.files.update(new_files)
+        for bf, mtime in self.bad_files:
+            new_mtime = self.files.mtimes.get(bf)
+            if new_mtime != mtime:
+                assert new_mtime > mtime, f"File {bf} was modified in the future"
+                self.bad_files.remove((bf, mtime))
+
         self.refresh_dep_graph()
 
     def refresh_dep_graph(self):
@@ -55,7 +61,11 @@ class PythonDeps(Dependencies):
 
     def refresh_dep_graph(self):
         """This causes the all python files to get read from disk"""
-        self.dep_graph = get_dependency_graph(self.files, exclude=self.bad_files)
+        bad_files = set()
+        if self.bad_files:
+            bad_files, _ = zip(*self.bad_files)
+            bad_files = set(bad_files)
+        self.dep_graph = get_dependency_graph(self.files, exclude=bad_files)
         self.rev_graph = reverse_graph(self.dep_graph)
 
     def modules_to_import(self) -> set[str]:
