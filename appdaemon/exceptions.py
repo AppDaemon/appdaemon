@@ -90,7 +90,7 @@ def user_exception_block(logger: Logger, exception: AppDaemonException, app_dir:
                     lines = (line for fl in tb.format() for line in fl.splitlines())
                     for line in lines:
                         logger.error(f'{indent}{line}')
-                
+
     logger.error('=' * 75)
 
 
