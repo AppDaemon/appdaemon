@@ -32,4 +32,4 @@ class FilterConfig(BaseModel):
 
 class NamespaceConfig(BaseModel):
     writeback: Literal["safe", "hybrid"] = "safe"
-    persist: bool = False
+    persist: bool = Field(default=False, alias="persistent")

@@ -7,7 +7,8 @@ from logging import Logger
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Set, Union, overload
 
-import appdaemon.utils as utils
+from . import exceptions as ade
+from . import utils
 
 if TYPE_CHECKING:
     from appdaemon.adbase import ADBase
@@ -37,10 +38,20 @@ class State:
 
         # Initialize User Defined Namespaces
         self.namespace_path.mkdir(exist_ok=True)
-
-        for ns in self.AD.namespaces:
-            writeback = self.AD.namespaces[ns].writeback
-            self.AD.loop.create_task(self.add_persistent_namespace(ns, writeback))
+        for ns_name, ns_cfg in self.AD.namespaces.items():
+            if not self.namespace_exists(ns_name):
+                decorator = ade.wrap_async(
+                    self.error,
+                    self.AD.app_dir,
+                    f"Namespace '{ns_name}' failed",
+                )
+                safe_add = decorator(self.add_namespace)
+                coro = safe_add(
+                    ns_name,
+                    ns_cfg.writeback,
+                    ns_cfg.persist,
+                )
+                self.AD.loop.create_task(coro)
 
     @property
     def namespace_path(self) -> Path:
@@ -53,7 +64,13 @@ class State:
     def namespace_db_path(self, namespace: str) -> Path:
         return self.namespace_path / f"{namespace}.db"
 
-    async def add_namespace(self, namespace: str, writeback: str, persist: bool, name: str = None) -> Union[bool, Path]:
+    async def add_namespace(
+        self,
+        namespace: str,
+        writeback: str,
+        persist: bool,
+        name: str = None
+    ) -> Union[bool, Path]:
         """Used to Add Namespaces from Apps"""
 
         if self.namespace_exists(namespace):
@@ -66,7 +83,8 @@ class State:
             nspath_file = None
             self.state[namespace] = {}
 
-        self.app_added_namespaces.add(namespace)
+        if name is not None:
+            self.app_added_namespaces.add(namespace)
 
         await self.AD.events.process_event(
             "admin",

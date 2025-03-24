@@ -167,7 +167,7 @@ class AllAppConfig(RootModel):
         yield from (
             (app_name, cfg)
             for app_name, cfg in self.root.items()
-            if isinstance(cfg, (AppConfig, SequenceConfig))
+            if isinstance(cfg, (BaseApp, SequenceConfig))
         )
 
     def global_modules(self) -> list[GlobalModule]:

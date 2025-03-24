@@ -664,18 +664,10 @@ class HassPlugin(PluginBase):
             if not resp.get("optional"):
                 req["return_response"] = True
 
-        match target:
-            case None:
-                if isinstance(entity_id, str):
-                    req["target"] = {"entity_id": entity_id}
-            case str():
-                req["target"] = {"entity_id": target}
-                if entity_id is not None and entity_id != target:
-                    self.logger.warning(
-                        f"Entity ID '{entity_id}' has been overriden by target "
-                        f"'{target}' for service '{domain}/{service}'")
-            case _:
-                req["target"] = target
+        if target is None and all(isinstance(s, str) for s in entity_id):
+            req["target"] = {"entity_id": entity_id}
+        elif target is not None and entity_id is None:
+            req["target"] = target
 
         send_coro = self.websocket_send_json(
             timeout=hass_timeout,

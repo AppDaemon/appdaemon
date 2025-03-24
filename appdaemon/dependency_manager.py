@@ -150,9 +150,6 @@ class DependencyManager:
         """
         return self.python_deps.update(new_files)
 
-    def modules_to_import(self) -> set[str]:
-        return self.python_deps.modules_to_import()
-
     def dependent_modules(self, modules: str | Iterable[str]):
         """Uses ``find_all_dependents`` with the reversed dependency graph to find the
         transitive closure of the python module dependencies."""
@@ -186,3 +183,18 @@ class DependencyManager:
         modules = self.python_deps.modules_to_delete()
         apps = self.dependent_apps(modules, transitive=False)
         return apps
+
+    # Currently unused
+    def modules_to_import(self) -> set[str]:
+        return self.python_deps.modules_to_import()
+
+    def python_sort(self, modules: set[str]) -> set[str]:
+        modules |= self.dependent_modules(modules)
+        order = [n for n in topo_sort(self.python_deps.dep_graph) if n in modules]
+
+        # Namespace packages won't be in the graph, so we add them to the end
+        # https://docs.python.org/3/reference/import.html#namespace-packages
+        if (diff := modules - set(order)):
+            order.extend(diff)
+
+        return order

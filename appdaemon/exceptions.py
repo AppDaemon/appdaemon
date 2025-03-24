@@ -7,6 +7,7 @@ import functools
 import inspect
 import json
 import logging
+import sys
 import traceback
 from abc import ABC
 from collections.abc import Iterable
@@ -57,29 +58,39 @@ def user_exception_block(logger: Logger, exception: AppDaemonException, app_dir:
 
     chain = get_exception_cause_chain(exception)
 
-    if isinstance(chain[-1], TypeError):
-        chain.pop(-1)
-
     for i, exc in enumerate(chain):
         indent = ' ' * i * 2
 
-        if isinstance(exc, ValidationError):
-            errors = exc.errors()
-            if errors[0]['type'] == 'missing':
-                app_name = errors[0]['loc'][0]
-                field = errors[0]['loc'][-1]
-                logger.error(f"{indent}App '{app_name}' is missing required field: {field}")
-                continue
+        match exc:
+            case ValidationError():
+                errors = exc.errors()
+                if errors[0]['type'] == 'missing':
+                    app_name = errors[0]['loc'][0]
+                    field = errors[0]['loc'][-1]
+                    logger.error(f"{indent}App '{app_name}' is missing required field: {field}")
+                    continue
+            case AppDaemonException():
+                for i, line in enumerate(str(exc).splitlines()):
+                    if i == 0:
+                        logger.error(f'{indent}{exc.__class__.__name__}: {line}')
+                    else:
+                        logger.error(f'{indent}  {line}')
 
-        for i, line in enumerate(str(exc).splitlines()):
-            if i == 0:
-                logger.error(f'{indent}{exc.__class__.__name__}: {line}')
-            else:
-                logger.error(f'{indent}  {line}')
-
-        if user_line := get_user_line(exc, app_dir):
-            for line, filename, func_name in list(user_line)[::-1]:
-                logger.error(f'{indent}{filename} line {line} in {func_name}')
+                if user_line := get_user_line(exc, app_dir):
+                    for line, filename, func_name in list(user_line)[::-1]:
+                        logger.error(f'{indent}{filename} line {line} in {func_name}')
+            case OSError() if str(exc).endswith('address already in use'):
+                logger.error(f'{indent}{exc.__class__.__name__}: {exc}')
+            case _:
+                logger.error(f'{indent}{exc.__class__.__name__}: {exc}')
+                if tb := traceback.extract_tb(exc.__traceback__):
+                    # filtered = (fs for fs in tb if 'appdaemon' in fs.filename)
+                    # filtered = tb
+                    # ss = traceback.StackSummary.from_list(filtered)
+                    lines = (line for fl in tb.format() for line in fl.splitlines())
+                    for line in lines:
+                        logger.error(f'{indent}{line}')
+                
     logger.error('=' * 75)
 
 
@@ -259,7 +270,27 @@ class StartupAbortedException(AppDaemonException):
 
 
 @dataclass
-class StartFailure(AppDaemonException):
+class HTTPHostError(AppDaemonException):
+    port: int
+
+    def __str__(self):
+        res = "Invalid host specified in URL for HTTP component\n"
+        res += "As of AppDaemon 4.5 the host name specificed in the URL must resolve to a known host\n"
+        res += "You can restore previous behavior by using `0.0.0.0` as the host portion of the URL\n"
+        res += f"For instance: `http://0.0.0.0:{self.port}`\n"
+        return res
+
+
+@dataclass
+class HTTPFailure(AppDaemonException):
+    url: str
+
+    def __str__(self):
+        return f"Failed to start HTTP service at '{self.url}'"
+
+
+@dataclass
+class AppStartFailure(AppDaemonException):
     app_name: str
 
     def __str__(self):
@@ -324,11 +355,20 @@ class GlobalNotLoaded(AppDependencyError):
 
 
 @dataclass
-class AppModuleNotFound(AppDaemonException):
+class FailedImport(AppDaemonException):
     module_name: str
+    app_dir: Path
 
     def __str__(self):
-        return f"Unable to import '{self.module_name}'"
+        res = f"Failed to import '{self.module_name}'\n"
+        if isinstance(self.__cause__, ModuleNotFoundError):
+            res += "Import paths:\n"
+            paths = set(
+                p for p in sys.path
+                if Path(p).is_relative_to(self.app_dir)
+            )
+            res += '\n'.join(f'  {p}' for p in sorted(paths))
+        return res
 
 
 @dataclass
@@ -389,8 +429,13 @@ class ConfigReadFailure(AppDaemonException):
 
 @dataclass
 class SequenceExecutionFail(AppDaemonException):
-    msg: str
     bad_seq: Any | None = None
+
+    def __str__(self):
+        res = "Failed to execute sequence:"
+        if isinstance(self.bad_seq, str):
+            res += f' {self.bad_seq}'
+        return res
 
 
 class BadSchedulerCallback(AppDaemonException):
@@ -407,4 +452,5 @@ class BadSequenceStepDefinition(AppDaemonException):
 
 @dataclass
 class SequenceStepExecutionFail(AppDaemonException):
+    n: int
     step: Any

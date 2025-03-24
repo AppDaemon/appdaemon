@@ -25,6 +25,7 @@ class Sequences:
     logger: Logger
     error: Logger
     namespace: str = "rules"
+    name: str = "_sequences" # needed for the sync decorator to work
 
     def __init__(self, ad: "AppDaemon"):
         self.AD = ad
@@ -49,7 +50,13 @@ class Sequences:
         return await self.AD.state.set_state(name="_sequences", namespace=self.namespace, entity=self.normalized(entity_id), state=state, replace=replace, **kwargs)
 
     async def get_state(self, entity_id: str = None, attribute: str = None, copy: bool = True):
-        return await self.AD.state.get_state(name="_sequences", namespace=self.namespace, entity_id=self.normalized(entity_id) if entity_id else None, attribute=attribute, copy=copy)
+        return await self.AD.state.get_state(
+            name=self.name,
+            namespace=self.namespace,
+            entity_id=self.normalized(entity_id) if entity_id else None,
+            attribute=attribute,
+            copy=copy
+        )
 
     def sequence_running(self, sequence: str) -> bool:
         return self.get_state(sequence, copy=False) == "active"
@@ -126,7 +133,7 @@ class Sequences:
                         self.logger.error(f"Error creating inline sequence:\n{e}")
                         return
         except Exception as e:
-            raise ade.SequenceExecutionFail("Bad sequence definition", bad_seq=sequence) from e
+            raise ade.SequenceExecutionFail(sequence) from e
 
         coro = self._exec_seq(calling_app=calling_app, namespace=namespace, entity_id=seq_eid, steps=cfg.steps, loop=cfg.loop)
         task = asyncio.create_task(coro, name=seq_eid)
@@ -153,12 +160,12 @@ class Sequences:
     async def _exec_seq(self, calling_app: str, namespace: str, entity_id: str, steps: list[SequenceStep], loop: bool = False):
         await self.set_state(entity_id, "active")
         try:
-            while True:
+            while not self.AD.stopping:
                 for i, step in enumerate(steps):
                     try:
                         await self._exec_step(step, namespace, calling_app)
                     except ade.AppDaemonException as exc:
-                        raise ade.SequenceStepExecutionFail(step) from exc
+                        raise ade.SequenceStepExecutionFail(i + 1, step) from exc
                 if not loop:
                     break
         finally:

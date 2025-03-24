@@ -6,7 +6,7 @@
 # $> python3
 # >>> import sklearn
 # (No error and it worked!)
-ARG PYTHON_RELEASE=3.12 ALPINE_VERSION=3.21
+ARG PYTHON_RELEASE=3.13 ALPINE_VERSION=3.21
 ARG BASE_IMAGE=python:${PYTHON_RELEASE}-alpine${ALPINE_VERSION}
 # Image for building dependencies (on architectures that don't provide a ready-made Python wheel)
 FROM ${BASE_IMAGE} AS builder
