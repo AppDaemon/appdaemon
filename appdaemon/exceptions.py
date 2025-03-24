@@ -81,6 +81,22 @@ def user_exception_block(logger: Logger, exception: AppDaemonException, app_dir:
                         logger.error(f'{indent}{filename} line {line} in {func_name}')
             case OSError() if str(exc).endswith('address already in use'):
                 logger.error(f'{indent}{exc.__class__.__name__}: {exc}')
+            case NameError():
+                logger.error(f'{indent}{exc.__class__.__name__}: {exc}')
+                if tb := traceback.extract_tb(exc.__traceback__):
+                    frame = tb[-1]
+                    logger.error(f'{indent}  {frame._line.rstrip()}')
+                    error_len = frame.end_colno - frame.colno
+                    logger.error(f'{indent}  {" " * (frame.colno - 1)}{"^" * error_len}')
+            case SyntaxError():
+                logger.error(f'{indent}{exc.__class__.__name__}: {exc}')
+                logger.error(f'{indent}  {exc.text.rstrip()}')
+
+                if exc.end_offset == 0:
+                    error_len = len(exc.text) - exc.offset
+                else:
+                    error_len = exc.end_offset - exc.offset
+                logger.error(f'{indent}  {" " * (exc.offset - 1)}{"^" * error_len}')
             case _:
                 logger.error(f'{indent}{exc.__class__.__name__}: {exc}')
                 if tb := traceback.extract_tb(exc.__traceback__):
