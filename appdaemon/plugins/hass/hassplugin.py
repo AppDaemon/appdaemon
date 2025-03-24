@@ -664,8 +664,11 @@ class HassPlugin(PluginBase):
             if not resp.get("optional"):
                 req["return_response"] = True
 
-        if target is None and all(isinstance(s, str) for s in entity_id):
-            req["target"] = {"entity_id": entity_id}
+        if target is None and entity_id is not None:
+            if all(isinstance(s, str) for s in entity_id):
+                req["target"] = {"entity_id": entity_id}
+            else:
+                self.logger.warning('Bad entity_id: %s', entity_id)
         elif target is not None and entity_id is None:
             req["target"] = target
 
