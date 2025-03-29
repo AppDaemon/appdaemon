@@ -52,6 +52,7 @@ class LoadingActions:
 
     @property
     def init_set(self) -> set[str]:
+        """The set of items that are either new or need to be reloaded"""
         return (self.init | self.reload) - self.failed
 
     def import_sort(self, dm: DependencyManager) -> list[str]:
@@ -114,6 +115,7 @@ class LoadingActions:
 
 @dataclass
 class UpdateActions:
+    """Class to wrap various statuses for the `AppManagement.check_app_updates` method"""
     modules: LoadingActions = field(init=False, default_factory=LoadingActions)
     apps: LoadingActions = field(init=False, default_factory=LoadingActions)
     sequences: LoadingActions = field(init=False, default_factory=LoadingActions)

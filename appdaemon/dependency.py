@@ -89,7 +89,7 @@ def get_file_deps(file_path: str | Path) -> set[str]:
         try:
             mod: ast.Module = ast.parse(file_content, filename=file_path)
         except Exception as e:
-            logger.warning(f"{e}")
+            logger.warning(f"Error parsing python module with AST: {e}")
         else:
             for node in get_imports(mod):
                 match node:
@@ -105,8 +105,12 @@ def get_file_deps(file_path: str | Path) -> set[str]:
     return set(gen_modules())
 
 
-def get_dependency_graph(files: Iterable[Path]):
-    graph = {get_full_module_name(f): get_file_deps(f) for f in files}
+def get_dependency_graph(files: Iterable[Path], exclude: set[Path] | None = None):
+    graph = {
+        get_full_module_name(f): get_file_deps(f)
+        for f in files
+        if exclude is None or f not in exclude
+    }
 
     for mod, deps in graph.items():
         if mod in deps:

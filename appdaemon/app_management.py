@@ -155,7 +155,6 @@ class AppManagement:
     def valid_apps(self) -> set[str]:
         return self.running_apps | self.loaded_globals
 
-    # @warning_decorator
     async def set_state(self, name: str, **kwargs):
         # not a fully qualified entity name
         if not name.startswith("sensor."):
@@ -377,7 +376,8 @@ class AppManagement:
                             # If the object isn't in the self.objects dict or it's there, but not running
                             raise ade.DependencyNotRunning(*exc_args)
                     case GlobalModule():
-                        if dep_name not in sys.modules:
+                        module = dep_cfg.module_name
+                        if module not in sys.modules:
                             raise ade.GlobalNotLoaded(*exc_args)
             else:
                 raise ade.AppDependencyError(*exc_args)
@@ -479,13 +479,14 @@ class AppManagement:
 
         try:
             app_class = getattr(mod_obj, class_name)
-        except AttributeError as exc:
+        except AttributeError:
+            path = mod_obj.__file__ or mod_obj.__path__._path[0]
             raise ade.MissingAppClass(
                 app_name,
                 mod_obj.__name__,
-                Path(mod_obj.__file__).relative_to(self.AD.app_dir.parent),
+                Path(path).relative_to(self.AD.app_dir.parent),
                 class_name
-            ) from exc
+            )
 
         if utils.count_positional_arguments(app_class.__init__) != 3:
             raise ade.BadClassSignature(class_name)
@@ -615,8 +616,12 @@ class AppManagement:
                 if name in self.non_apps:
                     continue
 
+                # New config found
                 if name not in current_apps:
-                    self.logger.info(f"New app config: {name}")
+                    if isinstance(cfg, GlobalModule):
+                        self.logger.info(f"New global module: {name}[{cfg.module_name}]")
+                    else:
+                        self.logger.info(f"New app config: {name}")
                     update_actions.apps.init.add(name)
                 else:
                     # If an app exists, compare to the current config
@@ -666,24 +671,23 @@ class AppManagement:
         config_model = AllAppConfig.model_validate(raw_cfg)
         return config_model
 
-    # noinspection PyBroadException
     @utils.executor_decorator
     def import_module(self, module_name: str) -> int:
         """Reads an app into memory by importing or reloading the module it needs"""
-        if mod := sys.modules.get(module_name):
-            try:
-                # this check is to skip modules that don't come from the app directory
-                Path(mod.__file__).relative_to(self.AD.app_dir)
-            except ValueError:
-                # self.logger.debug("Skipping '%s'", module_name)
-                pass
-            else:
+        try:
+            if mod := sys.modules.get(module_name):
                 self.logger.debug("Reloading '%s'", module_name)
                 importlib.reload(mod)
-        else:
-            if not module_name.startswith("appdaemon"):
-                self.logger.debug("Importing '%s'", module_name)
-                importlib.import_module(module_name)
+            else:
+                # this check is to skip modules that don't come from the app directory
+                if not module_name.startswith("appdaemon"):
+                    self.logger.debug("Importing '%s'", module_name)
+                    importlib.import_module(module_name)
+        except SyntaxError as exc:
+            path = Path(exc.filename)
+            mtime = self.dependency_manager.python_deps.files.mtimes.get(path)
+            self.dependency_manager.python_deps.bad_files.add((path, mtime))
+            raise exc
 
     @utils.executor_decorator
     def _process_filters(self):
@@ -905,10 +909,10 @@ class AppManagement:
         files = await self.get_python_files()
         self.dependency_manager.update_python_files(files)
 
-        # We only need to init the modules necessary for the new apps
+        # We only need to init the modules necessary for the new apps, not reloaded ones
         new_apps = update_actions.apps.init
-        update_actions.modules.init |= self.dependency_manager.modules_from_apps(
-            new_apps)
+        app_modules = self.dependency_manager.modules_from_apps(new_apps, dependents=True)
+        update_actions.modules.init |= app_modules
 
         if self.python_filecheck.there_were_changes:
             self.logger.debug(" Python file changes ".center(75, "="))
@@ -988,9 +992,7 @@ class AppManagement:
 
             for app_name in start_order:
                 if isinstance((cfg := self.app_config.root[app_name]), AppConfig):
-                    @ade.wrap_async(
-                        self.error, self.AD.app_dir,
-                        f"'{app_name}' instantiation")
+                    @ade.wrap_async(self.error, self.AD.app_dir, f"'{app_name}' instantiation")
                     async def safe_create(self: "AppManagement"):
                         try:
                             await self.create_app_object(app_name)
@@ -1017,7 +1019,7 @@ class AppManagement:
                             await self.start_app(app_name)
                         except Exception as exc:
                             update_actions.apps.failed.add(app_name)
-                            raise ade.StartFailure(app_name) from exc
+                            raise ade.AppStartFailure(app_name) from exc
 
                     if await self.get_state(app_name) != "compile_error":
                         await safe_start(self)
@@ -1029,33 +1031,34 @@ class AppManagement:
 
         This is what handles importing all the modules safely. If any of them fail to import, that failure is cascaded through the dependencies.
         """
-        load_order = update_actions.modules.import_sort(
-            self.dependency_manager)
-
+        # If any apps defined with "global: true" are in the init set, they need to get added to the module list
+        gm_modules = set(
+            app_cfg.module_name
+            for name, app_cfg in self.app_config.root.items()
+            if isinstance(app_cfg, GlobalModule)
+            and name in update_actions.apps.init_set
+        )
+        modules = update_actions.modules.init_set | gm_modules
+        load_order = self.dependency_manager.python_sort(modules)
         if load_order:
             self.logger.debug("Determined module load order: %s", load_order)
             for module_name in load_order:
 
-                @utils.warning_decorator(error_text=f"Error importing '{module_name}'")
+                @ade.wrap_async(self.error, self.AD.app_dir, f"Error importing '{module_name}'")
                 async def safe_import(self: "AppManagement"):
                     try:
                         await self.import_module(module_name)
                     except Exception as e:
                         dm: DependencyManager = self.dependency_manager
-                        update_actions.modules.failed |= dm.dependent_modules(
-                            module_name)
-                        update_actions.apps.failed |= dm.dependent_apps(
-                            module_name)
+                        update_actions.modules.failed |= dm.dependent_modules(module_name)
+                        update_actions.apps.failed |= dm.dependent_apps(module_name)
                         for app_name in update_actions.apps.failed:
                             await self.set_state(app_name, state="compile_error")
                             await self.increase_inactive_apps(app_name)
 
                         # Handle this down here to avoid having to repeat all the above logic for
                         # other exceptions.
-                        if isinstance(e, ModuleNotFoundError):
-                            raise ade.AppModuleNotFound(f"Unable to import '{module_name}'") from e
-                        else:
-                            raise
+                        raise ade.FailedImport(module_name, self.AD.app_dir) from e
 
                 await safe_import(self)
 
@@ -1096,40 +1099,6 @@ class AppManagement:
         # Update the sequence steps in the internal sequence entity
         if update_actions.sequences.changes or update_mode == UpdateMode.INIT:
             await self.AD.sequences.update_sequence_entities(self.sequence_config)
-
-    def apps_per_module(self, module_name: str) -> set[str]:
-        """Finds which apps came from a given module name.
-
-        Returns a set of app names that are either app configs or gobal modules that directly refer to the given module by name.
-        """
-        return set(
-            app_name
-            for app_name, cfg in self.app_config.root.items()
-            if isinstance(cfg, (AppConfig, GlobalModule)) and cfg.module_name == module_name
-        )
-
-    def apps_per_global_module(self, module_name: str) -> set[str]:
-        """Finds which apps depend on a given global module"""
-        return set(
-            app_name
-            for app_name, cfg in self.app_config.root.items()
-            if (isinstance(cfg, AppConfig) and module_name in cfg.global_dependencies)
-            or (isinstance(cfg, GlobalModule) and module_name in cfg.dependencies)
-        )
-
-        # apps = []
-        # for app in self.app_config:
-        #     if "global_dependencies" in self.app_config[app]:
-        #         for gm in utils.single_or_list(self.app_config[app]["global_dependencies"]):
-        #             if gm == module_name:
-        #                 apps.append(app)
-
-        #     if "dependencies" in self.app_config[app]:
-        #         for gm in utils.single_or_list(self.app_config[app]["dependencies"]):
-        #             if gm == module_name:
-        #                 apps.append(app)
-
-        # return apps
 
     @utils.executor_decorator
     def create_app(self, app: str = None, **kwargs):

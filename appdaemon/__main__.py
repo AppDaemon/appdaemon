@@ -176,7 +176,7 @@ class ADMain:
         except StartupAbortedException as e:
             # We got an unrecoverable error during startup so print it out and quit
             self.logger.error(f"AppDaemon terminated with errors: {e}")
-        except ade.ConfigReadFailure as e:
+        except ade.AppDaemonException as e:
             ade.user_exception_block(self.logger, e, self.AD.app_dir)
         except Exception:
             self.logger.warning("-" * 60)

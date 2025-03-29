@@ -16,12 +16,19 @@ class Dependencies(ABC):
     ext: str = field(init=False)  # this has to be defined by the children classes
     dep_graph: dict[str, set[str]] = field(init=False)
     rev_graph: dict[str, set[str]] = field(init=False)
+    bad_files: set[Path] = field(default_factory=set, init=False)
 
     def __post_init__(self):
         self.refresh_dep_graph()
 
     def update(self, new_files: Iterable[Path]):
         self.files.update(new_files)
+        for bf, mtime in self.bad_files:
+            new_mtime = self.files.mtimes.get(bf)
+            if new_mtime != mtime:
+                assert new_mtime > mtime, f"File {bf} was modified in the future"
+                self.bad_files.remove((bf, mtime))
+
         self.refresh_dep_graph()
 
     def refresh_dep_graph(self):
@@ -54,7 +61,11 @@ class PythonDeps(Dependencies):
 
     def refresh_dep_graph(self):
         """This causes the all python files to get read from disk"""
-        self.dep_graph = get_dependency_graph(self.files)
+        bad_files = set()
+        if self.bad_files:
+            bad_files, _ = zip(*self.bad_files)
+            bad_files = set(bad_files)
+        self.dep_graph = get_dependency_graph(self.files, exclude=bad_files)
         self.rev_graph = reverse_graph(self.dep_graph)
 
     def modules_to_import(self) -> set[str]:
@@ -150,9 +161,6 @@ class DependencyManager:
         """
         return self.python_deps.update(new_files)
 
-    def modules_to_import(self) -> set[str]:
-        return self.python_deps.modules_to_import()
-
     def dependent_modules(self, modules: str | Iterable[str]):
         """Uses ``find_all_dependents`` with the reversed dependency graph to find the
         transitive closure of the python module dependencies."""
@@ -186,3 +194,18 @@ class DependencyManager:
         modules = self.python_deps.modules_to_delete()
         apps = self.dependent_apps(modules, transitive=False)
         return apps
+
+    # Currently unused
+    def modules_to_import(self) -> set[str]:
+        return self.python_deps.modules_to_import()
+
+    def python_sort(self, modules: set[str]) -> set[str]:
+        modules |= self.dependent_modules(modules)
+        order = [n for n in topo_sort(self.python_deps.dep_graph) if n in modules]
+
+        # Namespace packages won't be in the graph, so we add them to the end
+        # https://docs.python.org/3/reference/import.html#namespace-packages
+        if (diff := modules - set(order)):
+            order.extend(diff)
+
+        return order
