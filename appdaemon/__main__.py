@@ -89,10 +89,10 @@ class ADMain:
             case signal.SIGTERM:
                 self.logger.info("SIGTERM Received")
                 self.stop()
-            case signal.SIGWINCH:
-                ... # disregard window changes
-            case _:
-                self.logger.error(f'Unhandled signal: {signal.Signals(signum).name}')
+            # case signal.SIGWINCH:
+            #     ... # disregard window changes
+            # case _:
+            #     self.logger.error(f'Unhandled signal: {signal.Signals(signum).name}')
 
     def stop(self):
         """Called by the signal handler to shut AD down.
@@ -325,7 +325,7 @@ class ADMain:
             print(e)
             sys.exit(1)
         except ade.ConfigReadFailure as e:
-            ade.user_exception_block(logging.getLogger(), e, config_dir, 'Reading AppDaemon configuration')
+            ade.user_exception_block(logging.getLogger(), e, config_dir, "Reading AppDaemon configuration")
             sys.exit(1)
         except Exception as e:
             print(f"Unexpected error loading config file: {config_file}")
