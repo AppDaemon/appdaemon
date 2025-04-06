@@ -25,7 +25,7 @@ class Sequences:
     logger: Logger
     error: Logger
     namespace: str = "rules"
-    name: str = "_sequences" # needed for the sync decorator to work
+    name: str = "_sequences"  # needed for the sync decorator to work
 
     def __init__(self, ad: "AppDaemon"):
         self.AD = ad
@@ -50,13 +50,7 @@ class Sequences:
         return await self.AD.state.set_state(name="_sequences", namespace=self.namespace, entity=self.normalized(entity_id), state=state, replace=replace, **kwargs)
 
     async def get_state(self, entity_id: str = None, attribute: str = None, copy: bool = True):
-        return await self.AD.state.get_state(
-            name=self.name,
-            namespace=self.namespace,
-            entity_id=self.normalized(entity_id) if entity_id else None,
-            attribute=attribute,
-            copy=copy
-        )
+        return await self.AD.state.get_state(name=self.name, namespace=self.namespace, entity_id=self.normalized(entity_id) if entity_id else None, attribute=attribute, copy=copy)
 
     async def sequence_running(self, sequence: str) -> bool:
         state = await self.get_state(sequence, copy=False)
@@ -160,7 +154,7 @@ class Sequences:
 
     @utils.warning_decorator(error_text="Unexpected error executing sequence")
     async def _exec_seq(self, calling_app: str, namespace: str, entity_id: str, steps: list[SequenceStep], loop: bool = False):
-        await self.set_state(entity_id, "active")
+        await self.set_state(entity_id, "active", _silent=True)
         try:
             while not self.AD.stopping:
                 for i, step in enumerate(steps):
