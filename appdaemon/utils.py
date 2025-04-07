@@ -29,8 +29,10 @@ import tomli_w
 import yaml
 from pydantic import BaseModel, ValidationError
 
-from appdaemon.version import __version__  # noqa: F401
-from appdaemon.version import __version_comments__  # noqa: F401
+from appdaemon.version import (
+    __version__,  # noqa: F401
+    __version_comments__,  # noqa: F401
+)
 
 from . import exceptions as ade
 
@@ -71,31 +73,16 @@ class Formatter(object):
 
     def format_dict(self, value, indent):
         items = [
-            self.lfchar
-            + self.htchar * (indent + 1)
-            + repr(key)
-            + ": "
-            + (self.types[type(value[key]) if type(value[key]) in self.types else object])(self, value[key], indent + 1)
-            for key in value
+            self.lfchar + self.htchar * (indent + 1) + repr(key) + ": " + (self.types[type(value[key]) if type(value[key]) in self.types else object])(self, value[key], indent + 1) for key in value
         ]
         return "{%s}" % (",".join(items) + self.lfchar + self.htchar * indent)
 
     def format_list(self, value, indent):
-        items = [
-            self.lfchar
-            + self.htchar * (indent + 1)
-            + (self.types[type(item) if type(item) in self.types else object])(self, item, indent + 1)
-            for item in value
-        ]
+        items = [self.lfchar + self.htchar * (indent + 1) + (self.types[type(item) if type(item) in self.types else object])(self, item, indent + 1) for item in value]
         return "[%s]" % (",".join(items) + self.lfchar + self.htchar * indent)
 
     def format_tuple(self, value, indent):
-        items = [
-            self.lfchar
-            + self.htchar * (indent + 1)
-            + (self.types[type(item) if type(item) in self.types else object])(self, item, indent + 1)
-            for item in value
-        ]
+        items = [self.lfchar + self.htchar * (indent + 1) + (self.types[type(item) if type(item) in self.types else object])(self, item, indent + 1) for item in value]
         return "(%s)" % (",".join(items) + self.lfchar + self.htchar * indent)
 
 
@@ -198,7 +185,7 @@ def sync_decorator(coro_func):  # no type hints here, so that @wraps(func) works
             else:
                 return run_coroutine_threadsafe(self, coro, timeout=timeout)
         except Exception:
-        # except Exception as e:
+            # except Exception as e:
             # ad.threading.logger.error(f"Error running coroutine threadsafe: {e}")
             # ad.threading.logger.error(format_exception(e))
             raise
@@ -250,7 +237,7 @@ def convert_timedelta(s: str | int | float) -> timedelta:
         case int() | float():
             return timedelta(seconds=s)
         case str():
-            parts = tuple(float(p) for p in s.split(':'))
+            parts = tuple(float(p) for p in s.split(":"))
             match len(parts):
                 case 1:
                     return timedelta(seconds=parts[0])
@@ -268,7 +255,7 @@ def convert_timedelta(s: str | int | float) -> timedelta:
 def format_timedelta(td: timedelta) -> str:
     seconds = td.total_seconds()
     if seconds == 0:
-        return 'No time'
+        return "No time"
     elif seconds < 0.1:
         return f"{seconds * 10**3:.3f}ms"
     elif seconds < 1:
@@ -281,7 +268,7 @@ def format_timedelta(td: timedelta) -> str:
 
 def deep_compare(check: dict, data: dict) -> bool:
     """Compares 2 nested dictionaries of values"""
-    data = data or {} # Replaces a None value with an empty dict
+    data = data or {}  # Replaces a None value with an empty dict
 
     for k, v in tuple(check.items()):
         if isinstance(v, dict) and isinstance(data[k], dict):
@@ -384,19 +371,11 @@ def warning_decorator(
                     result = func(self, *args, **kwargs)
             except SyntaxError as e:
                 logger.warning(error_text)
-                log_warning_block(
-                    error_logger,
-                    header=error_text,
-                    exception_text=''.join(traceback.format_exception(e, limit=-1))
-                )
+                log_warning_block(error_logger, header=error_text, exception_text="".join(traceback.format_exception(e, limit=-1)))
             except ade.AppDaemonException as e:
                 raise e
             except ValidationError as e:
-                log_warning_block(
-                    error_logger,
-                    header=error_text,
-                    exception_text=str(e)
-                )
+                log_warning_block(error_logger, header=error_text, exception_text=str(e))
             except Exception as e:
                 log_warning_block(
                     error_logger,
@@ -444,7 +423,7 @@ async def run_in_executor(self, fn, *args, **kwargs) -> Any:
     return await future
 
 
-def run_coroutine_threadsafe(self: 'ADBase', coro: Coroutine, timeout: float | None = None) -> Any:
+def run_coroutine_threadsafe(self: "ADBase", coro: Coroutine, timeout: float | None = None) -> Any:
     """This runs an instantiated coroutine (async) from sync code. This handles the logic for cancelling
     coroutines that run too long.
 
@@ -464,19 +443,19 @@ def run_coroutine_threadsafe(self: 'ADBase', coro: Coroutine, timeout: float | N
         try:
             return future.result(timeout)
         except concurrent.futures.CancelledError:
-            self.logger.warning(f'Future cancelled while waiting for coroutine: {coro}')
+            self.logger.warning(f"Future cancelled while waiting for coroutine: {coro}")
         except (asyncio.TimeoutError, concurrent.futures.TimeoutError):
             if hasattr(self, "logger"):
                 self.logger.warning(
                     "Coroutine (%s) took too long (%s seconds), cancelling the task...",
-                    coro, timeout,
+                    coro,
+                    timeout,
                 )
             else:
                 print("Coroutine ({}) took too long, cancelling the task...".format(coro))
             future.cancel()
     else:
         self.logger.warning("LOOP NOT RUNNING. Returning NONE.")
-
 
 
 async def run_async_sync_func(self, method, *args, **kwargs):
@@ -677,7 +656,7 @@ def check_path(type, logger, inpath, pathtype="directory", permissions=None):  #
 
 
 def str_to_dt(time):
-    if time == 'never':
+    if time == "never":
         return time
     return dateutil.parser.parse(time)
 
@@ -759,8 +738,8 @@ def read_config_file(file: Path) -> dict[str, dict | list]:
             if key == "sequence":
                 for seq_cfg in cfg.values():
                     seq_cfg["config_path"] = file
-            # elif key == 'logs':
-            #     continue
+            elif key == "logs":
+                continue
             elif cfg is not None and isinstance(cfg, dict):
                 cfg["config_path"] = file
 
@@ -933,13 +912,7 @@ def read_yaml_config(file: Path) -> Dict[str, Dict]:
 
 
 def count_positional_arguments(callable: Callable) -> int:
-    return len(
-        [
-            p
-            for p in inspect.signature(callable).parameters.values()
-            if p.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD or p.kind == inspect.Parameter.VAR_POSITIONAL
-        ]
-    )
+    return len([p for p in inspect.signature(callable).parameters.values() if p.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD or p.kind == inspect.Parameter.VAR_POSITIONAL])
 
 
 class Singleton(type):
@@ -953,9 +926,9 @@ class Singleton(type):
 
 def time_str(start: float, now: float | None = None) -> str:
     now = now or time.perf_counter()
-    match (elapsed := now - start):
+    match elapsed := now - start:
         case _ if elapsed < 1:
-            return f"{elapsed*10**3:.0f}ms"
+            return f"{elapsed * 10**3:.0f}ms"
         case _ if elapsed > 10:
             return f"{elapsed:.0f}s"
         case _:
@@ -968,25 +941,21 @@ def clean_kwargs(**kwargs):
     kwargs = {k: v.isoformat() if isinstance(v, datetime.datetime) else v for k, v in kwargs.items() if v is not None}
 
     # filters out null values and converts to strings
-    kwargs = {
-        k: str(v) if not isinstance(v, dict) else v
-        for k, v in kwargs.items()
-        if v is not None
-    }
+    kwargs = {k: str(v) if not isinstance(v, dict) else v for k, v in kwargs.items() if v is not None}
     return kwargs
 
 
 def make_endpoint(base: str, endpoint: str) -> str:
     """Formats a URL appropriately with slashes"""
     if not endpoint.startswith(base):
-        result = f'{base}/{endpoint.strip("/")}'
+        result = f"{base}/{endpoint.strip('/')}"
     else:
         result = endpoint
     return result.strip("/")
 
 
 def unwrapped(func: Callable) -> Callable:
-    while hasattr(func, '__wrapped__'):
+    while hasattr(func, "__wrapped__"):
         func = func.__wrapped__
     return func
 
@@ -1002,10 +971,7 @@ def has_expanded_kwargs(func):
     if isinstance(func, functools.partial):
         func = func.func
 
-    return any(
-        param.kind == param.VAR_KEYWORD
-        for param in inspect.signature(func).parameters.values()
-    )
+    return any(param.kind == param.VAR_KEYWORD for param in inspect.signature(func).parameters.values())
 
 
 def has_collapsed_kwargs(func):
