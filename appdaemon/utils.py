@@ -759,8 +759,8 @@ def read_config_file(file: Path) -> dict[str, dict | list]:
             if key == "sequence":
                 for seq_cfg in cfg.values():
                     seq_cfg["config_path"] = file
-            elif key == 'logs':
-                continue
+            # elif key == 'logs':
+            #     continue
             elif cfg is not None and isinstance(cfg, dict):
                 cfg["config_path"] = file
 
