@@ -211,7 +211,7 @@ class ServiceException(AppDaemonException):
         return (
             f"domain '{self.domain}' exists in namespace '{self.namespace}', "
             f"but does not contain service '{self.service}'. "
-            f"Services that exist in {self.domain}: {self.domain_services}"
+            f"Services that exist in {self.domain}: {', '.join(self.domain_services)}"
         )
 
 
