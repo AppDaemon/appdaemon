@@ -10,12 +10,12 @@ import subprocess
 import sys
 import traceback
 from collections import OrderedDict
+from collections.abc import Iterable
 from copy import copy
 from functools import partial, reduce, wraps
 from logging import Logger
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
-from collections.abc import Iterable
 
 from pydantic import ValidationError
 
@@ -663,7 +663,7 @@ class AppManagement:
 
         This function is primarily used by the create/edit/remove app methods that write yaml files.
         """
-        raw_cfg = utils.read_config_file(file)
+        raw_cfg = utils.read_config_file(file, app_config=True)
         if not bool(raw_cfg):
             self.logger.warning(
                 f"Loaded an empty config file: {file.relative_to(self.AD.app_dir.parent)}"

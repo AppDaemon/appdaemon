@@ -718,11 +718,14 @@ def write_toml_config(path, **kwargs):
         tomli_w.dump(kwargs, stream)
 
 
-def read_config_file(file: Path) -> dict[str, dict | list]:
+def read_config_file(file: Path, app_config: bool = False) -> dict[str, dict | list]:
     # raise ValueError
     """Reads a single YAML or TOML file.
 
     This includes all the mechanics for including secrets and environment variables.
+
+    Args:
+        app_config: Flag for whether to add the config_path key to the loaded dictionaries
     """
     try:
         file = Path(file) if not isinstance(file, Path) else file
@@ -734,14 +737,13 @@ def read_config_file(file: Path) -> dict[str, dict | list]:
             case _:
                 raise ValueError(f"ERROR: unknown file extension: {file.suffix}")
 
-        for key, cfg in full_cfg.items():
-            if key == "sequence":
-                for seq_cfg in cfg.values():
-                    seq_cfg["config_path"] = file
-            elif key == "logs":
-                continue
-            elif cfg is not None and isinstance(cfg, dict):
-                cfg["config_path"] = file
+        if app_config:
+            for key, cfg in full_cfg.items():
+                if key == "sequence":
+                    for seq_cfg in cfg.values():
+                        seq_cfg["config_path"] = file
+                elif cfg is not None and isinstance(cfg, dict):
+                    cfg["config_path"] = file
 
         return full_cfg
     except Exception as exc:
