@@ -205,9 +205,14 @@ class ServiceException(AppDaemonException):
     namespace: str
     domain: str
     service: str
+    domain_services: list[str]
 
     def __str__(self):
-        return f"domain '{self.domain}' exists in namespace '{self.namespace}', but does not contain service '{self.service}'"
+        return (
+            f"domain '{self.domain}' exists in namespace '{self.namespace}', "
+            f"but does not contain service '{self.service}'. "
+            f"Services that exist in {self.domain}: {self.domain_services}"
+        )
 
 
 @dataclass

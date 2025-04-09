@@ -224,7 +224,7 @@ class Services:
             if ns_services := self.services.get(namespace):
                 if domain_services := ns_services.get(domain):
                     if service not in domain_services:
-                        raise ServiceException(namespace, domain, service)
+                        raise ServiceException(namespace, domain, service, list(domain_services.keys()))
                 else:
                     raise DomainException(namespace, domain)
             else:
