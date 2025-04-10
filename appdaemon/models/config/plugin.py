@@ -2,12 +2,13 @@
 
 import os
 from datetime import timedelta
-from pathlib import Path
 from ssl import _SSLMethod
 from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, BeforeValidator, Field, SecretBytes, SecretStr, ValidationInfo, field_validator, model_validator
 from typing_extensions import deprecated
+
+from .common import CoercedPath
 
 
 class PluginConfig(BaseModel, extra="allow"):
@@ -80,14 +81,13 @@ class StartupConditions(BaseModel):
     event: EventStartupCondition | None = None
 
 
-
 class HASSConfig(PluginConfig):
     ha_url: str = "http://supervisor/core"
     token: SecretStr
     ha_key: Annotated[SecretStr, deprecated("'ha_key' is deprecated. Please use long lived tokens instead")] | None = None
     appdaemon_startup_conditions: StartupConditions | None = None
     plugin_startup_conditions: StartupConditions | None = None
-    cert_path: Path | None = None
+    cert_path: CoercedPath | None = None
     cert_verify: bool | None = None
     commtype: str = "WS"
     q_timeout: int = 30

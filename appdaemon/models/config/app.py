@@ -1,10 +1,10 @@
 import logging
 import sys
 from abc import ABC
+from collections.abc import Iterable, Iterator
 from copy import deepcopy
 from pathlib import Path
 from typing import Annotated, Any, Literal
-from collections.abc import Iterable, Iterator
 
 from pydantic import BaseModel, Discriminator, Field, RootModel, Tag, ValidationError, field_validator
 from pydantic_core import PydanticUndefinedType
@@ -21,6 +21,7 @@ class GlobalModules(RootModel):
 
 class BaseApp(BaseModel, ABC):
     """Abstract class to contain logic that's common to both apps and global modules"""
+
     name: str
     config_path: Path | None = None  # Needs to remain optional because it gets set later
     module_name: str = Field(alias="module")
@@ -113,7 +114,7 @@ class AllAppConfig(RootModel):
 
     @classmethod
     def from_config_file(cls, path: Path):
-        return cls.model_validate(read_config_file(path))
+        return cls.model_validate(read_config_file(path, app_config=True))
 
     @classmethod
     def from_config_files(cls, paths: Iterable[Path], app_dir: Path | None = None):
@@ -126,7 +127,7 @@ class AllAppConfig(RootModel):
         cfg = {}
         for p in paths:
             try:
-                for new, new_cfg in read_config_file(p).items():
+                for new, new_cfg in read_config_file(p, app_config=True).items():
                     try:
                         cls.model_validate({new: new_cfg})
                     except ValidationError:
@@ -145,7 +146,7 @@ class AllAppConfig(RootModel):
                     else:
                         cfg[new] = new_cfg
             except ade.ConfigReadFailure as e:
-                logging.getLogger('AppDaemon').warning(f'Failed to read file: {e}')
+                logging.getLogger("AppDaemon").warning(f"Failed to read file: {e}")
                 continue
         else:
             return cls.model_validate(cfg)
@@ -156,7 +157,7 @@ class AllAppConfig(RootModel):
             app_name: cfg.dependencies
             for app_name, cfg in self.root.items()
             if isinstance(cfg, (AppConfig, GlobalModule))
-        }
+        } # fmt: skip
 
     def reversed_dependency_graph(self) -> dict[str, set[str]]:
         """Maps each app to the other apps that depend on it"""
@@ -168,13 +169,13 @@ class AllAppConfig(RootModel):
             (app_name, cfg)
             for app_name, cfg in self.root.items()
             if isinstance(cfg, (BaseApp, SequenceConfig))
-        )
+        ) # fmt: skip
 
     def global_modules(self) -> list[GlobalModule]:
         return [
             cfg for cfg in self.root.values()
             if isinstance(cfg, GlobalModule)
-        ]
+        ] # fmt: skip
 
     def app_names(self) -> set[str]:
         """Returns all the app names for regular user apps and global module apps"""
@@ -189,7 +190,7 @@ class AllAppConfig(RootModel):
             for app_name, cfg in self.root.items()
             if isinstance(cfg, BaseApp) and
             cfg.config_path in paths
-        )
+        ) # fmt: skip
 
     @property
     def active_app_count(self) -> int:

@@ -31,6 +31,8 @@ from appdaemon.http import HTTP
 from appdaemon.logging import Logging
 from appdaemon.models.config import AppDaemonConfig
 
+from .models.config.yaml import MainConfig
+
 try:
     import pid
 except ImportError:
@@ -107,16 +109,13 @@ class ADMain:
             self.http_object.stop()
 
     # noinspection PyBroadException,PyBroadException
-    def run(self, ad_config_model: AppDaemonConfig, hadashboard, admin, aui, api, http):
+    def run(self, ad_config_model: AppDaemonConfig, *args, http):
         """Start AppDaemon up after initial argument parsing.
 
         Args:
             ad_config_model: Config for AppDaemon Object.
-            hadashboard: Config for HADashboard Object.
-            admin: Config for admin Object.
-            aui: Config for aui Object.
-            api: Config for API Object
-            http: Config for HTTP Object
+            *args: Gets used to create the HTTP object.
+            http: Main HTTP config
         """
 
         try:
@@ -142,16 +141,9 @@ class ADMain:
 
             # Initialize Dashboard/API/admin
 
-            if http is not None and (hadashboard is not None or admin is not None or aui is not None or api is not False):
+            if http is not None and any(arg is not None for arg in args):
                 self.logger.info("Initializing HTTP")
-                self.http_object = HTTP(
-                    self.AD,
-                    hadashboard,
-                    admin,
-                    aui,
-                    api,
-                    http,
-                )
+                self.http_object = HTTP(self.AD, *args, http)
                 self.AD.register_http(self.http_object)
             else:
                 if http is not None:
@@ -314,11 +306,17 @@ class ADMain:
             else:
                 ad_kwargs["module_debug"] = module_debug_cli
 
-            # Validate the AppDaemon configuration
-            ad_config_model = AppDaemonConfig.model_validate(ad_kwargs)
+            if hadashboard := config.get("hadashboard"):
+                hadashboard["config_dir"] = config_dir
+                hadashboard["config_file"] = config_file
+                hadashboard["dashboard"] = True
+                hadashboard["profile_dashboard"] = args.profiledash
+
+            model = MainConfig.model_validate(config)
+            dump_kwargs = dict(mode='json', by_alias=True, exclude_unset=True)
 
             if args.debug.upper() == "DEBUG":
-                model_json = ad_config_model.model_dump(by_alias=True, exclude_unset=True)
+                model_json = model.model_dump(**dump_kwargs)
                 print(json.dumps(model_json, indent=4, default=str, sort_keys=True))
         except ValidationError as e:
             print(f"Configuration error in: {config_file}")
@@ -332,59 +330,7 @@ class ADMain:
             print(e)
             sys.exit(1)
 
-        hadashboard = None
-        if "hadashboard" in config:
-            if config["hadashboard"] is None:
-                hadashboard = {}
-            else:
-                hadashboard = config["hadashboard"]
-
-            hadashboard["profile_dashboard"] = args.profiledash
-            hadashboard["config_dir"] = config_dir
-            hadashboard["config_file"] = config_file
-            if args.profiledash:
-                hadashboard["profile_dashboard"] = True
-
-            if "dashboard" not in hadashboard:
-                hadashboard["dashboard"] = True
-
-        old_admin = None
-        if "old_admin" in config:
-            if config["old_admin"] is None:
-                old_admin = {}
-            else:
-                old_admin = config["old_admin"]
-        admin = None
-        if "admin" in config:
-            if config["admin"] is None:
-                admin = {}
-            else:
-                admin = config["admin"]
-        api = None
-        if "api" in config:
-            if config["api"] is None:
-                api = {}
-            else:
-                api = config["api"]
-
-        http = None
-        if "http" in config:
-            http = config["http"]
-
-        # Setup _logging
-
-        if "log" in config:
-            print(
-                "ERROR",
-                "'log' directive deprecated, please convert to new 'logs' syntax",
-            )
-            sys.exit(1)
-        if "logs" in config:
-            logs = config["logs"]
-        else:
-            logs = {}
-
-        self.logging = Logging(logs, args.debug)
+        self.logging = Logging(model.logs.model_dump(**dump_kwargs), args.debug)
         self.logger = self.logging.get_logger()
 
         if "time_zone" in config["appdaemon"]:
@@ -407,11 +353,21 @@ class ADMain:
         )
         self.logger.info("Configuration read from: %s", config_file)
 
-        utils.deprecation_warnings(ad_config_model, self.logger)
+        utils.deprecation_warnings(model.appdaemon, self.logger)
 
         self.logging.dump_log_config()
         self.logger.debug("AppDaemon Section: %s", config.get("appdaemon"))
         self.logger.debug("HADashboard Section: %s", config.get("hadashboard"))
+
+        run = functools.partial(
+            self.run,
+            model.appdaemon,
+            model.hadashboard.model_dump(**dump_kwargs),
+            model.old_admin,
+            model.admin,
+            model.api,
+            http=model.http.model_dump(**dump_kwargs),
+        )
 
         if pidfile is not None:
             self.logger.info("Using pidfile: %s", pidfile)
@@ -419,11 +375,11 @@ class ADMain:
             name = os.path.basename(pidfile)
             try:
                 with pid.PidFile(name, dir):
-                    self.run(ad_config_model, hadashboard, old_admin, admin, api, http)
+                    run()
             except pid.PidFileError:
                 self.logger.error("Unable to acquire pidfile - terminating")
         else:
-            self.run(ad_config_model, hadashboard, old_admin, admin, api, http)
+            run()
 
 
 def main():

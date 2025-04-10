@@ -2,24 +2,10 @@ from datetime import timedelta
 from pathlib import Path
 from typing import Annotated, Any, Literal, Union
 
-from pydantic import BaseModel, BeforeValidator, Discriminator, Field, PlainSerializer, RootModel, Tag, ValidationError, WrapSerializer, model_validator
+from pydantic import BaseModel, BeforeValidator, Discriminator, Field, RootModel, Tag, WrapSerializer, model_validator
 
 from ... import exceptions as ade
-
-
-def validate_timedelta(v: Any):
-    match v:
-        case int() | float():
-            return timedelta(seconds=v)
-        case _:
-            raise ValidationError(f'Invalid type for timedelta: {v}')
-
-
-TimeType = Annotated[
-    timedelta,
-    BeforeValidator(validate_timedelta),
-    PlainSerializer(lambda td: td.total_seconds())
-]
+from .common import TimeType
 
 
 class SequenceStep(BaseModel):
@@ -49,7 +35,7 @@ class ServiceCallStep(SequenceStep, extra="allow"):
     loop_step: LoopStep | None = None
     # any of the extra kwargs will go to the service call
 
-    @model_validator(mode='before')
+    @model_validator(mode="before")
     @classmethod
     def split_domain(cls, data: dict):
         if isinstance(data, dict) and not data.get("domain"):
@@ -95,12 +81,7 @@ SequenceStep = Annotated[
     Union[
         Annotated[SleepStep, Tag("sleep")],
         Annotated[dict[Literal["wait_state"], WaitStateStep], Tag("wait")],
-        Annotated[
-            ServiceCallStep,
-            BeforeValidator(service_call_validator),
-            WrapSerializer(service_call_serializer),
-            Tag("service_call")
-        ],
+        Annotated[ServiceCallStep, BeforeValidator(service_call_validator), WrapSerializer(service_call_serializer), Tag("service_call")],
     ],
     Field(discriminator=Discriminator(step_discriminator)),
 ]
@@ -113,7 +94,7 @@ class Sequence(BaseModel, extra="forbid"):
     loop: bool = False
     hot_reload: bool = False
     """If true, apps that have run this sequence will be reloaded if the sequence definition changes while it's running."""
-    config_path: Path | None = None # Needs to remain optional because it gets set later
+    config_path: Path | None = None  # Needs to remain optional because it gets set later
     """The path to the file that defines this sequence"""
 
 

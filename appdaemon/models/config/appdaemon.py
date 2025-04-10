@@ -1,13 +1,15 @@
 import logging
+from collections.abc import Callable
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Annotated, Any, Literal
-from collections.abc import Callable
 
 import pytz
-from pydantic import BaseModel, BeforeValidator, ConfigDict, Discriminator, Field, RootModel, Tag, field_validator, model_validator
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Discriminator, Field, RootModel, SecretStr, Tag, field_validator, model_validator
 from pytz.tzinfo import BaseTzInfo
 from typing_extensions import deprecated
+
+from appdaemon.models.config.http import CoercedPath
 
 from ...models.config.plugin import HASSConfig, MQTTConfig
 from ...version import __version__
@@ -45,7 +47,7 @@ class AppDaemonConfig(BaseModel, extra="allow"):
     write_toml: bool = False
     ext: Literal[".yaml", ".toml"] = ".yaml"
 
-    filters: list[FilterConfig] = []
+    filters: list[FilterConfig] = Field(default_factory=list)
 
     starttime: datetime | None = None
     endtime: datetime | None = None
@@ -56,6 +58,9 @@ class AppDaemonConfig(BaseModel, extra="allow"):
     module_debug: ModuleLoggingLevels = Field(default_factory=dict)
 
     api_port: int | None = None
+    api_key: SecretStr | None = None
+    api_ssl_certificate: CoercedPath | None = None
+    api_ssl_key: CoercedPath | None = None
     stop_function: Callable | None = None
 
     utility_delay: int = 1
