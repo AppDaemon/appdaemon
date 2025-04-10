@@ -359,14 +359,20 @@ class ADMain:
         self.logger.debug("AppDaemon Section: %s", config.get("appdaemon"))
         self.logger.debug("HADashboard Section: %s", config.get("hadashboard"))
 
+        if (hadashboard := model.hadashboard) is not None:
+            hadashboard = hadashboard.model_dump(**dump_kwargs)
+
+        if (http := model.http) is not None:
+            http = http.model_dump(**dump_kwargs)
+
         run = functools.partial(
             self.run,
             model.appdaemon,
-            model.hadashboard.model_dump(**dump_kwargs),
+            hadashboard,
             model.old_admin,
             model.admin,
             model.api,
-            http=model.http.model_dump(**dump_kwargs),
+            http=http,
         )
 
         if pidfile is not None:
