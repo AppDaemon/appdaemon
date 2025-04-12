@@ -280,6 +280,11 @@ class ADMain:
 
         try:
             config = utils.read_config_file(config_file)
+            config = {
+                k: v if v is not None else {}
+                for k, v in config.items()
+            } # fmt: skip
+
             ad_kwargs = config["appdaemon"]
 
             ad_kwargs["config_dir"] = config_dir
@@ -306,17 +311,17 @@ class ADMain:
             else:
                 ad_kwargs["module_debug"] = module_debug_cli
 
-            if hadashboard := config.get("hadashboard"):
+            if isinstance((hadashboard := config.get("hadashboard")), dict):
                 hadashboard["config_dir"] = config_dir
                 hadashboard["config_file"] = config_file
                 hadashboard["dashboard"] = True
                 hadashboard["profile_dashboard"] = args.profiledash
 
             model = MainConfig.model_validate(config)
-            dump_kwargs = dict(mode='json', by_alias=True, exclude_unset=True)
 
             if args.debug.upper() == "DEBUG":
-                model_json = model.model_dump(**dump_kwargs)
+                # need to dump as python types or serializing the timezone object will fail
+                model_json = model.model_dump(mode='python', by_alias=True)
                 print(json.dumps(model_json, indent=4, default=str, sort_keys=True))
         except ValidationError as e:
             print(f"Configuration error in: {config_file}")
@@ -330,7 +335,7 @@ class ADMain:
             print(e)
             sys.exit(1)
 
-        self.logging = Logging(model.logs.model_dump(**dump_kwargs), args.debug)
+        self.logging = Logging(model.model_dump(mode='python')['logs'], args.debug)
         self.logger = self.logging.get_logger()
 
         if "time_zone" in config["appdaemon"]:
@@ -358,6 +363,8 @@ class ADMain:
         self.logging.dump_log_config()
         self.logger.debug("AppDaemon Section: %s", config.get("appdaemon"))
         self.logger.debug("HADashboard Section: %s", config.get("hadashboard"))
+
+        dump_kwargs = dict(mode='json', by_alias=True, exclude_unset=True)
 
         if (hadashboard := model.hadashboard) is not None:
             hadashboard = hadashboard.model_dump(**dump_kwargs)
