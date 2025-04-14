@@ -177,6 +177,25 @@ class MQTTConfig(PluginConfig):
     verify_cert: bool = True
     tls_version: _SSLMethod | Literal["auto", "1.0", "1.1", "1.2"] = "auto"
 
+    @field_validator("client_topics", mode="before")
+    @classmethod
+    def validate_client_topics(cls, v: Any) -> list[str]:
+        match v:
+            case None:
+                return []
+            case str():
+                match v.upper():
+                    case "NONE":
+                        return []
+                    case "ALL":
+                        return ["#"]
+                    case _:
+                        return [v]
+            case list():
+                return v
+            case _:
+                raise ValueError("client_topics must be a string or a list")
+
     @model_validator(mode="after")
     def custom_validator(self):
         self = super().custom_validator()
@@ -194,8 +213,5 @@ class MQTTConfig(PluginConfig):
 
         if "shutdown_payload" not in self.model_fields_set:
             self.shutdown_payload = self.will_payload
-
-        if isinstance(self.client_topics, str) and self.client_topics.upper() == "NONE":
-            self.client_topics = list()
 
         return self
