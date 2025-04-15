@@ -11,6 +11,19 @@ if TYPE_CHECKING:
     from .mqttplugin import MqttPlugin
 
 
+# Check if the module is being imported using the legacy method
+if __name__ == "mqttapi":
+    from appdaemon.logging import Logging
+
+    # It's possible to instantiate the Logging system again here because it's a singleton, and it will already have been
+    # created at this point if the legacy import method is being used by an app. Using this accounts for the user maybe
+    # having configured the error logger to use a different name than 'Error'
+    Logging().get_error().warning(
+        "Importing 'mqttapi' directly is deprecated and will be removed in a future version. "
+        "To use the Mqtt plugin use 'from appdaemon.plugins import mqtt' instead.",
+    )
+
+
 class Mqtt(adbase.ADBase, adapi.ADAPI):
     """
     A list of API calls and information specific to the MQTT plugin.
