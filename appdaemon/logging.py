@@ -7,8 +7,8 @@ import uuid
 from collections import OrderedDict
 from logging import Logger, StreamHandler
 from logging.handlers import RotatingFileHandler
-from typing import Any, Callable, Dict, List, Optional, Union, overload
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union, overload
+
 import pytz
 
 import appdaemon.utils as utils
@@ -16,6 +16,7 @@ from appdaemon.appdaemon import AppDaemon
 
 if TYPE_CHECKING:
     from appdaemon.adapi import ADAPI
+
 
 class DuplicateFilter(logging.Filter):
     """:class:`logging.Filter` that filters duplicate messages"""
@@ -138,12 +139,7 @@ class LogSubscriptionHandler(StreamHandler):
     def emit(self, record):
         logger = self.AD.logging.get_logger()
         try:
-            if (
-                self.AD is not None
-                and self.AD.callbacks is not None
-                and self.AD.events is not None
-                and self.AD.thread_async is not None
-            ):
+            if self.AD is not None and self.AD.callbacks is not None and self.AD.events is not None and self.AD.thread_async is not None:
                 try:
                     msg = self.format(record)
                 except TypeError as e:
@@ -278,7 +274,8 @@ class Logging(metaclass=utils.Singleton):
                 else:
                     # A regular file, just fill in the blanks
                     for arg in config[log]:
-                        self.config[log][arg] = config[log][arg]
+                        if config[log][arg] is not None:
+                            self.config[log][arg] = config[log][arg]
 
         # Build the logs
 
@@ -373,11 +370,7 @@ class Logging(metaclass=utils.Singleton):
         self.tz = tz
 
     def separate_error_log(self) -> bool:
-        return (
-            self.config["error_log"]["filename"] != "STDERR"
-            and self.config["main_log"]["filename"] != "STDOUT"
-            and not self.is_alias("error_log")
-        )
+        return self.config["error_log"]["filename"] != "STDERR" and self.config["main_log"]["filename"] != "STDOUT" and not self.is_alias("error_log")
 
     def register_ad(self, ad: "AppDaemon"):
         """Adds a reference to the top-level ``AppDaemon`` object. This is necessary because the Logging object gets created first."""
@@ -426,7 +419,7 @@ class Logging(metaclass=utils.Singleton):
     def get_filename(self, log: str):
         return self.config[log]["filename"]
 
-    def get_user_log(self, app: 'ADAPI', log: str) -> Logger | None:
+    def get_user_log(self, app: "ADAPI", log: str) -> Logger | None:
         if log not in self.config:
             app.err.error("User defined log %s not found", log)
             return None
@@ -501,25 +494,9 @@ class Logging(metaclass=utils.Singleton):
         return False
 
     @overload
-    async def add_log_callback(
-        self,
-        namespace: str,
-        name: str,
-        callback: Callable,
-        level: str | int,
-        pin: bool | None = None,
-        pin_thread: int | None = None,
-        **kwargs
-    ) -> list[str] | None: ...
+    async def add_log_callback(self, namespace: str, name: str, callback: Callable, level: str | int, pin: bool | None = None, pin_thread: int | None = None, **kwargs) -> list[str] | None: ...
 
-    async def add_log_callback(
-        self,
-        namespace: str,
-        name: str,
-        callback: Callable,
-        level: str | int,
-        **kwargs
-    ) -> list[str] | None:
+    async def add_log_callback(self, namespace: str, name: str, callback: Callable, level: str | int, **kwargs) -> list[str] | None:
         """Adds a callback for log which is called internally by apps.
 
         Args:
@@ -577,9 +554,7 @@ class Logging(metaclass=utils.Singleton):
                         # If we have a timeout parameter, add a scheduler entry to delete the callback later
                         #
                         if "timeout" in cb_kwargs:
-                            exec_time = await self.AD.sched.get_now() + datetime.timedelta(
-                                seconds=int(kwargs["timeout"])
-                            )
+                            exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=int(kwargs["timeout"]))
 
                             cb_kwargs["__timeout"] = await self.AD.sched.insert_schedule(
                                 name=name,
@@ -622,9 +597,7 @@ class Logging(metaclass=utils.Singleton):
             for name in self.AD.callbacks.callbacks.keys():
                 for uuid_ in self.AD.callbacks.callbacks[name]:
                     callback = self.AD.callbacks.callbacks[name][uuid_]
-                    if callback["type"] == "log" and (
-                        callback["namespace"] == namespace or callback["namespace"] == "global" or namespace == "global"
-                    ):
+                    if callback["type"] == "log" and (callback["namespace"] == namespace or callback["namespace"] == "global" or namespace == "global"):
                         # Check any filters
                         _run = True
                         if "log" in callback["kwargs"] and callback["kwargs"]["log"] != data["log_type"]:
@@ -682,9 +655,7 @@ class Logging(metaclass=utils.Singleton):
                     del self.AD.callbacks.callbacks[name]
 
         if not executed:
-            self.logger.warning(
-                "Invalid callback handles '{}' in cancel_log_callback() from app {}".format(handles, name)
-            )
+            self.logger.warning("Invalid callback handles '{}' in cancel_log_callback() from app {}".format(handles, name))
 
         return executed
 
