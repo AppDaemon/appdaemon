@@ -4,7 +4,7 @@ import appdaemon.adapi as adapi
 import appdaemon.adbase as adbase
 import appdaemon.utils as utils
 
-from ...appdaemon import AppDaemon
+from appdaemon.appdaemon import AppDaemon
 
 if TYPE_CHECKING:
     from ...models.config import AppConfig

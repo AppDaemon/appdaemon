@@ -16,11 +16,10 @@ from collections.abc import Callable
 import iso8601
 
 from appdaemon import utils
+from appdaemon import exceptions as ade
 from appdaemon.appdaemon import AppDaemon
 from appdaemon.entity import Entity
 from appdaemon.logging import Logging
-
-from . import exceptions as ade
 
 if TYPE_CHECKING:
     from .models.config.app import AppConfig

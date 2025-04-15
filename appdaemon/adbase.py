@@ -4,7 +4,7 @@ from logging import Logger
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from . import adapi
+from appdaemon import adapi
 
 if TYPE_CHECKING:
     from .appdaemon import AppDaemon

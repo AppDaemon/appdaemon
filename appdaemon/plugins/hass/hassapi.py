@@ -5,16 +5,29 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, Callable, Literal, Type, overload
 
-from ... import exceptions as ade
-from ... import utils
-from ...adapi import ADAPI
-from ...adbase import ADBase
-from ...appdaemon import AppDaemon
-from ...models.notification.android import AndroidData
-from ...models.notification.base import NotificationData
-from ...models.notification.iOS import iOSData
-from .hassplugin import HassPlugin
-from .notifications import AndroidNotification
+from appdaemon import exceptions as ade
+from appdaemon import utils
+from appdaemon.adapi import ADAPI
+from appdaemon.adbase import ADBase
+from appdaemon.appdaemon import AppDaemon
+from appdaemon.models.notification.android import AndroidData
+from appdaemon.models.notification.base import NotificationData
+from appdaemon.models.notification.iOS import iOSData
+from appdaemon.plugins.hass.hassplugin import HassPlugin
+from appdaemon.plugins.hass.notifications import AndroidNotification
+
+
+# Check if the module is being imported using the legacy method
+if __name__ == "hassapi":
+    from appdaemon.logging import Logging
+
+    # It's possible to instantiate the Logging system again here because it's a singleton, and it will already have been
+    # created at this point if the legacy import method is being used by an app. Using this accounts for the user maybe
+    # having configured the error logger to use a different name than 'Error'
+    Logging().get_error().warning(
+        "Importing 'hassapi' directly is deprecated and will be removed in a future version. "
+        "To use the Hass plugin use 'from appdaemon.plugins import hass' instead.",
+    )
 
 
 if TYPE_CHECKING:
