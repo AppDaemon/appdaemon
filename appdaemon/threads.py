@@ -962,7 +962,12 @@ class Threading:
                 if use_dictionary_unpacking:
                     funcref = functools.partial(funcref, *pos_args, **kwargs)
                 else:
-                    funcref = functools.partial(funcref, *pos_args, kwargs)
+                    if isinstance(funcref, functools.partial):
+                        pos_args += funcref.args
+                        kwargs.update(funcref.keywords)
+                        funcref = functools.partial(funcref.func, kwargs)
+                    else:
+                        funcref = functools.partial(funcref, *pos_args, kwargs)
 
                 callback = f'{funcref.func.__name__}() in {name}'
                 await self.update_thread_info("async", callback, name, _type, _id, silent)
@@ -975,7 +980,7 @@ class Threading:
                         await funcref()
                     except Exception as exc:
                         # positional arguments common to all the AppCallbackFail exceptions
-                        pos_args = (name, funcref.args, funcref.keywords)
+                        pos_args = (name, funcref)
                         match args['type']:
                             case "event":
                                 raise ade.EventCallbackFail(*pos_args, args["event"]) from exc
@@ -1049,7 +1054,12 @@ class Threading:
                     if use_dictionary_unpacking:
                         funcref = functools.partial(funcref, *pos_args, **kwargs)
                     else:
-                        funcref = functools.partial(funcref, *pos_args, kwargs)
+                        if isinstance(funcref, functools.partial):
+                            pos_args += funcref.args
+                            kwargs.update(funcref.keywords)
+                            funcref = functools.partial(funcref.func, kwargs)
+                        else:
+                            funcref = functools.partial(funcref, *pos_args, kwargs)
 
                     callback = f'{funcref.func.__qualname__} for {name}'
                     update_coro = self.update_thread_info(thread_id, callback, name, _type, _id, silent)
