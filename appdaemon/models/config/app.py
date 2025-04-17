@@ -6,7 +6,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, Discriminator, Field, RootModel, Tag, ValidationError, field_validator
+from pydantic import BaseModel, Discriminator, Field, RootModel, Tag, field_validator
 from pydantic_core import PydanticUndefinedType
 
 from ... import exceptions as ade
@@ -104,7 +104,7 @@ class AllAppConfig(RootModel):
                         case _:
                             cfg["name"] = app_name
                             values[app_name] = cfg
-                except Exception as e:
+                except Exception:
                     raise ade.BadAppConfig(app_name, cfg)
             return values
 
