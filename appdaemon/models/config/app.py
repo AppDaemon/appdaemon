@@ -95,14 +95,17 @@ class AllAppConfig(RootModel):
         values = deepcopy(values)
         if not isinstance(values, PydanticUndefinedType):
             for app_name, cfg in values.items():
-                match app_name:
-                    case "global_modules":
-                        values[app_name] = GlobalModules.model_validate(cfg)
-                    case "sequence":
-                        values[app_name] = SequenceConfig.model_validate(cfg)
-                    case _:
-                        cfg["name"] = app_name
-                        values[app_name] = cfg
+                try:
+                    match app_name:
+                        case "global_modules":
+                            values[app_name] = GlobalModules.model_validate(cfg)
+                        case "sequence":
+                            values[app_name] = SequenceConfig.model_validate(cfg)
+                        case _:
+                            cfg["name"] = app_name
+                            values[app_name] = cfg
+                except Exception as e:
+                    raise ade.BadAppConfig(app_name, cfg)
             return values
 
     def __getitem__(self, key: str):
@@ -130,7 +133,7 @@ class AllAppConfig(RootModel):
                 for new, new_cfg in read_config_file(p, app_config=True).items():
                     try:
                         cls.model_validate({new: new_cfg})
-                    except ValidationError:
+                    except Exception:
                         continue
 
                     if new in cfg:

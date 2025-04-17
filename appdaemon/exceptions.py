@@ -287,6 +287,15 @@ class CallbackException(AppDaemonException):
 
 @dataclass
 class BadAppConfig(AppDaemonException):
+    app_name: Path
+    cfg: Any
+
+    def __str__(self):
+        return f"The key/value pair of {self.app_name}={self.cfg} is not valid"
+
+
+@dataclass
+class BadAppConfigFile(AppDaemonException):
     path: Path
 
 

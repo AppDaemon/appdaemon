@@ -545,8 +545,8 @@ class AppManagement:
                 async def safe_read(self: "AppManagement", path: Path) -> AllAppConfig:
                     try:
                         return await self.read_config_file(path)
-                    except ValidationError as exc:
-                        raise ade.BadAppConfig(path) from exc
+                    except Exception as exc:
+                        raise ade.BadAppConfigFile(path) from exc
 
                 new_cfg = await safe_read(self, path)
                 if new_cfg is None:
@@ -876,9 +876,9 @@ class AppManagement:
                 self.config_filecheck.mtimes = {}
                 self.python_filecheck.mtimes = {}
             except ValidationError as e:
-                raise ade.BadAppConfig("Error creating dependency manager") from e
-            except ade.AppDaemonException:
-                raise
+                raise ade.BadAppConfigFile("Error creating dependency manager") from e
+            except ade.AppDaemonException as e:
+                raise e
 
         await safe_dep_create(self)
 
