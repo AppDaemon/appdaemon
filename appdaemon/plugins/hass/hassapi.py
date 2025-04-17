@@ -1,3 +1,4 @@
+from pathlib import Path
 import re
 from ast import literal_eval
 from collections.abc import Iterable
@@ -18,7 +19,7 @@ from appdaemon.plugins.hass.notifications import AndroidNotification
 
 
 # Check if the module is being imported using the legacy method
-if __name__ == "hassapi":
+if __name__ == Path(__file__).name:
     from appdaemon.logging import Logging
 
     # It's possible to instantiate the Logging system again here because it's a singleton, and it will already have been

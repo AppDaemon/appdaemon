@@ -21,6 +21,20 @@ from appdaemon.appdaemon import AppDaemon
 from appdaemon.entity import Entity
 from appdaemon.logging import Logging
 
+
+# Check if the module is being imported using the legacy method
+if __name__ == Path(__file__).name:
+    from appdaemon.logging import Logging
+
+    # It's possible to instantiate the Logging system again here because it's a singleton, and it will already have been
+    # created at this point if the legacy import method is being used by an app. Using this accounts for the user maybe
+    # having configured the error logger to use a different name than 'Error'
+    Logging().get_error().warning(
+        "Importing 'adapi' directly is deprecated and will be removed in a future version. "
+        "To use the ADAPI use 'from appdaemon import adapi' instead.",
+    )
+
+
 if TYPE_CHECKING:
     from .models.config.app import AppConfig
     from .plugin_management import PluginBase
