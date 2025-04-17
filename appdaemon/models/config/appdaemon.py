@@ -67,10 +67,7 @@ class AppDaemonConfig(BaseModel, extra="allow"):
     admin_delay: int = 1
     plugin_performance_update: int = 10
     """How often in seconds to update the admin entities with the plugin performance data"""
-    max_utility_skew: timedelta = Field(
-        default_factory=lambda: timedelta(seconds=2),
-        before_validator=lambda v: timedelta(seconds=v)
-    )
+    max_utility_skew: timedelta = Field(default_factory=lambda: timedelta(seconds=2), before_validator=lambda v: timedelta(seconds=v))
     check_app_updates_profile: bool = False
     production_mode: bool = False
     invalid_config_warnings: bool = True
@@ -134,7 +131,7 @@ class AppDaemonConfig(BaseModel, extra="allow"):
     @field_validator("exclude_dirs", mode="after")
     @classmethod
     def add_default_exclusions(cls, v: list[Path]):
-        v.extend(["__pycache__", "build"])
+        v.extend(["__pycache__", "build", ".venv"])
         return v
 
     @field_validator("loglevel", mode="before")
