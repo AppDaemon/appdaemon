@@ -147,6 +147,44 @@ class PersistentDict(shelve.DbfilenameShelf):
                     self.sync()
 
 
+class AttrDict(dict):
+    """Dictionary subclass whose entries can be accessed by attributes
+    (as well as normally).
+    """
+
+    def __init__(self, *args, **kwargs):
+        super(AttrDict, self).__init__(*args, **kwargs)
+        self.__dict__ = self
+
+    @staticmethod
+    def from_nested_dict(data):
+        """Construct nested AttrDicts from nested dictionaries."""
+        if not isinstance(data, dict):
+            return data
+        else:
+            return AttrDict({key: AttrDict.from_nested_dict(data[key]) for key in data})
+
+
+class StateAttrs(dict):
+    def __init__(self, dict):
+        device_dict = {}
+        devices = set()
+        for entity in dict:
+            if "." in entity:
+                device, name = entity.split(".")
+                devices.add(device)
+        for device in devices:
+            entity_dict = {}
+            for entity in dict:
+                if "." in entity:
+                    thisdevice, name = entity.split(".")
+                    if device == thisdevice:
+                        entity_dict[name] = dict[entity]
+            device_dict[device] = AttrDict.from_nested_dict(entity_dict)
+
+        self.__dict__ = device_dict
+
+
 def check_state(logger, new_state, callback_state, name) -> bool:
     passed = False
 

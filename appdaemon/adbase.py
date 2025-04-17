@@ -6,10 +6,21 @@ from typing import TYPE_CHECKING
 
 from appdaemon import adapi
 
+from .utils import StateAttrs
+
 if TYPE_CHECKING:
     from .appdaemon import AppDaemon
     from .logging import Logging
     from .models.config.app import AppConfig
+
+
+class Entities:  # @todo
+    def __init__(self):
+        pass
+
+    def __get__(self, instance, owner):
+        stateattrs = StateAttrs(instance.get_state())
+        return stateattrs
 
 
 #
@@ -71,6 +82,8 @@ class ADBase:
     lock: threading.RLock
     user_logs: dict
     constraints: list
+
+    entities = Entities()
 
     def __init__(self, ad: "AppDaemon", config_model: "AppConfig"):
         self.AD = ad
