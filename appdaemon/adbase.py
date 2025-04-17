@@ -5,8 +5,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from appdaemon import adapi
-
-from .utils import StateAttrs
+from appdaemon.utils import StateAttrs
 
 
 # Check if the module is being imported using the legacy method
