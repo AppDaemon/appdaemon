@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 import appdaemon.adapi as adapi
@@ -12,7 +13,7 @@ if TYPE_CHECKING:
 
 
 # Check if the module is being imported using the legacy method
-if __name__ == "mqttapi":
+if __name__ == Path(__file__).name:
     from appdaemon.logging import Logging
 
     # It's possible to instantiate the Logging system again here because it's a singleton, and it will already have been
