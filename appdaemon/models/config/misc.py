@@ -40,7 +40,7 @@ class NamespaceConfig(BaseModel):
         if values.get("writeback") is not None:
             values["persistent"] = True
         return values
-    
+
     @model_validator(mode="after")
     def validate_writeback(self):
         """Makes the writeback safe by default if persist is set to True."""
