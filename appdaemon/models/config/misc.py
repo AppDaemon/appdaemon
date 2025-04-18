@@ -3,7 +3,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 LEVELS = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
@@ -31,5 +31,19 @@ class FilterConfig(BaseModel):
 
 
 class NamespaceConfig(BaseModel):
-    writeback: Literal["safe", "hybrid"] = "safe"
+    writeback: Literal["safe", "hybrid"] | None = None
     persist: bool = Field(default=False, alias="persistent")
+
+    @model_validator(mode="before")
+    def validate_persistence(cls, values: dict):
+        """Sets persistence to True if writeback is set to safe or hybrid."""
+        if values.get("writeback") is not None:
+            values["persistent"] = True
+        return values
+    
+    @model_validator(mode="after")
+    def validate_writeback(self):
+        """Makes the writeback safe by default if persist is set to True."""
+        if self.persist and self.writeback is None:
+            self.writeback = "safe"
+        return self
