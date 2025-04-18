@@ -89,6 +89,9 @@ class AppDaemonConfig(BaseModel, extra="allow"):
     """Suppresses the log messages based on the result field of the response"""
     import_method: Literal["default", "legacy", "expert"] | None = None
 
+    ascii_encode: bool = True
+    """Set to false to disable ascii encoding of log messages. This is useful for non-English languages."""
+
     load_distribution: str = "roundrobbin"
     threads: (
         Annotated[

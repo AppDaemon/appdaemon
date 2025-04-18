@@ -208,7 +208,7 @@ class ADAPI:
         *args,
         level: str | int = "INFO",
         log: str | None = None,
-        ascii_encode: bool = True,
+        ascii_encode: bool | None = None,
         exc_info: bool = False,
         stack_info: bool = False,
         stacklevel: int = 1,
@@ -234,7 +234,8 @@ class ADAPI:
                 Any other value in use here must have a corresponding user-defined entity in
                 the ``logs`` section of appdaemon.yaml.
             ascii_encode (bool, optional): Switch to disable the encoding of all log messages to
-                ascii. Set this to false if you want to log UTF-8 characters (Default: ``True``).
+                ascii. Set this to false if you want to log UTF-8 characters (Default is controlled by
+                ``appdaemon.ascii_encode``, and is True unless modified).
             exc_info (bool, optional):
             stack_info (bool, optional): If ``True`` the stack info will included.
             stacklevel (int, optional):
@@ -267,6 +268,8 @@ class ADAPI:
         """
         # Its a user defined log
         logger = self.logger if log is None else self.get_user_log(log)
+
+        kwargs['ascii_encode'] = kwargs.get('ascii_encode', self.AD.config.ascii_encode)
 
         try:
             msg = self._sub_stack(msg)
