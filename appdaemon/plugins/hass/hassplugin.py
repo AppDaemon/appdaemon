@@ -201,8 +201,12 @@ class HassPlugin(PluginBase):
         else:
             conditions = self.config.plugin_startup_conditions
         await self.wait_for_conditions(conditions)
-        self.logger.info("All plugin startup conditions met")
-        self.ready_event.set()
+        if conditions is not None:
+            self.logger.info("All plugin startup conditions met")
+
+        self.logger.info('Waiting for Home Assistant to start')
+        await self.ready_event.wait()
+        # self.ready_event.set()
 
         await self.notify_plugin_started(
             await self.get_hass_config(),
@@ -260,6 +264,9 @@ class HassPlugin(PluginBase):
                         self.logger.info(f'HASS startup condition met {condition}')
 
         match typ := event["event_type"]:
+            case "homeassistant_started":
+                self.logger.info(f"Home Assistant fully started after {utils.time_str(self.start)}")
+                self.ready_event.set()
             # https://data.home-assistant.io/docs/events/#service_registered
             case "service_registered":
                 data = event["data"]
@@ -300,6 +307,10 @@ class HassPlugin(PluginBase):
 
         Handles incrementing the `id` parameter and appends
         """
+        if not self.connect_event.is_set():
+            self.logger.debug("Not connected to websocket, skipping JSON send.")
+            return
+
         # auth requests don't have an id field assigned
         if not request.get("type") == "auth":
             self.id += 1
@@ -559,6 +570,8 @@ class HassPlugin(PluginBase):
         meta = (await self.websocket_send_json(type="get_config"))["result"]
         HASSMetaData.model_validate(meta)
         self.metadata = meta
+        if self.metadata.get('state') == "RUNNING":
+            self.ready_event.set()
         return self.metadata
 
     @utils.warning_decorator(error_text="Unexpected error while getting hass services")
