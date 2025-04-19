@@ -207,7 +207,7 @@ class HassPlugin(PluginBase):
         if not self.config.enable_started_event and not self.is_ready:
             # check the metadata to see if it's already running
             await self.get_hass_config() # this will set the ready event if it is
-        
+
         if not self.is_ready:
             self.logger.info("Waiting for Home Assistant to start")
             await self.ready_event.wait()
