@@ -572,60 +572,48 @@ Global Module Dependencies
 The previously described dependencies and load order have all been at the App level.
 It is however, sometimes convenient to have global modules that have no apps in them that nonetheless
 require dependency tracking. For instance, a global module might have a number of useful
-variables or functions in it. When they change, a number of apps may need to be restarted.
-To configure this dependency tracking, it is first necessary to define which
-modules are going to be tracked. This is done in any apps.yaml file.
+variables or functions in it. When they change, a number of apps may need to be restarted. 
+as of AppDaemon 4.5 these dependencies are tracked autmatically and should just work. 
+It is neccesarry to take some care about how apps are structured, especially if multiple subdirectories are used.
 
-To do this, we create an entry for the global module as if it were an app, but instead of specifying a class,
-we add ``global: true`` to the description:
+AppDir Structure
+----------------
 
-.. code:: yaml
+So far, we have assumed that all apps and their configuration files are placed in a single directory. This works fine for simple setups
+but as the number of apps grows, it can be useful to organize them into subdirectories. AppDaemon will automatically search all subdirectories of the apps directory for apps and configuration files. This means that you can have a directory structure like this:
 
-    my_global_module:
-      module: globals
-      global: true
+.. code:: text
 
-This means that the file ``globals.py`` anywhere within the apps directory hierarchy is marked as a global module.
-Any App may simply import ``globals`` and use its variables and functions. Marking multiple modules
-as global can be achieved creating an entry for each module:
+    apps/
+        app1/
+            app1.py
+            app1.yaml
+        app2/
+            app2.py
+            app2.yaml
+        app3/
+            app3.py
+            app3.yaml
+        common/
+            common.py
+            common.yaml
 
-.. code:: yaml
 
-    my_global_module:
-      module: globals
-      global: true
-    my_other_global_module:
-      module: other_globals
-      global: true
+In this example, AppDaemon will find all the apps in the app1, app2, and app3 directories, as well as the common.py and common.yaml files in the common directory. 
+The apps can be configured in their respective YAML files, and they can also import functions or classes from the common module if needed, as long as some simple rules are adhered to.
 
-Once we have marked the global modules, the next step is to configure any apps that are dependant upon them. This is done by adding them to the standard  ``dependencies`` field to the App description, e.g.:
+- If app1 wants to import a function called `common_funtion` from common.py, it can do so using the following import statement:
 
-.. code:: yaml
+.. code:: python
 
-    app1:
-      class: App
-      module: app
-      dependencies: my_global_module
+    from common import common_function
 
-Or for multiple dependencies:
+Note that there are no relative paths here - the AppDaemon system in combination with standard python rules will reslove this correctly,
+and importantly, will understand that app1 now relies on common.py, and any changes to common.py will result it common.py being reloaded, 
+but this will also result in a reload of app1.py to pick up the changes
 
-.. code:: yaml
+- if app2 is a package in it's own right (e.g. it has an __init__.py at the top level) #### John, what happens here???
 
-    app1:
-      class: App
-      module: app
-      dependencies:
-        - my_global_module
-        - my_other_global_module
-
-With this in place, whenever a global module changes that apps depend upon, all dependent apps will be reloaded.
-This also works well with the App level dependencies. If a change to a global module forces an App to reload
-that other apps are dependant upon, the dependant apps will also be reloaded in sequence.
-Using this mechanism, it is also possible to mark global modules as being dependent on other global modules.
-
-Note: the old ``global_modules`` directive used to be used for this function but has been deprecated.
-In addition, note that the old ``global_dependendencies`` keyword in the app description has now been
-retired and the existing ``dependencies`` keyword is now used for both apps and global modules.
 
 Plugin Reloads
 --------------

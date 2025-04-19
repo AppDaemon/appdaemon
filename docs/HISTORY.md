@@ -6,7 +6,6 @@
 
 - Added Pirateweather widget - contributed by [Dave Dixon](https://github.com/DaveDixon)
 - Added ability to know the topic associated with an MQTT message decode error
-- Added `expert` mode for python imports via the `import_method` directive
 - Added `import_path` directive to enable python imports from arbitary paths
 - Added access to the request object for both async and non-async http callbacks - contributed by [Eric Severance](https://github.com/esev)
 - Added option for N deg rising|setting to Scheduler._parse_time
