@@ -2641,10 +2641,7 @@ class ADAPI:
             >>> self.handle = self.run_in(self.run_in_c, 5, title = "run_in5")
 
         """
-        match delay:
-            case int() | float():
-                delay = timedelta(seconds=delay)
-
+        delay = delay if isinstance(delay, timedelta) else utils.convert_timedelta(delay)
         assert isinstance(delay, timedelta), f"Invalid delay: {delay}"
         self.logger.debug(f"Registering run_in in {delay.total_seconds():.1f}s for {self.name}")
         exec_time = (await self.get_now()) + delay
