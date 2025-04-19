@@ -87,6 +87,8 @@ class HASSConfig(PluginConfig):
     ha_key: Annotated[SecretStr, deprecated("'ha_key' is deprecated. Please use long lived tokens instead")] | None = None
     appdaemon_startup_conditions: StartupConditions | None = None
     plugin_startup_conditions: StartupConditions | None = None
+    enable_started_event: bool = True
+    """If true, the plugin will wait for the 'homeassistant_started' event before starting the plugin."""
     cert_path: CoercedPath | None = None
     cert_verify: bool | None = None
     commtype: str = "WS"
