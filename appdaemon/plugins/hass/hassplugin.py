@@ -339,7 +339,7 @@ class HassPlugin(PluginBase):
             else:
                 raise
 
-        self.update_perf(bytes_sent=len(json.dumps(request)), requests_sent=1)
+        self.update_perf(bytes_sent=len(json.dumps(request, default=str)), requests_sent=1)
 
         if request.get("type") == "auth":
             return
@@ -400,7 +400,7 @@ class HassPlugin(PluginBase):
 
         try:
             self.update_perf(
-                bytes_sent=len(url) + len(json.dumps(kwargs).encode('utf-8')),
+                bytes_sent=len(url) + len(json.dumps(kwargs, default=str).encode('utf-8')),
                 requests_sent=1
             )
             self.logger.debug(f'Hass {method.upper()} {endpoint}: {kwargs}')
