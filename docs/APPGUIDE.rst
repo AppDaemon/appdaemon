@@ -572,8 +572,8 @@ Global Module Dependencies
 The previously described dependencies and load order have all been at the App level.
 It is however, sometimes convenient to have global modules that have no apps in them that nonetheless
 require dependency tracking. For instance, a global module might have a number of useful
-variables or functions in it. When they change, a number of apps may need to be restarted. 
-as of AppDaemon 4.5 these dependencies are tracked autmatically and should just work. 
+variables or functions in it. When they change, a number of apps may need to be restarted.
+as of AppDaemon 4.5 these dependencies are tracked autmatically and should just work.
 It is neccesarry to take some care about how apps are structured, especially if multiple subdirectories are used.
 
 AppDir Structure
@@ -599,7 +599,7 @@ but as the number of apps grows, it can be useful to organize them into subdirec
             common.yaml
 
 
-In this example, AppDaemon will find all the apps in the app1, app2, and app3 directories, as well as the common.py and common.yaml files in the common directory. 
+In this example, AppDaemon will find all the apps in the app1, app2, and app3 directories, as well as the common.py and common.yaml files in the common directory.
 The apps can be configured in their respective YAML files, and they can also import functions or classes from the common module if needed, as long as some simple rules are adhered to.
 
 - If app1 wants to import a function called `common_funtion` from common.py, it can do so using the following import statement:
@@ -609,7 +609,7 @@ The apps can be configured in their respective YAML files, and they can also imp
     from common import common_function
 
 Note that there are no relative paths here - the AppDaemon system in combination with standard python rules will reslove this correctly,
-and importantly, will understand that app1 now relies on common.py, and any changes to common.py will result it common.py being reloaded, 
+and importantly, will understand that app1 now relies on common.py, and any changes to common.py will result it common.py being reloaded,
 but this will also result in a reload of app1.py to pick up the changes
 
 - if app2 is a package in it's own right (e.g. it has an __init__.py at the top level) #### John, what happens here???
