@@ -6,6 +6,7 @@ import asyncio
 import datetime
 import json
 import ssl
+from collections.abc import Iterable
 from copy import deepcopy
 from dataclasses import dataclass, field
 from time import perf_counter
@@ -379,7 +380,7 @@ class HassPlugin(PluginBase):
         endpoint: str,
         timeout: float = 10.0,
         **kwargs
-    ) -> dict | None:
+    ) -> dict | ClientResponse:
         """
 
         https://developers.home-assistant.io/docs/api/rest
@@ -812,37 +813,48 @@ class HassPlugin(PluginBase):
         """Used to get HA's History"""
         if isinstance(filter_entity_id, str):
             filter_entity_id = [filter_entity_id]
+        filter_entity_id = ",".join(filter_entity_id)
 
         endpoint = "/api/history/period"
         if timestamp is not None:
             endpoint += f"/{timestamp.isoformat()}"
 
-        result: list[list[dict[str, Any]]] = await self.http_method(
+        result = await self.http_method(
             "get", endpoint,
-            filter_entity_id=",".join(filter_entity_id),
+            filter_entity_id=filter_entity_id,
             end_time=end_time,
             minimal_response=minimal_response,
             no_attributes=no_attributes,
             significant_changes_only=significant_changes_only,
         )
-        # nested comprehension to convert the datetimes for convenience
-        result = [
-            [
-                {
-                    k: (
-                        datetime
-                        .datetime
-                        .fromisoformat(v)
-                        .astimezone(self.AD.tz)
-                    ) if k.startswith("last_") else v
-                    for k, v in individual_result.items()
-                }
-                for individual_result in entity_res
-            ]
-            for entity_res in result
-        ]
-        # result = {eid: r for eid, r in zip(filter_entity_id, result)}
-        return result
+
+        match result:
+            case ClientResponse():
+                # This means that HA rejected the request
+                error_text = (await result.json()).get('message', 'Unknown')
+                if error_text == 'Invalid filter_entity_id':
+                    error_text += f" '{filter_entity_id}'"
+                self.logger.error('Error getting history: %s', error_text)
+            case Iterable():
+                # nested comprehension to convert the datetimes for convenience
+                result = [
+                    [
+                        {
+                            k: (
+                                datetime
+                                .datetime
+                                .fromisoformat(v)
+                                .astimezone(self.AD.tz)
+                            ) if k.startswith("last_") else v
+                            for k, v in individual_result.items()
+                        }
+                        for individual_result in entity_res
+                    ]
+                    for entity_res in result
+                ]
+                return result
+            case _:
+                raise ValueError(f"Unexpected result from history: {result}")
 
     @utils.warning_decorator(error_text='Unexpected error getting logbook')
     async def get_logbook(
