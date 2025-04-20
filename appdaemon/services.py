@@ -1,4 +1,5 @@
 import asyncio
+import functools
 import threading
 from copy import deepcopy
 from dataclasses import dataclass
@@ -205,7 +206,6 @@ class Services:
         namespace: str,
         domain: str,
         service: str,
-        name: str | None = None,
         data: dict[str, Any] | None = None,  # Don't expand with **data
     ) -> Any:
         self.logger.debug(
@@ -251,21 +251,20 @@ class Services:
                     raise TypeError(f'Invalid __async type: {isasync}')
 
             use_dictionary_unpacking = utils.has_expanded_kwargs(funcref)
+            funcref = functools.partial(funcref, ns, domain, service)
 
             if isasync:
                 # it's a coroutine just await it.
                 if use_dictionary_unpacking:
-                    coro = funcref(ns, domain, service, **data)
+                    coro = funcref(**data)
                 else:
-                    coro = funcref(ns, domain, service, data)
+                    coro = funcref(data)
             else:
                 # It's not a coroutine, run it in an executor
                 if use_dictionary_unpacking:
-                    coro = utils.run_in_executor(
-                        self, funcref, ns, domain, service, **data)
+                    coro = utils.run_in_executor(self, funcref, **data)
                 else:
-                    coro = utils.run_in_executor(
-                        self, funcref, ns, domain, service, data)
+                    coro = utils.run_in_executor(self, funcref, data)
 
             @utils.warning_decorator(error_text=f"Unexpected error calling service {ns}/{domain}/{service}")
             async def safe_service(self: 'Services'):
