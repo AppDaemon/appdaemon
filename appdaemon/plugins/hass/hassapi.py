@@ -1015,11 +1015,11 @@ class Hass(ADBase, ADAPI):
 
         Args:
             device (str): Name of the device to notify on. This gets combined with ``notify/mobile_app_<device>`` to
-            determine which notification service to call.
+                determine which notification service to call.
             tts_text (str): String of text to translate into speech
             media_stream (optional): Defaults to ``music_stream``.
             critical (bool, optional): Defaults to False. If set to ``True``, the notification will use the correct
-            settings to have the TTS at the maximum possible volume. For more information see `Critical Notifications <https://companion.home-assistant.io/docs/notifications/critical-notifications/#android>`_
+                settings to have the TTS at the maximum possible volume. For more information see `Critical Notifications <https://companion.home-assistant.io/docs/notifications/critical-notifications/#android>`_
         """
         return self.call_service(
             **AndroidNotification.tts(device, tts_text, media_stream, critical).to_service_call()
