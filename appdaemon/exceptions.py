@@ -42,7 +42,12 @@ class AppDaemonException(Exception, ABC):
 
 def exception_handler(appdaemon: "AppDaemon", loop: asyncio.AbstractEventLoop, context: dict):
     """Handler to attach to the main event loop as a backstop for any async exception"""
-    user_exception_block(logging.getLogger('Error'), context['exception'], appdaemon.app_dir)
+    user_exception_block(
+        logging.getLogger('Error'),
+        context['exception'],
+        appdaemon.app_dir,
+        header='Unhandled exception in event loop'
+    )
 
 
 def user_exception_block(logger: Logger, exception: AppDaemonException, app_dir: Path, header: str | None = None):
