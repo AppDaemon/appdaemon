@@ -437,18 +437,6 @@ class Hass(ADBase, ADAPI):
     # Helper functions for services
     # Methods that use self.call_service
 
-    @overload # This overload provides the type hints for the Hass-specific version of this method
-    async def call_service(
-        self,
-        service: str,
-        namespace: str | None = None,
-        timeout: str | int | float | None = None,
-        callback: Callable | None = None,
-        hass_timeout: str | int | float | None = None,
-        suppress_log_messages: bool = False,
-        **data,
-    ) -> Any: ...
-
     # Home Assistant General
 
     @utils.sync_decorator
@@ -1147,16 +1135,14 @@ class Hass(ADBase, ADAPI):
         and ``end``. The ``start`` and ``end`` keys are converted to ``datetime`` objects.
 
         Args:
-            entity_id (str): The ID of the calendar entity to retrieve events
-                from. Defaults to "calendar.localcalendar".
+            entity_id (str): The ID of the calendar entity to retrieve events from. Defaults to
+                "calendar.localcalendar".
             days (int): The number of days to look ahead for events. Defaults to 1.
             hours (int, optional): The number of hours to look ahead for events. Defaults to None.
             minutes (int, optional): The number of minutes to look ahead for events. Defaults to None.
-            namespace(str, optional): If provided, changes the namespace for the
-                service call. Defaults to the current namespace of the app, so
-                it's safe to ignore this parameter most of the time. See the
-                section on `namespaces <APPGUIDE.html#namespaces>`__ for a detailed
-                description.
+            namespace(str, optional): If provided, changes the namespace for the service call. Defaults to the current
+                namespace of the app, so it's safe to ignore this parameter most of the time. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
 
         Returns:
             list[dict]: A list of dicts representing the calendar events.
