@@ -976,12 +976,23 @@ def time_str(start: float, now: float | None = None) -> str:
 
 
 def clean_kwargs(**kwargs):
-    """Converts to datetimes when necessary and filters None values"""
-    # converts datetimes to strings where necessary
-    kwargs = {k: v.isoformat() if isinstance(v, datetime.datetime) else v for k, v in kwargs.items() if v is not None}
+    """Converts everything to strings and removes null values"""
+    def clean_value(val: Any) -> str:
+        match val:
+            case dict():
+                return clean_kwargs(**val)
+            case datetime.datetime():
+                return val.isoformat()
+            case int() | float():
+                return val
+            case _:
+                return str(val)
 
-    # filters out null values and converts to strings
-    kwargs = {k: str(v) if not isinstance(v, dict) else v for k, v in kwargs.items() if v is not None}
+    kwargs = {
+        k: clean_value(v)
+        for k, v in kwargs.items()
+        if v is not None
+    } # fmt: skip
     return kwargs
 
 
