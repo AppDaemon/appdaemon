@@ -229,10 +229,6 @@ class AppDaemon(metaclass=Singleton):
         return self.config.import_paths
 
     @property
-    def internal_function_timeout(self):
-        return self.config.internal_function_timeout
-
-    @property
     def invalid_config_warnings(self):
         return self.config.invalid_config_warnings
 
