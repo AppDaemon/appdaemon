@@ -1829,82 +1829,84 @@ class ADAPI:
         self,
         service: str,
         namespace: str | None = None,
-        timeout: int | float | None = None,  # Used by utils.sync_decorator
-        **data: Any | None,
+        timeout: str | int | float | None = None,  # Used by utils.sync_decorator
+        callback: Callable[[Any], Any] | None = None,
+        **data: dict[str, Any] | None,
     ) -> Any:
         """Calls a Service within AppDaemon.
 
-        This function can call any service and provide any required parameters.
-        By default, there are standard services that can be called within AD. Other
-        services that can be called, are dependent on the plugin used, or those registered
-        by individual apps using the `register_service` api.
-        In a future release, all available services can be found using AD's Admin UI.
-        For `listed services`, the part before the first period is the ``domain``,
-        and the part after is the `service name`. For instance, `light/turn_on`
-        has a domain of `light` and a service name of `turn_on`.
+        Services represent specific actions, and are generally registered by plugins or provided by AppDaemon itself.
+        The app calls the service only by referencing the service with a string in the format ``<domain>/<service>``, so
+        there is no direct coupling between apps and services. This allows any app to call any service, even ones from
+        other plugins.
 
-        The default behaviour of the call service api is not to wait for any result, typically
-        known as "fire and forget". If it is required to get the results of the call, keywords
-        "return_result" or "callback" can be added.
+        Services often require additional parameters, such as ``entity_id``, which AppDaemon will pass to the service
+        call as appropriate, if used when calling this function. This allows arbitrary data to be passed to the service
+        calls.
+
+        Apps can also register their own services using their ``self.regsiter_service`` method.
 
         Args:
-            service (str): The service name.
-            namespace(str, optional): If a `namespace` is provided, AppDaemon will change
-                the state of the given entity in the given namespace. On the other hand,
-                if no namespace is given, AppDaemon will use the last specified namespace
-                or the default namespace. See the section on `namespaces <APPGUIDE.html#namespaces>`__
-                for a detailed description. In most cases, it is safe to ignore this parameter.
-            return_result(str, option): If `return_result` is provided and set to `True` AD will attempt
-                to wait for the result, and return it after execution. In the case of Home Assistant calls that do not
-                return values this may seem pointless, but it does force the call to be synchronous with respect to Home Assistant
-                whcih can in turn highlight slow performing services if they timeout or trigger thread warnings.
-            callback: The non-async callback to be executed when complete.
-            hass_timeout (Home Assistant Specific): time in seconds to wait for Home Assistant's
-                response for this specific service call. If not specified defaults to the value of
-                the ``q_timeout`` parameter in the HASS plugin configuration, which itself defaults
-                to 30 seconds. See `Some Notes on Service Calls <APPGUIDE.html#some-notes-on-service-calls>`__
-            suppress_log_messages (Home Assistant Specific, False): if set to ``True`` Appdaemon will suppress
-                logging of warnings for service calls to Home Assistant, specifically timeouts and
-                non OK statuses. Use this flag and set it to ``True`` to supress these log messages
-                if you are performing your own error checking as described
-                `here <APPGUIDE.html#some-notes-on-service-calls>`__
-            **data: Each service has different parameter requirements. This argument
-                allows you to specify a comma-separated list of keyword value pairs, e.g.,
-                `entity_id = light.office_1`. These parameters will be different for
-                every service and can be discovered using the developer tools. Most all
-                service calls require an ``entity_id``.
+            service (str): The service name in the format `<domain>/<service>`. For example, `light/turn_on`.
+            namespace (str, optional): It's safe to ignore this parameter in most cases because the default namespace
+                will be used. However, if a `namespace` is provided, the service call will be made in that namespace. If
+                there's a plugin associated with that namespace, it will do the service call. If no namespace is given,
+                AppDaemon will use the app's namespace, which can be set using the ``self.set_namespace`` method. See
+                the section on `namespaces <APPGUIDE.html#namespaces>`__ for more information.
+            timeout (str | int | float, optional): The internal AppDaemon timeout for the service call. If no value is
+                specified, the default timeout is 60s. The default value can be changed using the
+                ``appdaemon.internal_function_timeout`` config setting.
+            callback (callable): The non-async callback to be executed when complete. It should accept a single argument, which
+                will be the result of the service call. This is the recommended method for calling services which might
+                take a long time to complete. This effectively bypasses the ``timeout`` argument because it only applies
+                to this function, which will return immediately instead of waiting for the result if a `callback` is
+                specified.
+            hass_timeout (str | int | float, optional): Only applicable to the Hass plugin. Sets the amount of time to
+                wait for a response from Home Assistant. If no value is specified, the default timeout is 10s. The
+                default value can be changed using the ``ws_timeout`` setting the in the Hass plugin configuration in
+                ``appdaemon.yaml``. Even if no data is returned from the service call, Home Assistant will still send an
+                acknowledgement back to AppDaemon, which this timeout applies to. Note that this is separate from the
+                ``timeout``. If ``timeout`` is shorter than this one, it will trigger before this one does.
+            suppress_log_messages (bool, optional): Only applicable to the Hass plugin. If this is set to ``True``,
+                Appdaemon will suppress logging of warnings for service calls to Home Assistant, specifically timeouts
+                and non OK statuses. Use this flag and set it to ``True`` to supress these log messages if you are
+                performing your own error checking as described `here <APPGUIDE.html#some-notes-on-service-calls>`__
+            **data: Any other keyword arguments get passed to the service call as ``service_data``. Each service takes
+                different parameters, so this will vary from service to service. For example, most services require
+                ``entity_id``. The parameters for each service can be found in the actions tab of developer tools in
+                the Home Assistant web interface.
 
         Returns:
-            Result of the `call_service` function if any, see `service call notes <APPGUIDE.html#some-notes-on-service-calls>`__ for more details.
+            Result of the `call_service` function if any, see
+            `service call notes <APPGUIDE.html#some-notes-on-service-calls>`__ for more details.
 
         Examples:
             HASS
 
-            >>> self.call_service("light/turn_on", entity_id = "light.office_lamp", color_name = "red")
-            >>> self.call_service("notify/notify", title = "Hello", message = "Hello World")
-            >>> self.call_service(
+            >>> self.call_service("light/turn_on", entity_id="light.office_lamp", color_name="red")
+            >>> self.call_service("notify/notify", title="Hello", message="Hello World")
+            >>> events = self.call_service(
                     "calendar/get_events",
                     entity_id="calendar.home",
                     start_date_time="2024-08-25 00:00:00",
                     end_date_time="2024-08-27 00:00:00",
-                    return_result=True,
-                    hass_timeout=10
-                )
+                )["result]["response"]["calendar.home"]["events"]
 
             MQTT
 
-            >>> call_service("mqtt/subscribe", topic="homeassistant/living_room/light", qos=2)
-            >>> call_service("mqtt/publish", topic="homeassistant/living_room/light", payload="on")
+            >>> self.call_service("mqtt/subscribe", topic="homeassistant/living_room/light", qos=2)
+            >>> self.call_service("mqtt/publish", topic="homeassistant/living_room/light", payload="on")
 
             Utility
 
-            >>> call_service("app/restart", app="notify_app", namespace="appdaemon")
-            >>> call_service("app/stop", app="lights_app", namespace="appdaemon")
-            >>> call_service("app/reload", namespace="appdaemon")
+            It's important that the ``namespace`` arg is set to ``admin`` for these services, as they do not exist
+            within the default namespace, and apps cannot exist in the ``admin`` namespace. If the namespace is not
+            specified, calling the method will raise an exception.
 
-            For Utility, it is important that the `namespace` arg is set to ``appdaemon``
-            as no app can work within that `namespace`. If namespace is not specified,
-            calling this function will raise an error.
+            >>> self.call_service("app/restart", app="notify_app", namespace="admin")
+            >>> self.call_service("app/stop", app="lights_app", namespace="admin")
+            >>> self.call_service("app/reload", namespace="admin")
+
         """
         self.logger.debug("call_service: %s, %s", service, data)
         self._check_service(service)
@@ -1919,7 +1921,18 @@ class ADAPI:
                     for e in eid:
                         self._check_entity(namespace, e)
 
-        return await self.AD.services.call_service(namespace, *service.split("/", 2), name=self.name, data=data)
+        domain, service_name = service.split("/", 2)
+        coro = self.AD.services.call_service(
+            namespace=namespace,
+            domain=domain,
+            service=service_name,
+            data=data
+        )
+        if callback is None:
+            return await coro
+        else:
+            task = self.AD.loop.create_task(coro)
+            task.add_done_callback(lambda f: callback(f.result()))
 
     # Sequences
 
