@@ -37,13 +37,19 @@ class AndroidNotification(BaseModel, extra='forbid'):
         media_stream: Literal['music_stream', 'alarm_stream', 'alarm_stream_max'] | None = 'music_stream',
         critical: bool = False,
     ) -> 'AndroidNotification':
+        """Creates a special instance of AndroidNotification for TTS notifications.
+
+        This includes setting the message to `TTS` as described in the Home Assistant documentation. See
+        https://companion.home-assistant.io/docs/notifications/notifications-basic#text-to-speech-notifications
+        for more information.
+        """
         self = cls.model_validate({
             'device': device,
             'message': 'TTS',
             'data': {'data': {'tts_text': tts_text, 'media_stream': media_stream}}
         })
 
-        # dont' set if it's False to not overwrite the media_stream
+        # don't set if it's False so as to not overwrite the media_stream
         if critical:
             self.critical = critical
 
