@@ -311,6 +311,8 @@ class HassPlugin(PluginBase):
 
         Handles incrementing the `id` parameter and appends
         """
+        request = utils.clean_kwargs(**request)
+
         if not self.connect_event.is_set():
             self.logger.debug("Not connected to websocket, skipping JSON send.")
             return
@@ -322,7 +324,7 @@ class HassPlugin(PluginBase):
 
             if not silent:
                 # include this in the "not auth" section so we don't accidentally put the token in the logs
-                req_json = json.dumps(request, indent=4, default=str)
+                req_json = json.dumps(request, indent=4)
                 for i, line in enumerate(req_json.splitlines()):
                     if i == 0:
                         self.logger.debug(f"Sending JSON: {line}")
