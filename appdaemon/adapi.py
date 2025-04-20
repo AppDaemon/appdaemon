@@ -7,6 +7,7 @@ import re
 import uuid
 from collections.abc import Coroutine, Iterable, Mapping
 from concurrent.futures import Future
+from copy import deepcopy
 from datetime import timedelta
 from logging import Logger
 from pathlib import Path
@@ -1936,7 +1937,7 @@ class ADAPI:
     # Sequences
 
     @utils.sync_decorator
-    async def run_sequence(self, sequence: str | list[str], namespace: str | None = None) -> Any:
+    async def run_sequence(self, sequence: str | list[dict[str, dict[str, str]]], namespace: str | None = None) -> Any:
         """Run an AppDaemon Sequence. Sequences are defined in a valid apps.yaml file or inline, and are sequences of
         service calls.
 
@@ -1970,7 +1971,7 @@ class ADAPI:
         self.logger.debug("Calling run_sequence() for %s from %s", sequence, self.name)
 
         try:
-            task = self.AD.sequences.run_sequence(self.name, namespace, sequence)
+            task = self.AD.sequences.run_sequence(self.name, namespace, deepcopy(sequence))
             return await task
         except ade.AppDaemonException as e:
             new_exc = ade.SequenceExecutionFail(f"run_sequence() failed from app '{self.name}'")
