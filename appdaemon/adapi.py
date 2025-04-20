@@ -1824,19 +1824,6 @@ class ADAPI:
         self.logger.debug("list_services: %s", namespace)
         return self.AD.services.list_services(namespace)  # retrieve services
 
-    @overload
-    async def call_service(
-        self,
-        service: str,
-        namespace: str | None = None,
-        timeout: int | float | None = None,
-        return_result: bool = True,
-        callback: Callable | None = None,
-        hass_timeout: float = 10,
-        suppress_log_messages: bool = False,
-        **data,
-    ) -> Any: ...
-
     @utils.sync_decorator
     async def call_service(
         self,

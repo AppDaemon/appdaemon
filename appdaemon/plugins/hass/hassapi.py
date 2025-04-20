@@ -437,6 +437,18 @@ class Hass(ADBase, ADAPI):
     # Helper functions for services
     # Methods that use self.call_service
 
+    @overload # This overload provides the type hints for the Hass-specific version of this method
+    async def call_service(
+        self,
+        service: str,
+        namespace: str | None = None,
+        timeout: str | int | float | None = None,
+        callback: Callable | None = None,
+        hass_timeout: str | int | float | None = None,
+        suppress_log_messages: bool = False,
+        **data,
+    ) -> Any: ...
+
     # Home Assistant General
 
     @utils.sync_decorator
