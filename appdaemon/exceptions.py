@@ -44,7 +44,7 @@ def exception_handler(appdaemon: "AppDaemon", loop: asyncio.AbstractEventLoop, c
     """Handler to attach to the main event loop as a backstop for any async exception"""
     user_exception_block(
         logging.getLogger('Error'),
-        context['exception'],
+        context.get('exception'),
         appdaemon.app_dir,
         header='Unhandled exception in event loop'
     )

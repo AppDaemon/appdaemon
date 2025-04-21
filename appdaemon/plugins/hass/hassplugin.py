@@ -10,7 +10,7 @@ from collections.abc import Iterable
 from copy import deepcopy
 from dataclasses import dataclass, field
 from time import perf_counter
-from typing import Any, Callable, Literal, Optional
+from typing import Any, Literal, Optional
 
 import aiohttp
 import aiohttp.client_exceptions
@@ -303,7 +303,7 @@ class HassPlugin(PluginBase):
     @utils.warning_decorator(error_text="Unexpected error during websocket send")
     async def websocket_send_json(
         self,
-        timeout: float | None = None,
+        timeout: str | int | float | None = None,
         silent: bool = False,
         **request
     ) -> dict:
@@ -352,12 +352,13 @@ class HassPlugin(PluginBase):
         self._silent_results[self.id] = silent
 
         try:
-            result: dict = await asyncio.wait_for(future, timeout=timeout)
+            timeout = utils.convert_timedelta(timeout) if timeout is not None else self.config.ws_timeout
+            result: dict = await asyncio.wait_for(future, timeout=timeout.total_seconds())
         except asyncio.TimeoutError:
             ad_status = ServiceCallStatus.TIMEOUT
             result = {"success": False}
             if not silent:
-                self.logger.warning(f"Timed out [{timeout:.0f}s] waiting for request: {request}")
+                self.logger.warning(f"Timed out [{timeout}] waiting for request: {request}")
         except asyncio.CancelledError:
             ad_status = ServiceCallStatus.TERMINATING
             result = {"success": False}
@@ -561,7 +562,6 @@ class HassPlugin(PluginBase):
                 service,
                 self.call_plugin_service,
                 __silent=True,
-                return_result=self.config.return_result,
             )
 
     #
@@ -573,13 +573,13 @@ class HassPlugin(PluginBase):
     # return None
 
     @utils.warning_decorator(error_text="Unexpected error while getting hass config")
-    async def get_hass_config(self) -> dict:
-        meta = (await self.websocket_send_json(type="get_config"))["result"]
-        HASSMetaData.model_validate(meta)
-        self.metadata = meta
-        if self.metadata.get('state') == "RUNNING":
-            self.ready_event.set()
-        return self.metadata
+    async def get_hass_config(self) -> dict | None:
+        if meta := (await self.websocket_send_json(type="get_config")).get("result"):
+            HASSMetaData.model_validate(meta)
+            self.metadata = meta
+            if self.metadata.get('state') == "RUNNING":
+                self.ready_event.set()
+            return self.metadata
 
     @utils.warning_decorator(error_text="Unexpected error while getting hass services")
     async def get_hass_services(self):
@@ -635,16 +635,38 @@ class HassPlugin(PluginBase):
         domain: str,
         service: str,
         target: str | dict | None = None,
-        entity_id: str | None = None,
-        hass_timeout: int | float | None = 10,
-        return_response: bool | None = None,
-        callback: Callable | None = None,
+        entity_id: str | list[str] | None = None, # Maintained for legacy compatibility
+        hass_timeout: str | int | float | None = None,
         suppress_log_messages: bool = False,
         **data
     ):
-        """Used by ``self.check_register_service`` when calling ``self.AD.services.register_service``.
+        """Uses the websocket to call a service in Home Assistant.
 
-        This causes ``self.call_plugin_service`` to be called when a service is called in this plugin's namespace.
+        The ``self.check_register_service`` method uses this method when calling ``self.AD.services.register_service``,
+        which causes ``self.call_plugin_service`` to be called when a service is called in this plugin's namespace.
+
+        Args:
+            namespace (str): Namespace for the plugin. Used as a sanity check. Don't call this from the wrong place.
+            domain (str): Domain of the service to call
+            service (str): Name of the service to call
+            target (str | dict | None, optional): Target of the service. Defaults to None. If the ``entity_id`` argument
+                is not used, then the value of the ``target`` argument is used directly.
+            entity_id (str | list[str] | None, optional): Entity ID to target with the service call. Seems to be a
+                legacy way . Defaults to None.
+            hass_timeout (str | int | float, optional): Sets the amount of time to wait for a response from Home
+                Assistant. If no value is specified, the default timeout is 10s. The default value can be changed using
+                the ``ws_timeout`` setting the in the Hass plugin configuration in ``appdaemon.yaml``. Even if no data
+                is returned from the service call, Home Assistant will still send an acknowledgement back to AppDaemon,
+                which this timeout applies to. Note that this is separate from the ``timeout``. If ``timeout`` is
+                shorter than this one, it will trigger before this one does.
+            suppress_log_messages (bool, optional): If this is set to ``True``, Appdaemon will suppress logging of
+                warnings for service calls to Home Assistant, specifically timeouts and non OK statuses. Use this flag
+                and set it to ``True`` to supress these log messages if you are performing your own error checking as
+                described `here <APPGUIDE.html#some-notes-on-service-calls>`__
+            service_data (dict, optional): Used as an additional dictionary to pass arguments into the ``service_data``
+                field of the JSON that goes to Home Assistant. This is useful if you have a dictionary that you want to
+                pass in that has a key like ``target`` which is otherwise used for the ``target`` argument.
+            **data: Zero or more keyword arguments. These get used as the data for the service call.
         """
         # if we get a request for not our namespace something has gone very wrong
         assert namespace == self.namespace
@@ -675,9 +697,6 @@ class HassPlugin(PluginBase):
             for prop, val in info.items()               # get each of the properties
         }
 
-        if return_response is None:
-            return_response = self.config.return_result
-
         # if it has a response section
         if resp := service_properties.get("response"):
             # if the response section says it's not optional
@@ -697,30 +716,7 @@ class HassPlugin(PluginBase):
             silent=suppress_log_messages,
             **req
         )
-
-        if callback is not None:
-            error_text=f'Error in callback {callback.__name__} for service {domain}/{service}'
-            cb_safety_decorator = utils.warning_decorator(error_text=error_text)
-
-        # This check is a little weird, but it's to distinguish False from None, which is falsey
-        if return_response is False:
-            task = self.AD.loop.create_task(send_coro)
-            if callback is not None:
-                @cb_safety_decorator
-                def cb_future(self, f: asyncio.Future):
-                    # Includes the self parameter for the loggers in the decorator to work
-                    return callback(f.result())
-                task.add_done_callback(cb_future)
-        else:
-            res = await send_coro
-            if callback is not None:
-                @cb_safety_decorator
-                async def cb_safe(self):
-                    # Includes the self parameter for the loggers in the decorator to work
-                    callback(res)
-
-                await cb_safe(self)
-            return res
+        return await send_coro
 
     #
     # Events

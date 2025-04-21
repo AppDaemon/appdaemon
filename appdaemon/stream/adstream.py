@@ -331,7 +331,12 @@ class RequestHandler:
 
             service_data = data["data"]
 
-        return await self.AD.services.call_service(data["namespace"], domain, service, service_data)
+        return await self.AD.services.call_service(
+            namespace=data["namespace"],
+            domain=domain,
+            service=service,
+            data=service_data
+        )  # fmt: skip
 
     async def get_state(self, data, request_id):
         if not self.authed:

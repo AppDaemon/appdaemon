@@ -10,6 +10,8 @@ from typing_extensions import deprecated
 
 from .common import CoercedPath
 
+from appdaemon import utils
+
 
 class PluginConfig(BaseModel, extra="allow"):
     type: str
@@ -93,7 +95,12 @@ class HASSConfig(PluginConfig):
     cert_verify: bool | None = None
     commtype: str = "WS"
     q_timeout: int = 30
-    return_result: bool | None = None
+    ws_timeout: Annotated[
+        timedelta,
+        BeforeValidator(utils.convert_timedelta)
+    ] = Field(default_factory=lambda: timedelta(seconds=10))
+    """Default timeout for waiting for responses from the websocket connection"""
+    # return_result: bool | None = None
     suppress_log_messages: bool = False
     retry_secs: int = 5
     services_sleep_time: int = 60

@@ -9,12 +9,12 @@ from pydantic import BaseModel, BeforeValidator, ConfigDict, Discriminator, Fiel
 from pytz.tzinfo import BaseTzInfo
 from typing_extensions import deprecated
 
+from appdaemon import utils
 from appdaemon.models.config.http import CoercedPath
 
 from ...models.config.plugin import HASSConfig, MQTTConfig
 from ...version import __version__
 from .misc import FilterConfig, NamespaceConfig
-
 
 def plugin_discriminator(plugin):
     if isinstance(plugin, dict):
@@ -67,7 +67,10 @@ class AppDaemonConfig(BaseModel, extra="allow"):
     admin_delay: int = 1
     plugin_performance_update: int = 10
     """How often in seconds to update the admin entities with the plugin performance data"""
-    max_utility_skew: timedelta = Field(default_factory=lambda: timedelta(seconds=2), before_validator=lambda v: timedelta(seconds=v))
+    max_utility_skew: Annotated[
+        timedelta,
+        BeforeValidator(utils.convert_timedelta)
+    ] = Field(default_factory=lambda: timedelta(seconds=2))
     check_app_updates_profile: bool = False
     production_mode: bool = False
     invalid_config_warnings: bool = True
@@ -76,7 +79,12 @@ class AppDaemonConfig(BaseModel, extra="allow"):
     qsize_warning_threshold: int = 50
     qsize_warning_step: int = 60
     qsize_warning_iterations: int = 10
-    internal_function_timeout: int = 60
+    internal_function_timeout: Annotated[
+        timedelta,
+        BeforeValidator(utils.convert_timedelta)
+    ] = Field(default_factory=lambda: timedelta(seconds=60))
+    """Timeout for internal function calls. This determines how long apps can wait in their thread for an async function
+    to complete in the main thread."""
     use_dictionary_unpacking: Annotated[bool, deprecated("This option is no longer necessary")] = False
     uvloop: bool = False
     use_stream: bool = False
