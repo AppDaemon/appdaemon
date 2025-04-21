@@ -1883,6 +1883,9 @@ class ADAPI:
                 Appdaemon will suppress logging of warnings for service calls to Home Assistant, specifically timeouts
                 and non OK statuses. Use this flag and set it to ``True`` to supress these log messages if you are
                 performing your own error checking as described `here <APPGUIDE.html#some-notes-on-service-calls>`__
+            service_data (dict, optional): Used as an additional dictionary to pass arguments into the ``service_data``
+                field of the JSON that goes to Home Assistant. This is useful if you have a dictionary that you want to
+                pass in that has a key like ``target`` which is otherwise used for the ``target`` argument.
             **data: Any other keyword arguments get passed to the service call as ``service_data``. Each service takes
                 different parameters, so this will vary from service to service. For example, most services require
                 ``entity_id``. The parameters for each service can be found in the actions tab of developer tools in
