@@ -1,9 +1,10 @@
-from pathlib import Path
 import re
 from ast import literal_eval
 from collections.abc import Iterable
+from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Literal, Type, overload
 
 from appdaemon import exceptions as ade
@@ -435,6 +436,32 @@ class Hass(ADBase, ADAPI):
 
     #
     # Helper functions for services
+    #
+
+    def get_service_info(self, service: str) -> dict | None:
+        """Get some information about what kind of data the service expects to receive, which is helpful for debugging.
+
+        The resulting dict is identical to the one returned sending ``get_services`` to the websocket. See
+        `fetching service actions <https://developers.home-assistant.io/docs/api/websocket#fetching-service-actions>`__
+        for more information.
+
+        Args:
+            service (str): The service name in the format ``<domain>/<service>``. For example, ``light/turn_on``.
+
+        Returns:
+            Information about the service in a dict with the following keys: ``name``, ``description``, ``target``, and
+            ``fields``.
+
+        """
+        if (plugin := self._plugin) is not None:
+            domain, service_name = service.split("/", 2)
+            for service_def in plugin.services:
+                if service_def.get("domain") == domain:
+                    if (services := service_def.get("services")) is not None:
+                        return deepcopy(services.get(service_name))
+            else:
+                self.logger.warning("Service info not found for domain '%s", domain)
+
     # Methods that use self.call_service
 
     # Home Assistant General
