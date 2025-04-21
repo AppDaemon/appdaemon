@@ -1802,27 +1802,27 @@ class ADAPI:
         return self.AD.services.deregister_service(namespace, *service.split("/"), __name=self.name)
 
     def list_services(self, namespace: str = "global") -> list[dict[str, str]]:
-        """List all services available within AD
-
-        Using this function, an App can request all available services within AD
+        """List all services available within AppDaemon
 
         Args:
-            namespace(str, optional): If a `namespace` is provided, AppDaemon will request
-                the services within the given namespace. On the other hand, if no namespace is given,
-                AppDaemon will use the last specified namespace or the default namespace.
-                To get all services across AD, pass `global`. See the section on `namespaces <APPGUIDE.html#namespaces>`__
-                for a detailed description. In most cases, it is safe to ignore this parameter.
+            namespace(str, optional): If a ``namespace`` is provided, this function will return services only in that
+                namespace. If no namespace is given, AppDaemon will use the app's current namespace, which will be the
+                default namespace unless changed with ``self.set_namespace``. The default value for ``namespace`` is
+                ``global``, which will return services across all namespaces. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for more information.
 
         Returns:
             List of dictionary with keys ``namespace``, ``domain``, and ``service``.
 
         Examples:
-            >>> self.list_services(namespace="global")
+            >>> services = self.list_services()
+
+            >>> services = self.list_services("default")
 
         """
 
         self.logger.debug("list_services: %s", namespace)
-        return self.AD.services.list_services(namespace)  # retrieve services
+        return self.AD.services.list_services(namespace)
 
     @overload # This overload provides the type hints for the Hass-specific version of this method
     async def call_service(
@@ -1868,11 +1868,11 @@ class ADAPI:
             timeout (str | int | float, optional): The internal AppDaemon timeout for the service call. If no value is
                 specified, the default timeout is 60s. The default value can be changed using the
                 ``appdaemon.internal_function_timeout`` config setting.
-            callback (callable): The non-async callback to be executed when complete. It should accept a single argument, which
-                will be the result of the service call. This is the recommended method for calling services which might
-                take a long time to complete. This effectively bypasses the ``timeout`` argument because it only applies
-                to this function, which will return immediately instead of waiting for the result if a `callback` is
-                specified.
+            callback (callable): The non-async callback to be executed when complete. It should accept a single
+                argument, which will be the result of the service call. This is the recommended method for calling
+                services which might take a long time to complete. This effectively bypasses the ``timeout`` argument
+                because it only applies to this function, which will return immediately instead of waiting for the
+                result if a `callback` is specified.
             hass_timeout (str | int | float, optional): Only applicable to the Hass plugin. Sets the amount of time to
                 wait for a response from Home Assistant. If no value is specified, the default timeout is 10s. The
                 default value can be changed using the ``ws_timeout`` setting the in the Hass plugin configuration in
@@ -1897,6 +1897,7 @@ class ADAPI:
 
         Examples:
             HASS
+            ^^^^
 
             >>> self.call_service("light/turn_on", entity_id="light.office_lamp", color_name="red")
             >>> self.call_service("notify/notify", title="Hello", message="Hello World")
@@ -1908,11 +1909,13 @@ class ADAPI:
                 )["result]["response"]["calendar.home"]["events"]
 
             MQTT
+            ^^^^
 
             >>> self.call_service("mqtt/subscribe", topic="homeassistant/living_room/light", qos=2)
             >>> self.call_service("mqtt/publish", topic="homeassistant/living_room/light", payload="on")
 
             Utility
+            ^^^^^^^
 
             It's important that the ``namespace`` arg is set to ``admin`` for these services, as they do not exist
             within the default namespace, and apps cannot exist in the ``admin`` namespace. If the namespace is not
