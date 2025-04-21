@@ -1,5 +1,6 @@
 import ast
 import logging
+from collections.abc import Generator
 from pathlib import Path
 from typing import Iterable
 
@@ -46,6 +47,7 @@ def resolve_relative_import(node: ast.ImportFrom, path: Path):
         for _ in range(levels_to_remove):
             parts.pop(-1)
     else:
+        assert isinstance(node.module, str)
         parts = node.module.split(".")
 
     if node.module:
@@ -64,7 +66,7 @@ class DependencyResolutionFail(Exception):
         self.base_exception = base_exception
 
 
-def get_imports(parsed_module: ast.Module):
+def get_imports(parsed_module: ast.Module) -> Generator[ast.Import | ast.ImportFrom, None, None]:
     yield from (
         n for n in parsed_module.body
         if isinstance(n, (ast.Import, ast.ImportFrom))
@@ -85,7 +87,7 @@ def get_file_deps(file_path: str | Path) -> set[str]:
     with file_path.open("r") as file:
         file_content = file.read()
 
-    def gen_modules():
+    def gen_modules() -> Generator[str, None, None]:
         try:
             mod: ast.Module = ast.parse(file_content, filename=file_path)
         except Exception as e:
@@ -99,7 +101,7 @@ def get_file_deps(file_path: str | Path) -> set[str]:
                         if node.level:
                             abs_module = resolve_relative_import(node, file_path)
                             yield abs_module
-                        else:
+                        elif isinstance(node.module, str):
                             yield node.module
 
     return set(gen_modules())
@@ -148,7 +150,7 @@ def reverse_graph(graph: dict[str, set[str]]) -> dict[str, set[str]]:
     Returns:
         Graph: A new graph with the direction of all edges reversed.
     """
-    reversed_graph = {n: set() for n in get_all_nodes(graph)}
+    reversed_graph: dict[str, set[str]] = {n: set() for n in get_all_nodes(graph)}
 
     for module, dependencies in graph.items():
         if dependencies:
@@ -159,13 +161,16 @@ def reverse_graph(graph: dict[str, set[str]]) -> dict[str, set[str]]:
 
 
 def find_all_dependents(
-    base_nodes: Iterable[str], reversed_deps: dict[str, set[str]], visited: set[str] = None
-) -> set[str]:
+    base_nodes: Iterable[str],
+    reversed_deps: dict[str, set[str]],
+    visited: set[str] | None = None
+) -> set[str]:  # fmt: skip
     """Recursively find all nodes that depend on the specified base nodes.
 
     Args:
         base_nodes (Iterable[str]): A list or set of base node names to start the search from.
-        reversed_deps (Graph): A dictionary representing the reversed graph where keys are node names and values are sets of nodes that depend on the key node.
+        reversed_deps (Graph): A dictionary representing the reversed graph where keys are node names and values are
+            sets of nodes that depend on the key node.
         visited (set[str], optional): A set of nodes that have already been visited. Defaults to None.
 
     Returns:

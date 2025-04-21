@@ -21,6 +21,7 @@ from appdaemon import exceptions as ade
 from appdaemon.appdaemon import AppDaemon
 from appdaemon.entity import Entity
 from appdaemon.logging import Logging
+from appdaemon.state import StateCallback
 
 
 # Check if the module is being imported using the legacy method
@@ -1367,25 +1368,25 @@ class ADAPI:
     @overload
     async def listen_state(
         self,
-        callback: Callable,
+        callback: StateCallback,
         entity_id: str | Iterable[str],
-        namespace: str,
-        new: str | Callable,
-        old: str | Callable,
-        duration: int,
-        attribute: str,
-        timeout: int,
-        immediate: bool,
-        oneshot: bool,
-        pin: bool,
-        pin_thread: int,
+        namespace: str | None = None,
+        new: str | Callable[[Any], bool] | None = None,
+        old: str | Callable[[Any], bool] | None = None,
+        duration: int | None = None,
+        attribute: str| None = None,
+        timeout: int| None = None,
+        immediate: bool = False,
+        oneshot: bool = False,
+        pin: bool = False,
+        pin_thread: int | None = None,
         **kwargs,
     ) -> str | list[str]: ...
 
     @utils.sync_decorator
     async def listen_state(
         self,
-        callback: Callable,
+        callback: StateCallback,
         entity_id: str | Iterable[str] | None = None,
         namespace: str | None = None,
         **kwargs

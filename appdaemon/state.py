@@ -5,14 +5,18 @@ import uuid
 from copy import copy, deepcopy
 from logging import Logger
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Set, Union, overload
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Protocol, Set, Union, overload
 
 from . import exceptions as ade
 from . import utils
 
 if TYPE_CHECKING:
-    from appdaemon.adbase import ADBase
-    from appdaemon.appdaemon import AppDaemon
+    from .adbase import ADBase
+    from .appdaemon import AppDaemon
+
+
+class StateCallback(Protocol):
+    def __call__(self, entity: str, attribute: str, old: Any, new: Any, **kwargs: dict[str, Any]) -> Any: ...
 
 
 class State:
@@ -180,7 +184,7 @@ class State:
             name: str,
             namespace: str,
             entity: str,
-            cb: Callable,
+            cb: StateCallback,
             kwargs: dict[str, Any]
     ):  # noqa: C901
         # Filter none values, which might be present as defaults

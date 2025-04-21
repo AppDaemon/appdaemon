@@ -390,7 +390,7 @@ class PluginManagement:
     def get_plugin_cfg(self, plugin: str) -> PluginConfig:
         return self.config[plugin]
 
-    def get_plugin_object(self, namespace: str) -> PluginBase:
+    def get_plugin_object(self, namespace: str) -> PluginBase | None:
         if not (plugin := self.plugin_objs.get(namespace)):
             for _, cfg in self.config.items():
                 if namespace in cfg.namespaces:
