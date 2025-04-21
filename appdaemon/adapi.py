@@ -1806,10 +1806,9 @@ class ADAPI:
 
         Args:
             namespace(str, optional): If a ``namespace`` is provided, this function will return services only in that
-                namespace. If no namespace is given, AppDaemon will use the app's current namespace, which will be the
-                default namespace unless changed with ``self.set_namespace``. The default value for ``namespace`` is
-                ``global``, which will return services across all namespaces. See the section on
-                `namespaces <APPGUIDE.html#namespaces>`__ for more information.
+                namespace. Otherwise, the default value for ``namespace`` is ``global``, which will return services
+                across all namespaces. See the section on `namespaces <APPGUIDE.html#namespaces>`__ for more
+                information.
 
         Returns:
             List of dictionary with keys ``namespace``, ``domain``, and ``service``.
@@ -1818,6 +1817,8 @@ class ADAPI:
             >>> services = self.list_services()
 
             >>> services = self.list_services("default")
+
+            >>> services = self.list_services("mqtt")
 
         """
 
