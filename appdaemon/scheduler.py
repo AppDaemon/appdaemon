@@ -898,7 +898,7 @@ class Scheduler:
         end_time: str | datetime,
         name: str | None = None,
         now: str | None = None
-    ):
+    ) -> bool:
         start_time_dt = (await self.get_dt_from_param(start_time, name, today=True, days_offset=0))["datetime"]
         end_time_dt = (await self.get_dt_from_param(end_time, name, today=True, days_offset=0))["datetime"]
 
@@ -958,7 +958,7 @@ class Scheduler:
         aware: bool = False,
         today: bool = False,
         days_offset: int = 0
-    ):
+    ) -> time:
         if aware is True:
             return (
                 (await self._parse_time(time_str, name, today=today, days_offset=days_offset))["datetime"]
@@ -977,7 +977,7 @@ class Scheduler:
             aware: bool = False,
             today: bool = False,
             days_offset: int = 0
-    ):
+    ) -> datetime:
         if aware is True:
             return (await self._parse_time(time_str, name, today=today, days_offset=days_offset))[
                 "datetime"
