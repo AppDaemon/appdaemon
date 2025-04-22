@@ -982,12 +982,14 @@ def clean_kwargs(**kwargs):
     """Converts everything to strings and removes null values"""
     def clean_value(val: Any) -> str:
         match val:
-            case dict():
-                return clean_kwargs(**val)
+            case int() | float() | str():
+                return val
             case datetime.datetime():
                 return val.isoformat()
-            case int() | float():
-                return val
+            case dict():
+                return clean_kwargs(**val)
+            case Iterable():
+                return [clean_value(v) for v in val]
             case _:
                 return str(val)
 
