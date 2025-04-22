@@ -180,12 +180,12 @@ class State:
         self.save_all_namespaces()
 
     async def add_state_callback(
-            self,
-            name: str,
-            namespace: str,
-            entity: str,
-            cb: StateCallback,
-            kwargs: dict[str, Any]
+        self,
+        name: str,
+        namespace: str,
+        entity: str | None,
+        cb: StateCallback,
+        kwargs: dict[str, Any]
     ):  # noqa: C901
         # Filter none values, which might be present as defaults
         kwargs = {k: v for k, v in kwargs.items() if v is not None}
