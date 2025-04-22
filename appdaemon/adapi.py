@@ -265,24 +265,15 @@ class ADAPI:
 
         self._log(logger, msg, level, *args, **kwargs)
 
-    @overload
     def error(
         self,
         msg: str,
         *args,
         level: str | int = "INFO",
         ascii_encode: bool = True,
-        exc_info: bool = False,
         stack_info: bool = False,
         stacklevel: int = 1,
-        extra: Mapping[str, object] | None = None
-    ) -> None: ...
-
-    def error(
-        self,
-        msg: str,
-        *args,
-        level: str | int = "INFO",
+        extra: Mapping[str, object] | None = None,
         **kwargs
     ) -> None:
         """Logs a message to AppDaemon's error logfile.
@@ -309,19 +300,14 @@ class ADAPI:
             >>> self.error("Some Critical string", level = "CRITICAL")
 
         """
-        self._log(self.err, msg, level, *args, **kwargs)
-
-    @overload
-    async def listen_log(
-        self,
-        callback: Callable,
-        level: str | int,
-        namespace: str,
-        log: str,
-        pin: bool,
-        pin_thread: int,
-        **kwargs
-    ) -> str: ...
+        self._log(
+            self.err, msg, level, *args,
+            ascii_encode=ascii_encode or self.AD.config.ascii_encode,
+            stack_info=stack_info,
+            stacklevel=stacklevel,
+            extra=extra,
+            **kwargs
+        )
 
     @utils.sync_decorator
     async def listen_log(
@@ -329,29 +315,28 @@ class ADAPI:
         callback: Callable,
         level: str | int = "INFO",
         namespace: str = "admin",
+        log: str | None = None,
+        pin: bool | None = None,
+        pin_thread: int | None = None,
         **kwargs
     ) -> str:
         """Registers the App to receive a callback every time an App logs a message.
 
         Args:
             callback (function): Function to be called when a message is logged.
-            level (str): Logging level to be used - lower levels will not be forwarded
-                to the app (Default: ``"INFO"``).
+            level (str, optional): Minimum level for logs to trigger the callback. Lower levels will be ignored. Default
+                is ``INFO``.
+            log (str, optional): Name of the log to listen to, default is all logs. The name should be one of the 4
+                built in types ``main_log``, ``error_log``, ``diag_log`` or ``access_log`` or a user defined log entry.
+            pin (bool, optional): Set to ``True`` to pin the callback execution to a single thread.
+            pin_thread (int, optional): Specify which thread from the worker pool the callback will be run by
+                (0 - number of threads -1).
             **kwargs (optional): Zero or more keyword arguments.
 
-        Keyword Args:
-            log (str, optional): Name of the log to listen to, default is all logs. The name
-                should be one of the 4 built in types ``main_log``, ``error_log``, ``diag_log``
-                or ``access_log`` or a user defined log entry.
-            pin (bool, optional): If True, the callback will be pinned to a particular thread.
-            pin_thread (int, optional): Specify which thread from the worker pool the callback
-                will be run by (0 - number of threads -1).
-
         Returns:
-            A unique identifier that can be used to cancel the callback if required.
-            Since variables created within object methods are local to the function they are
-            created in, and in all likelihood, the cancellation will be invoked later in a
-            different function, it is recommended that handles are stored in the object
+            A unique identifier that can be used to cancel the callback if required. Since variables created within
+            object methods are local to the function they are created in, and in all likelihood, the cancellation will
+            be invoked later in a different function, it is recommended that handles are stored in the object
             namespace, e.g., self.handle.
 
         Examples:
@@ -373,7 +358,11 @@ class ADAPI:
 
         """
 
-        return await self.AD.logging.add_log_callback(namespace, self.name, callback, level, **kwargs)
+        return await self.AD.logging.add_log_callback(
+            namespace, self.name, callback, level,
+            log=log, pin=pin, pin_thread=pin_thread,
+            **kwargs
+        )
 
     @utils.sync_decorator
     async def cancel_listen_log(self, handle: str) -> None:
