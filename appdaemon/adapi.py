@@ -1559,46 +1559,43 @@ class ADAPI:
     def get_state(
         self,
         entity_id: str | None = None,
-        attribute: str | None = None,
+        attribute: str | Literal["all"] | None = None,
         default: Any | None = None,
         namespace: str | None = None,
         copy: bool = True,
         **kwargs,  # left in intentionally for compatibility
-    ) -> Any:
-        """Gets the state of any component within Home Assistant.
+    ) -> Any | dict[str, Any]:
+        """Gets the state of an entity from AppDaemon's internals.
 
-        State updates are continuously tracked, so this call runs locally and does not require
-        AppDaemon to call back to Home Assistant. In other words, states are updated using a
-        push-based approach instead of a pull-based one.
+        Home Assistant emits a ``state_changed`` event for every state change, which it sends to AppDaemon over the
+        websocket connection made by the plugin. Appdaemon uses the data in these events to update its internal state.
+        This method returns values from this internal state, so it does not make any external requests to Home
+        Assistant.
+
+        Other plugins that emit ``state_changed`` events will also have their states tracked internally by AppDaemon.
+
+        It's common for entities to have a state that's always one of ``on``, ``off``, or ``unavailable``. This applies
+        to entities in the ``light``, ``switch``, ``binary_sensor``, and ``input_boolean`` domains in Home Assistant,
+        among others.
 
         Args:
-            entity_id (str, optional): This is the name of an entity or device type. If just
-                a device type is provided, e.g., `light` or `binary_sensor`, `get_state()`
-                will return a dictionary of all devices of that type, indexed by the ``entity_id``,
-                containing all the state for each entity. If a fully qualified ``entity_id``
-                is provided, ``get_state()`` will return the state attribute for that entity,
-                e.g., ``on`` or ``off`` for a light.
-            attribute (str, optional): Name of an attribute within the entity state object.
-                If this parameter is specified in addition to a fully qualified ``entity_id``,
-                a single value representing the attribute will be returned. The value ``all``
-                for attribute has special significance and will return the entire state
-                dictionary for the specified entity rather than an individual attribute value.
-            default (any, optional): The value to return when the requested attribute or the
-                whole entity doesn't exist (Default: ``None``).
-            namespace(str, optional): Namespace to use for the call. See the section on
-                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
-                In most cases, it is safe to ignore this parameter.
-            copy (bool, optional): By default, a copy of the stored state object is returned.
-                When you set ``copy`` to ``False``, you get the same object as is stored
-                internally by AppDaemon. Avoiding the copying brings a small performance gain,
-                but also gives you write-access to the internal AppDaemon data structures,
-                which is dangerous. Only disable copying when you can guarantee not to modify
-                the returned state object, e.g., you do read-only operations.
+            entity_id (str, optional): Full entity ID or just a domain. If a full entity ID is provided, the result
+                will be for that entity only. If a domain is provided, the result will be a dict that maps the entity
+                IDs to their respective results.
+            attribute (str, optional): Optionally specify an attribute to return. If not used, the state of the entity
+                will be returned. The value ``all`` can be used to return the entire state dict rather than a single
+                value.
+            default (any, optional): The value to return when the entity or the attribute doesn't exist.
+            namespace (str, optional): Optional namespace to use. Defaults to using the app's current namespace. The
+                current namespace can be changed using ``self.set_namespace``. See the
+                `namespace documentation <APPGUIDE.html#namespaces>`__ for more information.
+            copy (bool, optional): Whether to return a copy of the internal data. This is ``True`` by default in order
+                to protect the user from accidentally modifying AppDaemon's internal data structures, which is dangerous
+                and can cause undefined behvaior. Only set this to ``False`` for read-only operations.
 
         Returns:
-            The entire state of Home Assistant at that given time, if  if ``get_state()``
-            is called with no parameters. This will consist of a dictionary with a key
-            for each entity. Under that key will be the standard entity state information.
+            The state or attribute of the entity ID provided or a dict of that maps entity IDs to their respective
+            results. If called with no parameters, this will return the entire state dict.
 
         Examples:
             Get the state of the entire system.
@@ -1635,30 +1632,29 @@ class ADAPI:
         entity_id: str,
         state: Any | None = None,
         namespace: str | None = None,
-        attributes: dict | None = None,
+        attributes: dict[str, Any] | None = None,
         replace: bool = False,
         check_existence: bool = True,
         **kwargs
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Updates the state of the specified entity.
+
+        This causes a ``state_changed`` event to be emitted in the entity's namespace. If that namespace is associated
+        with a Home Assistant plugin, it will use the ``/api/states/<entity_id>`` endpoint of the REST API to update
+        the state of the entity. This method can be useful to create entities in Home Assistant, but they won't persist
+        across restarts.
 
         Args:
             entity_id (str): The fully qualified entity id (including the device type).
             state: New state value to be set.
-            attributes (optional): Entity's attributes to be updated.
-            namespace(str, optional): If a `namespace` is provided, AppDaemon will change
-                the state of the given entity in the given namespace. On the other hand,
-                if no namespace is given, AppDaemon will use the last specified namespace
-                or the default namespace. See the section on `namespaces <APPGUIDE.html#namespaces>`__
-                for a detailed description. In most cases, it is safe to ignore this parameter.
-            replace(bool, optional): If a `replace` flag is given and set to ``True`` and ``attributes``
-                is provided, AD will attempt to replace its internal entity register with the newly
-                supplied attributes completely. This can be used to replace attributes in an entity
-                which are no longer needed. Do take note this is only possible for internal entity state.
-                For plugin based entities, this is not recommended, as the plugin will mostly replace
-                the new values, when next it updates.
-            check_existence(bool, optional): Set to False to suppress a warning about the entity not
-                existing when using set_state to create an entity. Defaults to True.
+            namespace(str, optional): Optional namespace to use. Defaults to using the app's current namespace. See
+                the `namespace documentation <APPGUIDE.html#namespaces>`__ for more information.
+            attributes (dict[str, Any], optional): Optional dictionary to use for the attributes. If replace is
+                ``False``, then the attribute dict will use the built-in update method on this dict. If replace is
+                ``True``, then the attribute dict will be entirely replaced with this one.
+            replace(bool, optional): Whether to replace rather than update the attributes. Defaults to ``False``.
+            check_existence(bool, optional): Whether to check if the entity exists before setting the state. Defaults to
+                ``True``, but it can be useful to set to ``False`` when using this method to create an entity.
             **kwargs (optional): Zero or more keyword arguments. Extra keyword arguments will be assigned as attributes.
 
         Returns:
