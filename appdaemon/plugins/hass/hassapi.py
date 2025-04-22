@@ -462,6 +462,17 @@ class Hass(ADBase, ADAPI):
             else:
                 self.logger.warning("Service info not found for domain '%s", domain)
 
+    async def call_service(
+        self,
+        service: str,
+        namespace: str | None = None,
+        timeout: str | int | float | None = None,
+        callback: Callable | None = None,
+        hass_timeout: str | int | float | None = None,
+        suppress_log_messages: bool = False,
+        **data,
+    ) -> Any: ...
+
     # Methods that use self.call_service
 
     # Home Assistant General

@@ -14,7 +14,6 @@ from logging import Logger
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, TypeVar, overload
 
-
 from appdaemon import dependency, utils
 from appdaemon import exceptions as ade
 from appdaemon.appdaemon import AppDaemon
@@ -1853,18 +1852,6 @@ class ADAPI:
 
         self.logger.debug("list_services: %s", namespace)
         return self.AD.services.list_services(namespace)
-
-    @overload # This overload provides the type hints for the Hass-specific version of this method
-    async def call_service(
-        self,
-        service: str,
-        namespace: str | None = None,
-        timeout: str | int | float | None = None,
-        callback: Callable | None = None,
-        hass_timeout: str | int | float | None = None,
-        suppress_log_messages: bool = False,
-        **data,
-    ) -> Any: ...
 
     @utils.sync_decorator
     async def call_service(
