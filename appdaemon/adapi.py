@@ -1346,42 +1346,6 @@ class ADAPI:
     # State
     #
 
-    @overload
-    async def listen_state(
-        self,
-        callback: StateCallback,
-        entity_id: str | None = None,
-        namespace: str | None = None,
-        new: str | Callable[[Any], bool] | None = None,
-        old: str | Callable[[Any], bool] | None = None,
-        duration: int | None = None,
-        attribute: str| None = None,
-        timeout: int | None = None,
-        immediate: bool = False,
-        oneshot: bool = False,
-        pin: bool = False,
-        pin_thread: int | None = None,
-        **kwargs,
-    ) -> str: ...
-
-    @overload
-    async def listen_state(
-        self,
-        callback: StateCallback,
-        entity_id: Iterable[str],
-        namespace: str | None = None,
-        new: str | Callable[[Any], bool] | None = None,
-        old: str | Callable[[Any], bool] | None = None,
-        duration: int | None = None,
-        attribute: str| None = None,
-        timeout: int | None = None,
-        immediate: bool = False,
-        oneshot: bool = False,
-        pin: bool = False,
-        pin_thread: int | None = None,
-        **kwargs,
-    ) -> list[str]: ...
-
     @utils.sync_decorator
     async def listen_state(
         self,
@@ -1390,9 +1354,9 @@ class ADAPI:
         namespace: str | None = None,
         new: str | Callable[[Any], bool] | None = None,
         old: str | Callable[[Any], bool] | None = None,
-        duration: int | None = None,
+        duration: str | int | float | timedelta | None = None,
         attribute: str| None = None,
-        timeout: int | None = None,
+        timeout: str | int | float | timedelta | None = None,
         immediate: bool = False,
         oneshot: bool = False,
         pin: bool = False,
@@ -1401,63 +1365,54 @@ class ADAPI:
     ) -> str | list[str]:
         """Registers a callback to react to state changes.
 
-        This function allows the user to register a callback for a wide variety of state changes.
+        The callback needs to have the following form:
+        >>> def my_callback(self, entity: str, attribute: str, old: Any, new: Any, **kwargs: dict[str, Any]) -> None:
+                ...
 
         Args:
-            callback: Function to be invoked when the requested state change occurs. It must conform
-                to the standard State Callback format documented `here <APPGUIDE.html#state-callbacks>`__
-            entity_id (str|list, optional): name of an entity or device type. If just a device type is provided,
-                e.g., `light`, or `binary_sensor`. ``listen_state()`` will subscribe to state changes of all
-                devices of that type. If a fully qualified entity_id is provided, ``listen_state()`` will
-                listen for state changes for just that entity. If a list of entities, it will subscribe for those
-                entities, and return their handles
-            namespace (str, optional): Namespace to use for the call. See the section on
-                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description. In most cases,
-                it is safe to ignore this parameter. The value ``global`` for namespace has special
-                significance and means that the callback will listen to state updates from any plugin.
-            new (str, Callable, optional): If ``new`` is supplied as a parameter, callbacks will only be made if the
-                state of the selected attribute (usually state) in the new state match the value
-                of ``new``. The parameter type is defined by the namespace or plugin that is responsible
-                for the entity. If it looks like a float, list, or dictionary, it may actually be a string.
-                If ``new`` is a callable (lambda, function, etc), then it will be invoked with the new state,
-                and if it returns ``True``, it will be considered to match.
-            old (str, Callable, optional): If ``old`` is supplied as a parameter, callbacks will only be made if the
-                state of the selected attribute (usually state) in the old state match the value
-                of ``old``. The same caveats on types for the ``new`` parameter apply to this parameter.
-                If ``old`` is a callable (lambda, function, etc), then it will be invoked with the old state,
-                and if it returns a ``True``, it will be considered to match.
-            duration (int, optional): If ``duration`` is supplied as a parameter, the callback will not
-                fire unless the state listened for is maintained for that number of seconds. This
-                requires that a specific attribute is specified (or the default of ``state`` is used),
-                and should be used in conjunction with the ``old`` or ``new`` parameters, or both. When
-                the callback is called, it is supplied with the values of ``entity``, ``attr``, ``old``,
-                and ``new`` that were current at the time the actual event occurred, since the assumption
-                is that none of them have changed in the intervening period.
+            callback: Function to be invoked when the requested state change occurs. It must conform to the standard
+                state callback format documented `here <APPGUIDE.html#state-callbacks>`__
+            entity_id (str | Iterable[str], optional): Entity ID or a domain. If a domain is provided, e.g., ``light``,
+                or ``binary_sensor`` the callback will be triggered for state changes of any entities in that domain.
+                If a list of entities is provided, the callback will be registered for each of those entities.
+            namespace (str, optional): Optional namespace to use. Defaults to using the app's current namespace. See
+                the `namespace documentation <APPGUIDE.html#namespaces>`__ for more information. Using the value
+                ``global`` will register the callback for all namespaces.
+            new (str | Callable[[Any], bool], optional): If given, the callback will only be triggered if the state of
+                the selected attribute (usually state) matches this value in the new data. The data type is dependent on
+                the specific entity and attribute. Values that look like ints or floats are often actually strings, so
+                be careful when comparing them. The ``self.get_state()`` method is useful for checking the data type of
+                the desired attribute. If ``new`` is a callable (lambda, function, etc), then it will be invoked with
+                the new state, and the callback will only be triggered if the callable returns ``True``.
+            old (str | Callable[[Any], bool], optional): If given, the callback will only be triggered if the selected
+                attribute (usually state) changed from this value in the new data. The data type is dependent on the
+                specific entity and attribute. Values that look like ints or floats are often actually strings, so be
+                careful when comparing them. The ``self.get_state()`` method is useful for checking the data type of
+                the desired attribute. If ``old`` is a callable (lambda, function, etc), then it will be invoked with
+                the old state, and the callback will only be triggered if the callable returns ``True``.
+            duration (str | int | float | timedelta, optional): If supplied, the callback will not trigger unless the
+                desired state is maintained for that amount of time. This requires that a specific attribute is
+                specified (or the default of ``state`` is used), and should be used in conjunction with the ``old`` or
+                ``new`` parameters, or both. When the callback is called, it is supplied with the values of ``entity``,
+                ``attr``, ``old``, and ``new`` that were current at the time the actual event occurred, since the
+                assumption is that none of them have changed in the intervening period.
 
-                If you use ``duration`` when listening for an entire device type rather than a specific
-                entity, or for all state changes, you may get unpredictable results, so it is recommended
-                that this parameter is only used in conjunction with the state of specific entities.
-            attribute (str, optional): Name of an attribute within the entity state object. If this
-                parameter is specified in addition to a fully qualified ``entity_id``. ``listen_state()``
-                will subscribe to changes for just that attribute within that specific entity.
-                The ``new`` and ``old`` parameters in the callback function will be provided with
-                a single value representing the attribute.
-
-                The value ``all`` for attribute has special significance and will listen for any
-                state change within the specified entity, and supply the callback functions with
-                the entire state dictionary for the specified entity rather than an individual
-                attribute value.
-            timeout (int, optional): If ``timeout`` is supplied as a parameter, the callback will be created as normal,
-                 but after ``timeout`` seconds, the callback will be removed. If activity for the listened state has
-                 occurred that would trigger a duration timer, the duration timer will still be fired even though the
-                 callback has been deleted.
-            immediate (bool, optional): It enables the countdown for a delay parameter to start
-                at the time, if given. If the ``duration`` parameter is not given, the callback runs immediately.
-                What this means is that after the callback is registered, rather than requiring one or more
-                state changes before it runs, it immediately checks the entity's states based on given
-                parameters. If the conditions are right, the callback runs immediately at the time of
-                registering. This can be useful if, for instance, you want the callback to be triggered
-                immediately if a light is already `on`, or after a ``duration`` if given.
+                If you use ``duration`` when listening for an entire device type rather than a specific entity, or for
+                all state changes, you may get unpredictable results, so it is recommended that this parameter is only
+                used in conjunction with the state of specific entities.
+            attribute (str, optional): Optional name of an attribute to use for the new/old checks. If not specified,
+                the default behavior is to use the value of ``state``. Using the value ``all`` will cause the callback
+                to get triggered for any change in state, and the new/old values used for the callback will be the
+                entire state dict rather than the individual value of an attribute.
+            timeout (str | int | float | timedelta, optional): If given, the callback will be automatically removed
+                after that amount of time. If activity for the listened state has occurred that would trigger a
+                duration timer, the duration timer will still be fired even though the callback has been removed.
+            immediate (bool, optional): If given, it enables the countdown for a delay parameter to start at the time.
+                If the ``duration`` parameter is not given, the callback runs immediately. What this means is that
+                after the callback is registered, rather than requiring one or more state changes before it runs, it
+                immediately checks the entity's states based on given parameters. If the conditions are right, the
+                callback runs immediately at the time of registering. This can be useful if, for instance, you want the
+                callback to be triggered immediately if a light is already `on`, or after a ``duration`` if given.
 
                 If ``immediate`` is in use, and ``new`` and ``duration`` are both set, AppDaemon will check
                 if the entity is already set to the new state and if so it will start the clock
@@ -1466,22 +1421,20 @@ class ADAPI:
                 entity. If ``attribute`` is specified, the state of the attribute will be used instead of
                 state. In these cases, ``old`` will be ignored and when the callback is triggered, its
                 state will be set to ``None``.
-            oneshot (bool, optional): If ``True``, the callback will be automatically cancelled
-                after the first state change that results in a callback.
+            oneshot (bool, optional): If ``True``, the callback will be automatically removed after the first time it
+                gets invoked.
             pin (bool, optional): If ``True``, the callback will be pinned to a particular thread.
             pin_thread (int, optional): Sets which thread from the worker pool the callback will be
                 run by (0 - number of threads -1).
-            **kwargs (optional): Zero or more keyword arguments that will be supplied to the callback
-                when it is called.
+            **kwargs (optional): Zero or more keyword arguments that will be supplied to the callback when it is called.
 
         Notes:
             The ``old`` and ``new`` args can be used singly or together.
 
         Returns:
-            A unique identifier that can be used to cancel the callback if required. Since variables
-            created within object methods are local to the function they are created in, and in all
-            likelihood, the cancellation will be invoked later in a different function, it is
-            recommended that handles are stored in the object namespace, e.g., `self.handle`.
+            A string that uniquely identifies the callback and can be used to cancel it later if necessary. Since
+            variables created within object methods are local to the function they are created in, it's recommended to
+            store the handles in the app's instance variables, e.g. ``self.handle``.
 
         Examples:
             Listen for any state change and return the state attribute.
