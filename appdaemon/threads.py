@@ -927,8 +927,6 @@ class Threading:
         app = self.AD.app_management.get_app_instance(name, objectid)
         if app is not None:
             try:
-                self.increment_callback_counter(app, name)
-
                 pos_args = tuple()
                 kwargs = dict()
                 match _type:
@@ -979,6 +977,7 @@ class Threading:
                     """Wraps actually calling the function for the callback with logic to transform exceptions based
                     on the callback type"""
                     try:
+                        self.increment_callback_counter(app, name)
                         await funcref()
                     except Exception as exc:
                         # positional arguments common to all the AppCallbackFail exceptions
@@ -1022,8 +1021,6 @@ class Threading:
             app = self.AD.app_management.get_app_instance(name, objectid)
             if app is not None:
                 try:
-                    self.increment_callback_counter(app, name)
-
                     pos_args = tuple()
                     kwargs = dict()
                     match args["type"]:
@@ -1074,6 +1071,7 @@ class Threading:
                         """Wraps actually calling the function for the callback with logic to transform exceptions based
                         on the callback type"""
                         try:
+                            self.increment_callback_counter(app, name)
                             funcref()
                         except Exception as exc:
                             # positional arguments common to all the AppCallbackFail exceptions
