@@ -5,7 +5,7 @@
         {
             "label": "Run Dev",
             "command": "${command:python.interpreterPath}",
-            "args": ["-m", "appdaemon", "-c", "/home/hass/appdaemon/dev_test", "--toml"],
+            "args": ["-m", "appdaemon", "-c", "/conf/ad_config/production"],
             "type": "shell",
             "presentation":
                 {
@@ -19,8 +19,8 @@
         },
         {
             "label": "Build Docs",
-            "command": "${command:python.interpreterPath}",
-            "args": ["/home/hass/src/venv/python3.11/bin/sphinx-build", "-T", "-E", "${workspaceFolder}/docs", "${workspaceFolder}/../docs_build"],
+            "command": "sphinx-build",
+            "args": ["-T", "-E", "${workspaceFolder}/docs", "${workspaceFolder}/.docs_build"],
             "type": "shell",
             "presentation":
                 {
@@ -34,8 +34,8 @@
         },
         {
             "label": "Auto Build Docs",
-            "command": "${command:python.interpreterPath}",
-            "args": ["/home/hass/src/venv/python3.11/bin/sphinx-autobuild", "-T", "-E", "${workspaceFolder}/docs", "${workspaceFolder}/../docs_build", "--port", "9999"],
+            "command": "sphinx-autobuild",
+            "args": ["-T", "-E", "${workspaceFolder}/docs", "${workspaceFolder}/.docs_build", "--port", "9999"],
             "type": "shell",
             "presentation":
                 {
@@ -49,8 +49,8 @@
         },
         {
             "label": "Build Package",
-            "command": "${command:python.interpreterPath}",
-            "args": ["-m", "build"],
+            "command": "uv",
+            "args": ["build"],
             "type": "shell",
             "presentation":
                 {
@@ -64,8 +64,8 @@
         },
         {
             "label": "Build Runtime Requirements",
-            "command": "${command:python.interpreterPath}",
-            "args": ["/home/hass/src/venv/python3.11/bin/pip-compile", "--resolver=backtracking",  "--upgrade", "pyproject.toml"],
+            "command": "uv",
+            "args": ["pip", "compile", "--resolver=backtracking",  "--upgrade", "pyproject.toml"],
             "type": "shell",
             "presentation":
                 {
@@ -79,23 +79,8 @@
         },
         {
             "label": "Build Dev Requirements",
-            "command": "${command:python.interpreterPath}",
-            "args": ["/home/hass/src/venv/python3.11/bin/pip-compile", "--extra=dev", "--output-file=dev-requirements.txt", "--resolver=backtracking",  "--upgrade", "pyproject.toml"],
-            "type": "shell",
-            "presentation":
-                {
-                    "echo": true,
-                    "reveal": "always",
-                    "focus": false,
-                    "panel": "shared",
-                    "showReuseMessage": false,
-                    "clear": true
-                },
-        },
-        {
-            "label": "Install Dependencies",
-            "command": "${command:python.interpreterPath}",
-            "args": ["/home/hass/src/venv/python3.11/bin/pip", "install", "-r", "requirements.txt", "-r", "doc-requirements.txt", "-r", "dev-requirements.txt"],
+            "command": "uv",
+            "args": ["pip", "compile", "--extra=dev", "--output-file=dev-requirements.txt", "--resolver=backtracking",  "--upgrade", "pyproject.toml"],
             "type": "shell",
             "presentation":
                 {
@@ -109,8 +94,8 @@
         },
         {
             "label": "Build Doc Requirements",
-            "command": "${command:python.interpreterPath}",
-            "args": ["/home/hass/src/venv/python3.11/bin/pip-compile", "--extra=doc", "--output-file=doc-requirements.txt", "--resolver=backtracking", "--upgrade", "pyproject.toml"],
+            "command": "uv",
+            "args": ["pip", "compile", "--extra=doc", "--output-file=doc-requirements.txt", "--resolver=backtracking", "--upgrade", "pyproject.toml"],
             "type": "shell",
             "presentation":
                 {
@@ -125,7 +110,22 @@
         {
             "label": "Build All Requirements",
             "dependsOn": ["Build Runtime Requirements", "Build Dev Requirements", "Build Doc Requirements"]
-          }
+        },
+        {
+            "label": "Install Dependencies",
+            "command": "pip",
+            "args": ["install", "-r", "requirements.txt", "-r", "doc-requirements.txt", "-r", "dev-requirements.txt"],
+            "type": "shell",
+            "presentation":
+                {
+                    "echo": true,
+                    "reveal": "always",
+                    "focus": false,
+                    "panel": "shared",
+                    "showReuseMessage": false,
+                    "clear": true
+                },
+        },
     ],
     "inputs":
     [

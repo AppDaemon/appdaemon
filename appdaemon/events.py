@@ -1,56 +1,82 @@
-"""Module to handle all events within AppDaemon."""
-
+from collections.abc import Iterable
+import datetime
+import traceback
 import uuid
 from copy import deepcopy
-import traceback
-import datetime
+from logging import Logger
+from typing import TYPE_CHECKING, Any, overload
+from collections.abc import Callable
 
-from appdaemon.appdaemon import AppDaemon
 import appdaemon.utils as utils
+
+if TYPE_CHECKING:
+    from appdaemon.appdaemon import AppDaemon
 
 
 class Events:
-    """Encapsulate event handling."""
+    """Subsystem container for handling all events"""
 
-    def __init__(self, ad: AppDaemon):
-        """Constructor.
+    AD: "AppDaemon"
+    """Reference to the top-level AppDaemon container object
+    """
+    logger: Logger
+    """Standard python logger named ``AppDaemon._events``
+    """
 
-        Args:
-            ad: Reference to the AppDaemon object
-        """
-
+    def __init__(self, ad: "AppDaemon"):
         self.AD = ad
         self.logger = ad.logging.get_child("_events")
-        #
-        # Events
-        #
 
-    async def add_event_callback(self, name, namespace, cb, event, **kwargs):
+    @overload
+    async def add_event_callback(
+        self,
+        name: str,
+        namespace: str,
+        cb: Callable,
+        event: str | Iterable[str],
+        timeout: int,
+        oneshot: bool,
+        pin: bool,
+        pin_thread: int,
+        **kwargs
+    ) -> str | list[str]: ...
+
+    async def add_event_callback(
+        self,
+        name: str,
+        namespace: str,
+        cb: Callable,
+        event: str | Iterable[str],
+        **kwargs
+    ) -> str | None:
         """Adds a callback for an event which is called internally by apps.
 
         Args:
             name (str): Name of the app.
-            namespace  (str): Namespace of the event.
-            cb: Callback function.
-            event (str): Name of the event.
+            namespace (str): Namespace of the event.
+            cb (Callable): Callback function.
+            event (str | Iterable[str]): Name of the event.
+            timeout (int, optional):
+            oneshot (bool, optional):
+            pin (bool, optional):
+            pin_thread (int, optional):
             **kwargs: List of values to filter on, and additional arguments to pass to the callback.
 
         Returns:
             ``None`` or the reference to the callback handle.
-
         """
 
         if self.AD.threading.validate_pin(name, kwargs) is True:
             if "pin" in kwargs:
                 pin_app = kwargs["pin_app"]
             else:
-                pin_app = self.AD.app_management.objects[name]["pin_app"]
+                pin_app = self.AD.app_management.objects[name].pin_app
 
             if "pin_thread" in kwargs:
                 pin_thread = kwargs["pin_thread"]
                 pin_app = True
             else:
-                pin_thread = self.AD.app_management.objects[name]["pin_thread"]
+                pin_thread = self.AD.app_management.objects[name].pin_thread
 
             async with self.AD.callbacks.callbacks_lock:
                 if name not in self.AD.callbacks.callbacks:
@@ -58,7 +84,7 @@ class Events:
                 handle = uuid.uuid4().hex
                 self.AD.callbacks.callbacks[name][handle] = {
                     "name": name,
-                    "id": self.AD.app_management.objects[name]["id"],
+                    "id": self.AD.app_management.objects[name].id,
                     "type": "event",
                     "function": cb,
                     "namespace": namespace,
@@ -73,17 +99,17 @@ class Events:
                 exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=int(timeout))
 
                 kwargs["__timeout"] = await self.AD.sched.insert_schedule(
-                    name,
-                    exec_time,
-                    None,
-                    False,
-                    None,
+                    name=name,
+                    aware_dt=exec_time,
+                    callback=None,
+                    repeat=False,
+                    type_=None,
                     __event_handle=handle,
                 )
 
             await self.AD.state.add_entity(
                 "admin",
-                "event_callback.{}".format(handle),
+                f"event_callback.{handle}",
                 "active",
                 {
                     "app": name,
@@ -97,8 +123,6 @@ class Events:
                 },
             )
             return handle
-        else:
-            return None
 
     async def cancel_event_callback(self, name, handle):
         """Cancels an event callback.
@@ -117,7 +141,7 @@ class Events:
         async with self.AD.callbacks.callbacks_lock:
             if name in self.AD.callbacks.callbacks and handle in self.AD.callbacks.callbacks[name]:
                 del self.AD.callbacks.callbacks[name][handle]
-                await self.AD.state.remove_entity("admin", "event_callback.{}".format(handle))
+                await self.AD.state.remove_entity("admin", f"event_callback.{handle}")
                 executed = True
 
             if name in self.AD.callbacks.callbacks and self.AD.callbacks.callbacks[name] == {}:
@@ -125,17 +149,20 @@ class Events:
 
         if not executed:
             self.logger.warning(
-                "Invalid callback handle '{}' in cancel_event_callback() from app {}".format(handle, name)
+                f"Invalid callback handle '{handle}' in cancel_event_callback() from app {name}"
             )
 
         return executed
 
-    async def info_event_callback(self, name, handle):
+    async def info_event_callback(self, name: str, handle: str):
         """Gets the information of an event callback.
 
         Args:
             name (str): Name of the app or subsystem.
-            handle: Previously supplied handle for the callback.
+            handle (str): Previously supplied handle for the callback.
+
+        Raises:
+            ValueError: an invalid name or handle was provided
 
         Returns:
             A dictionary of callback entries or rise a ``ValueError`` if an invalid handle is provided.
@@ -147,9 +174,9 @@ class Events:
                 callback = self.AD.callbacks.callbacks[name][handle]
                 return callback["event"], callback["kwargs"].copy()
             else:
-                raise ValueError("Invalid handle: {}".format(handle))
+                raise ValueError(f"Invalid handle: {handle}")
 
-    async def fire_event(self, namespace, event, **kwargs):
+    async def fire_event(self, namespace: str, event: str, **kwargs):
         """Fires an event.
 
         If the namespace does not have a plugin associated with it, the event will be fired locally.
@@ -168,7 +195,7 @@ class Events:
         """
 
         self.logger.debug("fire_plugin_event() %s %s %s", namespace, event, kwargs)
-        plugin = await self.AD.plugins.get_plugin_object(namespace)
+        plugin = self.AD.plugins.get_plugin_object(namespace)
 
         if hasattr(plugin, "fire_plugin_event"):
             # We assume that the event will come back to us via the plugin
@@ -177,7 +204,7 @@ class Events:
             # Just fire the event locally
             await self.AD.events.process_event(namespace, {"event_type": event, "data": kwargs})
 
-    async def process_event(self, namespace, data):
+    async def process_event(self, namespace: str, data: dict[str, Any]):
         """Processes an event that has been received either locally or from a plugin.
 
         Args:
@@ -257,7 +284,7 @@ class Events:
             self.logger.warning(traceback.format_exc())
             self.logger.warning("-" * 60)
 
-    async def has_log_callback(self, name):
+    async def has_log_callback(self, name: str):
         """Returns ``True`` if the app has a log callback, ``False`` otherwise.
 
         Used to prevent callback loops. In the calling logic, if this function returns
@@ -343,7 +370,7 @@ class Events:
                                         {
                                             "id": uuid_,
                                             "name": name,
-                                            "objectid": self.AD.app_management.objects[name]["id"],
+                                            "objectid": self.AD.app_management.objects[name].id,
                                             "type": "event",
                                             "event": data["event_type"],
                                             "function": callback["function"],

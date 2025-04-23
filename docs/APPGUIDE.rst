@@ -31,17 +31,23 @@ by importing from the supplied ``hassapi`` module. The start of an App might loo
 
 .. code:: python
 
-    import hassapi as hass
+    from appdaemon.plugins.hass.hassapi import Hass
 
-    class OutsideLights(hass.Hass):
+
+    class OutsideLights(Hass):
+        def initialize(self):
+            ...
 
 For MQTT you would use the mqttapi module:
 
 .. code:: python
 
-    import mqttapi as mqtt
+    from appdaemon.plugins.mqtt.mqttapi import Mqtt
 
-    class OutsideLights(mqtt.Mqtt):
+
+    class OutsideLights(Mqtt):
+        def initialize(self):
+            ...
 
 When configured as an app in the config file (more on that later) the
 lifecycle of the App begins. It will be instantiated as an object by
@@ -108,22 +114,20 @@ comments):
 
 .. code:: python
 
-    import hassapi as hass
-    import datetime
+    from appdaemon.plugins.hass.hassapi import Hass
+
 
     # Declare Class
-    class NightLight(hass.Hass):
-      #initialize() function which will be called at startup and reload
-      def initialize(self):
-        # Create a time object for 7pm
-        time = datetime.time(19, 00, 0)
-        # Schedule a daily callback that will call run_daily() at 7pm every night
-        self.run_daily(self.run_daily_callback, time)
+    class NightLight(Hass):
+        # function which will be called at startup and reload
+        def initialize(self):
+            # Schedule a daily callback that will call run_daily() at 7pm every night
+            self.run_daily(self.run_daily_callback, "19:00:00")
 
-       # Our callback function will be called by the scheduler every day at 7pm
-      def run_daily_callback(self, cb_args):
-        # Call to Home Assistant to turn the porch light on
-        self.turn_on("light.porch")
+        # Our callback function will be called by the scheduler every day at 7pm
+        def run_daily_callback(self, **kwargs):
+            # Call to Home Assistant to turn the porch light on
+            self.turn_on("light.porch")
 
 To summarize - an App's lifecycle consists of being initialized, which
 allows it to set one or more states and/or schedule callbacks. When
@@ -339,24 +343,25 @@ Which can be accessed as a list in python with:
 .. code:: python
 
     for entity in self.args["entities"]:
-      do some stuff
+        ... # do some stuff
 
 Also, this opens the door to really complex parameter structures if
 required:
 
-.. code:: python
+.. code:: yaml
 
     sensors:
       sensor1:
-        type:thermometer
+        type: thermometer
         warning_level: 30
         units: degrees
       sensor2:
-        type:moisture
+        type: moisture
         warning_level: 100
-        units: %
+        units: "%"
 
-It is also possible to get some constants like the app directory within apps. This can be accessed using the attribute ``self.app_dir``
+It is also possible to get some constants like the app directory within apps. This can
+be accessed using the attribute ``self.app_dir``.
 
 Secrets
 ~~~~~~~
@@ -439,7 +444,7 @@ An example storing data in a yaml file can be seen below:
 .. code:: yaml
 
     appdaemon:
-        plugins: !include /home/ubuntu/dev/conf/plugins.yaml
+      plugins: !include /home/ubuntu/dev/conf/plugins.yaml
 
 The tag can also be referred to in the ``apps.yaml`` file as follows:
 
@@ -568,59 +573,47 @@ The previously described dependencies and load order have all been at the App le
 It is however, sometimes convenient to have global modules that have no apps in them that nonetheless
 require dependency tracking. For instance, a global module might have a number of useful
 variables or functions in it. When they change, a number of apps may need to be restarted.
-To configure this dependency tracking, it is first necessary to define which
-modules are going to be tracked. This is done in any apps.yaml file.
+as of AppDaemon 4.5 these dependencies are tracked autmatically and should just work.
+It is neccesarry to take some care about how apps are structured, especially if multiple subdirectories are used.
 
-To do this, we create an entry for the global module as if it were an app, but instead of specifying a class,
-we add ``global: true`` to the description:
+AppDir Structure
+----------------
 
-.. code:: yaml
+So far, we have assumed that all apps and their configuration files are placed in a single directory. This works fine for simple setups
+but as the number of apps grows, it can be useful to organize them into subdirectories. AppDaemon will automatically search all subdirectories of the apps directory for apps and configuration files. This means that you can have a directory structure like this:
 
-    my_global_module:
-        module: globals
-        global: true
+.. code:: text
 
-This means that the file ``globals.py`` anywhere within the apps directory hierarchy is marked as a global module.
-Any App may simply import ``globals`` and use its variables and functions. Marking multiple modules
-as global can be achieved creating an entry for each module:
+    apps/
+        app1/
+            app1.py
+            app1.yaml
+        app2/
+            app2.py
+            app2.yaml
+        app3/
+            app3.py
+            app3.yaml
+        common/
+            common.py
+            common.yaml
 
-.. code:: yaml
 
-    my_global_module:
-        module: globals
-        global: true
-    my_other_global_module:
-        module: other_globals
-        global: true
+In this example, AppDaemon will find all the apps in the app1, app2, and app3 directories, as well as the common.py and common.yaml files in the common directory.
+The apps can be configured in their respective YAML files, and they can also import functions or classes from the common module if needed, as long as some simple rules are adhered to.
 
-Once we have marked the global modules, the next step is to configure any apps that are dependant upon them. This is done by adding them to the standard  ``dependencies`` field to the App description, e.g.:
+- If app1 wants to import a function called `common_funtion` from common.py, it can do so using the following import statement:
 
-.. code:: yaml
+.. code:: python
 
-    app1:
-      class: App
-      module: app
-      dependencies: my_global_module
+    from common import common_function
 
-Or for multiple dependencies:
+Note that there are no relative paths here - the AppDaemon system in combination with standard python rules will reslove this correctly,
+and importantly, will understand that app1 now relies on common.py, and any changes to common.py will result it common.py being reloaded,
+but this will also result in a reload of app1.py to pick up the changes
 
-.. code:: yaml
+- if app2 is a package in it's own right (e.g. it has an __init__.py at the top level) #### John, what happens here???
 
-    app1:
-      class: App
-      module: app
-      dependencies:
-        - my_global_module
-        - my_other_global_module
-
-With this in place, whenever a global module changes that apps depend upon, all dependent apps will be reloaded.
-This also works well with the App level dependencies. If a change to a global module forces an App to reload
-that other apps are dependant upon, the dependant apps will also be reloaded in sequence.
-Using this mechanism, it is also possible to mark global modules as being dependent on other global modules.
-
-Note: the old ``global_modules`` directive used to be used for this function but has been deprecated.
-In addition, note that the old ``global_dependendencies`` keyword in the app description has now been
-retired and the existing ``dependencies`` keyword is now used for both apps and global modules.
 
 Plugin Reloads
 --------------
@@ -650,29 +643,29 @@ To make an App explicitly reload when only this plugin and no other is restarted
 .. code:: yaml
 
     appname:
-        module: some_module
-        class: some_class
-        plugin: HASS
+      module: some_module
+      class: some_class
+      plugin: HASS
 
 If you have more than one plugin, you can make an App dependent on more than one plugin by specifying a YAML list:
 
 .. code:: yaml
 
     appname:
-        module: some_module
-        class: some_class
-        plugin:
-          - HASS
-          - OTHERPLUGIN
+      module: some_module
+      class: some_class
+      plugin:
+        - HASS
+        - OTHERPLUGIN
 
 If you want to prevent the App from reloading at all, just set the ``plugin`` parameter to some value that doesn't match any plugin name, e.g.:
 
 .. code:: yaml
 
     appname:
-        module: some_module
-        class: some_class
-        plugin: NONE
+      module: some_module
+      class: some_class
+      plugin: NONE
 
 Note, that this only effects reloading at plugin restart time:
 
@@ -685,42 +678,32 @@ Note, that this only effects reloading at plugin restart time:
 Callback Constraints
 --------------------
 
-Callback constraints are a feature of AppDaemon that removes the need
-for repetition of some common coding checks. Many Apps will wish to
+Users can add constraints when registering callbacks that prevent the callback from being executed
+unless certain conditions are met. These constraints only apply to the specific callback and
+registration that they're used with.
+
+Constraints are a feature of AppDaemon that removes the need
+for repetition of some common coding checks. Many apps will wish to
 process their callbacks only when certain conditions are met, e.g.,
 someone is home, and it's after sunset. These kinds of conditions crop
-up a lot, and use of callback constraints can significantly simplify the
+up a lot, and use of app constraints can significantly simplify the
 logic required within callbacks.
 
-Put simply, callback constraints are one or more conditions on callback
-execution that can be applied to an individual App. App's callbacks
+Put simply, constraints are one or more conditions on callback
+execution that can be applied in different ways. App's callbacks
 will only be executed if all of the constraints are met. If a constraint
 is absent, it will not be checked for.
 
-For example, a time callback constraint can be added to an App by
-adding a parameter to its configuration like this:
+Applying Constraints
+~~~~~~~~~~~~~~~~~~~~
 
-.. code:: yaml
+Constraints can be applied to callbacks in various ways:
 
-    some_app:
-      module: some_module
-      class: SomeClass
-      constrain_start_time: sunrise
-      constrain_end_time: sunset
+App Level Constraints
+^^^^^^^^^^^^^^^^^^^^^
 
-Now, although the ``initialize()`` function will be called for
-SomeClass, and it will have a chance to register as many callbacks as it
-desires, none of the callbacks will execute, in this case, unless it is between sunrise and sunset.
-
-Another callback constraint is the ``state``. This is an only callback constraint, that cannot be used at app level.
-It is useful, is wanting to evaluate a state, to check if its within a certain range or in a list.
-An example can be seen below:
-
-...code:: python
-
-    >>>  self.listen_state(self.state_cb, "light.0x0017880103ea737f_light", attribute="brightness", constrain_state=lambda  x: x>150)
-
-This will only execute the callback, if the brightness level of the entity is greater than `150`
+Users can define constraints at the app level in the configuration file. Theese constraints
+apply to every callback registered by that app.
 
 An App can have as many or as few constraints as are required. When more than one
 constraint is present, they must all evaluate to true to allow the
@@ -730,10 +713,63 @@ callback that would otherwise be blocked due to constraint failure
 will now be called. Similarly, if one of the constraints becomes false,
 the next callback that would otherwise have been called will be blocked.
 
-AppDaemon Constraints
-~~~~~~~~~~~~~~~~~~~~~~~
+For example, an app constraint based on time can be added to an App by
+adding parameters to its configuration like this:
 
-AppDaemon itself supplies the time constraint:
+.. code:: yaml
+
+    some_app:
+      module: some_module
+      class: SomeClass
+      constrain_start_time: sunrise
+      constrain_end_time: sunset
+
+The ``initialize()`` function will be called for ``SomeClass``, during which
+it can still register as many callbacks as it desires. However, because constraints defined
+in the configuration file are checked before any callback for that app is executed, no
+callbacks will be executed for ``some_app`` unless it is between sunrise and sunset.
+
+Callback Level Constraints
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Constraints can also be applied when registering a callback that will only be applied to that callback.
+
+For example:
+
+.. code:: python
+
+    self.listen_state(self.motion, "binary_sensor.drive", constrain_presence="everyone")
+
+.. code::python
+
+    constraint = "input_select.house_mode,Day"
+    self.listen_state(self.motion, "input_select.drive", constrain_input_select=constraint)
+
+.. code:: python
+
+    constraint = "input_select.house_mode,Day,Evening,Night"
+    self.listen_state(self.motion, "input_select.drive", constrain_input_select=constraint)
+
+State constraints are a way to constrain callbacks based on the state of an entity. This is useful
+when wanting to evaluate a state, to check if it is within a certain range or in a list. They can only be
+applied when registering a callback, and will only apply to that registration.
+
+For example:
+
+.. code:: python
+
+    self.listen_state(
+        self.state_cb,
+        "light.0x0017880103ea737f_light",
+        attribute="brightness",
+        constrain_state=lambda  x: x > 150)
+
+This constraint will prevent the execution of the callback unless the brightness is a value greater than 150.
+
+AppDaemon Constraints
+~~~~~~~~~~~~~~~~~~~~~
+
+Some constraints are supplied by AppDaemon itself and are available to all apps.
 
 time
 ^^^^
@@ -783,21 +819,33 @@ Other constraints may be supplied by the plugin in use.
 HASS Plugin Constraints
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-The HASS plugin supplies several additional different types of constraints:
+The HASS plugin supplies several types of constraints:
 
--  input\_boolean
--  input\_select
--  presence
--  time (see `AppDaemon Constraints <APPGUIDE.html#time>`__)
+.. list-table:: HASS-Specific Constraints
+    :header-rows: 1
 
-They are described individually below.
+    * - Argument
+      - Value
+      - Description
+    * - ``constrain_input_boolean``
+      - ``<entity_id>, <value>``
+      - Constrain based on the value of an `input boolean <https://www.home-assistant.io/integrations/input_boolean/>`__
+    * - ``constrain_input_select``
+      - ``<entity_id>,<vallue>``
+      - Constrain based on the value of an `input select <https://www.home-assistant.io/integrations/input_select/>`__
+    * - ``constrain_presence``
+      - ``everyone``, ``anyone``, or ``noone``
+      - Constrain based on presence of device trackers
+    * - ``constrain_person``
+      - ``<entity_id>``
+      - Constrain based on entities in the ``person`` domain
 
-input\_boolean
-^^^^^^^^^^^^^^
+constrain\_input\_boolean
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
-By default, the input\_boolean constraint prevents callbacks unless the
+By default, ``constrain_input_boolean`` prevents callbacks unless the
 specified input\_boolean is set to ``on``. This is useful to allow certain
-Apps to be turned on and off from the user interface. For example:
+apps to be turned on and off from the user interface, for example:
 
 .. code:: yaml
 
@@ -807,8 +855,8 @@ Apps to be turned on and off from the user interface. For example:
       constrain_input_boolean: input_boolean.enable_motion_detection
 
 If you want to reverse the logic so the constraint is only called when
-the input\_boolean is off, use the optional state parameter by appending,
-``off`` to the argument, e.g.:
+the input\_boolean is ``off``, use the optional state parameter by appending
+``,off`` to the argument, for example:
 
 .. code:: yaml
 
@@ -818,7 +866,7 @@ the input\_boolean is off, use the optional state parameter by appending,
       constrain_input_boolean: input_boolean.enable_motion_detection,off
 
 If you want to constrain on multiple input_boolean entities, you can provide
-the constraints as a yaml list
+the constraints as a yaml list, for example:
 
 .. code:: yaml
 
@@ -829,14 +877,14 @@ the constraints as a yaml list
         - input_boolean.enable_motion_detection
         - binary_sensor.weekend,off
 
-Note that the default behavior if the input_boolean doesn't exist so to not constrain.
+Note that the default behavior if the input_boolean doesn't exist is to not constrain.
 
-input\_select
-^^^^^^^^^^^^^
+constrain\_input\_select
+^^^^^^^^^^^^^^^^^^^^^^^^
 
-The input\_select constraint prevents callbacks unless the specified
+The ``constrain_input_select`` constraint prevents callbacks unless the specified
 input\_select is set to one or more of the nominated (comma separated)
-values. This is useful to allow certain Apps to be turned on and off
+values. This is useful to allow certain apps to be enabled/disabled
 according to some flag, e.g., a house mode flag.
 
 .. code:: yaml
@@ -859,10 +907,10 @@ the constraints as a yaml list
         - input_select.house_mode,Day
         - sensor.day_of_week,Monday,Wednesday,Friday
 
-presence
-^^^^^^^^
+constrain\_presence
+^^^^^^^^^^^^^^^^^^^
 
-The presence constraint will constrain based on presence of device
+The ``constrain_presence`` constraint will constrain based on presence of device
 trackers. It takes 3 possible values:
 
 - ``noone`` - only allow callback execution when no one is home
@@ -877,13 +925,10 @@ trackers. It takes 3 possible values:
     # or
     constrain_presence: noone
 
-Callback constraints can also be applied to individual callbacks within
-Apps, see later for more details.
+constrain\_person
+^^^^^^^^^^^^^^^^^
 
-person
-^^^^^^^^
-
-The person constraint will constrain based on presence of person entities
+The ``constrain_person`` constraint will constrain based on presence of person entities
 trackers. It takes 3 possible values:
 
 - ``noone`` - only allow callback execution when no one is home
@@ -897,9 +942,6 @@ trackers. It takes 3 possible values:
     constrain_person: everyone
     # or
     constrain_person: noone
-
-Callback constraints can also be applied to individual callbacks within
-Apps, see later for more details.
 
 AppDaemon and Threading
 -----------------------
@@ -963,7 +1005,7 @@ Consider the following App which schedules 1000 callbacks all to run at the exac
             for i in range (1000):
                 self.run_at(self.hass_cb, target)
 
-        def hass_cb(self, cb_args):
+        def hass_cb(self, **kwargs):
             self.important_var += 1
             self.log(self.important_var)
 
@@ -1011,7 +1053,7 @@ However, if we add the decorator to the callback function like so:
                 self.run_at(self.hass_cb, target)
 
         @ad.app_lock
-        def hass_cb(self, cb_args):
+        def hass_cb(self, **kwargs):
             self.important_var += 1
             self.log(self.important_var)
 
@@ -1203,20 +1245,21 @@ AppDaemon will automatically detect all the App's coroutines and will schedule t
 This also works for ``initialize()`` and ``terminate()``. Apps can be a mix of `sync` and `async` callbacks as desired.
 A fully async app might look like this:
 
-.. code:: PYTHON
+.. code:: python
 
-    import hassapi as hass
+    from appdaemon.plugins.hass.hassapi import Hass
 
-    class AsyncApp(hass.Hass):
 
+    class AsyncApp(Hass):
         async def initialize(self):
+            # Runs self.hass_cb in 10 seconds
             # Maybe access an async library to initialize something
             self.run_in(self.hass_cb, 10)
 
         async def my_function(self):
-            # More async stuff here
+            ... # More async stuff here
 
-        async def hass_cb(self, cb_args):
+        async def hass_cb(self, **kwargs):
             # do some async stuff
 
             # Sleeps are perfectly acceptable
@@ -1297,416 +1340,211 @@ ASYNC Threading Considerations
 - If you have a 100% async environment, you can prevent the creation of any threads by setting ``total_threads: 0`` in ``appdaemon.yaml``
 
 
-State Operations
-----------------
-
-AppDaemon maintains a master state list segmented by namespace. As plugins notify state changes, AppDaemon listens and stores the updated state locally.
-
-The MQTT plugin does not use state at all, and it relies on events to trigger actions, whereas the Home Assistant plugin makes extensive use of state.
-
-A note on Home Assistant State
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-State within Home Assistant is stored as a collection of dictionaries,
-one for each entity. Each entity's dictionary will have some common
-fields and a number of entity type-specific fields. The state for an
-entity will always have the attributes:
-
--  ``last_updated``
--  ``last_changed``
--  ``state``
-
-Any other attributes such as brightness for a lamp will only be present
-if the entity supports them, and will be stored in a sub-dictionary
-called ``attributes``. When specifying these optional attributes in the
-``get_state()`` call, no special distinction is required between the
-main attributes and the optional ones - ``get_state()`` will figure it
-out for you.
-
-Also, bear in mind that some attributes such as brightness for a light,
-will not be present when the light is off.
-
-In most cases, the attribute ``state`` has the most important value in
-it, e.g., for a light or switch this will be ``on`` or ``off``, for a
-sensor it will be the value of that sensor. Many of the AppDaemon API
-calls and callbacks will implicitly return the value of state unless
-told to do otherwise.
-
-Although the use of ``get_state()`` (below) is still supported, as of
-AppDaemon 2.0.9 it is possible to access HASS state directly as an
-attribute of the App itself, under the ``entities`` attribute.
-
-For instance, to access the state of a binary sensor, you could use:
-
-.. code:: python
-
-    sensor_state = self.entities.binary_sensor.downstairs_sensor.state
-
-Similarly, accessing any of the entity attributes is also possible:
-
-.. code:: python
-
-    name = self.entities.binary_sensor.downstairs_sensor.attributes.friendly_name
-
-About Callbacks
-~~~~~~~~~~~~~~~
+Callbacks
+---------
 
 A large proportion of home automation revolves around waiting for
-something to happen and then reacting to it; a light level drops, the
-sun rises, a door opens, etc. Plugins keep track of every state
-change that occurs within the system, and they streams that information to
-AppDaemon almost immediately.
+something to happen and then reacting to it - a light level drops, the
+sun rises, a door opens, etc. Apps are able to register callbacks
+for these events, and AppDaemon will handle calling them as necessary.
 
-A single App however usually doesn't care about the majority of
-state changes going on in the system; Apps usually care about something
-very specific, like a specific sensor or light. Apps need a way to be
-notified when a state change happens that they care about, and be able
-to ignore the rest. They do this by registering callbacks. A
-callback allows the App to describe exactly what it is interested in,
-and tells AppDaemon to make a call into its code in a specific place to
-be able to react to it - this is a very familiar concept to anyone
-familiar with event-based programming.
+Apps in AppDaemon are merely groups of these callbacks, so when the callbacks
+are not being executed, apps consume very little resources.
 
-There are 4 types of callbacks within AppDaemon:
+There are 4 kinds of callback in AppDaemon, each with their own methods in ``ADAPI``.
 
--  State Callbacks - react to a change in state
--  Scheduler Callbacks - react to a specific time or interval
--  Event Callbacks - react to specific Home Assistant and AppDaemon
-   events.
-- Log Callbacks - called whenever a log entry is made
+.. list-table:: AppDaemon Callbacks
+    :header-rows: 1
 
-All callbacks allow users to specify additional parameters to be
-handed to the callback via the standard Python ``**cb_args`` mechanism
-for greater flexibility, these additional arguments are handed to the
-callback as a standard Python dictionary,
+    * - Type
+      - API Method
+      - Description
+    * - Event
+      - :meth:`listen_event() <appdaemon.adapi.ADAPI.listen_event>`
+      - react to a specific event being fired
+    * - Scheduler
+      - ``run_once()``, ``run_in()``, ``run_at()``, etc.
+      - react to a specific time or interval
+    * - State
+      - :meth:`listen_state() <appdaemon.adapi.ADAPI.listen_state>`
+      - react to a change in state
+    * - Log
+      - :meth:`listen_log() <appdaemon.adapi.ADAPI.listen_log>`
+      - called whenever a log entry is made
 
-About Registering Callbacks
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Event Callbacks
+~~~~~~~~~~~~~~~
 
-Each of the various types of callback have their own function or
-functions for registering the callback:
+`More information <#events>`__ on events in AppDaemon.
 
--  ``listen_state()`` for state callbacks
--  Various scheduler calls such as ``run_once()`` for scheduling
-   callbacks
--  ``listen_event()`` for event callbacks.
+Users can regsiter event callbacks with calls to :meth:`self.listen_event(...) <appdaemon.adapi.ADAPI.listen_event>`.
+AppDaemon will handle executing the callback when the event is fired.
 
-Each type of callback shares a number of common mechanisms that increase
-flexibility.
-
-Callback Level Constraints
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-When registering a callback, you can add constraints identical to the
-Application level constraints described earlier. The difference is that
-a constraint applied to an individual callback only affects that
-callback and no other. The constraints are applied by adding Python
-keyword-value style arguments after the positional arguments. The
-parameters themselves are named identically to the previously described
-constraints and have identical functionality. For instance, adding:
+For example, this registers a callback for an event ``some_event``:
 
 .. code:: python
 
-    constrain_presence="everyone"
+    self.listen_event(self.my_callback, "some_event")
 
-to a HASS callback registration will ensure that the callback is only run if
-the callback conditions are met, and in addition everyone is present
-although any other callbacks might run whenever their event fires if
-they have no constraints.
-
-For example:
+Event callbacks are expected to have a specific signature, which looks like this:
 
 .. code:: python
 
-    self.listen_state(self.motion, "binary_sensor.drive", constrain_presence="everyone")
+    def my_callback(self, event_name, data, **kwargs):
+        ... # do some useful work here
 
-User Arguments
-^^^^^^^^^^^^^^
-
-Any callback can allow the App creator to pass through
-arbitrary keyword arguments that will be presented to the callback when
-it is run. The arguments are added after the positional parameters, just
-like the constraints. The only restriction is that they cannot be the
-same as any constraint name for obvious reasons. For example, to pass
-the parameter ``arg1 = "home assistant"`` through to a callback you
-would register a callback as follows:
+For legacy compatibility, callbacks without the keyword argument expansion will still work.
+AppDaemon will automatically determine the correct way to call the function when it executes it.
 
 .. code:: python
 
-    self.listen_state(self.motion, "binary_sensor.drive", arg1="home assistant")
+    def my_callback(self, event_name, data, kwargs):
+        ... # do some useful work here
 
-Then in the callback it is presented back to the function as a
-dictionary and you could use it as follows:
-
-.. code:: python
-
-    def motion(self, entity, attribute, old, new, cb_args):
-        self.log("Arg1 is {}".format(cb_args["arg1"]))
-
-KWARGS
-^^^^^^
-
-The above mechanism for passing arguments to callbacks was originally referred to
-as the "kwargs" mechanism. This has caused some confusion over the years and was originally
-named due to a misunderstanding of the function of the python dictionary unpack function on
-the part of the developer. It has been pointed out many times that a more natural and pythonic
-way to handle this would be via use of the ``**`` operator when handing parameters to a callback.
-As of AppDamoen 4.3.0, it is now possible to switch AppDaemon globally to the use of the ``**``
-operator for user arguments by specifying ``use_dictionary_unpacking: true`` in
-the AppDaemon config file. When this capability is enabled, AppDaemon will hand parameters to
-callbacks vis the ``**`` operator rather than passing a dictionary containing the arguments:
+Additional keyword arguments can be passed to the callback when it is registered. These
+will be passed to the callback when it is called. For example:
 
 .. code:: python
 
-    def motion(self, entity, attribute, old, new, **kwargs):
-        self.log("Arg1 is {}".format(kwargs["arg1"]))
-
-It now makes more sense to rewite the callback's method signature to the following if desired:
+    self.listen_event(self.my_callback, "some_event", my_kwarg=123)
 
 .. code:: python
 
-    def motion(self, *args, **kwargs):
-        self.log("Arg1 is {}".format(kwargs["arg1"]))
+    def my_callback(self, event_name, data, **kwargs):
+        self.log(f'My kwarg: {kwargs["my_kwarg"]}')
 
-This was previously possible but kwargs appeared as a dictionary in the positional parameter
-list for args, not in kwargs as might have been expected.
+More examples:
 
-This capability can also be enabled on a per app basis by setting the argument
-``use_dictionary_unpacking`` to ``true`` or ``false`` in the apps configuration file
-- this will override the global setting in the appdaemon config file if any.
+.. code:: python
 
-Although this is a minor change, it is important to many people and rights an ancient wrong
-in the design of AppDaemon.
+    self.listen_event(self.mode_event, "MODE_CHANGE")
+    # Listen for a minimote event activating scene 3:
+    self.listen_event(self.generic_event, "zwave_js_value_notification", value = 3)
+    # Listen for a minimote event activating scene 3 from a specific minimote:
+    self.listen_event(self.generic_event, "zwave_js_value_notification", node_id = "11", value = 3)
+    # Listen for a minimote event activating scene 3 from one of several minimotes:
+    self.listen_event(self.generic_event, "zwave_js_value_notification", node_id = lambda x: x in ["11", "14", "22"], value = 3)
 
-Please note, that in order to avoid confusion, the docs have been changed to call the old kwargs
-dictionary ``cb_args``.
+Scheduler Callbacks
+~~~~~~~~~~~~~~~~~~~
+
+`More information <#the-scheduler>`__ about AppDaemon's scheduler.
+
+Users can schedule callbacks in the AppDaemon scheduler using various time-based methods such as
+``run_in``, ``run_at``, ``run_daily``, etc. AppDaemon will handle executing the callback at the scheduled time.
+
+Scheduled callbacks are expected to have a specific signature, which looks like this:
+
+.. code:: python
+
+    def my_callback(self, **kwargs):
+        ... # do some useful work here
+
+For legacy compatibility, callbacks without the keyword argument expansion will still work.
+AppDaemon will automatically determine the correct way to call the function when it executes it.
+
+.. code:: python
+
+    def my_callback(self, kwargs):
+        ... # do some useful work here
 
 State Callbacks
 ~~~~~~~~~~~~~~~
 
-AppDaemons's state callbacks allow an App to listen to a wide variety of
-events, from every state change in the system, right down to a change of
-a single attribute of a particular entity. Setting up a callback is done
-using a single API call ``listen_state()`` which takes various arguments
-to allow it to do all of the above. Apps can register as many or as few
-callbacks as they want.
+`More information <#state-operations>`__ on states in AppDaemon.
 
-About State Callback Functions
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Users can register callbacks for state changes with calls to
+:meth:`self.listen_state(...) <appdaemon.adapi.ADAPI.listen_state>`. AppDaemon will handle executing
+the callback when the state changes.
 
-When calling back into the App, the App must provide a class function
-with a known signature for AppDaemon to call. The callback will provide
-various information to the function to enable the function to respond
-appropriately. For state callbacks, a class defined callback function
-should look like this:
+For example, this registers a callback for all state changes on the entity ``binary_sensor.drive``:
 
 .. code:: python
 
-      def my_callback(self, entity, attribute, old, new, cb_args):
-        <do some useful work here>
+    self.listen_state(self.my_callback, "binary_sensor.drive")
 
-Or if you are using dictionary unpacking (see `here <APPGUIDE.html#kwargs>`__):
-
-.. code:: python
-
-      def my_callback(self, entity, attribute, old, new, **kwargs):
-        <do some useful work here>
-
-You can call the function whatever you like - you will reference it in
-the ``listen_state()`` call, and you can create as many callback
-functions as you need.
-
-The parameters have the following meanings:
-
-self
-^^^^
-
-A standard Python object reference.
-
-entity
-^^^^^^
-
-Name of the entity the callback was requested for or ``None``.
-
-attribute
-^^^^^^^^^
-
-Name of the attribute the callback was requested for or ``None``.
-
-old
-^^^
-
-The value of the state before the state change.
-
-new
-^^^
-
-The value of the state after the state change.
-
-``old`` and ``new`` will have varying types depending on the type of
-callback.
-
-cb_args/\*\*kwargs
-^^^^^^^^^^^^^^^^^^
-
-A dictionary containing any constraints and/or additional user specific
-keyword arguments supplied to the ``listen_state()`` call.
-
-The cb_args dictionary will also contain a field called ``handle`` that provides the callback with the handle that identifies the ``listen_state()`` entry that resulted in the callback.
-
-Publishing State from an App
-----------------------------
-
-Using AppDaemon, it is possible to explicitly publish state from an App.
-The published state can contain whatever you want, and is treated
-exactly like any other HA state, e.g., to the rest of AppDaemon, and the
-dashboard it looks like an entity. This means that you can listen for
-state changes in other apps and also publish arbitrary state to the
-dashboard via the use of specific entity IDs. To publish state, you will use
-``set_state()``. State can be retrieved and listened for with the
-usual AppDaemon calls.
-
-The Scheduler
--------------
-
-AppDaemon contains a powerful scheduler that is able to run with microsecond
-resolution to fire off specific events at set times, or after set
-delays, or even relative to sunrise and sunset.
-
-About Schedule Callbacks
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-As with State Change callbacks, Scheduler Callbacks expect to call into
-functions with a known and specific signature and a class defined
-Scheduler callback function should look like this:
+This example only executes when the state changes to ``on``:
 
 .. code:: python
 
-      def my_callback(self, cb_args):
-        <do some useful work here>
+    self.listen_state(self.my_callback, "binary_sensor.drive", new="on")
 
-Or if you are using dictionary unpacking (see `here <APPGUIDE.html#kwargs>`__):
-
-.. code:: python
-
-      def my_callback(self, **kwargs):
-        <do some useful work here>
-
-
-
-You can call the function whatever you like; you will reference it in
-the Scheduler call, and you can create as many callback functions as you
-need.
-
-The parameters have the following meanings:
-
-self
-^^^^
-
-A standard Python object reference
-
-cb_args/\*\*kwargs
-^^^^^^^^^^^^^^^^^^
-
-A dictionary containing Zero or more keyword arguments to be supplied to
-the callback.
-
-Creation of Scheduler Callbacks
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Scheduler callbacks are created through use of a number of convenience
-functions which can be used to suit the situation.
-
-Scheduler Randomization
-~~~~~~~~~~~~~~~~~~~~~~~
-
-All of the scheduler calls above support 2 additional optional
-arguments, ``random_start`` and ``random_end``. Using these arguments it
-is possible to randomize the firing of callbacks to the degree desired
-by setting the appropriate number of seconds with the parameters.
-
--  ``random_start`` - start of range of the random time
--  ``random_end`` - end of range of the random time
-
-``random_start`` must always be numerically lower than ``random_end``,
-they can be negative to denote a random offset before and event, or
-positive to denote a random offset after an event. The event would be an
-absolute or relative time or sunrise/sunset depending on which
-scheduler call you use, and these values affect the base time by the
-specified amount. If not specified, they will default to ``0``.
-
-For example:
+State callbacks can be named anything, but are expected to have a specific signature, which looks like this:
 
 .. code:: python
 
-    # Run a callback in 2 minutes minus a random number of seconds between 0 and 60, e.g. run between 60 and 120 seconds from now
-    self.handle = self.run_in(callback, 120, random_start = -60)
-    # Run a callback in 2 minutes plus a random number of seconds between 0 and 60, e.g. run between 120 and 180 seconds from now
-    self.handle = self.run_in(callback, 120, random_end = 60, **kwargs)
-    # Run a callback in 2 minutes plus or minus a random number of seconds between 0 and 60, e.g. run between 60 and 180 seconds from now
-    self.handle = self.run_in(callback, 120, random_start = -60, random_end = 60)
+    def my_callback(self, entity, attribute, old, new, **kwargs):
+        ... # do some useful work here
 
-Sunrise and Sunset
-------------------
+For legacy compatibility, callbacks without the keyword argument expansion will still work.
+AppDaemon will automatically determine the correct way to call the function when it executes it.
 
-AppDaemon has a number of features to allow easy tracking of sunrise and
-sunset as well as a couple of scheduler functions. Note that the
-scheduler functions also support the randomization parameters described
-above, but they cannot be used in conjunction with the ``offset``
-parameter.
+.. code:: python
 
-Calling Services
-----------------
+    def my_callback(self, entity, attribute, old, new, kwargs):
+        ... # do some useful work here
 
-About Services
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. The cb_args dictionary will also contain a field called ``handle`` that
+.. provides the callback with the handle that identifies the
+.. :meth:`self.listen_state(...) <appdaemon.adapi.ADAPI.listen_state>` entry that resulted in the callback.
 
-Services within AD are used by apps to send commands, either to other apps within AD,
-or to external systems which it has been plugged using plugins. Via this services,
-apps can instruct AD to make changes to an external system's connected devices. For example
-services can be used to turn lights on and off, set thermostats and a whole number of other things.
-In some systems likes Home Assistant, it supplies a single interface to all these disparate
-services that take arbitrary parameters. AppDaemon provides the ``call_service()`` function to call
-into Home Assistant and run a service. In addition, it also provides
-convenience functions for some of the more common services making
-calling them a little easier.
+Log Callbacks
+~~~~~~~~~~~~~
 
-Other plugins may or may not support the notion of services. It should also be noted that in AD, services
-do not by default return results when used.
+Constraints
+~~~~~~~~~~~
+
+Constraints can be applied when registering a callback. Refer to
+`callback level constraints <#callback-level-constraints>`_ for more information.
+
+User Arguments
+~~~~~~~~~~~~~~
+
+Users are able to specify additional keyword arguments to be passed to the
+callback via the standard Python ``**kwargs`` mechanism. Keyword arguments
+are then available as a standard Python dictionary in the callback.
+
+The only restriction is that they cannot be the same as any constraint name
+for obvious reasons. For example, to pass the parameter ``arg1=123``
+through to a callback you would register a callback as follows:
+
+.. code:: python
+
+    self.listen_state(self.motion, "binary_sensor.motion_sensor_01", arg1=123)
+
+The value is available in the callback as follows. Note that ``arg1`` can be renamed
+to anything as long as it doesn't conflict with the names of other arguments.
+
+.. code:: python
+
+    def motion(self, entity, attribute, old, new, arg1, **kwargs):
+        self.log(f"Arg1 is {arg1}")
+
+Which is equivalent to:
+
+.. code:: python
+
+    def motion(self, entity, attribute, old, new, **kwargs):
+        arg1 = kwargs["arg1"]
+        self.log(f"Arg1 is {arg1}")
 
 Events
 ------
 
-About Events
-~~~~~~~~~~~~
+Events are a fundamental part of how AppDaemon works internally. Plugins fire
+events and AppDaemon communicates them to apps as required.
 
-Events are a fundamental part of how AppDaemon works under the
-covers. AD receives important events from all of its plugins and communicates them to apps as required. For instance, the MQTT plugin will generate an event when a message is received; The HASS plugin will generate an event when a service is called, or when it starts or stops.
+For instance, the MQTT plugin will fire an event when a message is
+received, and the HASS plugin will fire events for all Home Assistant
+events.
 
-Events and MQTT
-~~~~~~~~~~~~~~~
+`Event Callbacks <#event-callbacks>`_
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The MQTT plugin uses events as its primary (and only interface) to MQTT. The model is fairly simple - every time an MQTT message is received, and event of type ``MQTT_MESSAGE`` is fired. Apps are able to subscribe to this event and process it appropriately.
+Refer to the callbacks section for more information.
 
-Events and Home Assistant
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-We have already seen how state changes can be propagated to AppDaemon via the HASS plugin - a state change however is merely an example of an event within Home Assistant. There are several other event types, among them are:
-
--  ``homeassistant_start``
--  ``homeassistant_stop``
--  ``state_changed``
--  ``service_registered``
--  ``call_service``
--  ``service_executed``
--  ``platform_discovered``
--  ``component_loaded``
-
-Using the HASS plugin, it is possible to subscribe to specific events as well
-as fire off events.
-
-AppDaemon Specific Events
-~~~~~~~~~~~~~~~~~~~~~~~~~
+AppDaemon Events
+~~~~~~~~~~~~~~~~
 
 In addition to the HASS and MQTT supplied events, AppDaemon adds 3 more
 events. These are internal to AppDaemon and are not visible on the Home
@@ -1722,110 +1560,27 @@ Assistant bus:
 - ``stream_connected`` - fired when a stream client connects like the Admin User Interface. It is fired within the `admin` namespace
 - ``stream_disconnected`` - fired when a stream client disconnects like the Admin User Interface. It is fired within the `admin` namespace
 
-About Event Callbacks
+Home Assistant Events
 ~~~~~~~~~~~~~~~~~~~~~
 
-As with State Change and Scheduler callbacks, Event Callbacks expect to
-call into functions with a known and specific signature and a class
-defined Scheduler callback function should look like this:
+We have already seen how state changes can be propagated to AppDaemon via the HASS plugin - a state change however is merely an example of an event within Home Assistant. There are several other event types, among them are:
 
-.. code:: python
+-  ``homeassistant_start``
+-  ``homeassistant_stop``
+-  ``state_changed``
+-  ``service_registered``
+-  ``call_service``
+-  ``service_executed``
+-  ``platform_discovered``
+-  ``component_loaded``
 
-      def my_callback(self, event_name, data, cb_args):
-        <do some useful work here>
+Using the HASS plugin, it is possible to subscribe to specific events as well
+as fire off events.
 
-Or if you are using dictionary unpacking (see `here <APPGUIDE.html#kwargs>`__):
+MQTT Events
+~~~~~~~~~~~
 
-.. code:: python
-
-      def my_callback(self, entity, attribute, old, new, **kwargs):
-        <do some useful work here>
-
-You can call the function whatever you like - you will reference it in
-the Scheduler call, and you can create as many callback functions as you
-need.
-
-The parameters have the following meanings:
-
-self
-  A standard Python object reference.
-
-event\_name
-  Name of the event that was called, e.g., ``call_service``.
-
-data
-  Any data that the system supplied with the event as a dict.
-
-cb_args
-  A dictionary containing Zero or more user keyword arguments to be supplied to the callback.
-
-listen\_event()
-~~~~~~~~~~~~~~~
-
-Listen event sets up a callback for a specific event, or any event.
-
-Synopsis
-^^^^^^^^
-
-.. code:: python
-
-    handle = listen_event(function, event = None, cb_args):
-
-Returns
-^^^^^^^
-
-A handle that can be used to cancel the callback.
-
-Parameters
-^^^^^^^^^^
-
-function
-''''''''
-
-The function to be called when the event is fired.
-
-event
-'''''
-
-Name of the event to subscribe to. Can be a standard HASS or MQTT plugin
-event such as ``service_registered`` or in the case of HASS, an arbitrary custom event such
-as ``"MODE_CHANGE"``. If no event is specified, ``listen_event()`` will
-subscribe to all events.
-
-wargs (optional)
-'''''''''''''''''''''
-
-One or more keyword value pairs representing App specific parameters to
-supply to the callback. If the keywords match values within the event
-data, they will act as filters, meaning that if they don't match the
-values, the callback will not fire. If the values are callable, they will
-be invoked and if they return ``True`` they'll be considered a match.
-
-As an example of this, a Minimote controller when activated will
-generate an event called ``zwave_js_value_notification``, along with 2 pieces
-of data that are specific to the event - ``node_id`` and ``value``. If
-you include keyword values for either of those, the values supplied to
-the ``listen_event()`` 1 call must match the values in the event or it
-will not fire. If the keywords do not match any of the data in the event,
-they are simply ignored.
-
-Filtering will work with any event type, but it will be necessary to
-figure out the data associated with the event to understand what values
-can be filtered on. This can be achieved by examining Home Assistant's
-logfiles when the event fires.
-
-Examples
-^^^^^^^^
-
-.. code:: python
-
-    self.listen_event(self.mode_event, "MODE_CHANGE")
-    # Listen for a minimote event activating scene 3:
-    self.listen_event(self.generic_event, "zwave_js_value_notification", value = 3)
-    # Listen for a minimote event activating scene 3 from a specific minimote:
-    self.listen_event(self.generic_event, "zwave_js_value_notification", node_id = "11", value = 3)
-    # Listen for a minimote event activating scene 3 from one of several minimotes:
-    self.listen_event(self.generic_event, "zwave_js_value_notification", node_id = lambda x: x in ["11", "14", "22"], value = 3)
+The MQTT plugin uses events as its primary (and only interface) to MQTT. The model is fairly simple - every time an MQTT message is received, and event of type ``MQTT_MESSAGE`` is fired. Apps are able to subscribe to this event and process it appropriately.
 
 Use of Events for Signalling between Home Assistant and AppDaemon
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1928,6 +1683,154 @@ your message:
 
 They will automatically be expanded to the appropriate values in the log
 message.
+
+State Operations
+----------------
+
+AppDaemon maintains a master state dictionary in memory locally, which is segmented
+by namespace. When a plugin gets notified of state changes, AppDaemon updates
+the states namespaces associated with that plugin.
+
+AppDaemon internally fires an event when an entity changes state. This occurs for every
+state change of every entity, as well as every attribute change. Apps can respond to any
+or all of these events by registering a callback, which AppDaemon will call when the event
+gets fired. Apps register callbacks using a :meth:`self.listen_state(...) <appdaemon.adapi.ADAPI.listen_state>`
+call.
+
+The MQTT plugin does not use state at all, and it relies on events to trigger
+actions, whereas the Home Assistant plugin makes extensive use of state.
+
+`State Change Callbacks <#state-callbacks>`_
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Refer to the callbacks section for more information.
+
+A note on Home Assistant State
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+State within Home Assistant is stored as a collection of dictionaries,
+one for each entity. Each entity's dictionary will have some common
+fields and a number of entity type-specific fields. The state for an
+entity will always have the attributes:
+
+-  ``last_updated``
+-  ``last_changed``
+-  ``state``
+
+Any other attributes such as brightness for a lamp will only be present
+if the entity supports them, and will be stored in a sub-dictionary
+called ``attributes``. When specifying these optional attributes in the
+``get_state()`` call, no special distinction is required between the
+main attributes and the optional ones - ``get_state()`` will figure it
+out for you.
+
+Also, bear in mind that some attributes such as brightness for a light,
+will not be present when the light is off.
+
+In most cases, the attribute ``state`` has the most important value in
+it, e.g., for a light or switch this will be ``on`` or ``off``, for a
+sensor it will be the value of that sensor. Many of the AppDaemon API
+calls and callbacks will implicitly return the value of state unless
+told to do otherwise.
+
+Although the use of ``get_state()`` (below) is still supported, as of
+AppDaemon 2.0.9 it is possible to access HASS state directly as an
+attribute of the App itself, under the ``entities`` attribute.
+
+For instance, to access the state of a binary sensor, you could use:
+
+.. code:: python
+
+    sensor_state = self.entities.binary_sensor.downstairs_sensor.state
+
+Similarly, accessing any of the entity attributes is also possible:
+
+.. code:: python
+
+    name = self.entities.binary_sensor.downstairs_sensor.attributes.friendly_name
+
+Publishing State from an App
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Using AppDaemon, it is possible to explicitly publish state from an App.
+The published state can contain whatever you want, and is treated
+exactly like any other HA state, e.g., to the rest of AppDaemon, and the
+dashboard it looks like an entity. This means that you can listen for
+state changes in other apps and also publish arbitrary state to the
+dashboard via the use of specific entity IDs. To publish state, you will use
+``set_state()``. State can be retrieved and listened for with the
+usual AppDaemon calls.
+
+The Scheduler
+-------------
+
+AppDaemon contains a powerful scheduler that is able to run with microsecond
+resolution to fire off specific events at set times, or after set delays, or
+even relative to sunrise and sunset.
+
+`Scheduled Callbacks <#scheduler-callbacks>`_
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Refer to the callbacks section for more information.
+
+Scheduler Randomization
+~~~~~~~~~~~~~~~~~~~~~~~
+
+All of the scheduler calls above support 2 additional optional
+arguments, ``random_start`` and ``random_end``. Using these arguments it
+is possible to randomize the firing of callbacks to the degree desired
+by setting the appropriate number of seconds with the parameters.
+
+-  ``random_start`` - start of range of the random time
+-  ``random_end`` - end of range of the random time
+
+``random_start`` must always be numerically lower than ``random_end``,
+they can be negative to denote a random offset before and event, or
+positive to denote a random offset after an event. The event would be an
+absolute or relative time or sunrise/sunset depending on which
+scheduler call you use, and these values affect the base time by the
+specified amount. If not specified, they will default to ``0``.
+
+For example:
+
+.. code:: python
+
+    # Run a callback in 2 minutes minus a random number of seconds between 0 and 60, e.g. run between 60 and 120 seconds from now
+    self.handle = self.run_in(callback, 120, random_start=-60)
+    # Run a callback in 2 minutes plus a random number of seconds between 0 and 60, e.g. run between 120 and 180 seconds from now
+    self.handle = self.run_in(callback, 120, random_end=60, **kwargs)
+    # Run a callback in 2 minutes plus or minus a random number of seconds between 0 and 60, e.g. run between 60 and 180 seconds from now
+    self.handle = self.run_in(callback, 120, random_start=-60, random_end=60)
+
+Sunrise and Sunset
+~~~~~~~~~~~~~~~~~~
+
+AppDaemon has a number of features to allow easy tracking of sunrise and
+sunset as well as a couple of scheduler functions. Note that the
+scheduler functions also support the randomization parameters described
+above, but they cannot be used in conjunction with the ``offset``
+parameter.
+
+Calling Services
+----------------
+
+About Services
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Services within AD are used by apps to send commands, either to other apps within AD,
+or to external systems which it has been plugged using plugins. Via this services,
+apps can instruct AD to make changes to an external system's connected devices. For example
+services can be used to turn lights on and off, set thermostats and a whole number of other things.
+In some systems likes Home Assistant, it supplies a single interface to all these disparate
+services that take arbitrary parameters. AppDaemon provides the ``call_service()`` function to call
+into Home Assistant and run a service. In addition, it also provides
+convenience functions for some of the more common services making
+calling them a little easier.
+
+Other plugins may or may not support the notion of services. It should also be noted that in AD, services
+do not by default return results when used.
+
+
 
 Getting Information in Apps and Sharing information between Apps
 ----------------------------------------------------------------
@@ -2183,18 +2086,15 @@ Here is an example of an App using the API:
 
 .. code:: python
 
-    import hassapi as hass
+    from appdaemon.plugins.hass.hassapi import Hass
 
-    class API(hass.Hass):
 
+    class API(Hass):
         def initialize(self):
             self.register_endpoint(my_callback, "test_endpoint")
 
-        def my_callback(self, args, cb_args):
-
-            data = await request.json()
-
-            self.log(data)
+        def my_callback(self, json_obj, **kwargs):
+            self.log(json_obj)
 
             response = {"message": "Hello World"}
 
@@ -2203,7 +2103,7 @@ Here is an example of an App using the API:
 The callback will accept `GET` or `POST` requests. If the request is a `POST` AppDaemon
 will attempt to decode JSON arguments and supply them in the
 args parameter. If the method is `GET`, any arguments will also be
-supplied via the args parameter. cb_args (or \*\*kwargs) will be supplied with
+supplied via the args parameter. \*\*kwargs will be supplied with
 any parameters defined at the time of the `register_endpoint()`.
 
 The response must be a python structure that can be mapped to JSON, or
@@ -3045,3 +2945,235 @@ relative to the app as far as AppDaemon is concerned as it automatically adds al
 not know this, so always specify the full path to your global modules relative to ``appdir``.
 
 With these preparations in place your IDE should give you correct error reporting and completion of API functions along with type hints and help text.
+
+Some Notes on Service Calls
+---------------------------
+
+Service calls within AppDaemon are used to make something happen. For instance, instructing Home Assitant to turn a light on, or instructing AppDaemon itself
+to reload an App. The Home Assistant plugin provides AppDaemon apps with a number of services that can be called, dependent upon what devices are configured,
+and what integrations have been added. While entities and state tell you what the current situation is, service calls will usually make some sort of change
+to the current situation, and the results will often be propagated back to the app via a state change callback, for instance, a light's state changing from
+``off`` to ``on``.
+
+Most service calls to date have been "fire and forget" - the service call is made and control is returned to the App immediately. This has the benefit of keeping
+things moving along which AppDaemon likes, but the downside of this is that you have to hope that the service call went through OK, and your app won't
+be given information on any errors that may have occured. Also, sometimes we may want to get specific information back from a service call, as the use
+of AppDaemon internal service calls is a powerful way of modularizing and communicating between apps.
+
+With the above in mind, service calls have recently had a few enhancements to improve this aspect of operation.
+
+Returning Results from App Provided Service Calls
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Setting your app up as a service that other apps can call is very simple. All that is required is the `Register Service <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.register_service>`__
+API call to register your service, and it then becomes visible to all of your other apps. This works very much like a subroutine call, it's just between different Apps,
+and the communication is handled by AppDaemon, not Python itself.
+
+The register service call takes a name for the service and a callback, and the callback itself is what is executed when a second app makes a service call of that name.
+All that is necessary for the callback is that it has the correct function signature. Inter-app callbacks should be assigned to a `User Defined Namespace <APPGUIDE.html#user-defined-namespaces>`__ to avoid collisions
+with services in other namespaces. The return value from the callback will be the result of the ``call_service()`` API call in the second app. For example:
+
+We define the service in App 1
+
+App 1:
+
+.. code:: python
+
+    class RegisterService(hass.Hass):
+
+        def initialize(self):
+
+            self.register_service("my_domain/my_exciting_service", self.my_exciting_cb, namespace="my_custom_namespace")
+
+        def my_exciting_cb(self, namespace, domain, service, kwargs):
+            self.log(f"Service called! {namespace=} {domain=} {service=} {kwargs=}")
+            return 999
+
+
+We can then call it from App 2. Note that we must set ``return_result`` to actually get the response or it will just be silently discarded.
+
+.. code:: python
+
+    return_value = self.call_service("my_domain/my_exciting_service", return_result=True)
+
+
+Here, ``return_value`` will be set to ``999``, the return value from the callback in App 1.
+
+``my_domain`` can be anything - you can use it to separate callbacks from different apps for instance. Also, ``my_exciting_service`` can be whatever you want it to be.
+One trick is to use the name of an app if you have multiple apps using the same class. This enables you to register services distinct to each instance of the app And call
+their services separately. For instance:
+
+.. code:: python
+
+    name = self.name.replace(" ", "_").lower()
+    self.register_service(
+            f"occupancy/set_occupancy_{name}",
+            self.occupancy_service,
+            namespace="sanctuary",
+        )
+
+Returning Results via Callbacks
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In order to optimize thread usage in callbacks, a second option is also available for service calls that return data - that of a callback.
+With this model, the calling ap (App 2 in the example above) makes the call in a fire and forget mode, but provides a callback that will be
+called when the service call returns with data:
+
+.. code:: python
+
+        return_value = self.call_service("my_domain/my_exciting_service", callback=self.my_cool_callback)
+
+    ...
+
+    def my_cool_callback((self, **kwargs)
+        self.log(kwargs["result"])
+
+The return value of the service will be in the ``result`` entry of the kwargs dictionary.
+
+Note that you may use the ``return_result`` or the ``calback`` option in a single call, but not both.
+
+Returning Results from Home Assistant
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Home Assistant recently added the ability to return data from specific service calls. Not very many calls support this yet, but as of release 4.5 AppDaemon is now able
+to propagate return values from Home Assitant service calls to the App. As a result of this support, it is also now possible to wait for return statuses for Home Assistant
+service calls even if no return data is requested, this is beneficial as it is now possible to detect errors that were previously unreported. In addition, waiting for the
+response also allows the app and AppDaemon to identify poorly performing Home Assistant services (such as ZWave communication slowdowns) that previously would have gone unnoticed.
+
+To tell AppDaemon that you are expecting Home Assistant to return a value, set the ``return_result`` parameter to True. In addition, you should also set either the ``callback`` or ``return_result``
+flags depending on how you want to recieve the result - both methods are supported. This will force the call to be synchronous for a Home Assistant service that does not return a value, and will also
+return any results from HomeAssistant if the underlying service call supports it.
+
+Specifically for Home Assistant service calls there is also an optional ``hass_timeout`` value that specifies how long to wait for the response from Home Assistant before returning to the
+app with an error. There are a couple of other timers already in AppDaemon that are related and will give information on slow service.
+
+* The callback tracking timer will issue warnings if a callback takes longer than 10 seconds to return
+* The internal function timer will cancel any task that takes longer than 60 seconds.
+
+With the above in mind, the default timeout for the Home Assitant service call has been set to 30 seconds to fall in between these 2 values so that in most cases for a slow service call
+you will get warnings from the callback tracking, but the call will cleanly timeout before AppDaemon is forced to cancel it for it's own internal housekeeping. If you set the timeout value higher,
+the internal function timer is the upper limit (this can be changed as part of the appdamon config if required).
+
+Here are a couple of examples of getting results from HomeAssistant services:
+
+.. code:: python
+
+    ret_value = self.call_service(
+                "calendar/get_events",
+                entity_id="calendar.home",
+                start_date_time="2024-08-25 00:00:00",
+                end_date_time="2024-08-27 00:00:00",
+                return_result=True,
+                hass_timeout=10,
+            )
+
+    self.call_service(
+            "calendar/get_events",
+            entity_id="calendar.home",
+            start_date_time="2024-08-25 00:00:00",
+            end_date_time="2024-08-27 00:00:00",
+            hass_timeout=10,
+            return_result=True,
+            callback=self.calendar_cb,
+        )
+
+Here is how you would force a synchronous call, that will return error information if the call fails, or force a timeout if the call takes longer than expected:
+
+.. code:: python
+
+    self.call_service(
+               "light/turn_off",
+               entity_id="light.office_lamp",
+               return_result=True,
+           )
+
+It is also possible to force all calls to be synchronous by setting the ``return_result`` parameter in the plugin configuration.
+
+Home Assistant Return Data Format
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Return Data from internal AppDaemon service calls is arbitary and returned as is from the return statement of the called service. and can be of any time just as you would expect with a regular Python ```return`` statement.
+
+The return format from Home Assistant service calls is more complex and includes additional data as well as the requested data.
+The return data wil be a dictionary, and AppDaemon starts with the data returned directly
+from HomeAssistant and adds a couple of additional fields that can be used to check status and gather information. The AppDaemon specific fields are guaranteed to exist and are:
+
+* ``ad_status`` - the status of the call from AppDaemon's perspective. Possible values are:
+
+    * ``OK`` - everything went as planned from AppDaemon's perspective, a call was made to Home Assistant and a Response was obtained, and the response from Home Assistant is also contained within the results dictionary. This does not mean Home Assistant didn't produce an error, just that AppDaemon succesfully obtained a response from Home Assistant
+    * ``TIMEOUT`` - the call to Home Assistant did not return a value before a timeout occured (either the default 30 second timeout, or a per call timeout specified by the user)
+    * ``TERMINATING`` - the service call was terminated as AppDaemon is shutting down
+
+* ``ad_duration`` - the amount of time in seconds the round trip took from AppDaemon to Home Assistant and back, useful for timing service calls.
+
+The rest of the items in the results dictionary are as returned by Home Assistant, and are described in their `documentation <https://developers.home-assistant.io/docs/api/websocket#calling-a-service-action>`__.
+It is worth calling out a few of these specific fields as they are generally what App writers will care about:
+
+* ``success`` - set to ``True`` if the call was successful from Home Assistant's perspective. If this field is set to ``False``, Home Assistant will populate the ``error`` field
+* ``error`` - present if ``success`` is set to false. Contains 2 subfields, ``code`` and ``message`` which may provide information as to why the call failed.
+* ``result`` - present if ``success`` is set to true and if the service returns a response. Contains the response from the service, and subfield ``response`` will contain any data returned by the service but will not be present if the service does not return data.
+
+This example shows how to use the return data with full error handling:
+
+.. code:: python
+
+        result = self.call_service(
+            "calendar/get_events",
+            entity_id="calendar.home",
+            start_date_time="2024-08-25 00:00:00",
+            end_date_time="2024-08-27 00:00:00",
+            return_result=True,
+            hass_timeout=10,
+        )
+
+        if result["ad_status"] == "TIMEOUT":
+            self.log(
+                f"service call to calendar/get_events timed out, elapsed time={result['ad_duration']}"
+            )
+        elif result["ad_status"] == "TERMINATING":
+            self.log(
+                f"service call to calendar/get_events ended due to AppDaemon shutdown, elapsed time={result['ad_duration']}"
+            )
+        elif result["ad_status"] == "OK":
+            if result["success"] is True:
+                self.log(
+                    f"service call to calendar/get_events succeeded, elapsed time={result['ad_duration']}"
+                )
+                if "response" in result["result"]:
+                    self.log(f"Returned data: {result['result']['response']}")
+                else:
+                    self.log("No data was returned")
+            else:
+                self.log(
+                    f"service call to calendar/get_events succeeded with errors, elapsed time={result['ad_duration']}"
+                )
+                self.log(
+                    f"code={result['error']['code']}, message={result['error']['message']}"
+                )
+        else:
+            self.log(
+                f"service call to calendar/get_events returned unexpected status,  elapsed time={result['ad_duration']}"
+            )
+
+Sample output:
+
+.. code:: none
+
+    app1: service call to calendar/get_events succeeded, elapsed time=0.0014650821685791016
+    app1: Returned data: {'calendar.home': {'events': [{'start': '2024-08-25T18:00:00-04:00', 'end': '2024-08-25T19:00:00-04:00', 'summary': 'Test', 'description': ''}]}}
+
+.. code:: none
+
+    app1: service call to calendar/get_events timed out, elapsed time=0.0035288333892822266
+
+.. code:: none
+
+    app1: service call to calendar/get_events succeeded with errors, elapsed time=0.0038149356842041016
+    app1: code=home_assistant_error, message=Service call requested response data but did not match any entities
+
+Service Call Logging With Home Assistant
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+By default, AppDaemon will log errors when any service call to HomeAssistant either times out, or returns
+a service error. If you prefer to do error checking yourself on a per-call basis you can use the ``suppress_log_messages``
+flag in the servicer call and set it to ``True``, or you can suppress log messages globally by setting ``suppress_log_messages`` to true in the plugin configuration.

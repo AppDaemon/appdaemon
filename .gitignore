@@ -10,6 +10,7 @@ __pycache__/
 .Python
 env/
 build/
+docs_build/
 develop-eggs/
 dist/
 downloads/
@@ -54,6 +55,7 @@ coverage.xml
 
 # Sphinx documentation
 docs/_build/
+.docs_build
 
 # PyBuilder
 target/
@@ -61,6 +63,8 @@ target/
 
 # Python
 venv
+.venv
+uv.lock
 
 # Mac stuff
 .DS_Store
@@ -71,3 +75,15 @@ venv
 # Ruff
 
 .ruff_cache
+
+# IDE
+
+#.vscode
+
+# Docs
+
+.docs_build
+
+
+# Nix devenv
+.devenv

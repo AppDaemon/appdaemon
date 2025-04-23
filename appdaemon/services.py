@@ -1,25 +1,77 @@
-import threading
-import traceback
 import asyncio
+import functools
+import threading
 from copy import deepcopy
-from typing import Any, Optional, Callable, Awaitable
+from dataclasses import dataclass
+from logging import Logger
+from typing import TYPE_CHECKING, Any, Callable, Dict, Set, overload
 
-from appdaemon.appdaemon import AppDaemon
-from appdaemon.exceptions import NamespaceException, DomainException, ServiceException
 import appdaemon.utils as utils
+from appdaemon.exceptions import DomainException, NamespaceException, ServiceException
+
+if TYPE_CHECKING:
+    from appdaemon.appdaemon import AppDaemon
+
+
+@dataclass
+class ServiceDefinition:
+    __name: str | None = None
+    callback: str | None = None
+
+
+@dataclass
+class DomainServices:
+    _services: dict[str, ServiceDefinition]
+
+
+@dataclass
+class NamespaceServices:
+    _services: dict[str, DomainServices]
+
+
+@dataclass
+class ServiceCollection:
+    _services: dict[str, NamespaceServices]
 
 
 class Services:
-    def __init__(self, ad: AppDaemon):
+    """Subsystem container for handling services
+
+    Attributes:
+        AD: Reference to the AppDaemon container object
+    """
+
+    AD: "AppDaemon"
+    logger: Logger
+    error: Logger
+    services: Dict[str, Dict[str, Any]]
+    services_lock: threading.RLock
+    app_registered_services: Dict[str, Set]
+
+    def __init__(self, ad: "AppDaemon"):
         self.AD = ad
         self.services = {}
         self.services_lock = threading.RLock()
         self.app_registered_services = {}
         self.logger = ad.logging.get_child("_services")
 
+    @property
+    def error(self) -> Logger:
+        return self.AD.logging.get_error()
+
+    @overload
     def register_service(
-        self, namespace: str, domain: str, service: str, callback: Callable, **kwargs: Optional[Any]
-    ) -> None:
+        self,
+        namespace: str,
+        domain: str,
+        service: str,
+        callback: Callable,
+        __slient: bool,
+        __name: str,
+        **kwargs
+    ) -> None: ...
+
+    def register_service(self, namespace: str, domain: str, service: str, callback: Callable, **kwargs) -> None:
         self.logger.debug(
             "register_service called: %s.%s.%s -> %s",
             namespace,
@@ -48,21 +100,29 @@ class Services:
             if service in self.services[namespace][domain]:
                 # there was a service already registered before
                 # so if a different app, we ask to deregister first
-                service_app = self.services[namespace][domain][service].get("__name")
+                service_app = self.services[namespace][domain][service].get(
+                    "__name")
                 if service_app and service_app != name:
                     self.logger.warning(
-                        f"This service '{domain}/{service}' already registered to a different app '{service_app}', and so cannot be registered to {name}. Do deregister from app first"
+                        f"This service '{domain}/{service}' already registered to a "
+                        f"different app '{service_app}', and so cannot be registered "
+                        f"to {name}. Do deregister from app first"
                     )
                     return
 
-            self.services[namespace][domain][service] = {"callback": callback, "__name": name, **kwargs}
+            self.services[namespace][domain][service] = {
+                "callback": callback,
+                "__name": name,
+                **kwargs
+            }
 
             if __silent is False:
                 data = {
                     "event_type": "service_registered",
                     "data": {"namespace": namespace, "domain": domain, "service": service},
                 }
-                self.AD.loop.create_task(self.AD.events.process_event(namespace, data))
+                self.AD.loop.create_task(
+                    self.AD.events.process_event(namespace, data))
 
             if name:
                 if name not in self.app_registered_services:
@@ -70,7 +130,7 @@ class Services:
 
                 self.app_registered_services[name].add(f"{namespace}:{domain}:{service}")
 
-    def deregister_service(self, namespace: str, domain: str, service: str, **kwargs: dict) -> bool:
+    def deregister_service(self, namespace: str, domain: str, service: str, __name: str) -> bool:
         """Used to unregister a service"""
 
         self.logger.debug(
@@ -78,20 +138,16 @@ class Services:
             namespace,
             domain,
             service,
-            kwargs,
+            __name,
         )
 
-        name = kwargs.get("__name")
-        if not name:
-            raise ValueError("App must be given to deregister service call")
-
-        if name not in self.app_registered_services:
-            raise ValueError(f"The given App {name} has no services registered")
+        if __name not in self.app_registered_services:
+            raise ValueError(f"The given App {__name} has no services registered")
 
         app_service = f"{namespace}:{domain}:{service}"
 
-        if app_service not in self.app_registered_services[name]:
-            raise ValueError(f"The given App {name} doesn't have the given service registered it")
+        if app_service not in self.app_registered_services[__name]:
+            raise ValueError(f"The given App {__name} doesn't have the given service registered it")
 
         # if it gets here, then time to deregister
         with self.services_lock:
@@ -100,9 +156,10 @@ class Services:
 
             data = {
                 "event_type": "service_deregistered",
-                "data": {"namespace": namespace, "domain": domain, "service": service, "app": name},
+                "data": {"namespace": namespace, "domain": domain, "service": service, "app": __name},
             }
-            self.AD.loop.create_task(self.AD.events.process_event(namespace, data))
+            self.AD.loop.create_task(
+                self.AD.events.process_event(namespace, data))
 
             # now check if that domain is empty
             # if it is, remove it also
@@ -116,10 +173,10 @@ class Services:
                 # its empty
                 del self.services[namespace]
 
-            self.app_registered_services[name].remove(app_service)
+            self.app_registered_services[__name].remove(app_service)
 
-            if not self.app_registered_services[name]:
-                del self.app_registered_services[name]
+            if not self.app_registered_services[__name]:
+                del self.app_registered_services[__name]
 
             return True
 
@@ -132,23 +189,25 @@ class Services:
         app_services = deepcopy(self.app_registered_services[name])
 
         for app_service in app_services:
-            namespace, domain, service = app_service.split(":")
-            self.deregister_service(namespace, domain, service, __name=name)
+            self.deregister_service(*app_service.split(":"), name)
 
-    def list_services(self, ns: str = "global") -> list:
-        result = []
+    def list_services(self, ns: str = "global") -> list[dict[str, str]]:
         with self.services_lock:
-            for namespace in self.services:
-                if ns != "global" and namespace != ns:
-                    continue
+            return [
+                {"namespace": namespace, "domain": domain, "service": service}
+                for namespace, ns_services in self.services.items()
+                if ns == "global" or ns == namespace
+                for domain, domain_services in ns_services.items()
+                for service in domain_services
+            ]
 
-                for domain in self.services[namespace]:
-                    for service in self.services[namespace][domain]:
-                        result.append({"namespace": namespace, "domain": domain, "service": service})
-
-        return result
-
-    async def call_service(self, namespace: str, domain: str, service: str, data: dict) -> Any:
+    async def call_service(
+        self,
+        namespace: str,
+        domain: str,
+        service: str,
+        data: dict[str, Any] | None = None,  # Don't expand with **data
+    ) -> Any:
         self.logger.debug(
             "call_service: namespace=%s domain=%s service=%s data=%s",
             namespace,
@@ -156,94 +215,59 @@ class Services:
             service,
             data,
         )
+
+        # data can be None, later on we assume it is not!
+        if data is None:
+            data = {}
+
         with self.services_lock:
-            name = data.pop("__name", None)
-
-            if namespace not in self.services:
-                raise NamespaceException(f"Unknown namespace {namespace} in call_service from {name}")
-
-            if domain not in self.services[namespace]:
-                raise DomainException(f"Unknown domain ({namespace}/{domain}) in call_service from {name}")
-
-            if service not in self.services[namespace][domain]:
-                raise ServiceException(f"Unknown service ({namespace}/{domain}/{service}) in call_service from {name}")
+            if ns_services := self.services.get(namespace):
+                if domain_services := ns_services.get(domain):
+                    if service not in domain_services:
+                        raise ServiceException(namespace, domain, service, list(domain_services.keys()))
+                else:
+                    raise DomainException(namespace, domain)
+            else:
+                raise NamespaceException(namespace)
 
             # If we have namespace in data it's an override for the domain of the eventual service call, as distinct
             # from the namespace the call itself is executed from. e.g. set_state() is in the AppDaemon namespace but
             # needs to operate on a different namespace, e.g. "default"
 
-            if "namespace" in data:
-                ns = data["namespace"]
-                del data["namespace"]
-            else:
-                ns = namespace
+            # This means that data can't be expanded with **data
 
-            funcref = self.services[namespace][domain][service]["callback"]
+            ns = data.pop('namespace', namespace)
 
-            # Decide whether or not to call this as async
+            service_def = self.services[namespace][domain][service]
+            funcref = service_def["callback"]
 
-            # Default to true
-            isasync = True
+            match isasync := service_def.pop("__async", 'auto'):
+                case 'auto':
+                    # Remove any wrappers from the funcref before determining if it's async or not
+                    isasync = asyncio.iscoroutinefunction(utils.unwrapped(funcref))
+                case bool():
+                    pass  # isasync already set as a bool from above
+                case _:
+                    raise TypeError(f'Invalid __async type: {isasync}')
 
-            # if to wait for results, default to False
-            return_result = data.pop("return_result", False)
+            use_dictionary_unpacking = utils.has_expanded_kwargs(funcref)
+            funcref = functools.partial(funcref, ns, domain, service)
 
-            # if to return results via callback
-            callback = data.pop("callback", None)
-
-            if "__async" in self.services[namespace][domain][service]:
-                # We have a kwarg to tell us what to do
-                if self.services[namespace][domain][service]["__async"] == "auto":
-                    # We decide based on introspection
-                    if not asyncio.iscoroutinefunction(funcref):
-                        isasync = False
-                else:
-                    # We do what the kwarg tells us
-                    isasync = self.services[namespace][domain][service]["__async"]
-
-            callee_name = self.services[namespace][domain][service]["__name"]
-            if callee_name is not None:
-                app_args = self.AD.app_management.app_config[callee_name]
-                if "use_dictionary_unpacking" in app_args:
-                    use_dictionary_unpacking = app_args["use_dictionary_unpacking"]
-                else:
-                    use_dictionary_unpacking = self.AD.use_dictionary_unpacking
-            else:
-                use_dictionary_unpacking = False
-
-            if isasync is True:
+            if isasync:
                 # it's a coroutine just await it.
-                if use_dictionary_unpacking is True:
-                    coro = funcref(ns, domain, service, **data)
+                if use_dictionary_unpacking:
+                    coro = funcref(**data)
                 else:
-                    coro = funcref(ns, domain, service, data)
+                    coro = funcref(data)
             else:
                 # It's not a coroutine, run it in an executor
-                if use_dictionary_unpacking is True:
-                    coro = utils.run_in_executor(self, funcref, ns, domain, service, **data)
+                if use_dictionary_unpacking:
+                    coro = utils.run_in_executor(self, funcref, **data)
                 else:
-                    coro = utils.run_in_executor(self, funcref, ns, domain, service, data)
+                    coro = utils.run_in_executor(self, funcref, data)
 
-            if return_result is True:
-                return await self.run_service(coro)
+            @utils.warning_decorator(error_text=f"Unexpected error calling service {ns}/{domain}/{service}")
+            async def safe_service(self: 'Services'):
+                return await coro
 
-            elif callback is not None and name is not None:
-                # results expected and it must belong to an app
-                app_object = await self.AD.app_management.get_app(name)
-                app_object.create_task(self.run_service(coro), callback=callback)
-
-            else:
-                asyncio.create_task(self.run_service(coro))
-
-    async def run_service(self, coro: Awaitable) -> Any:
-        """Used to process a service call"""
-        try:
-            return await coro
-
-        except Exception:
-            self.logger.error("-" * 60)
-            self.logger.error("Unexpected error in call_service()")
-            self.logger.error("-" * 60)
-            self.logger.error(traceback.format_exc())
-            self.logger.error("-" * 60)
-            return None
+            return await safe_service(self)

@@ -3,19 +3,34 @@
 import asyncio
 import datetime
 import traceback
+from datetime import timedelta
+from logging import Logger
+from time import perf_counter
+from typing import TYPE_CHECKING
 
-import appdaemon.utils as utils
-from appdaemon.appdaemon import AppDaemon
+from . import exceptions as ade
+from . import utils
+from .app_management import UpdateMode
+
+if TYPE_CHECKING:
+    from .appdaemon import AppDaemon
 
 
 class Utility:
-
-    """Class that includes the utility loop.
+    """Subsystem container for managing the utility loop
 
     Checks for file changes, overdue threads, thread starvation, and schedules regular state refreshes.
     """
 
-    def __init__(self, ad: AppDaemon):
+    AD: "AppDaemon"
+    """Reference to the AppDaemon container object
+    """
+
+    stopping: bool
+    logger: Logger
+    stopping: bool = False
+
+    def __init__(self, ad: "AppDaemon"):
         """Constructor.
 
         Args:
@@ -23,9 +38,9 @@ class Utility:
         """
 
         self.AD = ad
-        self.stopping = False
         self.logger = ad.logging.get_child("_utility")
         self.booted = None
+        # self.AD.loop.create_task(self.loop())
 
     def stop(self):
         """Called by the AppDaemon object to terminate the loop cleanly
@@ -38,6 +53,17 @@ class Utility:
         self.logger.debug("stop() called for utility")
         self.stopping = True
 
+    async def get_uptime(self) -> timedelta:
+        """Utility function to return the uptime of AppDaemon
+
+        Returns:
+            datetime.timedelta: The uptime of AppDaemon
+
+        """
+        uptime = self.booted - await self.AD.sched.get_now()
+        rounded_uptime = timedelta(seconds=round(uptime.total_seconds()))
+        return rounded_uptime
+
     async def loop(self):
         """The main utility loop.
 
@@ -48,7 +74,7 @@ class Utility:
         #
         # Setup
         #
-
+        # self.AD.threading = Threading(self)
         await self.AD.threading.init_admin_stats()
         await self.AD.threading.create_initial_threads()
         await self.AD.app_management.init_admin_stats()
@@ -71,7 +97,7 @@ class Utility:
 
             self.logger.debug("Starting timer loop")
 
-            for ns in await self.AD.state.list_namespaces():
+            for ns in self.AD.state.list_namespaces():
                 #
                 # Register state services
                 #
@@ -115,7 +141,7 @@ class Utility:
             if self.AD.apps is True:
                 self.logger.debug("Reading Apps")
 
-                await self.AD.app_management.check_app_updates(mode="init")
+                await self.AD.app_management.check_app_updates(mode=UpdateMode.INIT)
 
                 self.logger.info("App initialization complete")
                 #
@@ -137,18 +163,15 @@ class Utility:
             # Start the loop proper
 
             while not self.stopping:
-                s1 = 0
-                e1 = 0
-
-                start_time = datetime.datetime.now().timestamp()
-
+                loop_start = perf_counter()
+                check_app_duration = timedelta()
                 try:
                     if self.AD.apps is True:
-                        if self.AD.production_mode is False:
+                        if not self.AD.production_mode:
                             # Check to see if config has changed
-                            s1 = datetime.datetime.now().timestamp()
+                            check_app_start = perf_counter()
                             await self.AD.app_management.check_app_updates()
-                            e1 = datetime.datetime.now().timestamp()
+                            check_app_duration = timedelta(seconds=perf_counter() - check_app_start)
 
                     # Call me suspicious, but lets update state from the plugins periodically
 
@@ -178,46 +201,43 @@ class Utility:
                     await self.AD.plugins.get_plugin_perf_data()
 
                     # Update uptime sensor
-
-                    uptime = (await self.AD.sched.get_now()).replace(microsecond=0) - self.booted.replace(microsecond=0)
-
                     await self.AD.state.set_state(
                         "_utility",
                         "admin",
                         "sensor.appdaemon_uptime",
-                        state=str(uptime),
+                        state=str(await self.get_uptime()),
                     )
 
+                except ade.AppDaemonException as exc:
+                    ade.user_exception_block(self.AD.logging.error, exc, self.AD.app_dir)
                 except Exception:
                     self.logger.warning("-" * 60)
                     self.logger.warning("Unexpected error during utility()")
                     self.logger.warning("-" * 60)
                     self.logger.warning(traceback.format_exc())
                     self.logger.warning("-" * 60)
+                finally:
+                    loop_duration = timedelta(seconds=perf_counter() - loop_start)
+                    other_duration = loop_duration - check_app_duration
 
-                end_time = datetime.datetime.now().timestamp()
-
-                loop_duration = (int((end_time - start_time) * 1000) / 1000) * 1000
-                check_app_updates_duration = (int((e1 - s1) * 1000) / 1000) * 1000
-
-                self.logger.debug(
-                    "Util loop compute time: %sms, check_config()=%sms, other=%sms",
-                    loop_duration,
-                    check_app_updates_duration,
-                    loop_duration - check_app_updates_duration,
-                )
-                if self.AD.sched.realtime is True and loop_duration > (self.AD.max_utility_skew * 1000):
-                    self.logger.warning(
-                        "Excessive time spent in utility loop: %sms, %sms in check_app_updates(), %sms in other",
-                        loop_duration,
-                        check_app_updates_duration,
-                        loop_duration - check_app_updates_duration,
+                    self.logger.debug(
+                        "Util loop compute time: %s, check_app_updates: %s, other: %s",
+                        utils.format_timedelta(loop_duration),
+                        utils.format_timedelta(check_app_duration),
+                        utils.format_timedelta(other_duration),
                     )
-                    if self.AD.check_app_updates_profile is True:
-                        self.logger.info("Profile information for Utility Loop")
-                        self.logger.info(self.AD.app_management.check_app_updates_profile_stats)
-
-                await asyncio.sleep(self.AD.utility_delay)
+                    if self.AD.sched.realtime and loop_duration > self.AD.max_utility_skew:
+                        self.logger.warning(
+                            "Excessive time spent in utility loop: %s, %s in check_app_updates(), %s in other",
+                            utils.format_timedelta(loop_duration),
+                            utils.format_timedelta(check_app_duration),
+                            utils.format_timedelta(other_duration),
+                        )
+                        if self.AD.check_app_updates_profile:
+                            self.logger.info("Profile information for Utility Loop")
+                            self.logger.info(self.AD.app_management.check_app_updates_profile_stats)
+                    else:
+                        await asyncio.sleep(self.AD.utility_delay)
 
             #
             # Shutting down now
@@ -236,7 +256,7 @@ class Utility:
             if self.AD.http is not None:
                 await self.AD.http.stop_server()
 
-    async def set_production_mode(self, mode=True):
+    async def set_production_mode(self, mode: bool = True):
         if mode is True:
             self.logger.info("AD Production Mode Activated")
         else:

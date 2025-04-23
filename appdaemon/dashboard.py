@@ -1,16 +1,17 @@
-import os
 import ast
-import re
-import yaml
-from jinja2 import Environment, BaseLoader, FileSystemLoader, select_autoescape
-import traceback
-import functools
-import time
 import cProfile
-import io
-import pstats
 import datetime
+import functools
+import io
+import os
+import pstats
+import re
+import time
+import traceback
 from collections import OrderedDict
+
+import yaml
+from jinja2 import BaseLoader, Environment, FileSystemLoader, select_autoescape
 
 import appdaemon.utils as ha
 
@@ -162,7 +163,7 @@ class Dashboard:
             for varline in fields:
                 if isinstance(fields[varline], dict):
                     fields[varline] = self._resolve_css_params(fields[varline], subs)
-                elif fields[varline] is not None and type(fields[varline]) == str:
+                elif fields[varline] is not None and isinstance(fields[varline], str):
                     _vars = variable.finditer(fields[varline])
                     for var in _vars:
                         subvar = var.group()[1:]

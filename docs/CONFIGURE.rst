@@ -9,11 +9,10 @@ Appdaemon Configuration File Format
 ===================================
 
 The AppDaemon configuration file is usually a ``YAML`` file, however from appdaemon 4.3.0 and onwards, appdaemon's configuration file
-as well as the app configuration files can be spedicied in ``TOML`` rather than YAML. This behavior
-is global for all files and is turned on and off by the ``--toml`` flag when appdaemon is invoked. This behavior
-enables the user to easily switch between YAML and TOML files, although all config files muct be converted at the same time when moving from YAML to TOML.
+as well as the app configuration files can be specified in ``TOML`` rather than YAML. AppDaemon will now work transparently with either yaml or toml files,
+allowing the user to mix and match and convert from one format to another over time. In the event of a conflict, the yaml file will take precedence.
 YAML and TOML configuration files are identical in function and capabilities, it is a matter of personal preference which format is used. At this time,
-TOML configuration is not available for HADashboard.
+TOML configuration is not available for HADashboard. Note that AppDaemon expects any secrets files to have the same file extension as the configuration file that references those secrets.
 
 A useful online resource for converting from YAML to TOML and back can be found at `transform tools <https://transform.tools/yaml-to-toml>`_.
 
@@ -67,7 +66,7 @@ The same configuration in a TOML file would be called ``appdaemon.toml`` and wou
   ha_url = "<home_assistant_base_url>"
   token = "<some_long_lived_access_token>"
 
-Both YAML and TROML files work in similar ways to express atomic values, lists and dictionaries, from this point on, some examples will be given in both formats, but the end-user
+Both YAML and TOML files work in similar ways to express atomic values, lists and dictionaries, from this point on, some examples will be given in both formats, but the end-user
 is encouraged to learn the ins and outs of both formats to help in converting configurations from one format to another.
 
 Plugins
@@ -186,6 +185,10 @@ The following options are available under the ``appdaemon`` section:
   * - log_thread_actions
     - If set to ``1``, AppDaemon will log all callbacks on entry and exit for the scheduler, events, and state changes.
       This can be useful for troubleshooting thread starvation issues.
+    - No
+
+  * - import_paths
+    - Use this directive to add additional arbitary directories to the python interpreter's search path. Directories must be fully qualified.
     - No
 
 
@@ -455,7 +458,7 @@ AppDaemon supports the use of `secrets` in the configuration file, to allow sepa
 By default AppDaemon looks for a file called ``secrets.yaml`` or ``secrets.toml`` in the configuration directory.
 You can configure AppDaemon to load a different secrets file by defining its path by defining a top-level ``secrets`` configuration.
 
-The file should be a simple list of all the secrets. The secrets can be later referred to using the ``!secret`` directive in the configuration file, this works for both YAML and TOML.
+The file should be a simple list of all the secrets. The secrets can be later referred to using the ``!secret`` directive in the configuration file, this works for both YAML and TOML, but AppDaemon expects the secrets file to have the same type as the file that references it.
 
 An example ``secrets.yaml`` might look like this:
 
@@ -512,8 +515,11 @@ To configure the HASS plugin, in addition to the required parameters above, you 
    on. If not specified, the RESTFul API will be turned off.
 -  ``app_init_delay`` (optional) - If specified, when AppDaemon connects to HASS each time, it will wait for this number of seconds before initializing apps and listening for events. This is useful for HASS instances that have subsystems that take time to initialize (e.g., zwave).
 -  ``retry_secs`` (optional) - If specified, AD will wait for this many seconds in between retries to connect to HASS (default 5 seconds)
-- appdaemon_startup_conditions - see `HASS Plugin Startup Conditions <#hass-plugin-startup-conditions>`__
-- plugin_startup_conditions - see `HASS Plugin Startup Conditions <#hass-plugin-startup-conditions>`__
+-  ``plugin_startup_conditions`` - see `HASS Plugin Startup Conditions <#startup-conditions>`__
+-  ``q_timeout`` (optional, 30 seconds) - amount of time to wait for a response from Home Assistant before returning an error
+-  ``return_result`` (optional, false) - if set to true, all service calls to Home Assistant will wait for a response. Whether or not this returns data,
+   it can also provide error checking, and accurate timing for how long service calls take. Will be overridden by the ``return_result`` argument in ``call_service()``
+-  ``suppress_log_messages`` - (optional, false) - if set to true, all ``call_service()`` related log messages will be suppressed by default. Will be overridden by the ``suppress_log_messages`` argument in ``call_service()``
 
 For example:
 
@@ -619,73 +625,92 @@ A real token will be a lot longer than this and will consist of a string of rand
 .. figure:: images/list.png
    :alt: List
 
-Startup conditions
-^^^^^^^^^^^^^^^^^^
+Startup Conditions
+^^^^^^^^^^^^^^^^^^^^^^^
 
-The HASS plugin has the ability to pause startup until various criteria have been met. This can be useful to avoid running apps that require certain entities to exist or to wait for an event to happen before the apps are started. There are 2 types of startup criteria, and they are added :
+The HASS plugin has the ability to pause startup until various criteria have been met. This can be useful to avoid running apps that require certain entities to exist or to wait for an event to happen before the apps are started. These conditions are checked whenever the HASS plugin is started, including after restarts.  AppDaemon will not start the HASS plugin until all of these conditions are met.
 
-- appdaemon_startup_conditions - These conditions are checked when AppDaemon starts.  AppDaemon will not start the HASS plugin until all of these conditions are met.
-- plugin_startup_conditions - These conditions are checked if HASS restarts while AppDaemon is up.  AppDaemon will not start the HASS plugin until all of these conditions are met.
+When AppDaemon starts, it waits for all the loaded plugins to become ready before starting any apps. The ``plugin_startup_conditions`` prevent the HASS plugin from becoming ready until the conditions are met. Therefore, no apps will have their ``initialize`` method ran until the conditions are met.
 
+Each condition only has to be met once in order to be completed. If while waiting for an event, a state condition goes from unmet to met and back again, the associated condition will still be considered met.
 
+Example placement in ``appdaemon.yaml``:
 
-AppDamon will pause the startup of the plugin until the conditions have been met. In particular, apps will not have their ``initialize()`` functions run until the conditions have been met. **These two sets of conditions operate independently.  If you want the same behavior during both startup scenarios then you need to include both sets of conditions in the configuration file and make them the same. Each set of conditions takes the same format, and there are 3 types of conditions. Currently each condition block supports only one of each type of condition.**
+.. code:: yaml
+
+    appdaemon:
+      plugins:
+        hass:
+          type: hass
+          plugin_startup_conditions:
+            delay: ...
+            state: ...
+            event: ...
 
 delay
 '''''
 
-Delay startup for a number of seconds, e.g.:
+Delay startup for a number of seconds, for example:
 
-    ``delay:10``
+.. code:: yaml
+
+    delay: 10 # delays for 10s
 
 state
 '''''
 
-
-Wait until a specific state exists or has a specific value or set of values. The values are specified as an inline dictionary as follows:
+Wait until a specific state exists or has a specific value or set of values. The values can be specified as an inline dictionary as follows:
 
 - wait until an entity exists - ``state: {entity: <entity id>}``
 - wait until an entity exists and has a specific value for its state: ``state: {entity: <entity id>, value: {state: "on"}}``
 - wait until an entity exists and has a specific value for an attribute: ``state: {entity: <entity id>, value: {attributes: {attribute: value}}}``
 
-States and values can be mixed, and they must all match with the state at a point in time for the condition to be satisfied, for instance:
+Example to wait for an input boolean:
 
-.. code:: YAML
+.. code:: yaml
 
-    state: {entity: light.office_1, value: {state: "on", attributes: {brightness: 254}}}
+    state:
+      entity: input_boolean.appdaemon_enable # example entity name
+      value:
+        state: "on" # on needs to be in quotes
+
+Example to wait for a light to be on full brightness:
+
+.. code:: yaml
+
+    state:
+      entity: light.office_1 # example entity
+      value:
+        state: "on" # on needs to be in quotes
+        attributes:
+          brightness: 255 # full brightness
 
 event
 '''''
 
-Wait for a specific event.
+Wait for an event or an event with specific data
 
-- wait for a specific event of a given type: ``{event_type: <event name>}``
-- wait for a specific event with specific data: ``{event_type: <event name>, data:{service_data:{entity_id: <some entity>}, service: <some service>}}``
+- wait for an event of a given type: ``{event_type: <event name>}``
+- wait for an event with specific data: ``{event_type: <event name>, data: {service_data: {entity_id: <some entity>}, service: <some service>}}``
 
-Different condition types may be specified in combination with the following caveats:
+Example to wait for ZWave to complete initialization upon a HASS restart:
 
-- The delay event always executes immediately upon startup, only once. No other checking is performed while the delay is in progress
-- State events will be evaluated after any delay every time a new state change event comes in
-- Events will be evaluated at the time the event arrives. If there is an additional state event, and it does not match, the event will be discarded, and the plugin will continue to wait until all conditions have been met. This is true even if the state event has previously matched but has reverted to a non-matching state.
+.. code:: yaml
 
-Examples
-''''''''
+    event:
+      event_type: zwave.network_ready
 
-Wait for ZWave to complete initialization upon a HASS restart:
+Example to wait for an input button before starting AppDaemon
 
-.. code:: YAML
+.. code:: yaml
 
-    plugin_startup_conditions:
-        event: {event_type: zwave.network_ready}
-
-
-Wait for a specific input boolean to be triggered when AppDaemon restarts:
-
-.. code:: YAML
-
-    appdaemon_startup_conditions:
-        event: {event_type: call_service, data:{domain: homeassistant, service_data:{entity_id: input_boolean.heating}, service: turn_on}}
-
+    event:
+      event_type: call_service
+      data:
+        domain: input_button
+        service: press
+        service_data:
+          entity_id: input_button.start_appdaemon # example entity
 
 MQTT
 ----

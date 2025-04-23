@@ -40,25 +40,49 @@ events
 .. automodule:: appdaemon.events
    :members:
 
+futures
+=======
+.. automodule:: appdaemon.futures
+   :members:
+
+http
+======
+.. automodule:: appdaemon.http
+   :members:
+
 logging
 =======
 .. automodule:: appdaemon.logging
    :members:
 
+main
+====
+
 .. automodule:: appdaemon.__main__
    :members:
 
-main
-====
-.. automodule:: appdaemon.plugin_management
-   :members:
+plugins
+=======
 
-.. automodule:: appdaemon.scheduler
+.. automodule:: appdaemon.plugin_management
    :members:
 
 scheduler
 =========
+
+.. automodule:: appdaemon.scheduler
+   :members:
+
+services
+=========
+
 .. automodule:: appdaemon.services
+   :members:
+
+sequences
+=========
+
+.. automodule:: appdaemon.sequences
    :members:
 
 state
@@ -78,7 +102,7 @@ thread_async
 
 threading
 =========
-.. automodule:: appdaemon.threading
+.. automodule:: appdaemon.threads
    :members:
 
 utility_loop

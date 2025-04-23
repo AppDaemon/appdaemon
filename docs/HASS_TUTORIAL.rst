@@ -235,13 +235,9 @@ simple.
 Final Thoughts
 --------------
 
-I have spent the last few weeks moving all of my (fairly complex)
-automations over to *AppDaemon* and so far it is working very
-reliably.
-
 Some people will maybe look at all of this and say "what use is this, I
 can already do all of this", and that is fine, as I said this is an
-alternative not a replacement, but I am hopeful that for some users this
+alternative not a replacement, but for many users this
 will seem a more natural, powerful and nimble way of building
 potentially very complex automations.
 

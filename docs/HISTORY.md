@@ -1,6 +1,48 @@
 # Change Log
 
-## 4.4.2
+## 4.5.0
+
+**Features**
+
+- Added Pirateweather widget - contributed by [Dave Dixon](https://github.com/DaveDixon)
+- Added ability to know the topic associated with an MQTT message decode error
+- Added `import_path` directive to enable python imports from arbitary paths
+- Added access to the request object for both async and non-async http callbacks - contributed by [Eric Severance](https://github.com/esev)
+- Added option for N deg rising|setting to Scheduler._parse_time
+- Added `silent` parameter to `cancel_listen_state()` - contributed by [Daniel Rocha](https://github.com/danroc)
+- Remove support for python 3.8 and 3.9
+- Added support for python 3.12
+- Update docker image to Alpine 3.21/Python 3.12
+- Upgraded HASS plugin to use the aiohttp websocket client
+- Upgraded HASS plugin to use the Websocket API where possible
+- Implemented value return for HASS Service Calls
+- added the ``--write_toml`` as an AppDaemon startup parameter to force AD to use the ``TOML`` format when creating new apps using the
+- Upgraded Material Design icons to 7.4.47 - - contributed by [Daniel Rocha](https://github.com/danroc)
+- Rewrote app dependency tracking and added automatic tracking of global modules, deprecated associated global directoves in apps.yaml
+- Added pydantic validation to most user input
+
+**Fixes**
+
+- baseicon set_service_call fix - contributed by [lancasterJ](https://github.com/lancasterJ)
+- HTTP module now correctly honors the provided host name instead of binding to 0.0.0.0, and should also now work for IPv6 - contributed by [bitstacker](https://github.com/bitstacker)
+- Fix for baseweather direction icon - contributed by [carawan](https://github.com/carawan)
+- Fix for bug in pathname checking for hidden files and __pycache__  - contributed by [David Warde-Farley](https://github.com/dwf)- contributed by [Roman Andriadi](https://github.com/nARN)
+- ADAPI Sleep now accepts a float as documented
+
+**Breaking Changes**
+
+- AppDaemon no longer supports versions of Python prior to 3.10. This is in line with other packages, and allows us to keep the code base up to date and current with the latest developments
+
+**Changes in Behavior**
+
+- The fix to honor the host name in the HTTP URL may cause AppDaemon to fail to start, if the hostname provided is not valid. In particular, docker users will need to switch their URL to either use localhost, explicitly, or "0.0.0.0" which will bind to any available interface, or use command line tools to discover the correct IP address and use that.
+- The timer for internal function timeouts has been increased from 10 seconds to 60 to allow for the fact that service calls to hass can now be synchronous and may take longer
+- AppDaemon will now discard any events that it attempts to process for an App that is initializing. This is intended to prevent race conditions during App Initialization
+- The ``--toml`` flag has been deprecated. AppDaemon will now work transparently with either yaml or toml files, allowing the user to mix and match and convert from one format to another over time. In the event of a conflict, the yaml file will take precedence.
+
+
+
+## 4.4.2 (2023-04-16)
 
 **Features**
 

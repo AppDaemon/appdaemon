@@ -29,12 +29,12 @@ jobs:
       packages: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       # https://github.com/actions/setup-python
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: "3.12"
           cache: 'pip' # caching pip dependencies
           # Manually set 'doc-requirements.txt' as the file to use for dependencies, since `requirements.txt` contains runtime dependencies.
           cache-dependency-path: 'doc-requirements.txt'
@@ -56,9 +56,9 @@ jobs:
         working-directory: docs
       # Save the generated documentation as an artifact in Github
       - name: Upload documentation
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: python-package
+          name: python-doc-package
           path: docs/_build/
 
   # The Python package is required in the subsequent Docker image build
@@ -71,12 +71,12 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       # https://github.com/actions/setup-python
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: "3.12"
           cache: 'pip' # caching pip dependencies
           # Manually set 'dev-requirements.txt' as the file to use for dependencies, since `requirements.txt` contains runtime dependencies.
           cache-dependency-path: 'dev-requirements.txt'
@@ -87,7 +87,7 @@ jobs:
       - name: Build Python package
         run: python -m build
       - name: Upload Python package
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: python-package
           path: dist/
@@ -109,19 +109,19 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Download Python package
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4.2.1
         with:
           name: python-package
           path: dist/
       - name: Setup Docker buildx
-        uses: docker/setup-buildx-action@v2.4.1
+        uses: docker/setup-buildx-action@v3.10.0
       # Login against a Docker registry (only with a tag or push on `dev` branch)
       # https://github.com/docker/login-action
       - name: Log into Docker Hub
         if: github.event_name == 'push' && (startsWith(github.ref, 'refs/tags') || github.ref_name == 'dev') && github.repository == 'AppDaemon/appdaemon'
-        uses: docker/login-action@v2.1.0
+        uses: docker/login-action@v3.4.0
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
@@ -129,7 +129,7 @@ jobs:
       # https://github.com/docker/metadata-action
       - name: Extract Docker metadata
         id: meta
-        uses: docker/metadata-action@v4.3.0
+        uses: docker/metadata-action@v5.7.0
         with:
           images: ${{ env.IMAGE_NAME }}
           # Customize the generation of Docker `latest` tag
@@ -151,7 +151,7 @@ jobs:
       # https://github.com/docker/build-push-action
       - name: Build and push Docker image
         id: build-and-push
-        uses: docker/build-push-action@v4.0.0
+        uses: docker/build-push-action@v6.15.0
         with:
           context: .
           push: ${{github.event_name == 'push' && (startsWith(github.ref, 'refs/tags') || github.ref_name == 'dev') && github.repository == 'AppDaemon/appdaemon'}}

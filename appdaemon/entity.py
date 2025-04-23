@@ -1,35 +1,32 @@
-from appdaemon.appdaemon import AppDaemon
-from appdaemon.exceptions import TimeOutException
-import appdaemon.utils as utils
-
-from typing import Any, Optional, Callable, Union
-from logging import Logger
 import asyncio
 import uuid
-import iso8601
 from collections.abc import Iterable
+from datetime import datetime, timedelta
+from logging import Logger
+from typing import TYPE_CHECKING, Any, overload
+from collections.abc import Callable
 
+import appdaemon.utils as utils
+from appdaemon.exceptions import TimeOutException
 
-class EntityAttrs:
-    def __init__(self):
-        pass
-
-    def __get__(self, instance, owner):
-        stateattrs = utils.EntityStateAttrs(instance.AD.state.get_state_simple(instance.namespace, instance.entity_id))
-        return stateattrs
+if TYPE_CHECKING:
+    from appdaemon.appdaemon import AppDaemon
 
 
 class Entity:
-    states_attrs = EntityAttrs()
+    AD: "AppDaemon"
+    name: str
+    logger: Logger
+    entity_id: str
+    namespace: str
+    # states_attrs = EntityAttrs()
 
-    def __init__(self, logger: Logger, ad: AppDaemon, name: str, namespace: str, entity_id: str):
-        # Store args
-
+    def __init__(self, logger: Logger, ad: "AppDaemon", name: str, namespace: str, entity_id: str):
         self.AD = ad
         self.name = name
         self.logger = logger
-        self._entity_id = entity_id
-        self._namespace = namespace
+        self.entity_id = entity_id
+        self.namespace = namespace
         self._async_events = {}
 
     def set_namespace(self, namespace: str) -> None:
@@ -52,24 +49,31 @@ class Entity:
             >>> self.my_entity.set_state(**entity_data)
 
         """
-        self._namespace = namespace
+        self.namespace = namespace
 
-    @utils.sync_wrapper
-    async def set_state(self, **kwargs: Optional[Any]) -> dict:
+    @overload
+    async def set_state(
+        self,
+        state: Any | None,
+        attributes: dict,
+        replace: bool,
+        **kwargs
+    ) -> dict: ...
+
+    @utils.sync_decorator
+    async def set_state(self, state: Any | None = None, **kwargs) -> dict:
         """Updates the state of the specified entity.
 
         Args:
-            **kwargs (optional): Zero or more keyword arguments.
-
-        Keyword Args:
             state: New state value to be set.
-            attributes (optional): Entity's attributes to be updated.
+            attributes (dict, optional): Dictionary of the entity's attributes to be updated.
             replace(bool, optional): If a `replace` flag is given and set to ``True`` and ``attributes``
                 is provided, AD will attempt to replace its internal entity register with the newly
                 supplied attributes completely. This can be used to replace attributes in an entity
                 which are no longer needed. Do take note this is only possible for internal entity state.
                 For plugin based entities, this is not recommended, as the plugin will mostly replace
                 the new values, when next it updates.
+            **kwargs (optional): Zero or more keyword arguments. These will be applied to the attributes.
 
         Returns:
             A dictionary that represents the new state of the updated entity.
@@ -86,20 +90,21 @@ class Entity:
             >>> self.my_entity.set_state(state = "on", attributes = {"color_name": "red"})
 
         """
+        self.logger.debug("set state: %s, %s from %s", self.entity_id, kwargs, self.name)
+        return await self.AD.state.set_state(
+            name=self.name,
+            namespace=self.namespace,
+            entity=self.entity_id,
+            state=state,
+            **kwargs
+        )
 
-        entity_id = self._entity_id
-        namespace = self._namespace
-
-        self.logger.debug("set state: %s, %s from %s", entity_id, kwargs, self.name)
-
-        if "namespace" in kwargs:
-            del kwargs["namespace"]
-
-        return await self.AD.state.set_state(self.name, namespace, entity_id, **kwargs)
-
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def get_state(
-        self, attribute: str = None, default: Any = None, copy: bool = True, **kwargs: Optional[Any]
+        self,
+        attribute: str = None,
+        default: Any | None= None,
+        copy: bool = True
     ) -> Any:
         """Gets the state of any entity within AD.
 
@@ -117,9 +122,6 @@ class Entity:
                 but also gives you write-access to the internal AppDaemon data structures,
                 which is dangerous. Only disable copying when you can guarantee not to modify
                 the returned state object, e.g., you do read-only operations.
-            **kwargs (optional): Zero or more keyword arguments.
-
-        Keyword Args:
 
         Returns:
             The entire state of the entity at that given time, if  if ``get_state()``
@@ -131,7 +133,7 @@ class Entity:
 
             Get the state attribute of `light.office_1`.
 
-            >>> state = self.my_entity.get_state("light.office_1")
+            >>> state = self.my_entity.get_state()
 
             Get the brightness attribute of `light.office_1`.
 
@@ -142,19 +144,31 @@ class Entity:
             >>> state = self.my_entity.get_state(attribute="all")
 
         """
+        self.logger.debug("get state: %s, %s from %s", self.entity_id, self.namespace, self.name)
+        return await self.AD.state.get_state(self.name, self.namespace, self.entity_id, attribute, default, copy)
 
-        entity_id = self._entity_id
-        namespace = self._namespace
+    @overload
+    async def listen_state(
+        self,
+        callback: Callable,
+        new: str | Callable | None = None,
+        old: str | Callable | None = None,
+        duration: int | None = None,
+        attribute: str | None = None,
+        timeout: int | None = None,
+        immediate: bool | None = None,
+        oneshot: bool | None = None,
+        pin: bool | None = None,
+        pin_thread: int | None = None,
+        **kwargs: Any | None
+    ) -> str | list[str]: ...
 
-        self.logger.debug("get state: %s, %s from %s", entity_id, kwargs, self.name)
-
-        if "namespace" in kwargs:
-            del kwargs["namespace"]
-
-        return await self.AD.state.get_state(self.name, namespace, entity_id, attribute, default, copy)
-
-    @utils.sync_wrapper
-    async def listen_state(self, callback: Callable, **kwargs: Optional[Any]) -> str:
+    @utils.sync_decorator
+    async def listen_state(
+        self,
+        callback: Callable,
+        **kwargs: Any | None
+    ) -> str:
         """Registers a callback to react to state changes.
 
         This function allows the user to register a callback for a wide variety of state changes.
@@ -162,19 +176,6 @@ class Entity:
         Args:
             callback: Function to be invoked when the requested state change occurs. It must conform
                 to the standard State Callback format documented `here <APPGUIDE.html#state-callbacks>`__
-            **kwargs (optional): Zero or more keyword arguments.
-
-        Keyword Args:
-            attribute (str, optional): Name of an attribute within the entity state object. If this
-                parameter is specified in addition to a fully qualified ``entity_id``. ``listen_state()``
-                will subscribe to changes for just that attribute within that specific entity.
-                The ``new`` and ``old`` parameters in the callback function will be provided with
-                a single value representing the attribute.
-
-                The value ``all`` for attribute has special significance and will listen for any
-                state change within the specified entity, and supply the callback functions with
-                the entire state dictionary for the specified entity rather than an individual
-                attribute value.
             new (optional): If ``new`` is supplied as a parameter, callbacks will only be made if the
                 state of the selected attribute (usually state) in the new state match the value
                 of ``new``. The parameter type is defined by the namespace or plugin that is responsible
@@ -182,7 +183,6 @@ class Entity:
             old (optional): If ``old`` is supplied as a parameter, callbacks will only be made if the
                 state of the selected attribute (usually state) in the old state match the value
                 of ``old``. The same caveats on types for the ``new`` parameter apply to this parameter.
-
             duration (int, optional): If ``duration`` is supplied as a parameter, the callback will not
                 fire unless the state listened for is maintained for that number of seconds. This
                 requires that a specific attribute is specified (or the default of ``state`` is used),
@@ -194,7 +194,16 @@ class Entity:
                 If you use ``duration`` when listening for an entire device type rather than a specific
                 entity, or for all state changes, you may get unpredictable results, so it is recommended
                 that this parameter is only used in conjunction with the state of specific entities.
+            attribute (str, optional): Name of an attribute within the entity state object. If this
+                parameter is specified in addition to a fully qualified ``entity_id``. ``listen_state()``
+                will subscribe to changes for just that attribute within that specific entity.
+                The ``new`` and ``old`` parameters in the callback function will be provided with
+                a single value representing the attribute.
 
+                The value ``all`` for attribute has special significance and will listen for any
+                state change within the specified entity, and supply the callback functions with
+                the entire state dictionary for the specified entity rather than an individual
+                attribute value.
             timeout (int, optional): If ``timeout`` is supplied as a parameter, the callback will be created as normal,
                  but after ``timeout`` seconds, the callback will be removed. If activity for the listened state has
                  occurred that would trigger a duration timer, the duration timer will still be fired even though the
@@ -220,7 +229,7 @@ class Entity:
             pin (bool, optional): If ``True``, the callback will be pinned to a particular thread.
             pin_thread (int, optional): Sets which thread from the worker pool the callback will be
                 run by (0 - number of threads -1).
-            *kwargs (optional): Zero or more keyword arguments that will be supplied to the callback
+            **kwargs (optional): Zero or more keyword arguments that will be supplied to the callback
                 when it is called.
 
         Notes:
@@ -262,21 +271,20 @@ class Entity:
 
             >>> self.handle = self.my_entity.listen_state(self.my_callback, new = "on", duration = 60, immediate = True)
         """
+        kwargs.pop("namespace", None)
 
-        entity_id = self._entity_id
-        namespace = self._namespace
+        self.logger.debug("Calling listen_state for %s, %s from %s", self.entity_id, kwargs, self.name)
 
-        if "namespace" in kwargs:
-            del kwargs["namespace"]
+        return await self.AD.state.add_state_callback(
+            name=self.name,
+            namespace=self.namespace,
+            entity=self.entity_id,
+            cb=callback,
+            kwargs=kwargs
+        )
 
-        name = self.name
-
-        self.logger.debug("Calling listen_state for %s, %s from %s", entity_id, kwargs, self.name)
-
-        return await self.AD.state.add_state_callback(name, namespace, entity_id, callback, kwargs)
-
-    @utils.sync_wrapper
-    async def add(self, state: Union[str, int, float] = None, attributes: dict = None) -> None:
+    @utils.sync_decorator
+    async def add(self, state: str | int | float = None, attributes: dict = None) -> None:
         """Adds a non-existent entity, by creating it within a namespaces.
 
         It should be noted that this api call, is mainly for creating AD internal entities.
@@ -298,43 +306,44 @@ class Entity:
 
         """
 
-        namespace = self._namespace
-        entity_id = self._entity_id
+        namespace = self.namespace
+        entity_id = self.entity_id
 
-        if await self.exists():
+        if self.exists():
             self.logger.warning("%s already exists, will not be adding it", entity_id)
             return None
 
         await self.AD.state.add_entity(namespace, entity_id, state, attributes)
 
-    @utils.sync_wrapper
-    async def exists(self) -> bool:
+    def exists(self) -> bool:
         """Checks the existence of the entity in AD."""
+        return self.AD.state.entity_exists(self.namespace, self.entity_id)
 
-        namespace = self._namespace
-        entity_id = self._entity_id
+    @overload
+    async def call_service(
+        self,
+        service: str,
+        namespace: str,
+        return_result: bool,
+        callback: Callable,
+        **kwargs
+    ) -> Any: ...
 
-        return await self.AD.state.entity_exists(namespace, entity_id)
-
-    @utils.sync_wrapper
-    async def call_service(self, service: str, **kwargs: Optional[Any]) -> Any:
+    @utils.sync_decorator
+    async def call_service(self, service: str, namespace: str | None = None, **kwargs: Any | None) -> Any:
         """Calls an entity supported Service within AppDaemon.
 
         This function can call only services that are tied to the entity, and provide any required parameters.
 
         Args:
             service (str): The service name, without the domain (e.g "toggle")
-            **kwargs (optional): Zero or more keyword arguments.
-
-        Keyword Args:
+            return_result(bool, option): If `return_result` is provided and set to `True` AD will attempt
+                to wait for the result, and return it after execution
+            callback: The non-async callback to be executed when complete.
             **kwargs: Each service has different parameter requirements. This argument
                 allows you to specify a comma-separated list of keyword value pairs, e.g.,
                 `state = on`. These parameters will be different for
                 every service and can be discovered using the developer tools.
-
-            return_result(bool, option): If `return_result` is provided and set to `True` AD will attempt
-                to wait for the result, and return it after execution
-            callback: The non-async callback to be executed when complete.
 
         Returns:
             Result of the `call_service` function if any
@@ -343,43 +352,37 @@ class Entity:
             HASS
 
             >>> self.my_entity = self.get_entity("light.office_1")
-            >>> self.my_entity.call_service("turn_on", color_name = "red")
+            >>> self.my_entity.call_service("turn_on", color_name="red")
 
         """
-
-        entity_id = self._entity_id
-        namespace = self._namespace
-
-        kwargs["entity_id"] = entity_id
-
-        domain, _ = entity_id.split(".")
-        self.logger.debug("call_service: %s/%s, %s", domain, service, kwargs)
-
-        if "namespace" in kwargs:
-            del kwargs["namespace"]
-
-        kwargs["__name"] = self.name
-
-        return await self.AD.services.call_service(namespace, domain, service, kwargs)
+        namespace = namespace or self.namespace
+        kwargs["entity_id"] = self.entity_id
+        self.logger.debug("call_service: %s/%s, %s", self.domain, service, kwargs)
+        return await self.AD.services.call_service(
+            namespace=namespace,
+            domain=self.domain,
+            service=service,
+            data=kwargs
+        )  # fmt: skip
 
     async def wait_state(
         self,
         state: Any,
-        attribute: Union[str, int] = None,
-        duration: Union[int, float] = 0,
-        timeout: Union[int, float] = None,
+        attribute: str | int = None,
+        duration: int | float = 0,
+        timeout: int | float = None,
     ) -> None:
         """Used to wait for the state of an entity's attribute
 
-        This API call is only functional within an async function. It should be noted that when instanciated,
-        the api checks immediately if its already on the required state, and if it is, it will continue.
+        This API call should only be used async. It should be noted that when instantiated,
+        the api checks immediately if it's already in the required state and will continue if it is.
 
         Args:
             state (Any): The state to wait for, for the entity to be in before continuing
             attribute (str): The entity's attribute to use, if not using the entity's state
             duration (int|float): How long the state is to hold, before continuing
             timeout (int|float): How long to wait for the state to be achieved, before timing out.
-                                When it times out, a appdaemon.exceptions.TimeOutException is raised
+                When it times out, a appdaemon.exceptions.TimeOutException is raised
 
         Returns:
             None
@@ -399,7 +402,6 @@ class Entity:
 
         wait_id = uuid.uuid4().hex
         async_event = asyncio.Event()
-        async_event.clear()
         self._async_events[wait_id] = async_event
 
         try:
@@ -415,17 +417,14 @@ class Entity:
             )
             await asyncio.wait_for(async_event.wait(), timeout=timeout)
 
-        except asyncio.TimeoutError:
+        except asyncio.TimeoutError as e:
             await self.AD.state.cancel_state_callback(handle, self.name)
-            self.logger.warning(f"State Wait for {self._entity_id} Timed Out")
-            raise TimeOutException("The entity timed out")
+            self.logger.warning(f"State Wait for {self.entity_id} Timed Out")
+            raise TimeOutException("The entity timed out") from e
 
-    async def entity_state_changed(self, *args: list, **kwargs: dict) -> None:
+    async def entity_state_changed(self, *args, wait_id: str, **kwargs) -> None:
         """The entity state changed"""
-
-        wait_id = args[4]["wait_id"]
         async_event = self._async_events.pop(wait_id)
-
         # now release the wait
         async_event.set()
 
@@ -434,14 +433,14 @@ class Entity:
     #
 
     @classmethod
-    def entity_api(cls, logger: Logger, ad: AppDaemon, name: str, namespace: str, entity: str):
+    def entity_api(cls, logger: Logger, ad: "AppDaemon", name: str, namespace: str, entity: str):
         return cls(logger, ad, name, namespace, entity)
 
     #
     # helper functions
     #
 
-    @utils.sync_wrapper
+    @utils.sync_decorator
     async def copy(self, copy: bool = True) -> dict:
         """Gets the complete state of the entity within AD.
 
@@ -453,8 +452,7 @@ class Entity:
 
         return await self.get_state(attribute="all", copy=copy, default={})
 
-    @utils.sync_wrapper
-    async def is_state(self, state: Any) -> bool:
+    def is_state(self, state: Any) -> bool:
         """Checks the state of the entity against the given state
 
         This helper function supports using both iterable and non-iterable data
@@ -468,66 +466,71 @@ class Entity:
 
         """
 
-        entity_state = await self.get_state(copy=False)
+        entity_state = self.get_state(copy=False)
+        match state:
+            case str() | int() | float():
+                return entity_state == state
+            case Iterable():
+                return entity_state in state
+            case _:
+                return entity_state == state
 
-        if isinstance(state, (str, int, float)):
-            return entity_state == state
+    def is_on(self) -> bool:
+        return self.is_state("on")
 
-        elif isinstance(state, Iterable):
-            return entity_state in state
-
-        return entity_state == state
-
-    @utils.sync_wrapper
-    async def turn_on(self, **kwargs: Optional[Any]) -> Any:
+    @utils.sync_decorator
+    async def turn_on(self, **kwargs) -> Any:
         """Generic helper function, used to turn the entity ON if supported.
         This function will attempt to call the `turn_on` service if registered,
         either by an app or plugin within the entity's namespace. So therefore its
         only functional, if the service `turn_on` exists within the namespace the
         entity is operating in.
 
+        The keyword arguments accepted will vary depending on the namespace and
+        associated plugin.
+
+        https://www.home-assistant.io/integrations/light/#action-lightturn_on
+
         Keyword Args:
-            **kwargs: Turn_on services depending on the namespace functioning within
-                has different parameter requirements. This argument
-                allows you to specify a comma-separated list of keyword value pairs, e.g.,
-                `transition = 3`. These parameters will be different for
-                every service being used.
+            **kwargs (optional): Zero or more keyword arguments. These will be applied to the attributes.
         """
 
         return await self.call_service("turn_on", **kwargs)
 
-    @utils.sync_wrapper
-    async def turn_off(self, **kwargs: Optional[Any]) -> Any:
+    @utils.sync_decorator
+    async def turn_off(self, **kwargs: Any | None) -> Any:
         """Generic function, used to turn the entity OFF if supported.
         This function will attempt to call the `turn_off` service if registered,
         either by an app or plugin within the entity's namespace. So therefore its
         only functional, if the service `turn_off` exists within the namespace the
         entity is operating in.
 
+        The keyword arguments accepted will vary depending on the namespace and
+        associated plugin.
+
+        https://www.home-assistant.io/integrations/light/#action-lightturn_off
+
         Keyword Args:
-            **kwargs: Turn_off services depending on the namespace functioning within
-                has different parameter requirements. This argument
-                allows you to specify a comma-separated list of keyword value pairs, e.g.,
-                `transition = 3`. These parameters will be different for
-                every service being used.
+            **kwargs (optional): Zero or more keyword arguments. These will be applied to the attributes.
         """
 
         return await self.call_service("turn_off", **kwargs)
 
-    @utils.sync_wrapper
-    async def toggle(self, **kwargs: Optional[Any]) -> Any:
+    @utils.sync_decorator
+    async def toggle(self, **kwargs: Any | None) -> Any:
         """Generic function, used to toggle the entity ON/OFF if supported.
         This function will attempt to call the `toggle` service if registered,
         either by an app or plugin within the entity's namespace. So therefore its
         only functional, if the service `toggle` exists within the namespace the
         entity is operating in.
 
+        The keyword arguments accepted will vary depending on the namespace and
+        associated plugin.
+
+        https://www.home-assistant.io/integrations/light/#action-lighttoggle
+
         Keyword Args:
-            **kwargs: Toggle services depending on the namespace functioning within
-                has different parameter requirements. This argument
-                allows you to specify a comma-separated list of keyword value pairs, e.g.,
-                `transition = 3`. These parameters will be different for
-                every service being used.
+            **kwargs (optional): Zero or more keyword arguments. These will be applied to the attributes.
         """
 
         return await self.call_service("toggle", **kwargs)
@@ -537,22 +540,29 @@ class Entity:
     #
 
     @property
+    def _simple_state(self) -> dict[str, Any]:
+        return self.AD.state.get_state_simple(self.namespace, self.entity_id)
+
+    @property
     def entity_id(self) -> str:
         """Get the entity's entity_id"""
-
         return self._entity_id
+
+    @entity_id.setter
+    def entity_id(self, new: str) -> str:
+        """Get the entity's entity_id"""
+        self._entity_id = new
+        try:
+            if new is not None:
+                self.domain, self.entity_name = self._entity_id.split('.')
+        except ValueError:
+            # The entity_id could actually be just a domain
+            self.domain = self._entity_id
 
     @property
     def state(self) -> Any:
         """Get the entity's state"""
-
-        return self.states_attrs.state
-
-    @property
-    def domain(self) -> str:
-        """Get the entity's domain name"""
-
-        return self._entity_id.split(".")[0]
+        return self._simple_state["state"]
 
     @property
     def namespace(self) -> str:
@@ -560,37 +570,46 @@ class Entity:
 
         return self._namespace
 
-    @property
-    def entity_name(self) -> str:
-        """Get the entity's name"""
-
-        return self._entity_id.split(".")[1]
+    @namespace.setter
+    def namespace(self, new: str):
+        self._namespace = new
 
     @property
-    def attributes(self) -> dict:
+    def attributes(self) -> dict[str, Any]:
         """Get the entity's attributes"""
-
-        return self.states_attrs.attributes
+        return self._simple_state.get("attributes", {})
 
     @property
     def friendly_name(self) -> str:
         """Get the entity's friendly name"""
-
-        return self.states_attrs.attributes.friendly_name
+        return self.attributes.get("friendly_name", self.entity_id)
 
     @property
     def last_changed(self) -> str:
         """Get the entity's last changed time in iso format"""
+        return self._simple_state.get("last_changed")
 
-        return self.states_attrs.last_changed
+    @property
+    def last_changed_delta(self) -> timedelta | None:
+        """The timedelta formatted as a string, with the fractional seconds truncated"""
+        if time_str := self.last_changed:
+            utc = datetime.fromisoformat(time_str)
+            now = self.AD.sched.get_now_sync()
+            return (now - utc)
+
+    @property
+    def last_changed_delta_str(self) -> str:
+        """The timedelta formatted as a string, with the fractional seconds truncated"""
+        if (td := self.last_changed_delta) is not None:
+            return str(td)[:7]
+        else:
+            return ''
 
     @property
     def last_changed_seconds(self) -> float:
         """Get the entity's last changed time in seconds"""
-
-        utc = iso8601.parse_date(self.states_attrs.last_changed)
-        now = self.AD.sched.get_now_sync()
-        return (now - utc).total_seconds()
+        if td := self.last_changed_delta:
+            return td.total_seconds()
 
     def __repr__(self) -> str:
-        return self._entity_id
+        return self.entity_id

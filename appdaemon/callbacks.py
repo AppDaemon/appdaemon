@@ -1,13 +1,30 @@
 import asyncio
+from logging import Logger
+from typing import TYPE_CHECKING, Any
 
 import appdaemon.utils as utils
-from appdaemon.appdaemon import AppDaemon
+
+if TYPE_CHECKING:
+    from .appdaemon import AppDaemon
 
 
 class Callbacks:
-    def __init__(self, ad: AppDaemon):
-        self.AD = ad
+    """Container for storing callbacks. Modified by :class:`~.events.Events` and :class:`~.state.State`"""
 
+    AD: "AppDaemon"
+    """Reference to the AppDaemon container object
+    """
+    logger: Logger
+    """Standard python logger named ``AppDaemon._callbacks``
+    """
+    diag: Logger
+    """Standard python logger named ``Diag``
+    """
+
+    callbacks: dict[str, dict[str, dict[str, Any]]]
+
+    def __init__(self, ad: "AppDaemon"):
+        self.AD = ad
         self.callbacks = {}
         self.callbacks_lock = asyncio.Lock()
         self.logger = ad.logging.get_child("_callbacks")
@@ -18,6 +35,7 @@ class Callbacks:
     #
 
     async def dump_callbacks(self):
+        """Dumps info about the callbacks to the ``Diag`` log"""
         async with self.callbacks_lock:
             if self.callbacks == {}:
                 self.diag.info("No callbacks")

@@ -9,6 +9,7 @@ Dockerfile
 .pre-commit-config.yaml
 
 *.md
+!LICENSE.md
 !README*.md
 MANIFEST.in
 *.rst
@@ -16,3 +17,5 @@ MANIFEST.in
 # Documentation
 docs
 .readthedocs.yml
+
+.venv

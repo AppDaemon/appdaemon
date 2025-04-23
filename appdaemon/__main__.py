@@ -9,17 +9,29 @@ also creates the loop and kicks everything off
 
 import argparse
 import asyncio
+import functools
+import itertools
+import json
+import logging
 import os
-import os.path
-import platform
 import signal
 import sys
+from pathlib import Path
+
+import pytz
+from pydantic import ValidationError
 
 import appdaemon.appdaemon as ad
-import appdaemon.http as adhttp
-import appdaemon.logging as logging
 import appdaemon.utils as utils
-import pytz
+from appdaemon import exceptions as ade
+from appdaemon.app_management import UpdateMode
+from appdaemon.appdaemon import AppDaemon
+from appdaemon.exceptions import StartupAbortedException
+from appdaemon.http import HTTP
+from appdaemon.logging import Logging
+from appdaemon.models.config import AppDaemonConfig
+
+from .models.config.yaml import MainConfig
 
 try:
     import pid
@@ -32,10 +44,18 @@ except ImportError:
     uvloop = None
 
 
+class NoADConfig(Exception):
+    pass
+
+
 class ADMain:
     """
     Class to encapsulate all main() functionality.
     """
+
+    AD: AppDaemon
+
+    logging: Logging
 
     def __init__(self):
         """Constructor."""
@@ -47,47 +67,34 @@ class ADMain:
         self.http_object = None
         self.logger = None
 
-    def init_signals(self):
-        """Setup signal handling."""
-
-        # Windows does not support SIGUSR1 or SIGUSR2
-        if platform.system() != "Windows":
-            signal.signal(signal.SIGUSR1, self.handle_sig)
-            signal.signal(signal.SIGINT, self.handle_sig)
-            signal.signal(signal.SIGHUP, self.handle_sig)
-            signal.signal(signal.SIGTERM, self.handle_sig)
-
     # noinspection PyUnusedLocal
-    def handle_sig(self, signum, frame):
+    def handle_sig(self, signum: int):
         """Function to handle signals.
 
-        SIGUSR1 will result in internal info being dumped to the DIAG log
-        SIGHUP will force a reload of all apps
-        SIGINT and SIGTEM both result in AD shutting down
-
-        Args:
-            signum: Signal number being processed.
-            frame: frame - unused
-
-        Returns:
-            None.
-
+        Signals:
+            SIGUSR1 will result in internal info being dumped to the DIAG log
+            SIGHUP will force a reload of all apps
+            SIGINT and SIGTEM both result in AD shutting down
         """
-
-        if signum == signal.SIGUSR1:
-            self.AD.thread_async.call_async_no_wait(self.AD.sched.dump_schedule)
-            self.AD.thread_async.call_async_no_wait(self.AD.callbacks.dump_callbacks)
-            self.AD.thread_async.call_async_no_wait(self.AD.threading.dump_threads)
-            self.AD.thread_async.call_async_no_wait(self.AD.app_management.dump_objects)
-            self.AD.thread_async.call_async_no_wait(self.AD.sched.dump_sun)
-        if signum == signal.SIGHUP:
-            self.AD.thread_async.call_async_no_wait(self.AD.app_management.check_app_updates, mode="term")
-        if signum == signal.SIGINT:
-            self.logger.info("Keyboard interrupt")
-            self.stop()
-        if signum == signal.SIGTERM:
-            self.logger.info("SIGTERM Received")
-            self.stop()
+        match signum:
+            case signal.SIGUSR1:
+                self.AD.thread_async.call_async_no_wait(self.AD.sched.dump_schedule)
+                self.AD.thread_async.call_async_no_wait(self.AD.callbacks.dump_callbacks)
+                self.AD.thread_async.call_async_no_wait(self.AD.threading.dump_threads)
+                self.AD.thread_async.call_async_no_wait(self.AD.app_management.dump_objects)
+                self.AD.thread_async.call_async_no_wait(self.AD.sched.dump_sun)
+            case signal.SIGHUP:
+                self.AD.thread_async.call_async_no_wait(self.AD.app_management.check_app_updates, mode=UpdateMode.TERMINATE)
+            case signal.SIGINT:
+                self.logger.info("Keyboard interrupt")
+                self.stop()
+            case signal.SIGTERM:
+                self.logger.info("SIGTERM Received")
+                self.stop()
+            # case signal.SIGWINCH:
+            #     ... # disregard window changes
+            # case _:
+            #     self.logger.error(f'Unhandled signal: {signal.Signals(signum).name}')
 
     def stop(self):
         """Called by the signal handler to shut AD down.
@@ -102,51 +109,41 @@ class ADMain:
             self.http_object.stop()
 
     # noinspection PyBroadException,PyBroadException
-    def run(self, appdaemon, hadashboard, admin, aui, api, http):
+    def run(self, ad_config_model: AppDaemonConfig, *args, http):
         """Start AppDaemon up after initial argument parsing.
 
         Args:
-            appdaemon: Config for AppDaemon Object.
-            hadashboard: Config for HADashboard Object.
-            admin: Config for admin Object.
-            aui: Config for aui Object.
-            api: Config for API Object
-            http: Config for HTTP Object
-
-        Returns:
-            None.
-
+            ad_config_model: Config for AppDaemon Object.
+            *args: Gets used to create the HTTP object.
+            http: Main HTTP config
         """
 
         try:
             # if to use uvloop
-            if appdaemon.get("uvloop") is True and uvloop:
+            if ad_config_model.uvloop and uvloop:
                 self.logger.info("Running AD using uvloop")
                 uvloop.install()
 
-            loop = asyncio.get_event_loop()
+            loop: asyncio.BaseEventLoop = asyncio.new_event_loop()
 
             # Initialize AppDaemon
 
-            self.AD = ad.AppDaemon(self.logging, loop, **appdaemon)
+            self.AD = ad.AppDaemon(self.logging, loop, ad_config_model)
+            loop.set_exception_handler(functools.partial(ade.exception_handler, self.AD))
+
+            for sig in signal.Signals:
+                callback = functools.partial(self.handle_sig, sig)
+                try:
+                    loop.add_signal_handler(sig.value, callback)
+                except RuntimeError:
+                    # This happens for some signals on some operating systems, no problem
+                    continue
 
             # Initialize Dashboard/API/admin
 
-            if http is not None and (
-                hadashboard is not None or admin is not None or aui is not None or api is not False
-            ):
+            if http is not None and any(arg is not None for arg in args):
                 self.logger.info("Initializing HTTP")
-                self.http_object = adhttp.HTTP(
-                    self.AD,
-                    loop,
-                    self.logging,
-                    appdaemon,
-                    hadashboard,
-                    admin,
-                    aui,
-                    api,
-                    http,
-                )
+                self.http_object = HTTP(self.AD, *args, http)
                 self.AD.register_http(self.http_object)
             else:
                 if http is not None:
@@ -166,7 +163,13 @@ class ADMain:
             self.AD.terminate()
 
             self.logger.info("AppDaemon is stopped.")
-
+        except ValidationError as e:
+            logging.getLogger().exception(e)
+        except StartupAbortedException as e:
+            # We got an unrecoverable error during startup so print it out and quit
+            self.logger.error(f"AppDaemon terminated with errors: {e}")
+        except ade.AppDaemonException as e:
+            ade.user_exception_block(self.logger, e, self.AD.app_dir)
         except Exception:
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error during run()")
@@ -185,8 +188,6 @@ class ADMain:
 
         """
 
-        self.init_signals()
-
         # Get command line args
 
         parser = argparse.ArgumentParser()
@@ -196,14 +197,12 @@ class ADMain:
             "--config",
             help="full path to config directory",
             type=str,
-            default=None,
         )
         parser.add_argument("-p", "--pidfile", help="full path to PID File", default=None)
         parser.add_argument(
             "-t",
             "--timewarp",
             help="speed that the scheduler will work at for time travel",
-            default=1,
             type=float,
         )
         parser.add_argument(
@@ -217,14 +216,12 @@ class ADMain:
             "--endtime",
             help="end time for scheduler <YYYY-MM-DD HH:MM:SS|YYYY-MM-DD#HH:MM:SS>",
             type=str,
-            default=None,
         )
         parser.add_argument(
             "-C",
             "--configfile",
             help="name for config file",
             type=str,
-            default=None,
         )
         parser.add_argument(
             "-D",
@@ -236,126 +233,109 @@ class ADMain:
         parser.add_argument("-m", "--moduledebug", nargs=2, action="append")
         parser.add_argument("-v", "--version", action="version", version="%(prog)s " + utils.__version__)
         parser.add_argument("--profiledash", help=argparse.SUPPRESS, action="store_true")
-        parser.add_argument("--toml", help="use TOML for configuration files", action="store_true")
+        parser.add_argument("--write_toml", help="use TOML for creating new app configuration files", action="store_true")
+        # TODO Implement --write_toml
+        parser.add_argument("--toml", help="Deprecated", action="store_true")
 
         args = parser.parse_args()
 
-        config_dir = args.config
         pidfile = args.pidfile
 
-        module_debug = {}
-        if args.moduledebug is not None:
-            for arg in args.moduledebug:
-                module_debug[arg[0]] = arg[1]
+        default_config_files = [
+            "appdaemon.toml",
+            "appdaemon.yaml",
+        ]
+        default_config_paths = [Path("~/.homeassistant").expanduser(), Path("/etc/appdaemon"), Path("/conf")]
 
-        if args.configfile is None:
-            if args.toml is True:
-                config_file = "appdaemon.toml"
+        try:
+            if args.configfile is not None:
+                config_file = Path(args.configfile).resolve()
+                if args.config is not None:
+                    config_dir = Path(args.config).resolve()
+                else:
+                    config_dir = config_file.parent
             else:
-                config_file = "appdaemon.yaml"
-        else:
-            config_file = args.configfile
+                if args.config is not None:
+                    config_dir = Path(args.config).resolve()
+                    for file in default_config_files:
+                        if (config_file := (config_dir / file)).exists():
+                            break
+                    else:
+                        raise NoADConfig(f"{config_file} not found")
+                else:
+                    all_default_config_paths = itertools.product(default_config_files, default_config_paths)
+                    for file in all_default_config_paths:
+                        dir = file[1]
+                        final_path = dir / file[0]
+                        if (config_file := final_path).exists():
+                            break
+                    else:
+                        raise NoADConfig(f"No valid configuration file found in default locations: {[str(d) for d in default_config_paths]}")
 
-        if config_dir is None:
-            config_file_yaml = utils.find_path(config_file)
-        else:
-            config_file_yaml = os.path.join(config_dir, config_file)
-
-        if config_file_yaml is None:
-            print("FATAL: no configuration directory defined and defaults not present\n")
-            parser.print_help()
+            assert config_file.exists(), f"{config_file} does not exist"
+            assert os.access(config_file, os.R_OK), f"{config_file} is not readable"
+        except (AssertionError, NoADConfig) as e:
+            print(f"FATAL: Error accessing configuration: {e}")
             sys.exit(1)
 
         try:
-            config = utils.read_config_file(config_file_yaml)
-        except Exception as e:
-            print(f"Unexpected error loading config file: {config_file_yaml}")
-            print(e)
-            sys.exit()
+            config = utils.read_config_file(config_file)
+            config = {
+                k: v if v is not None else {}
+                for k, v in config.items()
+            } # fmt: skip
 
-        if "appdaemon" not in config:
-            print("ERROR", "no 'appdaemon' section in {}".format(config_file_yaml))
-            sys.exit()
+            ad_kwargs = config["appdaemon"]
 
-        appdaemon = config["appdaemon"]
-        if "disable_apps" not in appdaemon:
-            appdaemon["disable_apps"] = False
+            ad_kwargs["config_dir"] = config_dir
+            ad_kwargs["config_file"] = config_file
+            ad_kwargs["write_toml"] = args.write_toml
 
-        appdaemon["use_toml"] = args.toml
-        appdaemon["config_dir"] = config_dir
-        appdaemon["config_file"] = config_file_yaml
-        appdaemon["app_config_file"] = os.path.join(os.path.dirname(config_file_yaml), "apps.yaml")
-        appdaemon["module_debug"] = module_debug
+            if args.timewarp:
+                ad_kwargs["timewarp"] = args.timewarp
+            if args.starttime:
+                ad_kwargs["starttime"] = args.starttime
+            if args.endtime:
+                ad_kwargs["endtime"] = args.endtime
 
-        if args.starttime is not None:
-            appdaemon["starttime"] = args.starttime
+            ad_kwargs["stop_function"] = self.stop
+            ad_kwargs["loglevel"] = args.debug
 
-        if args.endtime is not None:
-            appdaemon["endtime"] = args.endtime
-
-        if "timewarp" not in appdaemon:
-            appdaemon["timewarp"] = args.timewarp
-
-        appdaemon["loglevel"] = args.debug
-
-        appdaemon["config_dir"] = os.path.dirname(config_file_yaml)
-
-        appdaemon["stop_function"] = self.stop
-
-        hadashboard = None
-        if "hadashboard" in config:
-            if config["hadashboard"] is None:
-                hadashboard = {}
+            if args.moduledebug is not None:
+                module_debug_cli = {arg[0]: arg[1] for arg in args.moduledebug}
             else:
-                hadashboard = config["hadashboard"]
+                module_debug_cli = {}
 
-            hadashboard["profile_dashboard"] = args.profiledash
-            hadashboard["config_dir"] = config_dir
-            hadashboard["config_file"] = config_file_yaml
-            hadashboard["config_dir"] = os.path.dirname(config_file_yaml)
-            if args.profiledash:
-                hadashboard["profile_dashboard"] = True
+            if isinstance(ad_kwargs.get("module_debug"), dict):
+                ad_kwargs["module_debug"] |= module_debug_cli
+            else:
+                ad_kwargs["module_debug"] = module_debug_cli
 
-            if "dashboard" not in hadashboard:
+            if isinstance((hadashboard := config.get("hadashboard")), dict):
+                hadashboard["config_dir"] = config_dir
+                hadashboard["config_file"] = config_file
                 hadashboard["dashboard"] = True
+                hadashboard["profile_dashboard"] = args.profiledash
 
-        old_admin = None
-        if "old_admin" in config:
-            if config["old_admin"] is None:
-                old_admin = {}
-            else:
-                old_admin = config["old_admin"]
-        admin = None
-        if "admin" in config:
-            if config["admin"] is None:
-                admin = {}
-            else:
-                admin = config["admin"]
-        api = None
-        if "api" in config:
-            if config["api"] is None:
-                api = {}
-            else:
-                api = config["api"]
+            model = MainConfig.model_validate(config)
 
-        http = None
-        if "http" in config:
-            http = config["http"]
-
-        # Setup _logging
-
-        if "log" in config:
-            print(
-                "ERROR",
-                "'log' directive deprecated, please convert to new 'logs' syntax",
-            )
+            if args.debug.upper() == "DEBUG":
+                # need to dump as python types or serializing the timezone object will fail
+                model_json = model.model_dump(mode='python', by_alias=True)
+                print(json.dumps(model_json, indent=4, default=str, sort_keys=True))
+        except ValidationError as e:
+            print(f"Configuration error in: {config_file}")
+            print(e)
             sys.exit(1)
-        if "logs" in config:
-            logs = config["logs"]
-        else:
-            logs = {}
+        except ade.ConfigReadFailure as e:
+            ade.user_exception_block(logging.getLogger(), e, config_dir, "Reading AppDaemon configuration")
+            sys.exit(1)
+        except Exception as e:
+            print(f"Unexpected error loading config file: {config_file}")
+            print(e)
+            sys.exit(1)
 
-        self.logging = logging.Logging(logs, args.debug)
+        self.logging = Logging(model.model_dump(mode='python')['logs'], args.debug)
         self.logger = self.logging.get_logger()
 
         if "time_zone" in config["appdaemon"]:
@@ -363,40 +343,44 @@ class ADMain:
 
         # Startup message
 
+        self.logger.info("-" * 60)
         self.logger.info("AppDaemon Version %s starting", utils.__version__)
+
+        if utils.__version_comments__ is not None and utils.__version_comments__ != "":
+            self.logger.info("Additional version info: %s", utils.__version_comments__)
+
+        self.logger.info("-" * 60)
         self.logger.info(
             "Python version is %s.%s.%s",
             sys.version_info[0],
             sys.version_info[1],
             sys.version_info[2],
         )
-        self.logger.info("Configuration read from: %s", config_file_yaml)
+        self.logger.info("Configuration read from: %s", config_file)
+
+        utils.deprecation_warnings(model.appdaemon, self.logger)
+
         self.logging.dump_log_config()
         self.logger.debug("AppDaemon Section: %s", config.get("appdaemon"))
         self.logger.debug("HADashboard Section: %s", config.get("hadashboard"))
 
-        exit = False
+        dump_kwargs = dict(mode='json', by_alias=True, exclude_unset=True)
 
-        if "time_zone" not in config["appdaemon"]:
-            self.logger.error("time_zone not specified in appdaemon.yaml")
-            exit = True
+        if (hadashboard := model.hadashboard) is not None:
+            hadashboard = hadashboard.model_dump(**dump_kwargs)
 
-        if "latitude" not in config["appdaemon"]:
-            self.logger.error("latitude not specified in appdaemon.yaml")
-            exit = True
+        if (http := model.http) is not None:
+            http = http.model_dump(**dump_kwargs)
 
-        if "longitude" not in config["appdaemon"]:
-            self.logger.error("longitude not specified in appdaemon.yaml")
-            exit = True
-
-        if "elevation" not in config["appdaemon"]:
-            self.logger.error("elevation not specified in appdaemon.yaml")
-            exit = True
-
-        if exit is True:
-            sys.exit(1)
-
-        utils.check_path("config_file", self.logger, config_file_yaml, pathtype="file")
+        run = functools.partial(
+            self.run,
+            model.appdaemon,
+            hadashboard,
+            model.old_admin,
+            model.admin,
+            model.api,
+            http=http,
+        )
 
         if pidfile is not None:
             self.logger.info("Using pidfile: %s", pidfile)
@@ -404,11 +388,11 @@ class ADMain:
             name = os.path.basename(pidfile)
             try:
                 with pid.PidFile(name, dir):
-                    self.run(appdaemon, hadashboard, old_admin, admin, api, http)
+                    run()
             except pid.PidFileError:
                 self.logger.error("Unable to acquire pidfile - terminating")
         else:
-            self.run(appdaemon, hadashboard, old_admin, admin, api, http)
+            run()
 
 
 def main():

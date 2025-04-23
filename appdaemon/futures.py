@@ -1,38 +1,47 @@
-from appdaemon.appdaemon import AppDaemon
-import functools
+import asyncio
+from collections import defaultdict
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from appdaemon.appdaemon import AppDaemon
 
 
 class Futures:
-    def __init__(self, ad: AppDaemon):
+    """Subsystem container for managing :class:`~asyncio.Future` objects
+    """
+
+    AD: "AppDaemon"
+    """Reference to the top-level AppDaemon container object"""
+    futures: dict[str , list[asyncio.Future]]
+    """Dictionary of futures registered by app name"""
+
+    def __init__(self, ad: "AppDaemon"):
         self.AD = ad
+        self.logger = self.AD.logging.get_child("_futures")
+        self.futures = defaultdict(list)
 
-        self.futures = {}
+    def add_future(self, app_name: str, future: asyncio.Future):
+        """Add a future to the registry and a callback that removes itself after it finishes."""
+        self.futures[app_name].append(future)
+        def safe_remove(f):
+            try:
+                self.futures[app_name].remove(f)
+            except ValueError:
+                pass
+        future.add_done_callback(safe_remove)
+        if isinstance(future, asyncio.Task):
+            self.logger.debug(f"Registered a task for {app_name}: {future.get_name()}")
+        else:
+            self.logger.debug(f"Registered a future for {app_name}: {future}")
 
-    def add_future(self, name, f):
-        f.add_done_callback(functools.partial(self.remove_future, name))
-        if name not in self.futures:
-            self.futures[name] = []
+    def cancel_future(self, future: asyncio.Future):
+        if not future.done() and not future.cancelled():
+            if isinstance(future, asyncio.Task):
+                self.logger.debug(f"Cancelling task {future.get_name()}")
+            else:
+                self.logger.debug(f"Cancelling future {future}")
+            future.cancel()
 
-        self.futures[name].append(f)
-        self.AD.logger.debug("Registered a future in {}: {}".format(name, f))
-
-    def remove_future(self, name, f):
-        if name in self.futures:
-            self.futures[name].remove(f)
-
-        self.AD.logger.debug("Future removed from registry {}".format(f))
-
-        if f.cancelled():
-            return
-
-        if not f.done():
-            f.cancel()
-
-    def cancel_futures(self, name):
-        if name not in self.futures:
-            return
-
-        for f in self.futures[name]:
-            if not f.done() and not f.cancelled():
-                self.AD.logger.debug("Cancelling Future {}".format(f))
-                f.cancel()
+    def cancel_futures(self, app_name: str):
+        for f in self.futures.pop(app_name, []):
+            self.cancel_future(f)

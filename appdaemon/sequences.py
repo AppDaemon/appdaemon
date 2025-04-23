@@ -1,243 +1,196 @@
-import uuid
 import asyncio
-import traceback
-import copy
+import uuid
+from collections.abc import Iterable
+from logging import Logger
+from typing import TYPE_CHECKING
 
-from appdaemon.appdaemon import AppDaemon
-from appdaemon.entity import Entity
-from appdaemon.exceptions import TimeOutException
+from pydantic import ValidationError
+
+from . import exceptions as ade
+from . import utils
+from .models.config.sequence import Sequence, SequenceConfig, SequenceStep, ServiceCallStep, SleepStep, SubSequenceStep, WaitStateStep
+
+if TYPE_CHECKING:
+    from .appdaemon import AppDaemon
 
 
 class Sequences:
-    def __init__(self, ad: AppDaemon):
+    """Subsystem container for managing sequences
+
+    Attributes:
+        AD: Reference to the AppDaemon container object
+    """
+
+    AD: "AppDaemon"
+    logger: Logger
+    error: Logger
+    namespace: str = "rules"
+    name: str = "_sequences"  # needed for the sync decorator to work
+
+    def __init__(self, ad: "AppDaemon"):
         self.AD = ad
         self.logger = ad.logging.get_child("_sequences")
+        self.error = ad.logging.get_error()
 
-    async def run_sequence_service(self, namespace, domain, service, kwargs):
-        if "entity_id" not in kwargs:
-            self.logger.warning("entity_id not given in service call, so will not be executing %s", service)
+    @property
+    def config(self) -> SequenceConfig | None:
+        return self.AD.app_management.sequence_config
+
+    @staticmethod
+    def normalized(sequence: str) -> str:
+        """Ensures the sequence name is prefixed with ``sequence.``"""
+        if sequence.startswith("sequence."):
+            return sequence
+        return f"sequence.{sequence}"
+
+    def sequence_exists(self, sequence: str) -> bool:
+        return self.AD.state.entity_exists(self.namespace, self.normalized(sequence))
+
+    async def set_state(self, entity_id: str, state: str = None, replace: bool = False, **kwargs):
+        return await self.AD.state.set_state(name="_sequences", namespace=self.namespace, entity=self.normalized(entity_id), state=state, replace=replace, **kwargs)
+
+    async def get_state(self, entity_id: str = None, attribute: str = None, copy: bool = True):
+        return await self.AD.state.get_state(name=self.name, namespace=self.namespace, entity_id=self.normalized(entity_id) if entity_id else None, attribute=attribute, copy=copy)
+
+    async def sequence_running(self, sequence: str) -> bool:
+        state = await self.get_state(sequence, copy=False)
+        return state == "active"
+
+    async def running_sequences(self):
+        return {entity_id: state for entity_id, state in (await self.get_state()).items() if state.get("state") == "active"}
+
+    async def run_sequence_service(self, namespace: str, domain: str, service: str, kwargs):
+        if entity_id := kwargs.get("entity_id"):
+            match service:
+                case "run":
+                    return await self.run_sequence("_services", namespace, entity_id)
+                case "cancel":
+                    if isinstance(entity_id, str):
+                        return await self.cancel_sequence(entity_id)
+        else:
+            self.logger.warning(f"entity_id not given in service call, so will not be executing {service}")
+
+    async def update_sequence_entities(self, config: SequenceConfig | None = None):
+        if config is None:
             return
-
-        entity_id = kwargs["entity_id"]
-
-        if service == "run":
-            return await self.run_sequence("_services", namespace, entity_id)
-
-        elif service == "cancel" and isinstance(entity_id, str):
-            return await self.cancel_sequence(entity_id)
-
-    async def add_sequences(self, sequences):
-        for sequence in sequences:
-            entity = "sequence.{}".format(sequence)
-            name = f"sequence_{sequence}"
-            attributes = {
-                "friendly_name": sequences[sequence].get("name", sequence),
-                "loop": sequences[sequence].get("loop", False),
-                "steps": sequences[sequence]["steps"],
-            }
-
-            sequence_namespace = sequences[sequence].get("namespace")
-
-            if sequence_namespace is not None:
-                attributes.update({"namespace": sequence_namespace})
-
-            if not await self.AD.state.entity_exists("rules", entity):
-                # it doesn't exist so add it
-                await self.AD.state.add_entity(
-                    "rules",
-                    entity,
-                    "idle",
-                    attributes=attributes,
-                )
-            else:
-                # means existing before so in case already running already
-                await self.cancel_sequence(sequence)
-
-                await self.AD.state.set_state(
-                    "_sequences", "rules", entity, state="idle", attributes=attributes, replace=True
+        else:
+            for seq_name, cfg in config.root.items():
+                # Entities will get created if they don't exist
+                await self.set_state(
+                    entity_id=self.normalized(seq_name),
+                    state="idle",
+                    friendly_name=cfg.name or seq_name,
+                    loop=cfg.loop,
+                    steps=cfg.steps,
+                    replace=True,
+                    _silent=True,
                 )
 
-            # create sequence objects
-            self.AD.app_management.init_sequence_object(name, self)
-
-    async def remove_sequences(self, sequences):
-        if not isinstance(sequences, list):
+    async def remove_sequences(self, sequences: str | Iterable[str]):
+        if isinstance(sequences, str):
             sequences = [sequences]
 
         for sequence in sequences:
-            # remove sequence
             await self.cancel_sequence(sequence)
-            await self.AD.state.remove_entity("rules", "sequence.{}".format(sequence))
+            await self.AD.state.remove_entity(self.namespace, self.normalized(sequence))
 
-    async def run_sequence(self, _name, namespace, sequence):
-        if isinstance(sequence, str):
-            if "." in sequence:
-                # the entity given
-                _, sequence_name = sequence.split(".")
-
-            else:  # just name given
-                sequence_name = sequence
-                sequence = f"sequence.{sequence}"
-
-            name = f"sequence_{sequence_name}"
-
-        else:
-            name = _name
-
-        coro = self.prep_sequence(_name, namespace, sequence)
-
-        #
-        # OK, lets run it
-        #
-
-        future = asyncio.create_task(coro)
-        self.AD.futures.add_future(name, future)
-
-        return future
-
-    async def cancel_sequence(self, sequence):
-        if isinstance(sequence, str):
-            if "." in sequence:
-                # the entity given
-                _, sequence_name = sequence.split(".")
-                entity_id = sequence
-
-            else:  # just name given
-                sequence_name = sequence
-                entity_id = f"sequence.{sequence}"
-
-        else:  # future given
-            sequence.cancel()
-            return
-
-        name = f"sequence_{sequence_name}"
-        self.AD.futures.cancel_futures(name)
-        await self.AD.state.set_state("_sequences", "rules", entity_id, state="idle")
-
-    async def prep_sequence(self, _name, namespace, sequence):
-        ephemeral_entity = False
-        loop = False
-
-        if isinstance(sequence, str):
-            entity_id = sequence
-            if await self.AD.state.entity_exists("rules", entity_id) is False:
-                self.logger.warning('Unknown sequence "%s" in run_sequence()', sequence)
-                return None
-
-            entity = await self.AD.state.get_state("_services", "rules", sequence, attribute="all")
-            seq = entity["attributes"]["steps"]
-            loop = entity["attributes"]["loop"]
-            ns = entity["attributes"].get("namespace", namespace)
-
-        else:
-            #
-            # Assume it's a list with the actual commands in it
-            #
-            entity_id = "sequence.{}".format(uuid.uuid4().hex)
-            # Create an ephemeral entity for it
-            ephemeral_entity = True
-
-            await self.AD.state.add_entity("rules", entity_id, "idle", attributes={"steps": sequence})
-
-            seq = sequence
-            ns = namespace
-
-        coro = await self.do_steps(ns, entity_id, seq, ephemeral_entity, loop)
-        return coro
-
-    async def do_steps(self, namespace, entity_id, seq, ephemeral_entity, loop):
-        await self.AD.state.set_state("_sequences", "rules", entity_id, state="active")
-
+    async def run_sequence(
+        self,
+        calling_app: str,
+        namespace: str,
+        sequence: str | list[dict[str, dict[str, str]]],
+    ) -> asyncio.Task:
+        """Prepares the sequence and creates a task to run it"""
         try:
-            while True:
-                steps = copy.deepcopy(seq)
-                for step in steps:
-                    for command, parameters in step.items():
-                        if isinstance(parameters, dict) and "namespace" in parameters:
-                            ns = parameters.pop("namespace")
-                        else:
-                            ns = namespace
+            match sequence:
+                # Sequence was defined in the config
+                case str():
+                    ephemeral_entity = False
+                    seq_eid = self.normalized(sequence)
+                    seq_name = seq_eid.split(".", 2)[1]
 
-                        if command == "sleep":
-                            await asyncio.sleep(float(parameters))
+                    if (cfg := self.config.root.get(seq_name)) is None:
+                        self.logger.warning(f'Unknown sequence "{seq_name}" in run_sequence()')
+                        return
 
-                        elif command == "sequence":
-                            # Running a sub-sequence so just recurse
-                            await self.prep_sequence("_sequence", namespace, parameters)
+                    is_running = await self.sequence_running(seq_eid)
+                    if is_running:
+                        self.logger.warning(f"Sequence '{seq_name}' is already running")
+                        return
 
-                        elif command == "wait_state":
-                            if ephemeral_entity is True:
-                                self.logger.warning("Cannot process command 'wait_state', as not supported in sequence")
-                                continue
+                # Sequence was defined in-line
+                case list():
+                    ephemeral_entity = True
+                    seq_name = uuid.uuid4().hex
+                    seq_eid = f"sequence.{seq_name}"
+                    try:
+                        cfg = Sequence(name=seq_eid, namespace=namespace, steps=sequence)
+                    except ValidationError as e:
+                        self.logger.error(f"Error creating inline sequence:\n{e}")
+                        return
+        except Exception as e:
+            raise ade.SequenceExecutionFail(sequence) from e
 
-                            _, entity_name = entity_id.split(".")
-                            name = f"sequence_{entity_name}"
+        coro = self._exec_seq(calling_app=calling_app, namespace=namespace, entity_id=seq_eid, steps=cfg.steps, loop=cfg.loop)
+        task = asyncio.create_task(coro, name=seq_eid)
+        self.AD.futures.add_future(calling_app, task)
 
-                            wait_entity = parameters.get("entity_id")
+        if ephemeral_entity:
+            task.add_done_callback(lambda _: self.AD.loop.create_task(self.AD.state.remove_entity(self.namespace, seq_eid)))
 
-                            if wait_entity is None:
-                                self.logger.warning("Cannot process command 'wait_state', as entity_id not given")
-                                continue
+        if cfg.hot_reload:
+            deps = self.AD.app_management.dependency_manager.app_deps.dep_graph.get(calling_app, set())
+            deps.add(seq_eid)
+            task.add_done_callback(lambda _: deps.remove(seq_eid))
 
-                            state = parameters.get("state")
-                            attribute = parameters.get("attribute")
-                            duration = parameters.get("duration", 0)
-                            timeout = parameters.get("timeout", 15 * 60)
+        return task
 
-                            # now we create the wait entity object
-                            entity_object = Entity(self.logger, self.AD, name, ns, wait_entity)
-                            if not await entity_object.exists():
-                                self.logger.warning(
-                                    f"Waiting for an entity {wait_entity}, in sequence {entity_name}, that doesn't exist"
-                                )
+    async def cancel_sequence(self, sequence: str):
+        sequence = self.normalized(sequence)
+        for app_futures in self.AD.futures.futures.values():
+            for future in app_futures:
+                if isinstance(future, asyncio.Task) and future.get_name() == sequence:
+                    self.AD.futures.cancel_future(future)
 
-                            try:
-                                await entity_object.wait_state(state, attribute, duration, timeout)
-                            except TimeOutException:
-                                self.logger.warning(
-                                    f"{entity_name} sequence wait for {wait_entity} timed out, so continuing sequence"
-                                )
-
-                        else:
-                            domain, service = str.split(command, "/")
-                            parameters["__name"] = entity_id
-                            loop_step = parameters.pop("loop_step", None)
-                            params = copy.deepcopy(parameters)
-                            await self.AD.services.call_service(ns, domain, service, params)
-
-                            if isinstance(loop_step, dict):  # we need to loop this command multiple times
-                                await self.loop_step(ns, command, parameters, loop_step)
-
-                if loop is not True:
+    @utils.warning_decorator(error_text="Unexpected error executing sequence")
+    async def _exec_seq(self, calling_app: str, namespace: str, entity_id: str, steps: list[SequenceStep], loop: bool = False):
+        await self.set_state(entity_id, "active", _silent=True)
+        try:
+            while not self.AD.stopping:
+                for i, step in enumerate(steps):
+                    try:
+                        await self._exec_step(step, namespace, calling_app)
+                    except ade.AppDaemonException as exc:
+                        raise ade.SequenceStepExecutionFail(i + 1, step) from exc
+                if not loop:
                     break
         finally:
-            await self.AD.state.set_state("_sequences", "rules", entity_id, state="idle")
+            await self.set_state(entity_id, "idle")
 
-            if ephemeral_entity is True:
-                await self.AD.state.remove_entity("rules", entity_id)
+    async def _exec_step(self, step: SequenceStep, default_namespace: str, calling_app: str):
+        match step:
+            case ServiceCallStep():
+                kwargs = {
+                    "namespace": step.namespace or default_namespace,
+                    "domain": step.domain,
+                    "service": step.service,
+                    "data": step.model_extra
+                }  # fmt: skip
 
-    async def loop_step(self, namespace: str, command: str, parameters: dict, loop_step: dict) -> None:
-        """Used to loop a step command"""
-
-        try:
-            times = int(loop_step.get("times", 0))
-            interval = float(loop_step.get("interval", 1))
-            ran_times = 0
-
-            domain, service = str.split(command, "/")
-
-            while ran_times < times:
-                params = copy.deepcopy(parameters)
-                await asyncio.sleep(interval)
-                await self.AD.services.call_service(namespace, domain, service, params)
-                ran_times += 1
-
-        except Exception:
-            self.logger.error("-" * 60)
-            self.logger.error("Unexpected error when attempting to loop step")
-            self.logger.error("-" * 60)
-            self.logger.error(traceback.format_exc())
-            self.logger.error("-" * 60)
+                if loop_step := step.loop_step:
+                    for _ in range(loop_step.times):
+                        await self.AD.services.call_service(**kwargs)
+                        await asyncio.sleep(loop_step.interval.total_seconds())
+                else:
+                    await self.AD.services.call_service(**kwargs)
+            case SleepStep():
+                self.logger.debug(f"Sleeping for {step.sleep}")
+                await asyncio.sleep(step.sleep.total_seconds())
+            case WaitStateStep():
+                self.logger.warning("Cannot process command 'wait_state', as not supported in sequence")
+            case SubSequenceStep():
+                task = self.run_sequence(calling_app=calling_app, namespace=step.namespace or default_namespace, sequence=self.normalized(step.sequence))
+                await task
 
     #
     # Placeholder for constraints

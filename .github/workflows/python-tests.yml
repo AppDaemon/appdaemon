@@ -12,19 +12,19 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     # https://github.com/actions/setup-python
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
-        python-version: '3.10'
+        python-version: '3.12'
         cache: 'pip' # caching pip dependencies
         # Manually set pyproject.toml as the file to use for dependencies
         # Workaround while waiting for https://github.com/actions/setup-python/issues/529
         cache-dependency-path: 'pyproject.toml'
     - name: Run pre-commit
-      uses: pre-commit/action@v3.0.0
-    - uses: pre-commit-ci/lite-action@v1.0.1
+      uses: pre-commit/action@v3.0.1
+    - uses: pre-commit-ci/lite-action@v1.1.0
       if: always()
 
   test:
@@ -32,13 +32,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11"]
+        python-version: ["3.10", "3.11", "3.12"]
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     # https://github.com/actions/setup-python
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
         cache: 'pip' # caching pip dependencies

@@ -1,53 +1,67 @@
-from typing import Any, Optional, Union
-import requests
+import re
 from ast import literal_eval
-from functools import wraps
+from collections.abc import Iterable
+from copy import deepcopy
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Callable, Literal, Type, overload
 
-import appdaemon.adbase as adbase
-import appdaemon.adapi as adapi
-import appdaemon.utils as utils
-
+from appdaemon import exceptions as ade
+from appdaemon import utils
+from appdaemon.adapi import ADAPI
+from appdaemon.adbase import ADBase
 from appdaemon.appdaemon import AppDaemon
-
-from urllib3.exceptions import InsecureRequestWarning
-
-requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
-
-
-def hass_check(coro):
-    @wraps(coro)
-    async def coro_wrapper(*args, **kwargs):
-        self = args[0]
-        ns = self._get_namespace(**kwargs)
-        plugin = await self.AD.plugins.get_plugin_object(ns)
-        if plugin is None:
-            self.logger.warning("non_existent namespace (%s) specified in call to %s", ns, coro.__name__)
-            return None
-        if not await plugin.am_reading_messages():
-            self.logger.warning("Attempt to call Home Assistant while disconnected: %s", coro.__name__)
-            return None
-        else:
-            return await coro(*args, **kwargs)
-
-    return coro_wrapper
+from appdaemon.models.notification.android import AndroidData
+from appdaemon.models.notification.base import NotificationData
+from appdaemon.models.notification.iOS import iOSData
+from appdaemon.plugins.hass.hassplugin import HassPlugin
+from appdaemon.plugins.hass.notifications import AndroidNotification
 
 
-#
-# Define an entities class as a descriptor to enable read only access of HASS state
-#
+# Check if the module is being imported using the legacy method
+if __name__ == Path(__file__).name:
+    from appdaemon.logging import Logging
+
+    # It's possible to instantiate the Logging system again here because it's a singleton, and it will already have been
+    # created at this point if the legacy import method is being used by an app. Using this accounts for the user maybe
+    # having configured the error logger to use a different name than 'Error'
+    Logging().get_error().warning(
+        "Importing 'hassapi' directly is deprecated and will be removed in a future version. "
+        "To use the Hass plugin use 'from appdaemon.plugins import hass' instead.",
+    )
 
 
-class Hass(adbase.ADBase, adapi.ADAPI):
-    #
-    # Internal
-    #
+if TYPE_CHECKING:
+    from ...models.config.app import AppConfig
 
-    def __init__(self, ad: AppDaemon, name, logging, args, config, app_config, global_vars):
+
+@dataclass
+class ScriptNotFound(ade.AppDaemonException):
+    script_name: str
+    namespace: str
+    plugin_name: str
+    domain: str = field(init=False, default="script")
+
+    def __str__(self):
+        res = f"'{self.script_name}' not found in plugin '{self.plugin_name}'"
+        if self.namespace != "default":
+            res += f" with namespace '{self.namespace}'"
+        return res
+
+
+class Hass(ADBase, ADAPI):
+    """HASS API class for the users to inherit from.
+
+    This class provides an interface to the HassPlugin object that connects to Home Assistant.
+    """
+
+    _plugin: HassPlugin
+
+    def __init__(self, ad: AppDaemon, config_model: "AppConfig"):
         # Call Super Classes
-        adbase.ADBase.__init__(self, ad, name, logging, args, config, app_config, global_vars)
-        adapi.ADAPI.__init__(self, ad, name, logging, args, config, app_config, global_vars)
-
-        self.AD = ad
+        ADBase.__init__(self, ad, config_model)
+        ADAPI.__init__(self, ad, config_model)
 
         #
         # Register specific constraints
@@ -57,17 +71,146 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         self.register_constraint("constrain_input_boolean")
         self.register_constraint("constrain_input_select")
 
+    @utils.sync_decorator
+    async def ping(self) -> float:
+        """Gets the number of seconds """
+        if (plugin := self._plugin) is not None:
+            return (await plugin.ping())['ad_duration']
+
+    @utils.sync_decorator
+    async def check_for_entity(self, entity_id: str, namespace: str | None = None) -> bool:
+        """Uses the REST API to check if an entity exists instead of checking
+        AD's internal state.
+
+        Args:
+            entity_id (str): Fully qualified id.
+            namespace (str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases it is safe to ignore this parameter.
+
+        Returns:
+            Bool of whether the entity exists.
+        """
+        plugin: "HassPlugin" = self.AD.plugins.get_plugin_object(
+            namespace or self.namespace
+        )
+        return await plugin.check_for_entity(entity_id)
+
+    #
+    # Internal Helpers
+    # Methods that other methods
+
+    async def _entity_service_call(self, service: str, entity_id: str, namespace: str | None = None, **kwargs):
+        """Wraps up a common pattern in methods that use a service call with an entity_id
+
+        Namespace defaults to that of the plugin
+
+        Displays a warning if the entity doesn't exist in the namespace.
+        """
+        namespace = namespace or self.namespace
+        self._check_entity(namespace, entity_id)
+        return await self.call_service(
+            service=service,
+            namespace=namespace,
+            entity_id=entity_id,
+            **kwargs
+        )
+
+    async def _domain_service_call(
+        self,
+        service: str,
+        entity_id: str | Iterable[str],
+        namespace: str | None = None,
+        **kwargs
+    ):
+        """Wraps up a common pattern in methods that have to use a certain domain.
+
+            - Namespace defaults to that of the plugin.
+            - Asserts that the entity is in the right domain.
+            - Displays a warning if the entity doesn't exist in the namespace.
+        """
+        namespace = namespace or self.namespace
+        domain = service.split('/')[0]
+
+        match entity_id:
+            case str():
+                assert domain == entity_id.split('.')[0], f'{entity_id} does not match domain for {service}'
+                self._check_entity(namespace, entity_id)
+            case Iterable():
+                entity_id = entity_id if isinstance(entity_id, list) else list(entity_id)
+                for e in entity_id:
+                    assert domain == e.split('.')[0], f'{e} does not match domain for {service}'
+                    self._check_entity(namespace, e)
+
+        return await self.call_service(
+            service=service,
+            namespace=namespace,
+            entity_id=entity_id,
+            **kwargs
+        )
+
+    async def _create_helper(
+        self,
+        friendly_name: str,
+        initial_val: Any,
+        type: str,
+        entity_id: str = None,
+        namespace: str | None = None
+    ) -> dict:
+        """Creates a new input number entity by using ``set_state`` on a non-existent one with the right format
+
+        Entities created this way do not persist after Home Assistant restarts.
+        """
+        assert type.startswith('input')
+
+        if entity_id is None:
+            cleaned_name = friendly_name.lower().replace(' ', '_').replace('-', '_')
+            entity_id = f'{type}.{cleaned_name}'
+
+        assert entity_id.startswith(f'{type}.')
+
+        if not (await self.entity_exists(entity_id, namespace)):
+            return await self.set_state(
+                entity_id=entity_id,
+                state=initial_val,
+                friendly_name=friendly_name,
+                namespace=namespace,
+                check_existence=False,
+            )
+        else:
+            self.log(f'Entity already exists: {friendly_name}')
+            return self.get_state(entity_id, 'all')
+
     #
     # Device Trackers
-    #
+    # Methods relating to entities in the person and device_tracker domains
 
-    def get_trackers(self, **kwargs) -> list:
+    def get_tracker_details(self, person: bool = True, namespace: str | None = None, copy: bool = True) -> dict[str, Any]:
+        """Returns a list of all device tracker and the associated states.
+
+        Args:
+            person (boolean, optional): If set to True, use person rather than device_tracker
+                as the device type to query
+            namespace (str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases it is safe to ignore this parameter.
+            copy (bool, optional): Whether to return a copy of the state dictionary. This is usually
+                the desired behavior because it prevents accidental modification of the internal AD
+                data structures. Defaults to True.
+
+        Examples:
+            >>> trackers = self.get_tracker_details()
+            >>> for tracker in trackers:
+            >>>     do something
+
+        """
+        device = "person" if person else "device_tracker"
+        return self.get_state(device, namespace=namespace, copy=copy)
+
+    def get_trackers(self, person: bool = True, namespace: str | None = None) -> list[str]:
         """Returns a list of all device tracker names.
 
         Args:
-            **kwargs (optional): Zero or more keyword arguments.
-
-        Keyword Args:
             person (boolean, optional): If set to True, use person rather than device_tracker
                 as the device type to query
             namespace (str, optional): Namespace to use for the call. See the section on
@@ -83,53 +226,32 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             >>>     do something
 
         """
-        if "person" in kwargs and kwargs["person"] is True:
-            device = "person"
-            del kwargs["person"]
-        else:
-            device = "device_tracker"
+        return list(self.get_tracker_details(person, namespace, copy=False).keys())
 
-        return (key for key, value in self.get_state(device, **kwargs).items())
+    @overload
+    def get_tracker_state(
+        self,
+        entity_id: str,
+        attribute: str | None = None,
+        default: Any | None = None,
+        namespace: str | None = None,
+        copy: bool = True,
+    ) -> str: ...
 
-    def get_tracker_details(self, **kwargs) -> list:
-        """Returns a list of all device trackers and their associated state.
-
-        Args:
-            **kwargs (optional): Zero or more keyword arguments.
-
-        Keyword Args:
-            person (boolean, optional): If set to True, use person rather than device_tracker
-                as the device type to query
-            namespace (str, optional): Namespace to use for the call. See the section on
-                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
-                In most cases it is safe to ignore this parameter.
-
-        Examples:
-            >>> trackers = self.get_tracker_details()
-            >>> for tracker in trackers:
-            >>>     do something
-
-        """
-        if "person" in kwargs and kwargs["person"] is True:
-            device = "person"
-            del kwargs["person"]
-        else:
-            device = "device_tracker"
-
-        return self.get_state(device, **kwargs)
-
-    def get_tracker_state(self, entity_id, **kwargs) -> str:
+    def get_tracker_state(self, *args, **kwargs) -> str:
         """Gets the state of a tracker.
 
         Args:
             entity_id (str): Fully qualified entity id of the device tracker or person to query, e.g.,
                 ``device_tracker.andrew`` or ``person.andrew``.
-            **kwargs (optional): Zero or more keyword arguments.
-
-        Keyword Args:
+            attribute (str, optional): Name of the attribute to return
+            default (Any, optional): Default value to return when the attribute isn't found
             namespace (str, optional): Namespace to use for the call. See the section on
                 `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
                 In most cases it is safe to ignore this parameter.
+            copy (bool, optional): Whether to return a copy of the state dictionary. This is usually
+                the desired behavior because it prevents accidental modification of the internal AD
+                data structures. Defaults to True.
 
         Returns:
             The values returned depend in part on the
@@ -145,16 +267,14 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
         Examples:
             >>> state = self.get_tracker_state("device_tracker.andrew")
-            >>>     self.log("state is {}".format(state))
+            >>>     self.log(f"state is {state}")
             >>> state = self.get_tracker_state("person.andrew")
-            >>>     self.log("state is {}".format(state))
+            >>>     self.log(f"state is {state}")
 
         """
-        self._check_entity(self._get_namespace(**kwargs), entity_id)
-        return self.get_state(entity_id, **kwargs)
+        return self.get_state(*args, **kwargs)
 
-    @utils.sync_wrapper
-    async def anyone_home(self, **kwargs) -> bool:
+    def anyone_home(self, person: bool = True, namespace: str | None = None) -> bool:
         """Determines if the house/apartment is occupied.
 
         A convenience function to determine if one or more person is home. Use
@@ -163,9 +283,6 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         trackers.
 
         Args:
-            **kwargs (optional): Zero or more keyword arguments.
-
-        Keyword Args:
             person (boolean, optional): If set to True, use person rather than device_tracker
                 as the device type to query
             namespace (str, optional): Namespace to use for the call. See the section on
@@ -182,22 +299,10 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             >>>     do something
 
         """
-        if "person" in kwargs and kwargs["person"] is True:
-            device = "person"
-            del kwargs["person"]
-        else:
-            device = "device_tracker"
+        details = self.get_tracker_details(person, namespace, copy=False)
+        return any(state['state'] == 'home' for state in details.values())
 
-        state = await self.get_state(**kwargs)
-        for entity_id in state.keys():
-            thisdevice, thisentity = await self.split_entity(entity_id)
-            if thisdevice == device:
-                if state[entity_id]["state"] == "home":
-                    return True
-        return False
-
-    @utils.sync_wrapper
-    async def everyone_home(self, **kwargs) -> bool:
+    def everyone_home(self, person: bool = True, namespace: str | None = None) -> bool:
         """Determine if all family's members at home.
 
         A convenience function to determine if everyone is home. Use this in
@@ -205,9 +310,6 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         a race condition when using state change callbacks for device trackers.
 
         Args:
-            **kwargs (optional): Zero or more keyword arguments.
-
-        Keyword Args:
             person (boolean, optional): If set to True, use person rather than device_tracker
                 as the device type to query
             namespace (str, optional): Namespace to use for the call. See the section on
@@ -224,22 +326,10 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             >>>    do something
 
         """
-        if "person" in kwargs and kwargs["person"] is True:
-            device = "person"
-            del kwargs["person"]
-        else:
-            device = "device_tracker"
+        details = self.get_tracker_details(person, namespace, copy=False)
+        return all(state['state'] == 'home' for state in details.values())
 
-        state = await self.get_state(**kwargs)
-        for entity_id in state.keys():
-            thisdevice, thisentity = await self.split_entity(entity_id)
-            if thisdevice == device:
-                if state[entity_id]["state"] != "home":
-                    return False
-        return True
-
-    @utils.sync_wrapper
-    async def noone_home(self, **kwargs) -> bool:
+    def noone_home(self, person: bool = True, namespace: str | None = None) -> bool:
         """Determines if the house/apartment is empty.
 
         A convenience function to determine if no people are at home. Use this
@@ -247,14 +337,12 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         a race condition when using state change callbacks for device trackers.
 
         Args:
-            **kwargs (optional): Zero or more keyword arguments.
-
-        Keyword Args:
             person (boolean, optional): If set to True, use person rather than device_tracker
                 as the device type to query
             namespace (str, optional): Namespace to use for the call. See the section on
                 `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
                 In most cases it is safe to ignore this parameter.
+            **kwargs (optional): Zero or more keyword arguments.
 
         Returns:
             Returns ``True`` if no one is home, ``False`` otherwise.
@@ -266,84 +354,120 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             >>>     do something
 
         """
-        if "person" in kwargs and kwargs["person"] is True:
-            device = "person"
-            del kwargs["person"]
-        else:
-            device = "device_tracker"
+        return not self.anyone_home(person, namespace)
 
-        state = await self.get_state(**kwargs)
-        for entity_id in state.keys():
-            thisdevice, thisentity = await self.split_entity(entity_id)
-            if thisdevice == device:
-                if state[entity_id]["state"] == "home":
-                    return False
+    #
+    # Built-in constraints
+    #
+
+    def constrain_presence(self, value: Literal["everyone", "anyone", "noone"] | None = None) -> bool:
+        """Returns True if unconstrained"""
+        match value.lower():
+            case "everyone":
+                return not self.everyone_home()
+            case "anyone":
+                return not self.anyone_home()
+            case "noone":
+                return not self.noone_home()
+            case None:
+                return True
+            case _:
+                raise ValueError(f'Invalid presence constraint: {value}')
+
+    def constrain_person(self, value: Literal["everyone", "anyone", "noone"] | None = None) -> bool:
+        """Returns True if unconstrained"""
+        match value.lower():
+            case "everyone":
+                return not self.everyone_home(person=True)
+            case "anyone":
+                return not self.anyone_home(person=True)
+            case "noone":
+                return not self.noone_home(person=True)
+            case None:
+                return True
+            case _:
+                raise ValueError(f'Invalid presence constraint: {value}')
+
+    def constrain_input_boolean(self, value: str | Iterable[str]) -> bool:
+        """Returns True if unconstrained - all input_booleans match the desired
+        state. Desired state defaults to ``on``
+        """
+        match value:
+            case Iterable():
+                constraints = value if isinstance(value, list) else list(value)
+            case str():
+                constraints = [value]
+
+        assert isinstance(value, list) and all(isinstance(v, str) for v in value)
+
+        for constraint in constraints:
+            parts = re.split(r',\s*', constraint)
+            match len(parts):
+                case 2:
+                    entity, desired_state = parts
+                case 1:
+                    entity = constraint
+                    desired_state = "on"
+
+            if self.get_state(entity, copy=False) != desired_state.strip():
+                return False
+
         return True
 
-    #
-    # Built in constraints
-    #
+    def constrain_input_select(self, value: str | Iterable[str]) -> bool:
+        """Returns True if unconstrained - all inputs match a desired state."""
+        match value:
+            case Iterable():
+                constraints = value if isinstance(value, list) else list(value)
+            case str():
+                constraints = [value]
 
-    def constrain_presence(self, value: str) -> bool:
-        unconstrained = True
-        if value == "everyone" and not self.everyone_home():
-            unconstrained = False
-        elif value == "anyone" and not self.anyone_home():
-            unconstrained = False
-        elif value == "noone" and not self.noone_home():
-            unconstrained = False
+        assert isinstance(value, list) and all(isinstance(v, str) for v in value)
 
-        return unconstrained
-
-    def constrain_person(self, value: str) -> bool:
-        unconstrained = True
-        if value == "everyone" and not self.everyone_home(person=True):
-            unconstrained = False
-        elif value == "anyone" and not self.anyone_home(person=True):
-            unconstrained = False
-        elif value == "noone" and not self.noone_home(person=True):
-            unconstrained = False
-
-        return unconstrained
-
-    def constrain_input_boolean(self, value: Union[str, list]) -> bool:
-        unconstrained = True
-        state = self.get_state()
-
-        constraints = [value] if isinstance(value, str) else value
         for constraint in constraints:
-            values = constraint.split(",")
-            if len(values) == 2:
-                entity = values[0]
-                desired_state = values[1]
-            else:
-                entity = constraint
-                desired_state = "on"
-            if entity in state and state[entity]["state"] != desired_state:
-                unconstrained = False
+            # using re.split allows for an arbitrary amount of whitespace after the comma
+            parts = re.split(r',\s*', constraint)
+            entity = parts[0]
+            desired_states = parts[1:]
+            if self.get_state(entity, copy=False) not in desired_states:
+                return False
 
-        return unconstrained
-
-    def constrain_input_select(self, value: Union[str, list]) -> bool:
-        unconstrained = True
-        state = self.get_state()
-
-        constraints = [value] if isinstance(value, str) else value
-        for constraint in constraints:
-            values = constraint.split(",")
-            entity = values.pop(0)
-            if entity in state and state[entity]["state"] not in values:
-                unconstrained = False
-
-        return unconstrained
+        return True
 
     #
     # Helper functions for services
     #
 
-    @utils.sync_wrapper
-    @hass_check
-    async def turn_on(self, entity_id: str, **kwargs) -> None:
+    def get_service_info(self, service: str) -> dict | None:
+        """Get some information about what kind of data the service expects to receive, which is helpful for debugging.
+
+        The resulting dict is identical to the one returned sending ``get_services`` to the websocket. See
+        `fetching service actions <https://developers.home-assistant.io/docs/api/websocket#fetching-service-actions>`__
+        for more information.
+
+        Args:
+            service (str): The service name in the format ``<domain>/<service>``. For example, ``light/turn_on``.
+
+        Returns:
+            Information about the service in a dict with the following keys: ``name``, ``description``, ``target``, and
+            ``fields``.
+
+        """
+        if (plugin := self._plugin) is not None:
+            domain, service_name = service.split("/", 2)
+            for service_def in plugin.services:
+                if service_def.get("domain") == domain:
+                    if (services := service_def.get("services")) is not None:
+                        return deepcopy(services.get(service_name))
+            else:
+                self.logger.warning("Service info not found for domain '%s", domain)
+
+    # Methods that use self.call_service
+
+    # Home Assistant General
+
+    @utils.sync_decorator
+    async def turn_on(self, entity_id: str, namespace: str | None = None, **kwargs) -> dict:
         """Turns `on` a Home Assistant entity.
 
         This is a convenience function for the ``homeassistant.turn_on``
@@ -351,18 +475,19 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         that can be turned ``on`` or ``run`` (e.g., `Lights`, `Switches`,
         `Scenes`, `Scripts`, etc.).
 
+        Note that Home Assistant will return a success even if the entity name is invalid.
+
         Args:
             entity_id (str): Fully qualified id of the thing to be turned ``on`` (e.g.,
                 `light.office_lamp`, `scene.downstairs_on`).
-            **kwargs (optional): Zero or more keyword arguments.
-
-         Keyword Args:
              namespace (str, optional): Namespace to use for the call. See the section on
                 `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
                 In most cases it is safe to ignore this parameter.
+            **kwargs (optional): Zero or more keyword arguments that get passed to the
+                service call.
 
         Returns:
-            None.
+            Result of the `turn_on` function if any, see `service call notes <APPGUIDE.html#some-notes-on-service-calls>`__ for more details.
 
         Examples:
             Turn `on` a switch.
@@ -378,15 +503,15 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             >>> self.turn_on("light.office_1", color_name = "green")
 
         """
-        namespace = self._get_namespace(**kwargs)
-        await self._check_entity(namespace, entity_id)
-        kwargs["entity_id"] = entity_id
+        return await self._entity_service_call(
+            service="homeassistant/turn_on",
+            entity_id=entity_id,
+            namespace=namespace,
+            **kwargs
+        )
 
-        await self.call_service("homeassistant/turn_on", **kwargs)
-
-    @utils.sync_wrapper
-    @hass_check
-    async def turn_off(self, entity_id: str, **kwargs) -> None:
+    @utils.sync_decorator
+    async def turn_off(self, entity_id: str, namespace: str | None = None, **kwargs) -> dict:
         """Turns `off` a Home Assistant entity.
 
         This is a convenience function for the ``homeassistant.turn_off``
@@ -396,15 +521,15 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         Args:
             entity_id (str): Fully qualified id of the thing to be turned ``off`` (e.g.,
                 `light.office_lamp`, `scene.downstairs_on`).
-            **kwargs (optional): Zero or more keyword arguments.
-
-         Keyword Args:
-             namespace (str, optional): Namespace to use for the call. See the section on
+            namespace (str, optional): Namespace to use for the call. See the section on
                 `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
                 In most cases it is safe to ignore this parameter.
+            **kwargs (optional): Zero or more keyword arguments that get passed to the
+                service call.
 
         Returns:
-            None.
+            Result of the `turn_off` function if any, see `service call notes
+            <APPGUIDE.html#some-notes-on-service-calls>`__ for more details.
 
         Examples:
             Turn `off` a switch.
@@ -416,17 +541,15 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             >>> self.turn_off("scene.bedroom_on")
 
         """
-        domain, _ = await self.split_entity(entity_id)
-        kwargs["entity_id"] = entity_id
+        return await self._entity_service_call(
+            service="homeassistant/turn_off",
+            entity_id=entity_id,
+            namespace=namespace,
+            **kwargs
+        )
 
-        if domain == "scene":
-            await self.call_service("homeassistant/turn_on", **kwargs)
-        else:
-            await self.call_service("homeassistant/turn_off", **kwargs)
-
-    @utils.sync_wrapper
-    @hass_check
-    async def toggle(self, entity_id: str, **kwargs) -> None:
+    @utils.sync_decorator
+    async def toggle(self, entity_id: str, namespace: str | None = None, **kwargs) -> dict:
         """Toggles between ``on`` and ``off`` for the selected entity.
 
         This is a convenience function for the ``homeassistant.toggle`` function.
@@ -436,188 +559,40 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         Args:
             entity_id (str): Fully qualified id of the thing to be turned ``off`` (e.g.,
                 `light.office_lamp`, `scene.downstairs_on`).
-            **kwargs (optional): Zero or more keyword arguments.
-
-         Keyword Args:
-             namespace (str, optional): Namespace to use for the call. See the section on
+            namespace (str, optional): Namespace to use for the call. See the section on
                 `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
                 In most cases it is safe to ignore this parameter.
+            **kwargs (optional): Zero or more keyword arguments that get passed to the
+                service call.
 
         Returns:
-            None.
+            Result of the `toggle` function if any, see `service call notes <APPGUIDE.html#some-notes-on-service-calls>`__ for more details.
 
         Examples:
             >>> self.toggle("switch.backyard_lights")
-            >>> self.toggle("light.office_1", color_name = "green")
+            >>> self.toggle("light.office_1", color_name="green")
 
         """
-        namespace = self._get_namespace(**kwargs)
-        await self._check_entity(namespace, entity_id)
-        kwargs["entity_id"] = entity_id
+        return await self._entity_service_call(
+            service="homeassistant/toggle",
+            entity_id=entity_id,
+            namespace=namespace,
+            **kwargs
+        )
 
-        await self.call_service("homeassistant/toggle", **kwargs)
-
-    @utils.sync_wrapper
-    @hass_check
-    async def set_value(self, entity_id: str, value: Union[int, float], **kwargs) -> None:
-        """Sets the value of an `input_number`.
-
-        This is a convenience function for the ``input_number.set_value``
-        function. It can set the value of an ``input_number`` in Home Assistant.
-
-        Args:
-            entity_id (str): Fully qualified id of `input_number` to be changed (e.g.,
-                `input_number.alarm_hour`).
-            value (int or float): The new value to set the `input_number` to.
-            **kwargs (optional): Zero or more keyword arguments.
-
-         Keyword Args:
-             namespace (str, optional): Namespace to use for the call. See the section on
-                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
-                In most cases it is safe to ignore this parameter.
-
-        Returns:
-            None.
-
-        Examples:
-            >>> self.set_value("input_number.alarm_hour", 6)
-
-        """
-        namespace = self._get_namespace(**kwargs)
-        await self._check_entity(namespace, entity_id)
-
-        kwargs.update({"value": value})
-        await self.get_entity_api(namespace, entity_id).call_service("set_value", **kwargs)
-
-    @utils.sync_wrapper
-    @hass_check
-    async def set_textvalue(self, entity_id: str, value: str, **kwargs) -> None:
-        """Sets the value of an `input_text`.
-
-        This is a convenience function for the ``input_text.set_value``
-        function. It can set the value of an `input_text` in Home Assistant.
-
-        Args:
-            entity_id (str): Fully qualified id of `input_text` to be changed (e.g.,
-                `input_text.text1`).
-            value (str): The new value to set the `input_text` to.
-            **kwargs (optional): Zero or more keyword arguments.
-
-         Keyword Args:
-             namespace (str, optional): Namespace to use for the call. See the section on
-                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
-                In most cases it is safe to ignore this parameter.
-
-        Returns:
-            None.
-
-        Examples:
-            >>> self.set_textvalue("input_text.text1", "hello world")
-
-        """
-        namespace = self._get_namespace(**kwargs)
-        await self._check_entity(namespace, entity_id)
-
-        kwargs.update({"value": value})
-        await self.get_entity_api(namespace, entity_id).call_service("set_value", **kwargs)
-
-    @utils.sync_wrapper
-    @hass_check
-    async def select_option(self, entity_id: str, option: str, **kwargs) -> None:
-        """Sets the value of an `input_option`.
-
-        This is a convenience function for the ``input_select.select_option``
-        function. It can set the value of an `input_select` in Home Assistant.
-
-        Args:
-            entity_id (str): Fully qualified id of `input_select` to be changed (e.g.,
-                `input_select.mode`).
-            option (str): The new value to set the `input_select` to.
-            **kwargs (optional): Zero or more keyword arguments.
-
-         Keyword Args:
-             namespace (str, optional): Namespace to use for the call. See the section on
-                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
-                In most cases it is safe to ignore this parameter.
-
-        Returns:
-            None.
-
-        Examples:
-            >>> self.select_option("input_select.mode", "Day")
-
-        """
-        namespace = self._get_namespace(**kwargs)
-        await self._check_entity(namespace, entity_id)
-
-        kwargs.update({"option": option})
-        await self.get_entity_api(namespace, entity_id).call_service("select_option", **kwargs)
-
-    @utils.sync_wrapper
-    @hass_check
-    async def notify(self, message: str, **kwargs) -> None:
-        """Sends a notification.
-
-        This is a convenience function for the ``notify.notify`` service. It
-        will send a notification to a named notification service. If the name is
-        not specified, it will default to ``notify/notify``.
-
-        Args:
-            message (str): Message to be sent to the notification service.
-            **kwargs (optional): Zero or more keyword arguments.
-
-        Keyword Args:
-             title (str, optional): Title of the notification.
-             name (str, optional): Name of the notification service.
-             namespace (str, optional): Namespace to use for the call. See the section on
-                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
-                In most cases it is safe to ignore this parameter.
-
-        Returns:
-            None.
-
-        Examples:
-            >>> self.notify("Switching mode to Evening")
-            >>> self.notify("Switching mode to Evening", title = "Some Subject", name = "smtp")
-                # will send a message through notify.smtp instead of the default notify.notify
-
-        """
-
-        kwargs["message"] = message
-        if "name" in kwargs:
-            service = "notify/{}".format(kwargs["name"])
-            del kwargs["name"]
-        else:
-            service = "notify/notify"
-
-        await self.call_service(service, **kwargs)
-
-    @utils.sync_wrapper
-    @hass_check
-    async def persistent_notification(self, message: str, title=None, id=None) -> None:
-        """
-
-        Args:
-            message:
-            title:
-            id:
-
-        Returns:
-
-        Todo:
-            * Finish
-
-        """
-        kwargs = {"message": message}
-        if title is not None:
-            kwargs["title"] = title
-        if id is not None:
-            kwargs["notification_id"] = id
-        await self.call_service("persistent_notification/create", **kwargs)
-
-    @utils.sync_wrapper
-    @hass_check
-    async def get_history(self, **kwargs) -> list:
+    @utils.sync_decorator
+    async def get_history(
+        self,
+        entity_id: str | list[str],
+        days: int | None = None,
+        start_time: datetime | str | None = None,
+        end_time: datetime | str | None = None,
+        minimal_response: bool | None = None,
+        no_attributes: bool | None = None,
+        significant_changes_only: bool | None = None,
+        callback: Callable | None = None,
+        namespace: str | None = None,
+    ) -> list[list[dict[str, Any]]]:
         """Gets access to the HA Database.
         This is a convenience function that allows accessing the HA Database, so the
         history state of a device can be retrieved. It allows for a level of flexibility
@@ -625,10 +600,10 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         taken when using this, as depending on the size of the database, it can take
         a long time to process.
 
-        Args:
-            **kwargs (optional): Zero or more keyword arguments.
+        Hits the ``/api/history/period/<timestamp>`` endpoint. See
+        https://developers.home-assistant.io/docs/api/rest for more information
 
-        Keyword Args:
+        Args:
             entity_id (str, optional): Fully qualified id of the device to be querying, e.g.,
                 ``light.office_lamp`` or ``scene.downstairs_on`` This can be any entity_id
                 in the database. If this is left empty, the state of all entities will be
@@ -651,6 +626,9 @@ class Hass(adbase.ADBase, adapi.ADAPI):
                 is declared without ``start_time`` or ``days``, it will revert to default to the latest
                 history state. When ``end_time`` is specified, it is not possible to declare ``entity_id``.
                 If ``entity_id`` is specified, ``end_time`` will be ignored.
+            minimal_response (bool, optional):
+            no_attributes (bool, optional):
+            significant_changes_only (bool, optional):
             callback (callable, optional): If wanting to access the database to get a large amount of data,
                 using a direct call to this function will take a long time to run and lead to AD cancelling the task.
                 To get around this, it is better to pass a function, which will be responsible of receiving the result
@@ -665,14 +643,14 @@ class Hass(adbase.ADBase, adapi.ADAPI):
         Examples:
             Get device state over the last 5 days.
 
-            >>> data = self.get_history("light.office_lamp", days = 5)
+            >>> data = self.get_history(entity_id = "light.office_lamp", days = 5)
 
             Get device state over the last 2 days and walk forward.
 
             >>> import datetime
             >>> from datetime import timedelta
             >>> start_time = datetime.datetime.now() - timedelta(days = 2)
-            >>> data = self.get_history("light.office_lamp", start_time = start_time)
+            >>> data = self.get_history(entity_id = "light.office_lamp", start_time = start_time)
 
             Get device state from yesterday and walk 5 days back.
 
@@ -683,34 +661,624 @@ class Hass(adbase.ADBase, adapi.ADAPI):
 
         """
 
-        namespace = self._get_namespace(**kwargs)
-        plugin = await self.AD.plugins.get_plugin_object(namespace)
+        namespace = namespace or self._namespace
 
-        if hasattr(plugin, "get_history"):
-            callback = kwargs.pop("callback", None)
+        if days is not None:
+            end_time = end_time or await self.get_now()
+            start_time = end_time - timedelta(days=days)
+
+
+        plugin: "HassPlugin" = self.AD.plugins.get_plugin_object(
+            namespace or self.namespace
+        )
+
+        if plugin is not None:
+            coro = plugin.get_history(
+                filter_entity_id=entity_id,
+                timestamp=start_time,
+                end_time=end_time,
+                minimal_response=minimal_response,
+                no_attributes=no_attributes,
+                significant_changes_only=significant_changes_only,
+            )
+
             if callback is not None and callable(callback):
-                self.create_task(plugin.get_history(**kwargs), callback)
-
+                self.create_task(coro, callback)
             else:
-                return await plugin.get_history(**kwargs)
+                return await coro
 
         else:
             self.logger.warning(
                 "Wrong Namespace selected, as %s has no database plugin attached to it",
                 namespace,
             )
-            return None
 
-    @utils.sync_wrapper
-    @hass_check
-    async def render_template(self, template: str, **kwargs: Optional[Any]):
-        """Renders a Home Assistant Template
+    @utils.sync_decorator
+    async def get_logbook(
+        self,
+        entity: str | None = None,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
+        days: int | None = None,
+        callback: Callable | None = None,
+        namespace: str | None = None,
+    ) -> list[dict[str, str | datetime]]:
+        """Gets access to the HA Database.
+        This is a convenience function that allows accessing the HA Database.
+        Caution must be taken when using this, as depending on the size of the
+        database, it can take a long time to process.
+
+        Hits the ``/api/logbook/<timestamp>`` endpoint. See
+        https://developers.home-assistant.io/docs/api/rest for more information
 
         Args:
-            template (str): The Home Assistant Template to be rendered.
+            entity (str, optional): Fully qualified id of the device to be
+                querying, e.g., ``light.office_lamp`` or
+                ``scene.downstairs_on``. This can be any entity_id in the
+                database. This method does not support multiple entity IDs. If
+                no ``entity`` is specified, then all logbook entries for the
+                period will be returned.
+            start_time (datetime, optional): The start time of the period
+                covered. Defaults to 1 day before the time of the request.
+            end_time (datetime, optional): The end time of the period covered.
+                Defaults to the current time if the ``days`` argument is also used.
+            days (int, optional): Number of days before the end time to include
+            callback (Callable, optional): Callback to run with the results of the
+                request. The callback needs to take a single argument, a future object.
+            namespace (str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases it is safe to ignore this parameter.
 
-        Keyword Args:
-            None.
+        Returns:
+            A list of dictionaries, each representing a single entry for a
+            single entity. The value for the ``when`` key of each dictionary
+            gets converted to a ``datetime`` object with a timezone.
+
+        Examples:
+            >>> data = self.get_logbook("light.office_lamp")
+            >>> data = self.get_logbook("light.office_lamp", days=5)
+
+        """
+        if days is not None:
+            end_time = end_time or await self.get_now()
+            start_time = end_time - timedelta(days=days)
+
+        plugin: "HassPlugin" = self.AD.plugins.get_plugin_object(
+            namespace or self.namespace
+        )
+        if plugin is not None:
+            coro = plugin.get_logbook(
+                entity=entity,
+                timestamp=start_time,
+                end_time=end_time,
+            )
+
+            if callback is not None and callable(callback):
+                self.create_task(coro, callback)
+            else:
+                return await coro
+
+    # Input Helpers
+
+    @utils.sync_decorator
+    async def set_value(self, entity_id: str, value: int | float, namespace: str | None = None) -> None:
+        """Sets the value of an `input_number`.
+
+        This is a convenience function for the ``input_number.set_value``
+        function. It can set the value of an ``input_number`` in Home Assistant.
+
+        Args:
+            entity_id (str): Fully qualified id of `input_number` to be changed (e.g.,
+                `input_number.alarm_hour`).
+            value (int or float): The new value to set the `input_number` to.
+            namespace (str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases it is safe to ignore this parameter.
+            **kwargs (optional): Zero or more keyword arguments that get passed to the
+                service call.
+
+        Returns:
+            Result of the `set_value` function if any, see `service call notes <APPGUIDE.html#some-notes-on-service-calls>`__ for more details.
+
+        Examples:
+            >>> self.set_value("input_number.alarm_hour", 6)
+
+        """
+        return await self._domain_service_call(
+            service="input_number/set_value",
+            entity_id=entity_id,
+            value=value,
+            namespace=namespace
+        )
+
+    @utils.sync_decorator
+    async def set_textvalue(self, entity_id: str, value: str, namespace: str | None = None) -> None:
+        """Sets the value of an `input_text`.
+
+        This is a convenience function for the ``input_text.set_value``
+        function. It can set the value of an `input_text` in Home Assistant.
+
+        Args:
+            entity_id (str): Fully qualified id of `input_text` to be changed (e.g.,
+                `input_text.text1`).
+            value (str): The new value to set the `input_text` to.
+            namespace (str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases it is safe to ignore this parameter.
+
+        Returns:
+            Result of the `set_textvalue` function if any, see `service call notes <APPGUIDE.html#some-notes-on-service-calls>`__ for more details.
+
+        Examples:
+            >>> self.set_textvalue("input_text.text1", "hello world")
+
+        """
+        # https://www.home-assistant.io/integrations/input_text/
+        return await self._domain_service_call(
+            service="input_text/set_value",
+            entity_id=entity_id,
+            value=value,
+            namespace=namespace
+        )
+
+    @utils.sync_decorator
+    async def set_options(self, entity_id: str, options: list[str], namespace: str | None = None) -> dict:
+        # https://www.home-assistant.io/integrations/input_select/#actions
+        return await self._domain_service_call(
+            service="input_select/set_options",
+            entity_id=entity_id,
+            options=options,
+            namespace=namespace,
+        )
+
+    @utils.sync_decorator
+    async def select_option(self, entity_id: str, option: str, namespace: str | None = None) -> None:
+        """Sets the value of an `input_option`.
+
+        This is a convenience function for the ``input_select.select_option``
+        function. It can set the value of an `input_select` in Home Assistant.
+
+        Args:
+            entity_id (str): Fully qualified id of `input_select` to be changed (e.g.,
+                `input_select.mode`).
+            option (str): The new value to set the `input_select` to.
+            namespace (str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases it is safe to ignore this parameter.
+            **kwargs (optional): Zero or more keyword arguments that get passed to the
+                service call.
+
+        Returns:
+            Result of the `select_option` function if any, see `service call notes <APPGUIDE.html#some-notes-on-service-calls>`__ for more details.
+
+        Examples:
+            >>> self.select_option("input_select.mode", "Day")
+
+        """
+        return await self._domain_service_call(
+            service="input_select/select_option",
+            entity_id=entity_id,
+            option=option,
+            namespace=namespace,
+        )
+
+    @utils.sync_decorator
+    async def select_next(self, entity_id: str, cycle: bool = True, namespace: str | None = None) -> dict:
+        # https://www.home-assistant.io/integrations/input_select/#action-input_selectselect_next
+        return await self._domain_service_call(
+            service="input_select/select_next",
+            entity_id=entity_id,
+            cycle=cycle,
+            namespace=namespace,
+        )
+
+    @utils.sync_decorator
+    async def select_previous(self, entity_id: str, cycle: bool = True, namespace: str | None = None) -> dict:
+        # https://www.home-assistant.io/integrations/input_select/#action-input_selectselect_previous
+        return await self._domain_service_call(
+            service="input_select/select_previous",
+            entity_id=entity_id,
+            cycle=cycle,
+            namespace=namespace,
+        )
+
+    @utils.sync_decorator
+    async def select_first(self, entity_id: str, namespace: str | None = None) -> dict:
+        return await self._domain_service_call(
+            service="input_select/select_first",
+            entity_id=entity_id,
+            namespace=namespace,
+        )
+
+    @utils.sync_decorator
+    async def select_last(self, entity_id: str, namespace: str | None = None) -> dict:
+        return await self._domain_service_call(
+            service="input_select/select_last",
+            entity_id=entity_id,
+            namespace=namespace,
+        )
+
+    @utils.sync_decorator
+    async def press_button(self, button_id: str, namespace: str | None = None) -> dict:
+        # https://www.home-assistant.io/integrations/input_button/#actions
+        return await self._domain_service_call(
+            service="input_button/press",
+            entity_id=button_id,
+            namespace=namespace,
+        )
+
+    def last_pressed(self, button_id: str, namespace: str | None = None) -> datetime:
+        """Only works on entities in the input_button domain"""
+        assert button_id.split('.')[0] == 'input_button'
+        state = self.get_state(button_id, namespace=namespace)
+        match state:
+            case str():
+                return datetime.fromisoformat(state).astimezone(self.AD.tz)
+            case datetime():
+                return state
+            case _:
+                self.logger.warning(f'Unknown time: {state}')
+
+    def time_since_last_press(self, button_id: str, namespace: str | None = None) -> timedelta:
+        """Only works on entities in the input_button domain"""
+        return self.get_now() - self.last_pressed(button_id, namespace)
+
+    #
+    # Notifications
+    #
+
+    @utils.sync_decorator
+    async def notify(
+        self,
+        message: str,
+        title: str = None,
+        name: str = None,
+        namespace: str | None = None,
+    ) -> None:
+        """Sends a notification.
+
+        This is a convenience function for the ``notify.notify`` service. It
+        will send a notification to a named notification service. If the name is
+        not specified, it will default to ``notify/notify``.
+
+        Args:
+            message (str): Message to be sent to the notification service.
+            title (str, optional): Title of the notification.
+            name (str, optional): Name of the notification service.
+            namespace (str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases it is safe to ignore this parameter.
+
+        Returns:
+            Result of the `notify` function if any, see `service call notes
+            <APPGUIDE.html#some-notes-on-service-calls>`__ for more details.
+
+        Examples:
+            >>> self.notify("Switching mode to Evening")
+            >>> self.notify("Switching mode to Evening", title = "Some Subject", name = "smtp")
+                # will send a message through notify.smtp instead of the default notify.notify
+
+        """
+        return await self.call_service(
+            service=f'notify/{name}' if name is not None else 'notify/notify',
+            namespace=namespace,
+            title=title,
+            message=message,
+        )
+
+    @utils.sync_decorator
+    async def persistent_notification(self, message: str, title=None, id=None) -> None:
+        """
+
+        Args:
+            message:
+            title:
+            id:
+
+        Returns:
+
+        Todo:
+            * Finish
+
+        """
+        kwargs = {"message": message}
+        if title is not None:
+            kwargs["title"] = title
+        if id is not None:
+            kwargs["notification_id"] = id
+        await self.call_service("persistent_notification/create", **kwargs)
+
+    @overload
+    def notify_android(
+        self,
+        device: str,
+        tag: str,
+        title: str,
+        message: str,
+        target: str,
+        **data
+    ) -> dict: ...
+
+    def notify_android(self, device: str, tag: str = 'appdaemon', **kwargs) -> dict:
+        """Convenience method for quickly creating mobile Android notifications"""
+        return self._notify_mobile_app(device, AndroidData, tag, **kwargs)
+
+    def notify_ios(self, device: str, tag: str = 'appdaemon', **kwargs) -> dict:
+        """Convenience method for quickly creating mobile iOS notifications"""
+        return self._notify_mobile_app(device, iOSData, tag, **kwargs)
+
+    def _notify_mobile_app(
+        self,
+        device: str,
+        model: str | Type[NotificationData],
+        tag: str = 'appdaemon',
+        **kwargs
+    ) -> dict:
+        match model:
+            case NotificationData():
+                pass
+            case 'android':
+                model = AndroidData
+            case 'iOS' | 'ios':
+                model = iOSData
+
+        model = model.model_validate(kwargs)
+        model.data.tag = model.data.tag or tag # Fills in the tag if it's blank
+        return self.call_service(
+            service=f'notify/mobile_app_{device}',
+            **model.model_dump(mode='json', exclude_none=True, by_alias=True)
+        )
+
+    def android_tts(
+        self,
+        device: str,
+        tts_text: str,
+        media_stream: Literal['music_stream', 'alarm_stream', 'alarm_stream_max'] | None = 'music_stream',
+        critical: bool = False,
+    ) -> dict:
+        """Convenience method for correctly creating a TTS notification for Android devices.
+
+        For more information see: `Text-to-Speech Notifications <https://companion.home-assistant.io/docs/notifications/notifications-basic#text-to-speech-notifications>`_
+
+        Args:
+            device (str): Name of the device to notify on. This gets combined with ``notify/mobile_app_<device>`` to
+                determine which notification service to call.
+            tts_text (str): String of text to translate into speech
+            media_stream (optional): Defaults to ``music_stream``.
+            critical (bool, optional): Defaults to False. If set to ``True``, the notification will use the correct
+                settings to have the TTS at the maximum possible volume. For more information see `Critical Notifications <https://companion.home-assistant.io/docs/notifications/critical-notifications/#android>`_
+        """
+        return self.call_service(
+            **AndroidNotification.tts(device, tts_text, media_stream, critical).to_service_call()
+        )
+
+    def listen_notification_action(self, callback: Callable, action: str) -> str:
+        return self.listen_event(callback, 'mobile_app_notification_action', action=action)
+
+    # Backup/Restore
+
+    @overload
+    def backup_full(
+        self,
+        name: str | None = None,
+        password: str | None = None,
+        compressed: bool = True,
+        location: str | None = None,
+        homeassistant_exclude_database: bool = False,
+        timeout: int | float = 30 # Used by sync_decorator
+    ): ...
+
+    @utils.sync_decorator
+    async def backup_full(self, name=None, timeout: int | float = 30, **kwargs) -> dict:
+        # https://www.home-assistant.io/integrations/hassio/#action-hassiobackup_full
+        return await self.call_service("hassio/backup_full", name=name, **kwargs)
+
+    @overload
+    async def backup_partial(
+        self,
+        addons: Iterable[str] = None,
+        folders: Iterable[str] = None,
+        name: str = None,
+        password: str = None,
+        compressed: bool = True,
+        location: str = None,
+        homeassistant: bool = False,
+        homeassistant_exclude_database: bool = False,
+        timeout: int | float = 30 # Used by sync_decorator
+    ): ...
+
+    @utils.sync_decorator
+    async def backup_partial(self, name=None, timeout: int | float = 30, **kwargs) -> dict:
+        # https://www.home-assistant.io/integrations/hassio/#action-hassiobackup_partial
+        return await self.call_service("hassio/backup_partial", name=name, **kwargs)
+
+    @utils.sync_decorator
+    async def restore_full(
+        self,
+        slug: str,
+        password: str | None = None,
+        timeout: int | float = 30 # Used by sync_decorator
+    ) -> dict:
+        # https://www.home-assistant.io/integrations/hassio/#action-hassiorestore_full
+        return await self.call_service("hassio/restore_full", slug=slug, password=password)
+
+    @overload
+    async def restore_parial(
+        self,
+        slug: str,
+        homeassistant: bool = False,
+        addons: Iterable[str] = None,
+        folders: Iterable[str] = None,
+        password: str = None,
+        timeout: int | float = 30 # Used by sync_decorator
+    ): ...
+
+    async def restore_parial(self, slug: str, timeout: int | float = 30, **kwargs) -> dict:
+        # https://www.home-assistant.io/integrations/hassio/#action-hassiorestore_partial
+        return await self.call_service("hassio/restore_parial", slug=slug, **kwargs)
+
+    # Media
+
+    @utils.sync_decorator
+    async def media_play(self, entity_id: str | Iterable[str]) -> dict:
+        return await self._domain_service_call('media_player/media_play', entity_id)
+
+    @utils.sync_decorator
+    async def media_pause(self, entity_id: str | Iterable[str]) -> dict:
+        return await self._domain_service_call('media_player/media_pause', entity_id)
+
+    @utils.sync_decorator
+    async def media_play_pause(self, entity_id: str | Iterable[str]) -> dict:
+        return await self._domain_service_call('media_player/media_play_pause', entity_id)
+
+    @utils.sync_decorator
+    async def media_mute(self, entity_id: str | Iterable[str]) -> dict:
+        # https://www.home-assistant.io/integrations/media_player/#action-media_playervolume_mute
+        return await self._domain_service_call('media_player/volume_mute', entity_id)
+
+    @utils.sync_decorator
+    async def media_set_volume(self, entity_id: str | Iterable[str], volume: float = 0.5) -> dict:
+        # https://www.home-assistant.io/integrations/media_player/#action-media_playervolume_set
+        return await self._domain_service_call(
+            service='media_player/volume_set',
+            entity_id=entity_id,
+            volume_level=volume,
+        )
+
+    @utils.sync_decorator
+    async def media_seek(self, entity_id: str | Iterable[str], seek_position: float | timedelta) -> dict:
+        if isinstance(seek_position, timedelta):
+            seek_position = seek_position.total_seconds()
+
+        # https://www.home-assistant.io/integrations/media_player/#action-media_playermedia_seek
+        return await self._domain_service_call(
+            service='media_player/media_seek',
+            entity_id=entity_id,
+            seek_position=seek_position
+        )
+
+    # Calendar
+
+    def get_calendar_events(
+        self,
+        entity_id: str = "calendar.localcalendar",
+        days: int = 1,
+        hours: int = None,
+        minutes: int = None,
+        namespace: str | None = None
+    ) -> list[dict[str, str | datetime]]:
+        """
+        Retrieve calendar events for a specified entity within a given number of days.
+
+        Each dict contains the following keys: ``summary``, ``description``, ``start``,
+        and ``end``. The ``start`` and ``end`` keys are converted to ``datetime`` objects.
+
+        Args:
+            entity_id (str): The ID of the calendar entity to retrieve events from. Defaults to
+                "calendar.localcalendar".
+            days (int): The number of days to look ahead for events. Defaults to 1.
+            hours (int, optional): The number of hours to look ahead for events. Defaults to None.
+            minutes (int, optional): The number of minutes to look ahead for events. Defaults to None.
+            namespace(str, optional): If provided, changes the namespace for the service call. Defaults to the current
+                namespace of the app, so it's safe to ignore this parameter most of the time. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+
+        Returns:
+            list[dict]: A list of dicts representing the calendar events.
+
+        Examples:
+            >>> events = self.get_calendar_events()
+            >>> for event in events:
+            >>>     self.log(f'{event["summary"]} starts at {event["start"]}')
+        """
+        duration = {
+            'days': days,
+            'hours': hours,
+            'minutes': minutes,
+        }
+        duration = {k:v for k,v in duration.items() if v is not None}
+
+        res = self.call_service(
+            'calendar/get_events',
+            namespace=namespace,
+            entity_id=entity_id,
+            duration=duration,
+        )
+        if res['success']:
+            return [
+                {
+                    k: datetime.fromisoformat(v) if k in ('start', 'end') else v
+                    for k, v in event.items()
+                }
+                for event in res['result']['response'][entity_id]['events']
+            ]
+
+    # Scripts
+
+    def run_script(
+        self,
+        entity_id: str,
+        namespace: str | None = None,
+        return_immediately: bool = True,
+        **kwargs
+    ) -> dict:
+        """Runs a script in Home Assistant
+
+        Args:
+            entity_id (str): The entity ID of the script to run, if it doesn't start with ``script``, it will be added.
+            namespace (str, optional): The namespace to use. Defaults to the namespace of the calling app.
+            return_immediately (bool, optional): Whether to return immediately or wait for the script
+                to complete. Defaults to True. See the Home Assistant documentation for more information.
+                https://www.home-assistant.io/integrations/script/#waiting-for-script-to-complete
+            **kwargs: Additional keyword arguments to pass to the service call.
+
+        Returns:
+            dict: The result of the service call.
+        """
+        if entity_id.startswith('script.'):
+            domain, script_name = entity_id.split('.', 1)
+        elif entity_id.startswith('script/'):
+            domain, script_name = entity_id.split('/', 1)
+        else:
+            domain = 'script'
+            script_name = entity_id
+
+        entity_id = f'{domain}.{script_name}'
+
+        if return_immediately:
+            service = 'script/turn_on'
+            service_data = {"variables": kwargs}
+        else:
+            service = f'{domain}/{script_name}'
+            service_data = kwargs
+
+        try:
+            namespace = namespace or self.namespace
+            return self.call_service(
+                service, namespace,
+                entity_id=entity_id,
+                service_data=service_data,
+            )
+        except ade.ServiceException:
+            plugin_name = self.AD.plugins.get_plugin_from_namespace(namespace)
+            raise ScriptNotFound(script_name, namespace, plugin_name)
+
+    #
+    # Template functions
+    # Functions that use self.render_template
+
+    @utils.sync_decorator
+    async def render_template(self, template: str, namespace: str | None = None) -> Any:
+        """Renders a Home Assistant Template
+
+        https://www.home-assistant.io/docs/configuration/templating
+        https://www.home-assistant.io/integrations/template
+
+        Args:
+            template (str): The Home Assistant template to be rendered.
+            namespace (str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases it is safe to ignore this parameter.
 
         Returns:
             The rendered template in a native Python type.
@@ -726,18 +1294,52 @@ class Hass(adbase.ADBase, adapi.ADAPI):
             Returns (float) 97.2
 
         """
-        namespace = self._get_namespace(**kwargs)
-
-        if "namespace" in kwargs:
-            del kwargs["namespace"]
-
-        rargs = kwargs
-        rargs["namespace"] = namespace
-        rargs["template"] = template
-        rargs["return_result"] = True
-
-        result = await self.call_service("template/render", **rargs)
+        plugin: "HassPlugin" = self.AD.plugins.get_plugin_object(
+            namespace or self.namespace
+        )
+        result = await plugin.render_template(self.namespace, template)
         try:
             return literal_eval(result)
         except (SyntaxError, ValueError):
             return result
+
+    # Device IDs
+
+    @utils.sync_decorator
+    async def get_device_id(self, entity_id: str) -> str:
+        """Uses the ``device_id`` function in a template to get the device ID"""
+        return await self.render_template(f'{{{{device_id("{entity_id}")}}}}')
+
+    @utils.sync_decorator
+    async def get_device_entities(self, device_id: str) -> list[str]:
+        """Uses the ``device_entities`` function in a template to get entities
+        associated with a device.
+        """
+        return await self.render_template(f'{{{{device_entities("{device_id}")}}}}')
+
+    # Labels
+    # https://www.home-assistant.io/docs/configuration/templating/#labels
+
+    def _label_command(self, command: str, input: str) -> str | list[str]:
+        return self.render_template(f'{{{{ {command}("{input}") }}}}')
+
+    def labels(self, input: str = None) -> list[str]:
+        if input is None:
+            return self.render_template('{{ labels() }}')
+        else:
+            return self._label_command('labels', input)
+
+    def label_id(self, lookup_value: str) -> str:
+        return self._label_command('label_id', lookup_value)
+
+    def label_name(self, lookup_value: str):
+        return self._label_command('label_name', lookup_value)
+
+    def label_areas(self, label_name_or_id: str) -> list[str]:
+        return self._label_command('label_areas', label_name_or_id)
+
+    def label_devices(self, label_name_or_id: str) -> list[str]:
+        return self._label_command('label_devices', label_name_or_id)
+
+    def label_entities(self, label_name_or_id: str) -> list[str]:
+        return self._label_command('label_entities', label_name_or_id)

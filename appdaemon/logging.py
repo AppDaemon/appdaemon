@@ -1,21 +1,34 @@
-import datetime
-import pytz
-import sys
-import uuid
 import copy
-
+import datetime
 import logging
-from logging.handlers import RotatingFileHandler
-from logging import StreamHandler
-from collections import OrderedDict
+import sys
 import traceback
+import uuid
+from collections import OrderedDict
+from logging import Logger, StreamHandler
+from logging.handlers import RotatingFileHandler
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union, overload
 
-from appdaemon.thread_async import AppDaemon
+import pytz
+
 import appdaemon.utils as utils
+from appdaemon.appdaemon import AppDaemon
+
+if TYPE_CHECKING:
+    from appdaemon.adapi import ADAPI
 
 
 class DuplicateFilter(logging.Filter):
-    def __init__(self, logger, threshold, delay, timeout):
+    """:class:`logging.Filter` that filters duplicate messages"""
+
+    threshold: int
+    timeout: float
+    delay: float
+    filtering: bool
+    """Flag to track if the filter is active or not.
+    """
+
+    def __init__(self, logger: logging.Logger, threshold: float, delay: float, timeout: float):
         self.logger = logger
         self.last_log = None
         self.current_count = 0
@@ -27,7 +40,7 @@ class DuplicateFilter(logging.Filter):
         self.timeout = timeout
         self.last_log_time = None
 
-    def filter(self, record):
+    def filter(self, record: logging.LogRecord) -> bool:
         if record.msg == "Previous message repeated %s times":
             return True
         if self.threshold == 0:
@@ -77,7 +90,6 @@ class DuplicateFilter(logging.Filter):
 
 
 class AppNameFormatter(logging.Formatter):
-
     """Logger formatter to add 'appname' as an interpolatable field."""
 
     def __init__(self, fmt=None, datefmt=None, style=None):
@@ -113,7 +125,6 @@ class AppNameFormatter(logging.Formatter):
 
 
 class LogSubscriptionHandler(StreamHandler):
-
     """Handle apps that subscribe to logs.
 
     This Handler requires that it's formatter is an instance of AppNameFormatter.
@@ -128,12 +139,7 @@ class LogSubscriptionHandler(StreamHandler):
     def emit(self, record):
         logger = self.AD.logging.get_logger()
         try:
-            if (
-                self.AD is not None
-                and self.AD.callbacks is not None
-                and self.AD.events is not None
-                and self.AD.thread_async is not None
-            ):
+            if self.AD is not None and self.AD.callbacks is not None and self.AD.events is not None and self.AD.thread_async is not None:
                 try:
                     msg = self.format(record)
                 except TypeError as e:
@@ -166,7 +172,15 @@ class LogSubscriptionHandler(StreamHandler):
             logger.warning("-" * 60)
 
 
-class Logging:
+class Logging(metaclass=utils.Singleton):
+    """Creates and configures the Python logging. The top-level logger is called ``AppDaemon``. Child loggers are created with :meth:`~Logging.get_child`."""
+
+    AD: "AppDaemon"
+    """Reference to the top-level AppDaemon container object
+    """
+
+    config: Dict[str, Dict[str, Any]]
+
     log_levels = {
         "CRITICAL": 50,
         "ERROR": 40,
@@ -176,7 +190,7 @@ class Logging:
         "NOTSET": 0,
     }
 
-    def __init__(self, config, log_level):
+    def __init__(self, config: Optional[Dict] = None, log_level: str = "INFO"):
         self.AD = None
         self.tz = None
 
@@ -260,7 +274,8 @@ class Logging:
                 else:
                     # A regular file, just fill in the blanks
                     for arg in config[log]:
-                        self.config[log][arg] = config[log][arg]
+                        if config[log][arg] is not None:
+                            self.config[log][arg] = config[log][arg]
 
         # Build the logs
 
@@ -354,22 +369,11 @@ class Logging:
     def set_tz(self, tz):
         self.tz = tz
 
-    def get_level_from_int(self, level):
-        for lvl in self.log_levels:
-            if self.log_levels[lvl] == level:
-                return lvl
-        return "UNKNOWN"
+    def separate_error_log(self) -> bool:
+        return self.config["error_log"]["filename"] != "STDERR" and self.config["main_log"]["filename"] != "STDOUT" and not self.is_alias("error_log")
 
-    def separate_error_log(self):
-        if (
-            self.config["error_log"]["filename"] != "STDERR"
-            and self.config["main_log"]["filename"] != "STDOUT"
-            and not self.is_alias("error_log")
-        ):
-            return True
-        return False
-
-    def register_ad(self, ad):
+    def register_ad(self, ad: "AppDaemon"):
+        """Adds a reference to the top-level ``AppDaemon`` object. This is necessary because the Logging object gets created first."""
         self.AD = ad
 
         # Log Subscriptions
@@ -381,30 +385,59 @@ class Logging:
                 lh.setLevel(logging.INFO)
                 self.config[log]["logger"].addHandler(lh)
 
-    # Log Objects
+    # Logger Objects
+    def get_error(self) -> Logger:
+        """Gets the top-level error log
 
-    def get_error(self):
+        Returns:
+            Logger: Python logger named ``Error``
+        """
         return self.config["error_log"]["logger"]
 
-    def get_logger(self):
+    def get_logger(self) -> Logger:
+        """Gets the top-level log
+
+        Returns:
+            Logger: Python logger named ``AppDaemon``
+        """
         return self.config["main_log"]["logger"]
 
-    def get_access(self):
+    def get_access(self) -> Logger:
+        """
+        Returns:
+            Logger: Python logger named ``Access``
+        """
         return self.config["access_log"]["logger"]
 
-    def get_diag(self):
+    def get_diag(self) -> Logger:
+        """
+        Returns:
+            Logger: Python logger named ``Diag``
+        """
         return self.config["diag_log"]["logger"]
 
-    def get_filename(self, log):
+    def get_filename(self, log: str):
         return self.config[log]["filename"]
 
-    def get_user_log(self, app, log):
+    def get_user_log(self, app: "ADAPI", log: str) -> Logger | None:
         if log not in self.config:
             app.err.error("User defined log %s not found", log)
             return None
         return self.config[log]["logger"]
 
-    def get_child(self, name):
+    def get_child(self, name: str) -> Logger:
+        """Creates a logger with the name ``AppDaemon.<name>``. Automatically adds a :class:`~DuplicateFilter` with the config options from ``main_log``:
+
+        - filter_threshold
+        - filter_repeat_delay
+        - filter_timeout
+
+        Args:
+            name (str): Child name for the logger.
+
+        Returns:
+            Logger: Child logger
+        """
         logger = self.get_logger().getChild(name)
         logger.addFilter(
             DuplicateFilter(
@@ -415,8 +448,8 @@ class Logging:
             )
         )
 
-        if name in self.AD.module_debug:
-            logger.setLevel(self.AD.module_debug[name])
+        if name in self.AD.module_debug.root:
+            logger.setLevel(self.AD.module_debug.root[name])
         else:
             logger.setLevel(self.AD.loglevel)
 
@@ -460,31 +493,34 @@ class Logging:
             return True
         return False
 
-    async def add_log_callback(self, namespace, name, cb, level, **kwargs):
+    @overload
+    async def add_log_callback(self, namespace: str, name: str, callback: Callable, level: str | int, pin: bool | None = None, pin_thread: int | None = None, **kwargs) -> list[str] | None: ...
+
+    async def add_log_callback(self, namespace: str, name: str, callback: Callable, level: str | int, **kwargs) -> list[str] | None:
         """Adds a callback for log which is called internally by apps.
 
         Args:
-            name (str): Name of the app.
             namespace  (str): Namespace of the log event.
-            cb: Callback function.
-            event (str): Name of the event.
+            name (str): Name of the app.
+            callback (Callable): Callback function.
+            level (str | int): Log level
             **kwargs: List of values to filter on, and additional arguments to pass to the callback.
 
         Returns:
-            ``None`` or the reference to the callback handle.
+            ``None`` or a list of the callback handles, 1 for each logging level above the one given
 
         """
         if self.AD.threading.validate_pin(name, kwargs) is True:
             if "pin" in kwargs:
                 pin_app = kwargs["pin"]
             else:
-                pin_app = self.AD.app_management.objects[name]["pin_app"]
+                pin_app = self.AD.app_management.objects[name].pin_app
 
             if "pin_thread" in kwargs:
                 pin_thread = kwargs["pin_thread"]
                 pin_app = True
             else:
-                pin_thread = self.AD.app_management.objects[name]["pin_thread"]
+                pin_thread = self.AD.app_management.objects[name].pin_thread
 
             #
             # Add the callback
@@ -503,9 +539,9 @@ class Logging:
                         cb_kwargs["level"] = thislevel
                         self.AD.callbacks.callbacks[name][handle] = {
                             "name": name,
-                            "id": self.AD.app_management.objects[name]["id"],
+                            "id": self.AD.app_management.objects[name].id,
                             "type": "log",
-                            "function": cb,
+                            "function": callback,
                             "namespace": namespace,
                             "pin_app": pin_app,
                             "pin_thread": pin_thread,
@@ -518,16 +554,14 @@ class Logging:
                         # If we have a timeout parameter, add a scheduler entry to delete the callback later
                         #
                         if "timeout" in cb_kwargs:
-                            exec_time = await self.AD.sched.get_now() + datetime.timedelta(
-                                seconds=int(kwargs["timeout"])
-                            )
+                            exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=int(kwargs["timeout"]))
 
                             cb_kwargs["__timeout"] = await self.AD.sched.insert_schedule(
-                                name,
-                                exec_time,
-                                None,
-                                False,
-                                None,
+                                name=name,
+                                aware_dt=exec_time,
+                                callback=None,
+                                repeat=False,
+                                type_=None,
                                 __log_handle=handle,
                             )
 
@@ -537,7 +571,7 @@ class Logging:
                             "active",
                             {
                                 "app": name,
-                                "function": cb.__name__,
+                                "function": callback.__name__,
                                 "pinned": pin_app,
                                 "pinned_thread": pin_thread,
                                 "fired": 0,
@@ -563,9 +597,7 @@ class Logging:
             for name in self.AD.callbacks.callbacks.keys():
                 for uuid_ in self.AD.callbacks.callbacks[name]:
                     callback = self.AD.callbacks.callbacks[name][uuid_]
-                    if callback["type"] == "log" and (
-                        callback["namespace"] == namespace or callback["namespace"] == "global" or namespace == "global"
-                    ):
+                    if callback["type"] == "log" and (callback["namespace"] == namespace or callback["namespace"] == "global" or namespace == "global"):
                         # Check any filters
                         _run = True
                         if "log" in callback["kwargs"] and callback["kwargs"]["log"] != data["log_type"]:
@@ -581,7 +613,7 @@ class Logging:
                                     {
                                         "id": uuid_,
                                         "name": name,
-                                        "objectid": self.AD.app_management.objects[name]["id"],
+                                        "objectid": self.AD.app_management.objects[name].id,
                                         "type": "log",
                                         "function": callback["function"],
                                         "data": data,
@@ -600,16 +632,12 @@ class Logging:
         for remove in removes:
             await self.cancel_log_callback(remove["name"], remove["uuid"])
 
-    async def cancel_log_callback(self, name, handles):
-        """Cancels an log callback.
+    async def cancel_log_callback(self, name: str, handles: Union[str, List[str]]):
+        """Cancels log callback(s).
 
         Args:
             name (str): Name of the app or module.
-            handle: Previously supplied callback handle for the callback.
-
-        Returns:
-            None.
-
+            handles (Union[str, List[str]]): Callback handle or list of them
         """
 
         executed = False
@@ -627,9 +655,7 @@ class Logging:
                     del self.AD.callbacks.callbacks[name]
 
         if not executed:
-            self.logger.warning(
-                "Invalid callback handles '{}' in cancel_log_callback() from app {}".format(handles, name)
-            )
+            self.logger.warning("Invalid callback handles '{}' in cancel_log_callback() from app {}".format(handles, name))
 
         return executed
 

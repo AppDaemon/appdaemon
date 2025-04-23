@@ -1,0 +1,64 @@
+widget_type: baseweather
+fields:
+  title: ""
+  show_forecast: 0
+  prefer_icons: 0
+  unit: ""
+  wind_unit: ""
+  pressure_unit: ""
+  rain_unit: ""
+  temperature: ""
+  humidity: ""
+  precip_probability: ""
+  precip_intensity: ""
+  precip_type: ""
+  wind_speed: ""
+  pressure: ""
+  wind_bearing: ""
+  apparent_temperature: ""
+  icon: ""
+  bearing_icon: "mdi-rotate-0"
+  precip_type_icon: "mdi-umbrella"
+  forecast_title: ""
+  forecast_temperature_min: ""
+  forecast_temperature_max: ""
+  forecast_icon: ""
+  forecast_precip_probability: ""
+  forecast_precip_type: ""
+  forecast_precip_type_icon: "mdi-umbrella"
+  forecast_wind_speed: ""
+  forecast_wind_bearing: ""
+  forecast_bearing_icon: "mdi-rotate-0"
+entities:
+  icon: sensor.pirateweather_icon
+  temperature: sensor.pirateweather_temperature
+  apparent_temperature: sensor.pirateweather_apparent_temperature
+  humidity: sensor.pirateweather_humidity
+  precip_probability: sensor.pirateweather_precip_probability
+  precip_intensity: sensor.pirateweather_precip_intensity
+  precip_type: sensor.pirateweather_precip
+  pressure: sensor.pirateweather_pressure
+  wind_speed: sensor.pirateweather_wind_speed
+  wind_bearing: sensor.pirateweather_wind_bearing
+  forecast_icon: sensor.pirateweather_icon_1d
+  forecast_temperature_min: sensor.pirateweather_overnight_low_temperature_1d
+  forecast_temperature_max: sensor.pirateweather_daytime_high_temperature_1d
+  forecast_precip_probability: sensor.pirateweather_precip_probability_1d
+  forecast_precip_type: sensor.pirateweather_precip_1d
+  forecast_wind_speed: sensor.pirateweather_wind_speed_1d
+  forecast_wind_bearing: sensor.pirateweather_wind_bearing_1d
+css: []
+static_css:
+  title_style: $weather_sub_style
+  unit_style: $weather_unit_style
+  main_style: $weather_main_style
+  sub_style: $weather_sub_style
+  sub_unit_style: $weather_sub_style
+  widget_style: $weather_widget_style
+icons:
+  snow: mdi-snowflake
+  rain: mdi-umbrella
+  sleet: mdi-weather-snowy-rainy
+  unknown: mdi-umbrella
+  none: mdi-umbrella
+static_icons: []
