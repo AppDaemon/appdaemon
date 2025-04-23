@@ -488,10 +488,10 @@ class AppManagement:
                 class_name
             )
 
-        if utils.count_positional_arguments(app_class.__init__) != 3:
-            raise ade.BadClassSignature(class_name)
-
         new_obj = app_class(self.AD, cfg)
+        assert isinstance(getattr(new_obj, "AD", None), type(self.AD)), 'App objects need to have a reference to the AppDaemon object'
+        assert isinstance(getattr(new_obj, "config_model", None), AppConfig), 'App objects need to have a reference to their config model'
+
         self.objects[app_name] = ManagedObject(
             type="app",
             object=new_obj,
