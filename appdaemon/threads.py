@@ -976,8 +976,8 @@ class Threading:
                 async def safe_callback():
                     """Wraps actually calling the function for the callback with logic to transform exceptions based
                     on the callback type"""
+                    increment_callback_counter(app, name)
                     try:
-                        self.increment_callback_counter(app, name)
                         await funcref()
                     except Exception as exc:
                         # positional arguments common to all the AppCallbackFail exceptions
@@ -1070,8 +1070,8 @@ class Threading:
                     def safe_callback():
                         """Wraps actually calling the function for the callback with logic to transform exceptions based
                         on the callback type"""
+                        increment_callback_counter(app, name)
                         try:
-                            self.increment_callback_counter(app, name)
                             funcref()
                         except Exception as exc:
                             # positional arguments common to all the AppCallbackFail exceptions
@@ -1172,13 +1172,16 @@ class Threading:
                     self.AD.logging.get_filename("error_log"),
                 )
 
-    def increment_callback_counter(self, app, name):
-        try:
+def increment_callback_counter(app, name):
+    try:
+        # This function may be called concurrently and the GIL won't protect us against
+        # races during app.callback_counter += 1 so we need to use a lock. We'll just use that of the app.
+        with app.lock:
             app.callback_counter += 1
-        except AttributeError:
-            error_logger = logging.getLogger("Error.{}".format(name))
-            error_logger.warning("-" * 60)
-            error_logger.warning("Unexpected error in worker for App %s:", name)
-            error_logger.warning("-" * 60)
-            error_logger.warning(traceback.format_exc())
-            error_logger.warning("-" * 60)
+    except:
+        error_logger = logging.getLogger("Error.{}".format(name))
+        error_logger.warning("-" * 60)
+        error_logger.warning("Unexpected error in worker for App %s:", name)
+        error_logger.warning("-" * 60)
+        error_logger.warning(traceback.format_exc())
+        error_logger.warning("-" * 60)
