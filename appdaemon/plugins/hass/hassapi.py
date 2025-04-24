@@ -1269,10 +1269,10 @@ class Hass(ADBase, ADAPI):
 
     @utils.sync_decorator
     async def render_template(self, template: str, namespace: str | None = None) -> Any:
-        """Renders a Home Assistant Template
+        """Renders a Home Assistant Template.
 
-        https://www.home-assistant.io/docs/configuration/templating
-        https://www.home-assistant.io/integrations/template
+        See the documentation for the `Template Integration <https://www.home-assistant.io/integrations/template>`__ and
+        `Templating Configuration <https://www.home-assistant.io/docs/configuration/templating>`__ for more information.
 
         Args:
             template (str): The Home Assistant template to be rendered.
@@ -1303,43 +1303,137 @@ class Hass(ADBase, ADAPI):
         except (SyntaxError, ValueError):
             return result
 
+    def _template_command(self, command: str, *input: tuple[str, ...]) -> str | list[str]:
+        """Internal AppDaemon function to format calling a single template command correctly."""
+        if len(input) == 0:
+            return self.render_template(f'{{{{ {command}() }}}}')
+        else:
+            assert all(isinstance(i, str) for i in input), f"All inputs must be strings, got {input}"
+            ', '.join(input)
+            return self.render_template(f'{{{{ {command}("{input}") }}}}')
+
     # Device IDs
+    # https://www.home-assistant.io/docs/configuration/templating/#devices
 
-    @utils.sync_decorator
-    async def get_device_id(self, entity_id: str) -> str:
-        """Uses the ``device_id`` function in a template to get the device ID"""
-        return await self.render_template(f'{{{{device_id("{entity_id}")}}}}')
+    def device_entities(self, device_id: str) -> list[str]:
+        """Get a list of entities that are associated with a given device ID.
 
-    @utils.sync_decorator
-    async def get_device_entities(self, device_id: str) -> list[str]:
-        """Uses the ``device_entities`` function in a template to get entities
-        associated with a device.
+        See `device functions <https://www.home-assistant.io/docs/configuration/templating/#devices>`_ for more
+        information.
+
         """
-        return await self.render_template(f'{{{{device_entities("{device_id}")}}}}')
+        return self._template_command('device_entities', device_id)
+
+    # def device_attr(self, device_or_entity_id: str) -> list[str]:
+    #     """Get the value of attr_name for the given device or entity ID.
+
+    #     See `device functions <https://www.home-assistant.io/docs/configuration/templating/#devices>`_ for more
+    #     information.
+    #     """
+    #     return self._template_command('device_attr', device_or_entity_id)
+
+    # def is_device_attr(self, device_or_entity_id: str) -> list[str]:
+    #     """Get returns whether the value of attr_name for the given device or entity ID matches attr_value.
+
+    #     See `device functions <https://www.home-assistant.io/docs/configuration/templating/#devices>`_ for more
+    #     information.
+    #     """
+    #     return self._template_command('is_device_attr', device_or_entity_id)
+
+    # def device_id(self, entity_id: str) -> str:
+    #     """Get the device ID for a given entity ID or device name.
+
+    #     See `device functions <https://www.home-assistant.io/docs/configuration/templating/#devices>`_ for more
+    #     information.
+    #     """
+    #     return self._template_command('device_id', entity_id)
+    #     return self.render_template(f'{{{{device_id("{entity_id}")}}}}')
 
     # Labels
     # https://www.home-assistant.io/docs/configuration/templating/#labels
 
-    def _label_command(self, command: str, input: str) -> str | list[str]:
-        return self.render_template(f'{{{{ {command}("{input}") }}}}')
-
     def labels(self, input: str = None) -> list[str]:
-        if input is None:
-            return self.render_template('{{ labels() }}')
-        else:
-            return self._label_command('labels', input)
+        """Get the full list of label IDs, or those for a given area ID, device ID, or entity ID.
+
+        See `label functions <https://www.home-assistant.io/docs/configuration/templating/#labels>`_ for more
+        information.
+        """
+        return self._template_command('labels', input)
 
     def label_id(self, lookup_value: str) -> str:
-        return self._label_command('label_id', lookup_value)
+        """Get the label ID for a given label name.
 
-    def label_name(self, lookup_value: str):
-        return self._label_command('label_name', lookup_value)
+        See `label functions <https://www.home-assistant.io/docs/configuration/templating/#labels>`_ for more
+        information.
+        """
+        return self._template_command('label_id', lookup_value)
+
+    def label_name(self, lookup_value: str) -> str:
+        """Get the label name for a given label ID.
+
+        See `label functions <https://www.home-assistant.io/docs/configuration/templating/#labels>`_ for more
+        information.
+        """
+        return self._template_command('label_name', lookup_value)
 
     def label_areas(self, label_name_or_id: str) -> list[str]:
-        return self._label_command('label_areas', label_name_or_id)
+        """Get the list of area IDs tied to a given label ID or name.
+
+        See `label functions <https://www.home-assistant.io/docs/configuration/templating/#labels>`_ for more
+        information.
+        """
+        return self._template_command('label_areas', label_name_or_id)
 
     def label_devices(self, label_name_or_id: str) -> list[str]:
-        return self._label_command('label_devices', label_name_or_id)
+        """Get the list of device IDs tied to a given label ID or name.
+
+        See `label functions <https://www.home-assistant.io/docs/configuration/templating/#labels>`_ for more
+        information.
+        """
+        return self._template_command('label_devices', label_name_or_id)
 
     def label_entities(self, label_name_or_id: str) -> list[str]:
-        return self._label_command('label_entities', label_name_or_id)
+        """Get the list of entity IDs tied to a given label ID or name.
+
+        See `label functions <https://www.home-assistant.io/docs/configuration/templating/#labels>`_ for more
+        information.
+        """
+        return self._template_command('label_entities', label_name_or_id)
+
+    # Areas
+    # https://www.home-assistant.io/docs/configuration/templating/#areas
+
+    def areas(self) -> list[str]:
+        """Get the full list of area IDs.
+
+        See `area functions <https://www.home-assistant.io/docs/configuration/templating/#areas>`_ for more information.
+        """
+        return self._template_command('areas')
+
+    def area_id(self, lookup_value: str) -> list[str]:
+        """Get the area ID for a given device ID, entity ID, or area name.
+
+        See `area functions <https://www.home-assistant.io/docs/configuration/templating/#areas>`_ for more information.
+        """
+        return self._template_command('area_id', lookup_value)
+
+    def area_name(self, lookup_value: str) -> list[str]:
+        """Get the area name for a given device ID, entity ID, or area ID.
+
+        See `area functions <https://www.home-assistant.io/docs/configuration/templating/#areas>`_ for more information.
+        """
+        return self._template_command('area_name', lookup_value)
+
+    def area_entities(self, area_name_or_id: str) -> list[str]:
+        """Get the list of entity IDs tied to a given area ID or name.
+
+        See `area functions <https://www.home-assistant.io/docs/configuration/templating/#areas>`_ for more information.
+        """
+        return self._template_command('area_entities', area_name_or_id)
+
+    def area_devices(self, area_name_or_id: str) -> list[str]:
+        """Get the list of device IDs tied to a given area ID or name.
+
+        See `area functions <https://www.home-assistant.io/docs/configuration/templating/#areas>`_ for more information.
+        """
+        return self._template_command('area_devices', area_name_or_id)
