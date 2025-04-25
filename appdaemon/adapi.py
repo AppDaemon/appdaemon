@@ -632,7 +632,6 @@ class ADAPI:
         self.AD.state.app_added_namespaces.add(new_namespace)
         return new_namespace
 
-
     @utils.sync_decorator
     async def remove_namespace(self, namespace: str) -> dict[str, Any] | None:
         """Remove a user-defined namespace, which has a database file associated with it.
@@ -1364,6 +1363,44 @@ class ADAPI:
     # State
     #
 
+    @overload
+    @utils.sync_decorator
+    async def listen_state(
+        self,
+        callback: StateCallback,
+        entity_id: str | None,
+        namespace: str | None = None,
+        new: str | Callable[[Any], bool] | None = None,
+        old: str | Callable[[Any], bool] | None = None,
+        duration: str | int | float | timedelta | None = None,
+        attribute: str | None = None,
+        timeout: str | int | float | timedelta | None = None,
+        immediate: bool = False,
+        oneshot: bool = False,
+        pin: bool = False,
+        pin_thread: int | None = None,
+        **kwargs: Any
+    ) -> str: ...
+
+    @overload
+    @utils.sync_decorator
+    async def listen_state(
+        self,
+        callback: StateCallback,
+        entity_id: Iterable[str],
+        namespace: str | None = None,
+        new: str | Callable[[Any], bool] | None = None,
+        old: str | Callable[[Any], bool] | None = None,
+        duration: str | int | float | timedelta | None = None,
+        attribute: str | None = None,
+        timeout: str | int | float | timedelta | None = None,
+        immediate: bool = False,
+        oneshot: bool = False,
+        pin: bool = False,
+        pin_thread: int | None = None,
+        **kwargs: Any
+    ) -> list[str]: ...
+
     @utils.sync_decorator
     async def listen_state(
         self,
@@ -1384,11 +1421,11 @@ class ADAPI:
         """Registers a callback to react to state changes.
 
         The callback needs to have the following form:
-        >>> def my_callback(self, entity: str, attribute: str, old: Any, new: Any, **kwargs: dict[str, Any]) -> None:
+        >>> def my_callback(self, entity: str, attribute: str, old: Any, new: Any, **kwargs: Any) -> None:
                 ...
 
         Args:
-            callback: Function to be invoked when the requested state change occurs. It must conform to the standard
+            callback: Function that will be called when the callback gets triggered. It must conform to the standard
                 state callback format documented `here <APPGUIDE.html#state-callbacks>`__
             entity_id (str | Iterable[str], optional): Entity ID or a domain. If a domain is provided, e.g., ``light``,
                 or ``binary_sensor`` the callback will be triggered for state changes of any entities in that domain.
@@ -1396,24 +1433,24 @@ class ADAPI:
             namespace (str, optional): Optional namespace to use. Defaults to using the app's current namespace. See
                 the `namespace documentation <APPGUIDE.html#namespaces>`__ for more information. Using the value
                 ``global`` will register the callback for all namespaces.
-            new (str | Callable[[Any], bool], optional): If given, the callback will only be triggered if the state of
+            new (str | Callable[[Any], bool], optional): If given, the callback will only be invoked if the state of
                 the selected attribute (usually state) matches this value in the new data. The data type is dependent on
                 the specific entity and attribute. Values that look like ints or floats are often actually strings, so
                 be careful when comparing them. The ``self.get_state()`` method is useful for checking the data type of
-                the desired attribute. If ``new`` is a callable (lambda, function, etc), then it will be invoked with
-                the new state, and the callback will only be triggered if the callable returns ``True``.
-            old (str | Callable[[Any], bool], optional): If given, the callback will only be triggered if the selected
+                the desired attribute. If ``new`` is a callable (lambda, function, etc), then it will be called with
+                the new state, and the callback will only be invoked if the callable returns ``True``.
+            old (str | Callable[[Any], bool], optional): If given, the callback will only be invoked if the selected
                 attribute (usually state) changed from this value in the new data. The data type is dependent on the
                 specific entity and attribute. Values that look like ints or floats are often actually strings, so be
                 careful when comparing them. The ``self.get_state()`` method is useful for checking the data type of
-                the desired attribute. If ``old`` is a callable (lambda, function, etc), then it will be invoked with
-                the old state, and the callback will only be triggered if the callable returns ``True``.
-            duration (str | int | float | timedelta, optional): If supplied, the callback will not trigger unless the
+                the desired attribute. If ``old`` is a callable (lambda, function, etc), then it will be called with
+                the old state, and the callback will only be invoked if the callable returns ``True``.
+            duration (str | int | float | timedelta, optional): If supplied, the callback will not be invoked unless the
                 desired state is maintained for that amount of time. This requires that a specific attribute is
-                specified (or the default of ``state`` is used), and should be used in conjunction with the ``old`` or
-                ``new`` parameters, or both. When the callback is called, it is supplied with the values of ``entity``,
-                ``attr``, ``old``, and ``new`` that were current at the time the actual event occurred, since the
-                assumption is that none of them have changed in the intervening period.
+                specified (or the default of ``state`` is used), and should be used in conjunction with either or both
+                of the ``new`` and ``old`` parameters. When the callback is called, it is supplied with the values of
+                ``entity``, ``attr``, ``old``, and ``new`` that were current at the time the actual event occurred,
+                since the assumption is that none of them have changed in the intervening period.
 
                 If you use ``duration`` when listening for an entire device type rather than a specific entity, or for
                 all state changes, you may get unpredictable results, so it is recommended that this parameter is only
@@ -1504,42 +1541,49 @@ class ADAPI:
             >>> self.handle = self.listen_state(self.my_callback, ["light.office_1", "light.office2"], new="on")
 
         """
-        namespace = namespace or self.namespace
         kwargs = dict(
             new=new,
             old=old,
             duration=duration,
             attribute=attribute,
             timeout=timeout,
-            immediate=immediate,
-            oneshot=oneshot,
-            pin=pin,
+            pin_app=pin,
             pin_thread=pin_thread,
             **kwargs
+        )
+        kwargs = {k: v for k, v in kwargs.items() if v is not None}
+        namespace = namespace or self.namespace
+
+        # prefill some arguments here
+        add_callback = functools.partial(
+            self.AD.state.add_state_callback,
+            name=self.name,
+            namespace=namespace,
+            cb=callback,
+            oneshot=oneshot,
+            immediate=immediate,
+            kwargs=kwargs
         )
 
         match entity_id:
             case str() | None:
                 self._check_entity(namespace, entity_id)
-                return await self.get_entity_api(namespace, entity_id).listen_state(callback, **kwargs)
+                return await add_callback(entity=entity_id)
             case Iterable():
                 for e in entity_id:
                     self._check_entity(namespace, e)
-                return [
-                    await self.get_entity_api(namespace, e).listen_state(callback, **kwargs)
-                    for e in entity_id
-                ]
+                return [await add_callback(entity=e) for e in entity_id]
 
     @utils.sync_decorator
-    async def cancel_listen_state(self, handle: str, silent: bool = False) -> bool:
-        """Cancels a ``listen_state()`` callback.
+    async def cancel_listen_state(self, handle: str, name: str | None = None, silent: bool = False) -> bool:
+        """Cancel a ``listen_state()`` callback.
 
-        This will mean that the App will no longer be notified for the specific
-        state change that has been cancelled. Other state changes will continue
-        to be monitored.
+        This will prevent any further calls to the callback function. Other state callbacks will not be affected.
 
         Args:
             handle: The handle returned when the ``listen_state()`` call was made.
+            name (str, optional): The name of the app that registered the callback. Defaults to the name of the current
+                app. This is useful if you want to get the information of a callback registered by another app.
             silent (bool, optional): If ``True``, no warning will be issued if the handle is not found.
 
         Returns:
@@ -1553,28 +1597,33 @@ class ADAPI:
             >>> self.cancel_listen_state(self.dummy_handle, silent=True)
 
         """
-        self.logger.debug("Canceling listen_state for %s", self.name)
-        return bool(await self.AD.state.cancel_state_callback(handle, self.name, silent))
+        name = name or self.name
+        self.logger.debug("Canceling listen_state for %s", name)
+        return bool(await self.AD.state.cancel_state_callback(handle=handle, name=name, silent=silent))
 
     @utils.sync_decorator
-    async def info_listen_state(self, handle: str) -> dict:
-        """Gets information on state a callback from its handle.
+    async def info_listen_state(self, handle: str, name: str | None = None) -> tuple[str, str, Any, dict[str, Any]]:
+        """Get information on state a callback from its handle.
 
         Args:
-            handle: The handle returned when the ``listen_state()`` call was made.
+            handle (str): The handle returned when the ``listen_state()`` call was made.
+            name (str, optional): The name of the app that registered the callback. Defaults to the name of the current
+                app. This is useful if you want to get the information of a callback registered by another app.
 
         Returns:
-            The values supplied for ``entity``, ``attribute``, and ``kwargs`` when
+            The values supplied for ``namespace``, ``entity``, ``attribute``, and ``kwargs`` when
             the callback was initially created.
 
         Examples:
-            >>> entity, attribute, kwargs = self.info_listen_state(self.handle)
+            >>> namespace, entity, attribute, kwargs = self.info_listen_state(self.handle)
 
         """
-        self.logger.debug("Calling info_listen_state for %s", self.name)
-        return await self.AD.state.info_state_callback(handle, self.name)
+        name = name or self.name
+        self.logger.debug("Calling info_listen_state for %s", name)
+        return await self.AD.state.info_state_callback(handle=handle, name=name)
 
-    def get_state(
+    @utils.sync_decorator
+    async def get_state(
         self,
         entity_id: str | None = None,
         attribute: str | Literal["all"] | None = None,
@@ -1582,12 +1631,12 @@ class ADAPI:
         namespace: str | None = None,
         copy: bool = True,
         **kwargs,  # left in intentionally for compatibility
-    ) -> Any | dict[str, Any]:
+    ) -> Any | dict[str, Any] | None:
         """Gets the state of an entity from AppDaemon's internals.
 
         Home Assistant emits a ``state_changed`` event for every state change, which it sends to AppDaemon over the
         websocket connection made by the plugin. Appdaemon uses the data in these events to update its internal state.
-        This method returns values from this internal state, so it does not make any external requests to Home
+        This method returns values from this internal state, so it does **not** make any external requests to Home
         Assistant.
 
         Other plugins that emit ``state_changed`` events will also have their states tracked internally by AppDaemon.
@@ -1640,9 +1689,14 @@ class ADAPI:
         if kwargs:
             self.logger.warning(f"Extra kwargs passed to get_state, will be ignored: {kwargs}")
 
-        namespace or self.namespace
-        api = self.get_entity_api(namespace, entity_id)
-        return api.get_state(attribute=attribute, default=default, copy=copy)
+        return await self.AD.state.get_state(
+            name=self.name,
+            namespace=namespace or self.namespace,
+            entity_id=entity_id,
+            attribute=attribute,
+            default=default,
+            copy=copy
+        )
 
     @utils.sync_decorator
     async def set_state(
@@ -1653,7 +1707,7 @@ class ADAPI:
         attributes: dict[str, Any] | None = None,
         replace: bool = False,
         check_existence: bool = True,
-        **kwargs
+        **kwargs: Any
     ) -> dict[str, Any]:
         """Updates the state of the specified entity.
 
@@ -1692,10 +1746,12 @@ class ADAPI:
             >>> self.set_state("light.office_1", state="off", namespace ="hass")
 
         """
-
         namespace = namespace or self.namespace
-        entity_api = self.get_entity_api(namespace, entity_id, check_existence=check_existence)
-        return await entity_api.set_state(
+        self._check_entity(namespace, entity_id)
+        return await self.AD.state.set_state(
+            name=self.name,
+            namespace=namespace,
+            entity=entity_id,
             state=state,
             attributes=attributes,
             replace=replace,
@@ -1999,6 +2055,7 @@ class ADAPI:
     #
 
     @overload
+    @utils.sync_decorator
     async def listen_event(
         self,
         callback: Callable,
@@ -2008,10 +2065,11 @@ class ADAPI:
         oneshot: bool = False,
         pin: bool | None = None,
         pin_thread: int | None = None,
-        **kwargs
+        **kwargs: Any
     ) -> str: ...
 
     @overload
+    @utils.sync_decorator
     async def listen_event(
         self,
         callback: Callable,
@@ -2021,7 +2079,7 @@ class ADAPI:
         oneshot: bool = False,
         pin: bool | None = None,
         pin_thread: int | None = None,
-        **kwargs
+        **kwargs: Any
     ) -> list[str]: ...
 
     @utils.sync_decorator
@@ -2030,7 +2088,7 @@ class ADAPI:
         callback: Callable,
         event: str | Iterable[str] | None = None,
         namespace: str | None = None,
-        **kwargs
+        **kwargs: Any
     ) -> str | list[str]:
         """Registers a callback for a specific event, multiple events, or any event.
 

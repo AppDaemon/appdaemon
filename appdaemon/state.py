@@ -338,12 +338,12 @@ class State:
         else:
             return None
 
-    async def cancel_state_callback(self, handle, name, silent=False):
+    async def cancel_state_callback(self, handle: str, name: str, silent: bool = False) -> bool:
         executed = False
         async with self.AD.callbacks.callbacks_lock:
             if name in self.AD.callbacks.callbacks and handle in self.AD.callbacks.callbacks[name]:
                 del self.AD.callbacks.callbacks[name][handle]
-                await self.AD.state.remove_entity("admin", "state_callback.{}".format(handle))
+                await self.AD.state.remove_entity("admin", f"state_callback.{handle}")
                 executed = True
 
             if name in self.AD.callbacks.callbacks and self.AD.callbacks.callbacks[name] == {}:
@@ -356,15 +356,32 @@ class State:
 
         return executed
 
-    async def info_state_callback(self, handle, name):
+    async def info_state_callback(self, handle: str, name: str) -> tuple[str, str, Any, dict[str, Any]]:
+        """Get information about a state callback
+
+        Needs to be async to use the callback lock.
+
+        Args:
+            handle (str): Handle from when the callback was registered.
+            name (str): Name of the app that registered the callback. Every callback is registered under an app, so this
+                is required to find the callback information.
+
+        Returns:
+            A tuple with the namespace, entity, attribute, and kwargs of the callback
+        """
         async with self.AD.callbacks.callbacks_lock:
-            if name in self.AD.callbacks.callbacks and handle in self.AD.callbacks.callbacks[name]:
+            if (
+                (app_callbacks := self.AD.callbacks.callbacks.get(name, False)) and # This app has callbacks
+                (callback := app_callbacks.get(handle, False))                      # This callback handle exists for it
+            ):  # fmt: skip
                 callback = self.AD.callbacks.callbacks[name][handle]
+                app_object = self.AD.app_management.objects[name].object
+                sanitized_kwargs = self.sanitize_state_kwargs(app_object, callback["kwargs"])
                 return (
                     callback["namespace"],
                     callback["entity"],
                     callback["kwargs"].get("attribute", None),
-                    self.sanitize_state_kwargs(self.AD.app_management.objects[name].object, callback["kwargs"]),
+                    sanitized_kwargs,
                 )
             else:
                 raise ValueError("Invalid handle: {}".format(handle))
@@ -561,9 +578,9 @@ class State:
         self,
         name: str,
         namespace: str,
-        entity_id: Optional[str] = None,
-        attribute: Optional[str] = None,
-        default=None,
+        entity_id: str | None = None,
+        attribute: str | None = None,
+        default: Any | None = None,
         copy: bool = True,
     ):
         self.logger.debug("get_state: %s.%s %s %s", entity_id, attribute, default, copy)
@@ -700,9 +717,9 @@ class State:
     ) -> None: ...
 
     async def set_state(self, name: str, namespace: str, entity: str, _silent: bool = False, **kwargs):
-        """Sets the internal state of an entity. Uses relevant plugin objects based on namespace.
+        """Sets the internal state of an entity.
 
-        Fires the ``state_changed`` event under the namespace
+        Fires the ``state_changed`` event under the namespace, and uses relevant plugin objects based on namespace.
 
         Args:
             name: Only used for a log message
