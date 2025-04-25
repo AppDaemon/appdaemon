@@ -541,11 +541,17 @@ class ADAPI:
     # Namespace
     #
 
-    def set_namespace(self, namespace: str) -> None:
-        """Sets a new namespace for the App to use from that point forward.
+    def set_namespace(self, namespace: str, writeback: str = "safe", persist: bool = True) -> None:
+        """Set the current namespace of the app
+
+        See the `namespace documentation <APPGUIDE.html#namespaces>`__ for more information.
 
         Args:
             namespace (str): Name of the new namespace
+            writeback (str, optional): The writeback to be used if a new namespace gets created. Will be ``safe`` by
+                default.
+            persist (bool, optional): Whether to make the namespace persistent if a new one is created. Defaults to
+                ``True``.
 
         Returns:
             None.
@@ -555,21 +561,32 @@ class ADAPI:
 
         """
         # Keeping namespace get/set functions for legacy compatibility
+        if not self.namespace_exists(namespace):
+            self.add_namespace(
+                namespace=namespace,
+                writeback=writeback,
+                persist=persist
+            )
         self.namespace = namespace
 
     def get_namespace(self) -> str:
-        """Returns the App's namespace."""
+        """Get the app's current namespace.
+
+        See the `namespace documentation <APPGUIDE.html#namespaces>`__ for more information.
+        """
         # Keeping namespace get/set functions for legacy compatibility
         return self.namespace
 
     def namespace_exists(self, namespace: str) -> bool:
-        """Checks the existence of a namespace in AppDaemon.
+        """Check the existence of a namespace in AppDaemon.
+
+        See the `namespace documentation <APPGUIDE.html#namespaces>`__ for more information.
 
         Args:
-            namespace (str): The namespace to be checked if it exists.
+            namespace (str): The namespace to be checked.
 
         Returns:
-            bool: ``True`` if the namespace exists, ``False`` otherwise.
+            bool: ``True`` if the namespace exists, otherwise ``False``.
 
         Examples:
             Check if the namespace ``storage`` exists within AD
@@ -587,23 +604,23 @@ class ADAPI:
         writeback: str = "safe",
         persist: bool = True
     ) -> str | None:
-        """Used to add a user-defined namespaces from apps, which has a database file associated with it.
+        """Add a user-defined namespace, which has a database file associated with it.
 
-        This way, when AD restarts these entities will be reloaded into AD with its
-        previous states within the namespace. This can be used as a basic form of
-        non-volatile storage of entity data. Depending on the configuration of the
+        When AppDaemon restarts these entities will be loaded into the namespace with all their previous states. This
+        can be used as a basic form of non-volatile storage of entity data. Depending on the configuration of the
         namespace, this function can be setup to constantly be running automatically
-        or only when AD shutdown. This function also allows for users to manually
-        execute the command as when needed.
+        or only when AD shutdown.
+
+        See the `namespace documentation <APPGUIDE.html#namespaces>`__ for more information.
 
         Args:
-            namespace (str): The namespace to be newly created, which must not be same as the operating namespace
+            namespace (str): The name of the new namespace to create
             writeback (optional): The writeback to be used. Will be ``safe`` by default
-            persist (bool, optional): If to make the namespace persistent. So if AD reboots
-                it will startup will all the created entities being intact. It is persistent by default
+            persist (bool, optional): Whether to make the namespace persistent. Persistent namespaces are stored in a
+                database file and are reloaded when AppDaemon restarts. Defaults to ``True``
 
         Returns:
-            The file path to the newly created namespace. WIll be None if not persistent
+            The file path to the newly created namespace. Will be ``None`` if not persistent
 
         Examples:
             Add a new namespace called `storage`.
@@ -611,17 +628,19 @@ class ADAPI:
             >>> self.add_namespace("storage")
 
         """
-        if namespace == self.namespace:  # if it belongs to this app's namespace
-            raise ValueError("Cannot add namespace with the same name as operating namespace")
+        new_namespace = await self.AD.state.add_namespace(namespace, writeback, persist, self.name)
+        self.AD.state.app_added_namespaces.add(new_namespace)
+        return new_namespace
 
-        return await self.AD.state.add_namespace(namespace, writeback, persist, self.name)
 
     @utils.sync_decorator
     async def remove_namespace(self, namespace: str) -> dict[str, Any] | None:
-        """Used to remove a previously user-defined namespaces from apps, which has a database file associated with it.
+        """Remove a user-defined namespace, which has a database file associated with it.
+
+        See the `namespace documentation <APPGUIDE.html#namespaces>`__ for more information.
 
         Args:
-            namespace (str): The namespace to be removed, which must not be same as the operating namespace
+            namespace (str): The namespace to be removed, which must not be the current namespace.
 
         Returns:
             The data within that namespace
@@ -633,13 +652,12 @@ class ADAPI:
 
         """
         if namespace == self.namespace:  # if it belongs to this app's namespace
-            raise ValueError("Cannot remove namespace with the same name as operating namespace")
+            raise ValueError("Cannot remove the current namespace")
 
         return await self.AD.state.remove_namespace(namespace)
 
-    @utils.sync_decorator
-    async def list_namespaces(self) -> list[str]:
-        """Returns a list of available namespaces.
+    def list_namespaces(self) -> list[str]:
+        """Get a list of all the namespaces in AppDaemon.
 
         Examples:
             >>> self.list_namespaces()
