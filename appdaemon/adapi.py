@@ -1361,7 +1361,7 @@ class ADAPI:
         oneshot: bool = False,
         pin: bool = False,
         pin_thread: int | None = None,
-        **kwargs
+        **kwargs: Any
     ) -> str | list[str]:
         """Registers a callback to react to state changes.
 
@@ -1798,7 +1798,7 @@ class ADAPI:
         namespace: str | None = None,
         timeout: str | int | float | None = None,  # Used by utils.sync_decorator
         callback: Callable[[Any], Any] | None = None,
-        **data: dict[str, Any] | None,
+        **data: Any,
     ) -> Any:
         """Calls a Service within AppDaemon.
 
