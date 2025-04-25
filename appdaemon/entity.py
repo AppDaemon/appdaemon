@@ -1,11 +1,14 @@
 import asyncio
+from collections import defaultdict
 import uuid
 from collections.abc import Iterable
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from logging import Logger
-from typing import TYPE_CHECKING, Any, overload
+from typing import TYPE_CHECKING, Any
 from collections.abc import Callable
 
+from .state import StateCallback
 import appdaemon.utils as utils
 from appdaemon.exceptions import TimeOutException
 
@@ -13,21 +16,20 @@ if TYPE_CHECKING:
     from appdaemon.appdaemon import AppDaemon
 
 
+@dataclass
 class Entity:
+    """Dataclass to wrap the logic for interacting with a certain entity.
+
+    Primarily stores the namespace, app name, and entity id in order to pre-fill calls to the AppDaemon internals.
+    """
+
+    logger: Logger
     AD: "AppDaemon"
     name: str
-    logger: Logger
-    entity_id: str
     namespace: str
+    entity_id: str | None
+    _async_events: dict[str, asyncio.Event] = field(default_factory=lambda: defaultdict(asyncio.Event))
     # states_attrs = EntityAttrs()
-
-    def __init__(self, logger: Logger, ad: "AppDaemon", name: str, namespace: str, entity_id: str):
-        self.AD = ad
-        self.name = name
-        self.logger = logger
-        self.entity_id = entity_id
-        self.namespace = namespace
-        self._async_events = {}
 
     def set_namespace(self, namespace: str) -> None:
         """Sets a new namespace for the Entity to use from that point forward.
@@ -51,17 +53,14 @@ class Entity:
         """
         self.namespace = namespace
 
-    @overload
+    @utils.sync_decorator
     async def set_state(
         self,
         state: Any | None,
-        attributes: dict,
-        replace: bool,
+        attributes: dict | None = None,
+        replace: bool = False,
         **kwargs
-    ) -> dict: ...
-
-    @utils.sync_decorator
-    async def set_state(self, state: Any | None = None, **kwargs) -> dict:
+    ) -> dict:
         """Updates the state of the specified entity.
 
         Args:
@@ -96,14 +95,16 @@ class Entity:
             namespace=self.namespace,
             entity=self.entity_id,
             state=state,
+            attributes=attributes,
+            replace=replace,
             **kwargs
         )
 
     @utils.sync_decorator
     async def get_state(
         self,
-        attribute: str = None,
-        default: Any | None= None,
+        attribute: str | None = None,
+        default: Any | None = None,
         copy: bool = True
     ) -> Any:
         """Gets the state of any entity within AD.
@@ -145,29 +146,29 @@ class Entity:
 
         """
         self.logger.debug("get state: %s, %s from %s", self.entity_id, self.namespace, self.name)
-        return await self.AD.state.get_state(self.name, self.namespace, self.entity_id, attribute, default, copy)
-
-    @overload
-    async def listen_state(
-        self,
-        callback: Callable,
-        new: str | Callable | None = None,
-        old: str | Callable | None = None,
-        duration: int | None = None,
-        attribute: str | None = None,
-        timeout: int | None = None,
-        immediate: bool | None = None,
-        oneshot: bool | None = None,
-        pin: bool | None = None,
-        pin_thread: int | None = None,
-        **kwargs: Any | None
-    ) -> str | list[str]: ...
+        return await self.AD.state.get_state(
+            name=self.name,
+            namespace=self.namespace,
+            entity_id=self.entity_id,
+            attribute=attribute,
+            default=default,
+            copy=copy
+        )
 
     @utils.sync_decorator
     async def listen_state(
         self,
-        callback: Callable,
-        **kwargs: Any | None
+        callback: StateCallback,
+        new: str | Callable[[Any], bool] | None = None,
+        old: str | Callable[[Any], bool] | None = None,
+        duration: str | int | float | timedelta | None = None,
+        attribute: str| None = None,
+        timeout: str | int | float | timedelta | None = None,
+        immediate: bool = False,
+        oneshot: bool = False,
+        pin: bool = False,
+        pin_thread: int | None = None,
+        **kwargs: Any
     ) -> str:
         """Registers a callback to react to state changes.
 
@@ -271,10 +272,20 @@ class Entity:
 
             >>> self.handle = self.my_entity.listen_state(self.my_callback, new = "on", duration = 60, immediate = True)
         """
-        kwargs.pop("namespace", None)
-
+        kwargs = dict(
+            new=new,
+            old=old,
+            duration=duration,
+            attribute=attribute,
+            timeout=timeout,
+            immediate=immediate,
+            oneshot=oneshot,
+            pin=pin,
+            pin_thread=pin_thread,
+            **kwargs
+        )
+        kwargs = {k: v for k, v in kwargs.items() if v is not None}
         self.logger.debug("Calling listen_state for %s, %s from %s", self.entity_id, kwargs, self.name)
-
         return await self.AD.state.add_state_callback(
             name=self.name,
             namespace=self.namespace,
@@ -319,18 +330,14 @@ class Entity:
         """Checks the existence of the entity in AD."""
         return self.AD.state.entity_exists(self.namespace, self.entity_id)
 
-    @overload
+    @utils.sync_decorator
     async def call_service(
         self,
         service: str,
-        namespace: str,
-        return_result: bool,
-        callback: Callable,
-        **kwargs
-    ) -> Any: ...
-
-    @utils.sync_decorator
-    async def call_service(self, service: str, namespace: str | None = None, **kwargs: Any | None) -> Any:
+        timeout: str | int | float | None = None,  # Used by utils.sync_decorator
+        callback: Callable[[Any], Any] | None = None,
+        **data: Any,
+    ) -> Any:
         """Calls an entity supported Service within AppDaemon.
 
         This function can call only services that are tied to the entity, and provide any required parameters.
@@ -355,15 +362,23 @@ class Entity:
             >>> self.my_entity.call_service("turn_on", color_name="red")
 
         """
-        namespace = namespace or self.namespace
-        kwargs["entity_id"] = self.entity_id
+        kwargs = dict(
+            entity_id=self.entity_id,
+            **data
+        )
+        kwargs = {k: v for k, v in kwargs.items() if v is not None}
         self.logger.debug("call_service: %s/%s, %s", self.domain, service, kwargs)
-        return await self.AD.services.call_service(
-            namespace=namespace,
+        coro = self.AD.services.call_service(
+            namespace=self.namespace,
             domain=self.domain,
             service=service,
-            data=kwargs
+            data=data
         )  # fmt: skip
+        if callback is None:
+            return await coro
+        else:
+            task = self.AD.loop.create_task(coro)
+            task.add_done_callback(lambda f: callback(f.result()))
 
     async def wait_state(
         self,
@@ -379,9 +394,9 @@ class Entity:
 
         Args:
             state (Any): The state to wait for, for the entity to be in before continuing
-            attribute (str): The entity's attribute to use, if not using the entity's state
-            duration (int|float): How long the state is to hold, before continuing
-            timeout (int|float): How long to wait for the state to be achieved, before timing out.
+            attribute (str, optional): The entity's attribute to use, if not using the entity's state
+            duration (int, float): How long the state is to hold, before continuing
+            timeout (int, float): How long to wait for the state to be achieved, before timing out.
                 When it times out, a appdaemon.exceptions.TimeOutException is raised
 
         Returns:
@@ -401,8 +416,7 @@ class Entity:
         """
 
         wait_id = uuid.uuid4().hex
-        async_event = asyncio.Event()
-        self._async_events[wait_id] = async_event
+        async_event = self._async_events[wait_id]
 
         try:
             handle = await self.listen_state(
@@ -416,11 +430,12 @@ class Entity:
                 wait_id=wait_id,
             )
             await asyncio.wait_for(async_event.wait(), timeout=timeout)
-
         except asyncio.TimeoutError as e:
             await self.AD.state.cancel_state_callback(handle, self.name)
             self.logger.warning(f"State Wait for {self.entity_id} Timed Out")
             raise TimeOutException("The entity timed out") from e
+        finally:
+            self._async_events.pop(wait_id)
 
     async def entity_state_changed(self, *args, wait_id: str, **kwargs) -> None:
         """The entity state changed"""
