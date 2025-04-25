@@ -1,4 +1,3 @@
-import datetime
 import threading
 import traceback
 import uuid
@@ -16,7 +15,7 @@ if TYPE_CHECKING:
 
 
 class StateCallback(Protocol):
-    def __call__(self, entity: str, attribute: str, old: Any, new: Any, **kwargs: dict[str, Any]) -> Any: ...
+    def __call__(self, entity: str, attribute: str, old: Any, new: Any, **kwargs: Any) -> None: ...
 
 
 class State:
@@ -185,10 +184,35 @@ class State:
         namespace: str,
         entity: str | None,
         cb: StateCallback,
-        kwargs: dict[str, Any]
+        oneshot: bool = False,
+        immediate: bool = False,
+        kwargs: dict[str, Any] = None
     ):  # noqa: C901
+        """Add a state callback to AppDaemon's internal dicts.
+
+        Uses the internal callback lock to ensure that the callback is added in a thread-safe manner.
+
+        Args:
+            name: Name of the app registering the callback. This is important because all callbacks have to be
+                associated with an app.
+            namespace: Namespace of the entity to listen to.
+            entity (str, optional): Entity ID for listening to state changes. If ``None``, the callback will be invoked
+                for all state changes in the namespace.
+            cb (StateCallback): Callback function to be invoked when the state changes.
+            oneshot (bool, optional): If ``True``, the callback will be removed after it is executed once. Defaults to
+                ``False``.
+            immediate (bool, optional): If ``True``, the callback will be executed immediately if the entity is already
+                in the new state. Defaults to ``False``.
+            kwargs (dict, optional): Additional parameters arguments to be passed to the callback function.
+
+        Returns:
+            A string made from ``uuid4().hex`` that is used to identify the callback. This can be used to cancel the
+            callback later.
+        """
         # Filter none values, which might be present as defaults
-        kwargs = {k: v for k, v in kwargs.items() if v is not None}
+        kwargs = {k: v for k, v in (kwargs or {}).items() if v is not None}
+        if oneshot: # this is still a little awkward, but it works until this can be refactored
+            kwargs["oneshot"] = oneshot
 
         if self.AD.threading.validate_pin(name, kwargs) is True:
             if "pin" in kwargs:
@@ -228,7 +252,7 @@ class State:
             #
             if "timeout" in kwargs:
                 timeout = kwargs.pop("timeout")
-                exec_time = (await self.AD.sched.get_now()) + datetime.timedelta(seconds=int(timeout))
+                exec_time = (await self.AD.sched.get_now()) + utils.convert_timedelta(timeout)
 
                 kwargs["__timeout"] = await self.AD.sched.insert_schedule(
                     name=name,
@@ -242,8 +266,7 @@ class State:
             # In the case of a quick_start parameter,
             # start the clock immediately if the device is already in the new state
             #
-            if kwargs.get("immediate") is True:
-                __duration = 0  # run it immediately
+            if immediate:
                 __new_state = None
                 __attribute = None
                 run = False
@@ -272,10 +295,9 @@ class State:
                             elif __attribute == "all":
                                 __new_state = self.state[namespace][entity]
 
-                    if "duration" in kwargs:
-                        __duration = int(kwargs["duration"])
+                    __duration = utils.convert_timedelta(kwargs.get("duration", 0))
                 if run:
-                    exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=__duration)
+                    exec_time = await self.AD.sched.get_now() + __duration
 
                     if kwargs.get("oneshot", False):
                         kwargs["__handle"] = handle
@@ -293,12 +315,12 @@ class State:
                         **kwargs,
                     )
 
-                    if __duration >= 1:  # it only stores it when needed
+                    if __duration.total_seconds() >= 1:  # it only stores it when needed
                         kwargs["__duration"] = __scheduler_handle
 
             await self.AD.state.add_entity(
                 "admin",
-                "state_callback.{}".format(handle),
+                f"state_callback.{handle}",
                 "active",
                 {
                     "app": name,
@@ -433,7 +455,7 @@ class State:
                         # Remove the callback if appropriate
                         if executed is True:
                             remove = callback["kwargs"].get("oneshot", False)
-                            if remove is True:
+                            if remove:
                                 removes.append({"name": callback["name"], "uuid": uuid_})
 
         for remove in removes:
