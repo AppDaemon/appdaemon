@@ -20,6 +20,7 @@
 - Upgraded Material Design icons to 7.4.47 - - contributed by [Daniel Rocha](https://github.com/danroc)
 - Rewrote app dependency tracking and added automatic tracking of global modules, deprecated associated global directoves in apps.yaml
 - Added pydantic validation to most user input
+- Added additionsl support for template fiunctions - Areas, Devices, Labels
 
 **Fixes**
 
