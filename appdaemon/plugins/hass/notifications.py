@@ -6,7 +6,22 @@ from ...models.notification.android import AndroidData
 
 
 class AndroidNotification(BaseModel, extra='forbid'):
+    """Wrapper for configuring Android notification service calls
+
+    This class is used to create a notification for the Android mobile app and contains some conveniences for correctly
+    customizing the notification.
+
+    Example:
+
+        >>> android_notification = AndroidNotification(
+                device='pixel_9',
+                message='Hello World!',
+                title='AppDaemon',
+            )
+        >>> self.service_call(**android_notification.to_service_call())
+    """
     device: str = Field(serialization_alias='service')
+    """This gets combined with ``notify/mobile_app_<device>`` to determine which notification service to call."""
     message: str = Field(exclude=True)
     title: str | None = Field(default=None, exclude=True)
     tag: str | None = Field(default='apdaemon', exclude=True)
@@ -24,6 +39,7 @@ class AndroidNotification(BaseModel, extra='forbid'):
         return f'notify/mobile_app_{device}'
 
     def to_service_call(self) -> dict:
+        """Dump the configuration to a dictionary that can be directly used with ``call_service``."""
         kwargs = self.model_dump(mode='json', exclude_none=True, by_alias=True)
         if data := kwargs.pop('data', False):
             kwargs.update(data)
@@ -37,13 +53,19 @@ class AndroidNotification(BaseModel, extra='forbid'):
         media_stream: Literal['music_stream', 'alarm_stream', 'alarm_stream_max'] | None = 'music_stream',
         critical: bool = False,
     ) -> 'AndroidNotification':
+        """Create an instance AndroidNotification pre-configured for TTS notifications.
+
+        This includes setting the message to `TTS` as described in the Home Assistant documentation. See
+        `Text To Speech Notifications <https://companion.home-assistant.io/docs/notifications/notifications-basic#text-to-speech-notifications>`_
+        for more information.
+        """
         self = cls.model_validate({
             'device': device,
             'message': 'TTS',
             'data': {'data': {'tts_text': tts_text, 'media_stream': media_stream}}
         })
 
-        # dont' set if it's False to not overwrite the media_stream
+        # don't set if it's False so as to not overwrite the media_stream
         if critical:
             self.critical = critical
 
@@ -51,6 +73,13 @@ class AndroidNotification(BaseModel, extra='forbid'):
 
     @property
     def critical(self):
+        """For Android, notifications will appear immediately in most cases. However, in some cases (such as phone being
+        stationary or when screen has been turned off for prolonged period of time), default notifications will not ring
+        the phone until screen is turned on. To override that behavior, set this property to ``True``.
+
+        See `Critical Notifications <https://companion.home-assistant.io/docs/notifications/critical-notifications/#android>`_
+        for more information.
+        """
         return self.service_data.data.media_stream == 'alarm_stream_max'
 
     @critical.setter
@@ -79,6 +108,7 @@ class AndroidNotification(BaseModel, extra='forbid'):
 
     @countdown.setter
     def countdown(self, new: int):
+
         # https://companion.home-assistant.io/docs/notifications/notifications-basic/#chronometer-notifications
         self.service_data.data.when = new
         self.service_data.data.chronometer = True
@@ -94,11 +124,22 @@ class AndroidNotification(BaseModel, extra='forbid'):
 
     @property
     def persistent(self):
+        """Persistent notifications are notifications that cannot be dismissed by swiping away. These are useful if you
+        have something important like an alarm being triggered. In order to use this property you must set the tag
+        property as well. The persistent property only takes boolean (``true``/``false``) values, with ``false`` being
+        the default. The persistent notification will still be dismissed once selected, to avoid this use the ``sticky``
+        parameter so the notification stays.
+
+        Changing the value of this property will also change the value of the ``sticky`` property automatically because
+        that's usually the intended behavior.
+
+        See `Persistent Notification <https://companion.home-assistant.io/docs/notifications/notifications-basic/#persistent-notification>`_
+        for more information.
+        """
         return self.service_data.data.persistent
 
     @persistent.setter
     def persistent(self, new: bool):
-        # https://companion.home-assistant.io/docs/notifications/notifications-basic/#persistent-notification
         self.service_data.data.persistent = new
         self.service_data.data.sticky = new
 

@@ -358,7 +358,12 @@ class Entity:
         namespace = namespace or self.namespace
         kwargs["entity_id"] = self.entity_id
         self.logger.debug("call_service: %s/%s, %s", self.domain, service, kwargs)
-        return await self.AD.services.call_service(namespace, self.domain, service, self.name, kwargs)
+        return await self.AD.services.call_service(
+            namespace=namespace,
+            domain=self.domain,
+            service=service,
+            data=kwargs
+        )  # fmt: skip
 
     async def wait_state(
         self,

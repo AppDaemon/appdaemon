@@ -691,7 +691,12 @@ class HTTP:
 
             self.logger.debug("call_service() args = %s", args)
 
-            res = await self.AD.services.call_service(namespace, domain, service, args)
+            res = await self.AD.services.call_service(
+                namespace=namespace,
+                domain=domain,
+                service=service,
+                data=args
+            )  # fmt: skip
             return web.json_response({"response": res}, status=200, dumps=utils.convert_json)
 
         except Exception:

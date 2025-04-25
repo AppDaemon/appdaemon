@@ -207,7 +207,7 @@ def check_state(logger, new_state, callback_state, name) -> bool:
 
 def sync_decorator(coro_func):  # no type hints here, so that @wraps(func) works properly
     @wraps(coro_func)
-    def wrapper(self, *args, timeout: int | float | None = None, **kwargs):
+    def wrapper(self, *args, timeout: str | int | float | None = None, **kwargs):
         # self.logger.debug(f"Wrapping async function {coro_func.__qualname__}")
         ad: "AppDaemon" = self.AD
 
@@ -270,8 +270,10 @@ def format_seconds(secs):
     return str(timedelta(seconds=secs))
 
 
-def convert_timedelta(s: str | int | float) -> timedelta:
+def convert_timedelta(s: str | int | float | timedelta | None) -> timedelta | None:
     match s:
+        case timedelta():
+            return s
         case int() | float():
             return timedelta(seconds=s)
         case str():
@@ -461,7 +463,7 @@ async def run_in_executor(self, fn, *args, **kwargs) -> Any:
     return await future
 
 
-def run_coroutine_threadsafe(self: "ADBase", coro: Coroutine, timeout: float | None = None) -> Any:
+def run_coroutine_threadsafe(self: "ADBase", coro: Coroutine, timeout: str | int | float | None = None) -> Any:
     """This runs an instantiated coroutine (async) from sync code. This handles the logic for cancelling
     coroutines that run too long.
 
@@ -474,23 +476,24 @@ def run_coroutine_threadsafe(self: "ADBase", coro: Coroutine, timeout: float | N
     Returns:
         Result from the coroutine
     """
-    timeout = timeout or self.AD.internal_function_timeout
+    timeout = timeout or self.AD.config.internal_function_timeout
+    timeout = convert_timedelta(timeout)
 
     if self.AD.loop.is_running():
         future = asyncio.run_coroutine_threadsafe(coro, self.AD.loop)
         try:
-            return future.result(timeout)
+            return future.result(timeout.total_seconds())
         except concurrent.futures.CancelledError:
             self.logger.warning(f"Future cancelled while waiting for coroutine: {coro}")
         except (asyncio.TimeoutError, concurrent.futures.TimeoutError):
             if hasattr(self, "logger"):
                 self.logger.warning(
-                    "Coroutine (%s) took too long (%s seconds), cancelling the task...",
+                    "Coroutine (%s) took too long (%s), cancelling the task...",
                     coro,
-                    timeout,
+                    format_timedelta(timeout),
                 )
             else:
-                print("Coroutine ({}) took too long, cancelling the task...".format(coro))
+                print(f"Coroutine ({coro}) took too long, cancelling the task...")
             future.cancel()
     else:
         self.logger.warning("LOOP NOT RUNNING. Returning NONE.")
@@ -979,12 +982,14 @@ def clean_kwargs(**kwargs):
     """Converts everything to strings and removes null values"""
     def clean_value(val: Any) -> str:
         match val:
-            case dict():
-                return clean_kwargs(**val)
+            case int() | float() | str():
+                return val
             case datetime.datetime():
                 return val.isoformat()
-            case int() | float():
-                return val
+            case dict():
+                return clean_kwargs(**val)
+            case Iterable():
+                return [clean_value(v) for v in val]
             case _:
                 return str(val)
 

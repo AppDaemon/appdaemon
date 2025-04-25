@@ -170,7 +170,12 @@ class Sequences:
     async def _exec_step(self, step: SequenceStep, default_namespace: str, calling_app: str):
         match step:
             case ServiceCallStep():
-                kwargs = {"namespace": step.namespace or default_namespace, "domain": step.domain, "service": step.service, "name": "sequence", "data": step.model_extra}
+                kwargs = {
+                    "namespace": step.namespace or default_namespace,
+                    "domain": step.domain,
+                    "service": step.service,
+                    "data": step.model_extra
+                }  # fmt: skip
 
                 if loop_step := step.loop_step:
                     for _ in range(loop_step.times):
