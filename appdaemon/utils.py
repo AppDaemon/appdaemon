@@ -16,12 +16,12 @@ import sys
 import threading
 import time
 import traceback
-from collections.abc import Iterable
+from collections.abc import Awaitable, Iterable
 from datetime import timedelta
 from functools import wraps
 from logging import Logger
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Coroutine, Dict
+from typing import TYPE_CHECKING, Any, Callable, Coroutine, Dict, ParamSpec, TypeVar
 
 import dateutil.parser
 import tomli
@@ -204,10 +204,12 @@ def check_state(logger, new_state, callback_state, name) -> bool:
 
     return passed
 
+P = ParamSpec("P")
+R = TypeVar("R")
 
-def sync_decorator(coro_func):  # no type hints here, so that @wraps(func) works properly
+def sync_decorator(coro_func: Callable[P, Awaitable[R]]) -> Callable[P, R]:
     @wraps(coro_func)
-    def wrapper(self, *args, timeout: str | int | float | None = None, **kwargs):
+    def wrapper(self, *args, timeout: str | int | float | timedelta | None = None, **kwargs) -> R:
         # self.logger.debug(f"Wrapping async function {coro_func.__qualname__}")
         ad: "AppDaemon" = self.AD
 
@@ -463,7 +465,7 @@ async def run_in_executor(self, fn, *args, **kwargs) -> Any:
     return await future
 
 
-def run_coroutine_threadsafe(self: "ADBase", coro: Coroutine, timeout: str | int | float | None = None) -> Any:
+def run_coroutine_threadsafe(self: "ADBase", coro: Coroutine, timeout: str | int | float | timedelta | None = None) -> Any:
     """This runs an instantiated coroutine (async) from sync code. This handles the logic for cancelling
     coroutines that run too long.
 
