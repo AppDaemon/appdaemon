@@ -215,10 +215,13 @@ def sync_decorator(coro_func: Callable[P, Awaitable[R]]) -> Callable[P, R]:
 
         try:
             # Checks to see if it's being called from the main thread, which has the event loop in it
-            running_loop = ad.main_thread_id == threading.current_thread().ident
+            in_main_thread = ad.main_thread_id == threading.current_thread().ident
+
+            if 'timeout' in inspect.signature(coro_func).parameters:
+                kwargs['timeout'] = timeout
 
             coro = coro_func(self, *args, **kwargs)
-            if running_loop:
+            if in_main_thread:
                 task = asyncio.create_task(coro)
                 ad.futures.add_future(self.name, task)
                 return task
