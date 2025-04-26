@@ -272,7 +272,7 @@ def format_seconds(secs):
     return str(timedelta(seconds=secs))
 
 
-def convert_timedelta(s: str | int | float | timedelta | None) -> timedelta | None:
+def convert_timedelta(s: str | int | float | timedelta | None) -> timedelta:
     match s:
         case timedelta():
             return s
@@ -292,6 +292,10 @@ def convert_timedelta(s: str | int | float | timedelta | None) -> timedelta | No
                 case 4:
                     day, hour, min, sec = parts
                     return timedelta(days=day, hours=hour, minutes=min, seconds=sec)
+        case None:
+            return timedelta()
+        case _:
+            raise ValueError(f"Invalid type for timedelta: {type(s)}. Must be str, int, float, or timedelta")
 
 
 def format_timedelta(td: timedelta) -> str:
