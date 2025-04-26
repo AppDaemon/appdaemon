@@ -4,13 +4,17 @@ import traceback
 import uuid
 from copy import deepcopy
 from logging import Logger
-from typing import TYPE_CHECKING, Any, overload
+from typing import TYPE_CHECKING, Any, Protocol
 from collections.abc import Callable
 
 import appdaemon.utils as utils
 
 if TYPE_CHECKING:
     from appdaemon.appdaemon import AppDaemon
+
+
+class EventCallback(Protocol):
+    def __call__(self, event_name: str, data: dict[str, Any], **kwargs: Any) -> None: ...
 
 
 class Events:
@@ -27,44 +31,39 @@ class Events:
         self.AD = ad
         self.logger = ad.logging.get_child("_events")
 
-    @overload
     async def add_event_callback(
         self,
         name: str,
         namespace: str,
         cb: Callable,
-        event: str | Iterable[str],
-        timeout: int,
-        oneshot: bool,
-        pin: bool,
-        pin_thread: int,
-        **kwargs
-    ) -> str | list[str]: ...
+        event: str | Iterable[str] | None = None,
+        timeout: str | int | float | datetime.timedelta | None = None,
+        oneshot: bool = False,
+        kwargs: dict[str, Any] = None,
+    ) -> str | list[str] | None:
+        """Add an event callback to AppDaemon's internal dicts.
 
-    async def add_event_callback(
-        self,
-        name: str,
-        namespace: str,
-        cb: Callable,
-        event: str | Iterable[str],
-        **kwargs
-    ) -> str | None:
-        """Adds a callback for an event which is called internally by apps.
+        Uses the internal callback lock to ensure that the callback is added in a thread-safe manner.
 
         Args:
-            name (str): Name of the app.
-            namespace (str): Namespace of the event.
+            name (str): Name of the app registering the callback. This is important because all callbacks have to be
+                associated with an app.
+            namespace (str): Namespace to listen for the event in. All events are fired in a namespace, and this will
+                only listen for events in that namespace.
             cb (Callable): Callback function.
             event (str | Iterable[str]): Name of the event.
             timeout (int, optional):
-            oneshot (bool, optional):
-            pin (bool, optional):
-            pin_thread (int, optional):
-            **kwargs: List of values to filter on, and additional arguments to pass to the callback.
+            oneshot (bool, optional): If ``True``, the callback will be removed after it is executed once. Defaults to
+                ``False``.
+            kwargs: List of values to filter on, and additional arguments to pass to the callback.
 
         Returns:
             ``None`` or the reference to the callback handle.
         """
+        # Filter none values, which might be present as defaults
+        kwargs = {k: v for k, v in (kwargs or {}).items() if v is not None}
+        if oneshot: # this is still a little awkward, but it works until this can be refactored
+            kwargs["oneshot"] = oneshot
 
         if self.AD.threading.validate_pin(name, kwargs) is True:
             if "pin" in kwargs:
@@ -199,7 +198,7 @@ class Events:
 
         if hasattr(plugin, "fire_plugin_event"):
             # We assume that the event will come back to us via the plugin
-            await plugin.fire_plugin_event(event, namespace, **kwargs)
+            return await plugin.fire_plugin_event(event, namespace, **kwargs)
         else:
             # Just fire the event locally
             await self.AD.events.process_event(namespace, {"event_type": event, "data": kwargs})
@@ -310,7 +309,7 @@ class Events:
 
         return has_log_callback
 
-    async def process_event_callbacks(self, namespace, data):
+    async def process_event_callbacks(self, namespace: str, data: dict[str, Any]) -> None:
         """Processes a pure event callback.
 
         Locate any callbacks that may be registered for this event, check for filters and if appropriate,

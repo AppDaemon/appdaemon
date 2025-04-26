@@ -18,6 +18,7 @@ from appdaemon import dependency, utils
 from appdaemon import exceptions as ade
 from appdaemon.appdaemon import AppDaemon
 from appdaemon.entity import Entity
+from appdaemon.events import EventCallback
 from appdaemon.logging import Logging
 from appdaemon.state import StateCallback
 
@@ -1478,9 +1479,10 @@ class ADAPI:
                 state will be set to ``None``.
             oneshot (bool, optional): If ``True``, the callback will be automatically removed after the first time it
                 gets invoked.
-            pin (bool, optional): If ``True``, the callback will be pinned to a particular thread.
-            pin_thread (int, optional): Sets which thread from the worker pool the callback will be
-                run by (0 - number of threads -1).
+            pin (bool, optional): If ``True``, the callback will be pinned to a particular thread. Defaults to
+                ``False``.
+            pin_thread (int, optional): Specify which thread from the worker pool will run the callback. The threads
+                each have an ID number. The ID numbers start at 0 and go through (number of threads - 1).
             **kwargs (optional): Zero or more keyword arguments that will be supplied to the callback when it is called.
 
         Notes:
@@ -2072,64 +2074,70 @@ class ADAPI:
     @utils.sync_decorator
     async def listen_event(
         self,
-        callback: Callable,
+        callback: EventCallback,
         event: str | None = None,
+        *,
         namespace: str | None = None,
         timeout: str | int | float | None = None,
         oneshot: bool = False,
-        pin: bool | None = None,
+        pin: bool = False,
         pin_thread: int | None = None,
-        **kwargs: Any
+        **kwargs: Any | Callable[[Any], bool]
     ) -> str: ...
 
     @overload
     @utils.sync_decorator
     async def listen_event(
         self,
-        callback: Callable,
+        callback: EventCallback,
         event: list[str],
+        *,
         namespace: str | None = None,
         timeout: str | int | float | None = None,
         oneshot: bool = False,
-        pin: bool | None = None,
+        pin: bool = False,
         pin_thread: int | None = None,
-        **kwargs: Any
+        **kwargs: Any | Callable[[Any], bool]
     ) -> list[str]: ...
 
     @utils.sync_decorator
     async def listen_event(
         self,
-        callback: Callable,
+        callback: EventCallback,
         event: str | Iterable[str] | None = None,
-        namespace: str | None = None,
-        **kwargs: Any
+        *,
+        namespace: str | Literal["global"] | None = None,
+        timeout: str | int | float | None = None,
+        oneshot: bool = False,
+        pin: bool = False,
+        pin_thread: int | None = None,
+        **kwargs: Any | Callable[[Any], bool]
     ) -> str | list[str]:
-        """Registers a callback for a specific event, multiple events, or any event.
+        """Register a callback for a specific event, multiple events, or any event.
 
 
         The callback needs to have the following form:
-        >>> def my_callback(self, event_name: str, event_data: dict[str, Any], **kwargs: dict[str, Any]) -> None:
+        >>> def my_callback(self, event_name: str, event_data: dict[str, Any], **kwargs: Any) -> None:
                 ...
 
         Args:
-            callback: Function to be invoked when the event is fired. It must conform to the standard event callback
-                format documented `here <APPGUIDE.html#about-event-callbacks>`__
+            callback: Function that will be called when the event is fired. It must conform to the standard event
+                callback format documented `here <APPGUIDE.html#event-callbacks>`__
             event (str | list[str], optional): Name of the event to subscribe to. Can be a standard Home Assistant
                 event such as ``service_registered``, an arbitrary custom event such as ``MODE_CHANGE`` or a list of
                 events `["pressed", "released"]`. If no event is specified, `listen_event()` will subscribe to all
                 events.
-            namespace(str, optional): Namespace to use for the call. In most cases, it's safe to ignore this parameter.
-                If none is given, the callback will be registered in the app's current namespace. If a ``namespace``
-                is provided the callback will be registered only in that namespace. The value ``global`` for namespace
-                has special significance, and means that the callback will listen to events updates from any plugin.
-                See the section on `namespaces <APPGUIDE.html#namespaces>`__ for more information.
-            oneshot (bool, optional): If ``True``, the callback will be automatically cancelled after the first state
-                change that results in a callback. Defaults to ``False``.
-            pin (bool, optional): If ``True``, the callback will be pinned to a particular thread.
-            pin_thread (int, optional): Specify which thread from the worker pool the callback will be run by. The
-                workers each have an ID number that starts with 0 and goes through (number of threads - 1).
+            namespace (str, optional): Optional namespace to use. Defaults to using the app's current namespace. The
+                value ``global`` will register the callback for all namespaces. See the
+                `namespace documentation <APPGUIDE.html#namespaces>`__ for more information.
             timeout (int, optional): If supplied the callback will be created as normal, but after ``timeout`` seconds,
                 the callback will be removed.
+            oneshot (bool, optional): If ``True``, the callback will be automatically cancelled after the first state
+                change that results in a callback. Defaults to ``False``.
+            pin (bool, optional): If ``True``, the callback will be pinned to a particular thread. Defaults to
+                ``False``.
+            pin_thread (int, optional): Specify which thread from the worker pool will run the callback. The threads
+                each have an ID number. The ID numbers start at 0 and go through (number of threads - 1).
             **kwargs (optional): One or more keyword value pairs representing app-specific parameters to supply to the
                 callback. If the event has data that matches one of these keywords, it will be filtered by the value
                 passed in with this function. This means that if the value in the event data does not match, the
@@ -2150,11 +2158,11 @@ class ADAPI:
 
             Listen for a `minimote` event activating scene 3.
 
-            >>> self.listen_event(self.generic_event, "zwave.scene_activated", scene_id = 3)
+            >>> self.listen_event(self.generic_event, "zwave.scene_activated", scene_id=3)
 
             Listen for a `minimote` event activating scene 3 from a specific `minimote` .
 
-            >>> self.listen_event(self.generic_event, "zwave.scene_activated", entity_id = "minimote_31", scene_id = 3)
+            >>> self.listen_event(self.generic_event, "zwave.scene_activated", entity_id="minimote_31", scene_id=3)
 
             Listen for a `minimote` event activating scene 3 from certain `minimote` (starting with 3), matched with
             code.
@@ -2171,17 +2179,32 @@ class ADAPI:
             >>> self.listen_event(self.button_event, ["pressed", "released"])
 
         """
-        self.logger.debug(f"Calling listen_event for {self.name} for {event}: {kwargs}")
+        kwargs = dict(
+            pin_app=pin,
+            pin_thread=pin_thread,
+            **kwargs
+        )
+        kwargs = {k: v for k, v in kwargs.items() if v is not None}
         namespace = namespace or self.namespace
+
+        self.logger.debug(f"Calling listen_event() for {self.name} for {event}: {kwargs}")
+
+        # pre-fill some arguments here
+        add_callback = functools.partial(
+            self.AD.events.add_event_callback,
+            name=self.name,
+            namespace=namespace,
+            cb=callback,
+            timeout=timeout,
+            oneshot=oneshot,
+            kwargs=kwargs
+        )
 
         match event:
             case str() | None:
-                return await self.AD.events.add_event_callback(self.name, namespace, callback, event, **kwargs)
+                return await add_callback(event=event)
             case Iterable():
-                return [
-                    await self.AD.events.add_event_callback(self.name, namespace, callback, e, **kwargs)
-                    for e in event
-                ]
+                return [await add_callback(event=e) for e in event]
             case _:
                 self.logger.warning(f"Invalid event: {event}")
 
