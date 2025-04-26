@@ -2003,8 +2003,9 @@ class ADAPI:
         sequence: str | list[dict[str, dict[str, str]]],
         namespace: str | None = None
     ) -> Any:
-        """Run an AppDaemon Sequence. Sequences are defined in a valid apps.yaml file or inline, and are sequences of
-        service calls.
+        """Run an AppDaemon Sequence.
+
+        Sequences are defined in a valid apps.yaml file or inline, and are sequences of service calls.
 
         Args:
             sequence: The sequence name, referring to the correct entry in apps.yaml, or a list containing actual
@@ -2014,7 +2015,6 @@ class ADAPI:
                 if no namespace is given, AppDaemon will use the last specified namespace
                 or the default namespace. See the section on `namespaces <APPGUIDE.html#namespaces>`__
                 for a detailed description. In most cases, it is safe to ignore this parameter.
-            **kwargs (optional): Zero or more keyword arguments.
 
         Returns:
             A handle that can be used with `cancel_sequence()` to terminate the script.
