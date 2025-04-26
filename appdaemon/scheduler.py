@@ -296,7 +296,8 @@ class Scheduler:
         return False
 
     # noinspection PyBroadException
-    async def exec_schedule(self, name, args, uuid_):
+    async def exec_schedule(self, name: str, args: dict[str, Any], uuid_: str) -> None:
+        self.logger.debug("Executing: %s", args)
         try:
             # Call function
             if "__entity" in args["kwargs"]:
@@ -408,8 +409,7 @@ class Scheduler:
         if longitude < -180 or longitude > 180:
             raise ValueError("Longitude needs to be -180 .. 180")
 
-        self.location = Location(LocationInfo(
-            "", "", self.AD.tz.zone, latitude, longitude))
+        self.location = Location(LocationInfo("", "", self.AD.tz.zone, latitude, longitude))
 
     async def sun(self, type: str, secs_offset: int) -> datetime:
         return (await self.get_next_sun_event(type, secs_offset)) + timedelta(seconds=secs_offset)
@@ -692,7 +692,6 @@ class Scheduler:
                         # so check our callbacks are still valid before we execute them
                         if name in self.schedule and uuid_ in self.schedule[name]:
                             args = self.schedule[name][uuid_]
-                            self.logger.debug("Executing: %s", args)
                             await self.exec_schedule(name, args, uuid_)
                     else:
                         break
