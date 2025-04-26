@@ -1767,7 +1767,13 @@ class ADAPI:
 
     @staticmethod
     def _check_service(service: str) -> None:
-        if service.find("/") == -1:
+        """Check if the service name is formatted correctly.
+
+        Raises:
+            ValueError: If the service name is invalid.
+
+        """
+        if not isinstance(service, str) and len(str.split('/')) == 2:
             raise ValueError(f"Invalid Service Name: {service}")
 
     def register_service(
@@ -1777,23 +1783,26 @@ class ADAPI:
         namespace: str | None = None,
         **kwargs
     ) -> None:
-        """Registers a service that can be called from other apps, the REST API and the Event Stream
+        """Register a service that can be called from other apps, the REST API, and the event stream.
 
-        Using this function, an App can register a function to be available in the service registry.
-        This will automatically make it available to other apps using the `call_service()` API call, as well as publish
-        it as a service in the REST API and make it available to the `call_service` command in the event stream.
-        It should be noted that registering services within a plugin's namespace is a bad idea. It could work, but not always reliable
-        It is recommended to make use of this api, within a user definded namespace, or one not tied to a plugin.
+        This makes a function available to be called in other apps using ``call_service(...)``. The service function can
+        accept arbitrary keyword arguments.
+
+        Registering services in namespaces that already have plugins is not recommended, as it can lead to some
+        unpredictable behavior. Intead, it's recommended to use a user-defined namespace or one that is not tied to
+        plugin.
 
         Args:
-            service: Name of the service, in the format `domain/service`. If the domain does not exist it will be created
-            cb: A reference to the function to be called when the service is requested. This function may be a regular
-                function, or it may be async. Note that if it is an async function, it will run on AppDaemon's main loop
-                meaning that any issues with the service could result in a delay of AppDaemon's core functions.
-            namespace(str, optional): Namespace to use for the call. See the section on
-                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
-                In most cases, it is safe to ignore this parameter.
-            **kwargs (optional): Zero or more keyword arguments. Extra keyword arguments will be stored alongside the service definition.
+            service: Name of the service, in the format ``domain/service``. If the domain does not exist it will be
+                created.
+            cb: The function to use for the service. This will accept both sync and async functions. Async functions are
+                not recommended, as AppDaemon's threading model makes them unnecessary. Async functions run in the event
+                loop along with AppDaemon internal functions, so any blocking or delays, can cause AppDaemon itself to
+                hang.
+            namespace (str, optional): Optional namespace to use. Defaults to using the app's current namespace. See the
+                `namespace documentation <APPGUIDE.html#namespaces>`__ for more information.
+            **kwargs (optional): Zero or more keyword arguments. Extra keyword arguments will be stored alongside the
+                service definition.
 
         Returns:
             None
@@ -1801,7 +1810,7 @@ class ADAPI:
         Examples:
             >>> self.register_service("myservices/service1", self.mycallback)
 
-            >>> async def mycallback(self, namespace, domain, service, kwargs):
+            >>> async def mycallback(self, namespace: str, domain: str, service: str, kwargs):
             >>>     self.log("Service called")
 
         """
@@ -1819,7 +1828,11 @@ class ADAPI:
         )
 
     def deregister_service(self, service: str, namespace: str | None = None) -> bool:
-        """Deregisters a service that had been previously registered
+        """Deregister a service that had been previously registered.
+
+        This will immediately remove the service from AppDaemon's internal service registry, which will make it
+        unavailable to other apps using the ``call_service()`` API call, as well as published as a service in the REST
+        API
 
         Using this function, an App can deregister a service call, it has initially registered in the service registry.
         This will automatically make it unavailable to other apps using the `call_service()` API call, as well as published
@@ -1827,20 +1840,19 @@ class ADAPI:
         This function can only be used, within the app that registered it in the first place
 
         Args:
-            service: Name of the service, in the format `domain/service`.
-            namespace(str, optional): Namespace to use for the call. See the section on
-                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
-                In most cases, it is safe to ignore this parameter.
+            service: Name of the service, in the format ``domain/service``.
+            namespace (str, optional): Optional namespace to use. Defaults to using the app's current namespace. See the
+                `namespace documentation <APPGUIDE.html#namespaces>`__ for more information.
 
         Returns:
-            Bool
+            ``True`` if the service was successfully deregistered, ``False`` otherwise.
 
         Examples:
             >>> self.deregister_service("myservices/service1")
 
         """
-        self.logger.debug("deregister_service: %s, %s", service, namespace)
         namespace = namespace or self.namespace
+        self.logger.debug("deregister_service: %s, %s", service, namespace)
         self._check_service(service)
         return self.AD.services.deregister_service(namespace, *service.split("/"), __name=self.name)
 
@@ -1848,13 +1860,12 @@ class ADAPI:
         """List all services available within AppDaemon
 
         Args:
-            namespace(str, optional): If a ``namespace`` is provided, this function will return services only in that
-                namespace. Otherwise, the default value for ``namespace`` is ``global``, which will return services
-                across all namespaces. See the section on `namespaces <APPGUIDE.html#namespaces>`__ for more
+            namespace (str, optional): Optional namespace to use. The default is ``flobal``, which will return services
+                across all namespaces. See the `namespace documentation <APPGUIDE.html#namespaces>`__ for more
                 information.
 
         Returns:
-            List of dictionary with keys ``namespace``, ``domain``, and ``service``.
+            List of dicts with keys ``namespace``, ``domain``, and ``service``.
 
         Examples:
             >>> services = self.list_services()
