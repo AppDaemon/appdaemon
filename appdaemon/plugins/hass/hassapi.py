@@ -462,6 +462,7 @@ class Hass(ADBase, ADAPI):
             else:
                 self.logger.warning("Service info not found for domain '%s", domain)
 
+    @utils.sync_decorator
     async def call_service(
         self,
         service: str,
@@ -1215,7 +1216,7 @@ class Hass(ADBase, ADAPI):
             entity_id=entity_id,
             duration=duration,
         )
-        if res['success']:
+        if isinstance(res, dict) and res['success']:
             return [
                 {
                     k: datetime.fromisoformat(v) if k in ('start', 'end') else v
