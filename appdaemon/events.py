@@ -39,11 +39,16 @@ class Events:
         event: str | Iterable[str] | None = None,
         timeout: str | int | float | datetime.timedelta | None = None,
         oneshot: bool = False,
-        kwargs: dict[str, Any] = None,
+        pin: bool = True,
+        pin_thread: int | None = None,
+        kwargs: dict[str, Any] = None, # Intentionally not expanding the kwargs here so that there are no name clashes
     ) -> str | list[str] | None:
         """Add an event callback to AppDaemon's internal dicts.
 
-        Uses the internal callback lock to ensure that the callback is added in a thread-safe manner.
+        Uses the internal callback lock to ensure that the callback is added in a thread-safe manner, and adds an entity
+        in the admin namespace to track the callback.
+
+        Includes a feature to automatically cancel the callback after a timeout, if specified.
 
         Args:
             name (str): Name of the app registering the callback. This is important because all callbacks have to be
@@ -60,68 +65,57 @@ class Events:
         Returns:
             ``None`` or the reference to the callback handle.
         """
-        # Filter none values, which might be present as defaults
-        kwargs = {k: v for k, v in (kwargs or {}).items() if v is not None}
         if oneshot: # this is still a little awkward, but it works until this can be refactored
+            # This needs to be in the kwargs dict here that gets passed around later, so that the dispatcher knows to
+            # cancel the callback after the first run.
             kwargs["oneshot"] = oneshot
 
-        if self.AD.threading.validate_pin(name, kwargs) is True:
-            if "pin" in kwargs:
-                pin_app = kwargs["pin_app"]
-            else:
-                pin_app = self.AD.app_management.objects[name].pin_app
+        pin, pin_thread = self.AD.threading.determine_thread(name, pin, pin_thread)
 
-            if "pin_thread" in kwargs:
-                pin_thread = kwargs["pin_thread"]
-                pin_app = True
-            else:
-                pin_thread = self.AD.app_management.objects[name].pin_thread
+        async with self.AD.callbacks.callbacks_lock:
+            if name not in self.AD.callbacks.callbacks:
+                self.AD.callbacks.callbacks[name] = {}
+            handle = uuid.uuid4().hex
+            self.AD.callbacks.callbacks[name][handle] = {
+                "name": name,
+                "id": self.AD.app_management.objects[name].id,
+                "type": "event",
+                "function": cb,
+                "namespace": namespace,
+                "event": event,
+                "pin_app": pin,
+                "pin_thread": pin_thread,
+                "kwargs": kwargs,
+            }
 
-            async with self.AD.callbacks.callbacks_lock:
-                if name not in self.AD.callbacks.callbacks:
-                    self.AD.callbacks.callbacks[name] = {}
-                handle = uuid.uuid4().hex
-                self.AD.callbacks.callbacks[name][handle] = {
-                    "name": name,
-                    "id": self.AD.app_management.objects[name].id,
-                    "type": "event",
-                    "function": cb,
-                    "namespace": namespace,
-                    "event": event,
-                    "pin_app": pin_app,
-                    "pin_thread": pin_thread,
-                    "kwargs": kwargs,
-                }
-
-            if "timeout" in kwargs:
-                timeout = kwargs.pop("timeout")
-                exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=int(timeout))
-
-                kwargs["__timeout"] = await self.AD.sched.insert_schedule(
-                    name=name,
-                    aware_dt=exec_time,
-                    callback=None,
-                    repeat=False,
-                    type_=None,
-                    __event_handle=handle,
-                )
-
-            await self.AD.state.add_entity(
-                "admin",
-                f"event_callback.{handle}",
-                "active",
-                {
-                    "app": name,
-                    "event_name": event,
-                    "function": cb.__name__,
-                    "pinned": pin_app,
-                    "pinned_thread": pin_thread,
-                    "fired": 0,
-                    "executed": 0,
-                    "kwargs": kwargs,
-                },
+        # Automatically cancel the callback after a timeout
+        if timeout is not None:
+            exec_time = await self.AD.sched.get_now() + utils.convert_timedelta(timeout)
+            kwargs["__timeout"] = await self.AD.sched.insert_schedule(
+                name=name,
+                aware_dt=exec_time,
+                callback=None,
+                repeat=False,
+                type_=None,
+                __event_handle=handle,
             )
-            return handle
+
+        await self.AD.state.add_entity(
+            namespace="admin",
+            entity=f"event_callback.{handle}",
+            state="active",
+            attributes={
+                "app": name,
+                "event_name": event,
+                "function": cb.__name__,
+                "pinned": pin,
+                "pinned_thread": pin_thread,
+                "fired": 0,
+                "executed": 0,
+                "kwargs": kwargs,
+            },
+        )
+        return handle
 
     async def cancel_event_callback(self, name, handle):
         """Cancels an event callback.
@@ -406,4 +400,4 @@ class Events:
     @staticmethod
     def sanitize_event_kwargs(app, kwargs):
         kwargs_copy = kwargs.copy()
-        return utils._sanitize_kwargs(kwargs_copy, ["__silent"])
+        return utils._sanitize_kwargs(kwargs_copy, ["__silent", "pin_app"])

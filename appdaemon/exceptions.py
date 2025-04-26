@@ -353,8 +353,10 @@ class MissingAppClass(AppDaemonException):
         return res
 
 
+@dataclass
 class PinOutofRange(AppDaemonException):
-    pass
+    pin_thread: int
+    total_threads: int
 
 
 @dataclass

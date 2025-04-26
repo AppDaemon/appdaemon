@@ -7,12 +7,11 @@ import re
 import sys
 import threading
 import traceback
-from datetime import timedelta
 from logging import Logger
 from queue import Queue
 from random import randint
 from threading import Thread
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 from collections.abc import Callable
 
 import iso8601
@@ -48,7 +47,7 @@ class Threading:
     :class:`~threading.Thread` and :class:`~queue.Queue` objects respectively.
     """
 
-    last_stats_time: datetime.datetime = datetime.datetime.fromtimestamp(0)
+    last_stats_time: ClassVar[datetime.datetime] = datetime.datetime.fromtimestamp(0)
     callback_list: list[dict]
 
     pin_threads: int = 0
@@ -327,12 +326,9 @@ class Threading:
                     self.next_thread = self.pin_threads
 
         if thread < 0 or thread >= self.thread_count:
-            raise ValueError(
-                "invalid thread id: {} in app {}".format(thread, args["name"]))
+            raise ValueError(f"invalid thread id: {thread} in app {args['name']}")
 
-        id = "thread-{}".format(thread)
-        q = self.threads[id]["queue"]
-
+        q = self.threads[f"thread-{thread}"]["queue"]
         q.put_nowait(args)
 
     async def check_overdue_and_dead_threads(self):
@@ -595,17 +591,22 @@ class Threading:
         assert isinstance(cfg, AppConfig)
         return cfg.pin_app or self.pin_apps
 
-    def validate_pin(self, name, kwargs):
-        valid = True
-        if "pin_thread" in kwargs:
-            if kwargs["pin_thread"] < 0 or kwargs["pin_thread"] >= self.thread_count:
-                self.logger.warning(
-                    "Invalid value for pin_thread (%s) in app: %s - discarding callback",
-                    kwargs["pin_thread"],
-                    name,
-                )
-                valid = False
-        return valid
+    def validate_pin(self, name: str, pin_thread: int | None) -> None:
+        """Check to see if the ID for the pin thread is valid.
+
+        Raises:
+            PinOutofRange: if the pin_thread is not valid.
+
+        Returns:
+            None
+        """
+        if pin_thread is not None and (pin_thread < 0 or pin_thread >= self.thread_count):
+            self.logger.warning(
+                "Invalid value for pin_thread (%s) in app: %s - discarding callback",
+                pin_thread,
+                name,
+            )
+            raise ade.PinOutofRange(pin_thread, self.thread_count)
 
     def get_pinned_apps(self, thread: str):
         """Gets the names of apps that are pinned to a particular thread"""
@@ -615,6 +616,27 @@ class Threading:
             for app_name, obj in self.AD.app_management.objects.items()
             if obj.pin_thread == id
         ]
+
+    def determine_thread(self, name: str, pin: bool | None, pin_thread: int | None) -> tuple[bool, int | None]:
+        """Determine whether the app should be pinned to a thread and which one.
+
+        Applies defaults from app management
+
+        Returns:
+            A tuple of (pin, pin_thread) where pin is ``True`` if the app should be pinned and pin_thread is the
+            thread ID number
+        """
+
+        if pin_thread is None:
+            pin = self.AD.app_management.objects[name].pin_app if pin is None else pin
+            pin_thread = self.AD.app_management.objects[name].pin_thread
+        else:
+            assert isinstance(pin_thread, int)
+            pin = True
+
+        self.validate_pin(name, pin_thread)
+        return pin, pin_thread
+
 
     #
     # Constraints
@@ -775,7 +797,7 @@ class Threading:
                         #
                         # Set a timer
                         #
-                        exec_time = await self.AD.sched.get_now() + timedelta(seconds=int(kwargs["duration"]))
+                        exec_time = await self.AD.sched.get_now() + utils.convert_timedelta(kwargs["duration"])
 
                         #
                         # If it's a oneshot, scheduler will delete the callback once it has executed,
@@ -825,7 +847,7 @@ class Threading:
 
         return executed
 
-    async def dispatch_worker(self, name, args):
+    async def dispatch_worker(self, name: str, args: dict[str, Any]):
         #
         # If the app isinitializing, it's not ready for this yet so discard
         #

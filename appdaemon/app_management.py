@@ -468,7 +468,7 @@ class AppManagement:
         )
 
         if (pin := cfg.pin_thread) and pin >= self.AD.threading.total_threads:
-            raise ade.PinOutofRange()
+            raise ade.PinOutofRange(pin_thread=pin, total_threads=self.AD.threading.total_threads)
         elif (obj := self.objects.get(app_name)) and obj.pin_thread is not None:
             pin = obj.pin_thread
         else:

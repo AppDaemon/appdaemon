@@ -301,8 +301,7 @@ class Entity:
             duration=duration,
             attribute=attribute,
             timeout=timeout,
-            pin_app=pin,
-            pin_thread=pin_thread,
+
             **kwargs
         )
         kwargs = {k: v for k, v in kwargs.items() if v is not None}
@@ -314,6 +313,8 @@ class Entity:
             cb=callback,
             oneshot=oneshot,
             immediate=immediate,
+            pin=pin,
+            pin_thread=pin_thread,
             kwargs=kwargs
         )
 

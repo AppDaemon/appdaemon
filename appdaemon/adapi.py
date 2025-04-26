@@ -1378,7 +1378,7 @@ class ADAPI:
         timeout: str | int | float | timedelta | None = None,
         immediate: bool = False,
         oneshot: bool = False,
-        pin: bool = False,
+        pin: bool = True,
         pin_thread: int | None = None,
         **kwargs: Any
     ) -> str: ...
@@ -1397,7 +1397,7 @@ class ADAPI:
         timeout: str | int | float | timedelta | None = None,
         immediate: bool = False,
         oneshot: bool = False,
-        pin: bool = False,
+        pin: bool = True,
         pin_thread: int | None = None,
         **kwargs: Any
     ) -> list[str]: ...
@@ -1415,7 +1415,7 @@ class ADAPI:
         timeout: str | int | float | timedelta | None = None,
         immediate: bool = False,
         oneshot: bool = False,
-        pin: bool = False,
+        pin: bool = True,
         pin_thread: int | None = None,
         **kwargs: Any
     ) -> str | list[str]:
@@ -1549,7 +1549,7 @@ class ADAPI:
             duration=duration,
             attribute=attribute,
             timeout=timeout,
-            pin_app=pin,
+            pin=pin,
             pin_thread=pin_thread,
             **kwargs
         )
@@ -2078,9 +2078,9 @@ class ADAPI:
         event: str | None = None,
         *,
         namespace: str | None = None,
-        timeout: str | int | float | None = None,
+        timeout: str | int | float | timedelta | None = None,
         oneshot: bool = False,
-        pin: bool = False,
+        pin: bool = True,
         pin_thread: int | None = None,
         **kwargs: Any | Callable[[Any], bool]
     ) -> str: ...
@@ -2093,9 +2093,9 @@ class ADAPI:
         event: list[str],
         *,
         namespace: str | None = None,
-        timeout: str | int | float | None = None,
+        timeout: str | int | float | timedelta | None = None,
         oneshot: bool = False,
-        pin: bool = False,
+        pin: bool = True,
         pin_thread: int | None = None,
         **kwargs: Any | Callable[[Any], bool]
     ) -> list[str]: ...
@@ -2107,9 +2107,9 @@ class ADAPI:
         event: str | Iterable[str] | None = None,
         *,
         namespace: str | Literal["global"] | None = None,
-        timeout: str | int | float | None = None,
+        timeout: str | int | float | timedelta | None = None,
         oneshot: bool = False,
-        pin: bool = False,
+        pin: bool = True,
         pin_thread: int | None = None,
         **kwargs: Any | Callable[[Any], bool]
     ) -> str | list[str]:
@@ -2130,12 +2130,12 @@ class ADAPI:
             namespace (str, optional): Optional namespace to use. Defaults to using the app's current namespace. The
                 value ``global`` will register the callback for all namespaces. See the
                 `namespace documentation <APPGUIDE.html#namespaces>`__ for more information.
-            timeout (int, optional): If supplied the callback will be created as normal, but after ``timeout`` seconds,
-                the callback will be removed.
+            timeout (str, int, float, timedelta, optional): If supplied, the callback will be created as normal, but the
+                callback will be removed after the timeout.
             oneshot (bool, optional): If ``True``, the callback will be automatically cancelled after the first state
                 change that results in a callback. Defaults to ``False``.
             pin (bool, optional): If ``True``, the callback will be pinned to a particular thread. Defaults to
-                ``False``.
+                ``True``.
             pin_thread (int, optional): Specify which thread from the worker pool will run the callback. The threads
                 each have an ID number. The ID numbers start at 0 and go through (number of threads - 1).
             **kwargs (optional): One or more keyword value pairs representing app-specific parameters to supply to the
@@ -2179,24 +2179,18 @@ class ADAPI:
             >>> self.listen_event(self.button_event, ["pressed", "released"])
 
         """
-        kwargs = dict(
-            pin_app=pin,
-            pin_thread=pin_thread,
-            **kwargs
-        )
-        kwargs = {k: v for k, v in kwargs.items() if v is not None}
-        namespace = namespace or self.namespace
-
         self.logger.debug(f"Calling listen_event() for {self.name} for {event}: {kwargs}")
 
         # pre-fill some arguments here
         add_callback = functools.partial(
             self.AD.events.add_event_callback,
             name=self.name,
-            namespace=namespace,
+            namespace=namespace or self.namespace,
             cb=callback,
             timeout=timeout,
             oneshot=oneshot,
+            pin=pin,
+            pin_thread=pin_thread,
             kwargs=kwargs
         )
 
