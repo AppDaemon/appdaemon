@@ -17,11 +17,11 @@ import threading
 import time
 import traceback
 from collections.abc import Awaitable, Iterable
-from datetime import timedelta
+from datetime import timedelta, tzinfo
 from functools import wraps
 from logging import Logger
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Coroutine, Dict, ParamSpec, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, Coroutine, Dict, Literal, ParamSpec, TypeVar
 
 import dateutil.parser
 import tomli
@@ -711,7 +711,19 @@ def str_to_dt(time):
     return dateutil.parser.parse(time)
 
 
-def dt_to_str(dt, tz=None):
+def dt_to_str(dt: datetime, tz: tzinfo | None = None, *, round: bool = False) -> str | Literal["never"]:
+    """Convert a datetime object to a string.
+
+    This function provides a single place for standardizing the conversion of datetimes to strings.
+
+    Args:
+        dt (datetime): The datetime object to convert.
+        tz (tzinfo, optional): Optional timezone to apply. Defaults to None.
+        round (bool, optional): Whether to round the datetime to the nearest second. Defaults to False.
+    """
+    if round:
+        dt = dt.replace(microsecond=0)
+
     if dt == datetime.datetime(1970, 1, 1, 0, 0, 0, 0):
         return "never"
     else:
