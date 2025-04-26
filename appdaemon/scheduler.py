@@ -167,13 +167,13 @@ class Scheduler:
                 function_name = callback.__name__
 
         await self.AD.state.add_entity(
-            "admin",
-            "scheduler_callback.{}".format(handle),
-            "active",
-            {
+            namespace="admin",
+            entity=f"scheduler_callback.{handle}",
+            state="active",
+            attributes={
                 "app": name,
-                "execution_time": utils.dt_to_str(ts.replace(microsecond=0), self.AD.tz),
-                "repeat": str(timedelta(seconds=interval)),
+                "execution_time": utils.dt_to_str(ts, self.AD.tz, round=True),
+                "repeat": str(utils.convert_timedelta(interval)),
                 "function": function_name,
                 "pinned": pin_app,
                 "pinned_thread": pin_thread,
