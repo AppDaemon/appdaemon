@@ -1632,7 +1632,7 @@ class ADAPI:
         copy: bool = True,
         **kwargs,  # left in intentionally for compatibility
     ) -> Any | dict[str, Any] | None:
-        """Gets the state of an entity from AppDaemon's internals.
+        """Get the state of an entity from AppDaemon's internals.
 
         Home Assistant emits a ``state_changed`` event for every state change, which it sends to AppDaemon over the
         websocket connection made by the plugin. Appdaemon uses the data in these events to update its internal state.
@@ -1709,12 +1709,12 @@ class ADAPI:
         check_existence: bool = True,
         **kwargs: Any
     ) -> dict[str, Any]:
-        """Updates the state of the specified entity.
+        """Update the state of the specified entity.
 
         This causes a ``state_changed`` event to be emitted in the entity's namespace. If that namespace is associated
-        with a Home Assistant plugin, it will use the ``/api/states/<entity_id>`` endpoint of the REST API to update
-        the state of the entity. This method can be useful to create entities in Home Assistant, but they won't persist
-        across restarts.
+        with a Home Assistant plugin, it will use the ``/api/states/<entity_id>`` endpoint of the
+        `REST API <https://developers.home-assistant.io/docs/api/rest/>`__ to update the state of the entity. This
+        method can be useful to create entities in Home Assistant, but they won't persist across restarts.
 
         Args:
             entity_id (str): The fully qualified entity id (including the device type).
@@ -1724,7 +1724,9 @@ class ADAPI:
             attributes (dict[str, Any], optional): Optional dictionary to use for the attributes. If replace is
                 ``False``, then the attribute dict will use the built-in update method on this dict. If replace is
                 ``True``, then the attribute dict will be entirely replaced with this one.
-            replace(bool, optional): Whether to replace rather than update the attributes. Defaults to ``False``.
+            replace(bool, optional): Whether to replace rather than update the attributes. Defaults to ``False``. For
+                plugin based entities, this is not recommended, as the plugin will mostly replace the new values, when
+                next it updates.
             check_existence(bool, optional): Whether to check if the entity exists before setting the state. Defaults to
                 ``True``, but it can be useful to set to ``False`` when using this method to create an entity.
             **kwargs (optional): Zero or more keyword arguments. Extra keyword arguments will be assigned as attributes.
@@ -1739,15 +1741,16 @@ class ADAPI:
 
             Update the state and attribute of an entity.
 
-            >>> self.set_state(entity_id="light.office_1", state = "on", attributes = {"color_name": "red"})
+            >>> self.set_state(entity_id="light.office_1", state="on", attributes={"color_name": "red"})
 
             Update the state of an entity within the specified namespace.
 
-            >>> self.set_state("light.office_1", state="off", namespace ="hass")
+            >>> self.set_state("light.office_1", state="off", namespace="hass")
 
         """
         namespace = namespace or self.namespace
-        self._check_entity(namespace, entity_id)
+        if check_existence:
+            self._check_entity(namespace, entity_id)
         return await self.AD.state.set_state(
             name=self.name,
             namespace=namespace,

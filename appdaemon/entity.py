@@ -1,6 +1,6 @@
 import asyncio
-from collections import defaultdict
 import uuid
+from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -8,9 +8,9 @@ from logging import Logger
 from typing import TYPE_CHECKING, Any
 from collections.abc import Callable
 
-from .state import StateCallback
 import appdaemon.utils as utils
-from appdaemon.exceptions import TimeOutException
+from .exceptions import TimeOutException
+from .state import StateCallback
 
 if TYPE_CHECKING:
     from appdaemon.appdaemon import AppDaemon
@@ -32,9 +32,10 @@ class Entity:
     # states_attrs = EntityAttrs()
 
     def set_namespace(self, namespace: str) -> None:
-        """Sets a new namespace for the Entity to use from that point forward.
-        It should be noted that when this function is used, a different entity will be referenced.
-        Since each entity is tied to a certain namespace, at every point in time.
+        """Set a new namespace for the Entity to use from that point forward.
+
+        This doesn't change anything about the entity itself, but it does change the namespace that this instance of the
+        entity API references. There might not be an entity with the same ID in the new namespace.
 
         Args:
             namespace (str): Name of the new namespace
@@ -43,12 +44,25 @@ class Entity:
             None.
 
         Examples:
-            >>> # access entity in Hass namespace
-            >>> self.my_entity = self.get_entity("light.living_room")
-            >>> # want to copy the same entity into another namespace
-            >>> entity_data = self.my_entity.copy()
-            >>> self.my_entity.set_namespace("my_namespace")
-            >>> self.my_entity.set_state(**entity_data)
+            Get an entity
+
+            >>> self.light = self.get_entity("light.living_room")
+
+            Copy the full state from the entity
+
+            >>> state = self.my_entity.copy()
+
+            Set the new namespace
+
+            >>> self.light.set_namespace("my_namespace")
+
+            Set the state of the entity
+
+            >>> self.light.set_state(**entity_data)
+
+            Verify
+
+            >>> self.light.get_state(attribute="all")
 
         """
         self.namespace = namespace
@@ -61,17 +75,21 @@ class Entity:
         replace: bool = False,
         **kwargs
     ) -> dict:
-        """Updates the state of the specified entity.
+        """Update the state of the specified entity.
+
+        This causes a ``state_changed`` event to be emitted in the entity's namespace. If that namespace is associated
+        with a Home Assistant plugin, it will use the ``/api/states/<entity_id>`` endpoint of the
+        `REST API <https://developers.home-assistant.io/docs/api/rest/>`__ to update the state of the entity. This
+        method can be useful to create entities in Home Assistant, but they won't persist across restarts.
 
         Args:
             state: New state value to be set.
-            attributes (dict, optional): Dictionary of the entity's attributes to be updated.
-            replace(bool, optional): If a `replace` flag is given and set to ``True`` and ``attributes``
-                is provided, AD will attempt to replace its internal entity register with the newly
-                supplied attributes completely. This can be used to replace attributes in an entity
-                which are no longer needed. Do take note this is only possible for internal entity state.
-                For plugin based entities, this is not recommended, as the plugin will mostly replace
-                the new values, when next it updates.
+            attributes (dict[str, Any], optional): Optional dictionary to use for the attributes. If replace is
+                ``False``, then the attribute dict will use the built-in update method on this dict. If replace is
+                ``True``, then the attribute dict will be entirely replaced with this one.
+            replace(bool, optional): Whether to replace rather than update the attributes. Defaults to ``False``. For
+                plugin based entities, this is not recommended, as the plugin will mostly replace the new values, when
+                next it updates.
             **kwargs (optional): Zero or more keyword arguments. These will be applied to the attributes.
 
         Returns:
@@ -107,22 +125,27 @@ class Entity:
         default: Any | None = None,
         copy: bool = True
     ) -> Any:
-        """Gets the state of any entity within AD.
+        """Get the state of an entity from AppDaemon's internals.
+
+        Home Assistant emits a ``state_changed`` event for every state change, which it sends to AppDaemon over the
+        websocket connection made by the plugin. Appdaemon uses the data in these events to update its internal state.
+        This method returns values from this internal state, so it does **not** make any external requests to Home
+        Assistant.
+
+        Other plugins that emit ``state_changed`` events will also have their states tracked internally by AppDaemon.
+
+        It's common for entities to have a state that's always one of ``on``, ``off``, or ``unavailable``. This applies
+        to entities in the ``light``, ``switch``, ``binary_sensor``, and ``input_boolean`` domains in Home Assistant,
+        among others.
 
         Args:
-            attribute (str, optional): Name of an attribute within the entity state object.
-                If this parameter is specified in addition to a fully qualified ``entity_id``,
-                a single value representing the attribute will be returned. The value ``all``
-                for attribute has special significance and will return the entire state
-                dictionary for the specified entity rather than an individual attribute value.
-            default (any, optional): The value to return when the requested attribute or the
-                whole entity doesn't exist (Default: ``None``).
-            copy (bool, optional): By default, a copy of the stored state object is returned.
-                When you set ``copy`` to ``False``, you get the same object as is stored
-                internally by AppDaemon. Avoiding the copying brings a small performance gain,
-                but also gives you write-access to the internal AppDaemon data structures,
-                which is dangerous. Only disable copying when you can guarantee not to modify
-                the returned state object, e.g., you do read-only operations.
+            attribute (str, optional): Optionally specify an attribute to return. If not used, the state of the entity
+                will be returned. The value ``all`` can be used to return the entire state dict rather than a single
+                value.
+            default (any, optional): The value to return when the entity or the attribute doesn't exist.
+            copy (bool, optional): Whether to return a copy of the internal data. This is ``True`` by default in order
+                to protect the user from accidentally modifying AppDaemon's internal data structures, which is dangerous
+                and can cause undefined behvaior. Only set this to ``False`` for read-only operations.
 
         Returns:
             The entire state of the entity at that given time, if  if ``get_state()``
@@ -278,9 +301,7 @@ class Entity:
             duration=duration,
             attribute=attribute,
             timeout=timeout,
-            immediate=immediate,
-            oneshot=oneshot,
-            pin=pin,
+            pin_app=pin,
             pin_thread=pin_thread,
             **kwargs
         )
@@ -291,6 +312,8 @@ class Entity:
             namespace=self.namespace,
             entity=self.entity_id,
             cb=callback,
+            oneshot=oneshot,
+            immediate=immediate,
             kwargs=kwargs
         )
 
