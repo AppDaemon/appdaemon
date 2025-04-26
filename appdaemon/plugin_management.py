@@ -230,11 +230,11 @@ class PluginManagement:
     """
     plugin_objs: Dict[str, PluginBase]
     """Dictionary storing the instantiated plugin objects.
-    {<namespace>: {
+    ``{<namespace>: {
     "object": <PluginBase>,
     "active": <bool>,
     "name": <str>
-    }}
+    }}``
     """
     required_meta = ["latitude", "longitude", "elevation", "time_zone"]
     last_plugin_state: dict[str, datetime.datetime]
