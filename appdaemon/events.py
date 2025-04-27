@@ -117,12 +117,12 @@ class Events:
         )
         return handle
 
-    async def cancel_event_callback(self, name, handle):
+    async def cancel_event_callback(self, name: str, handle: str, *, silent: bool = False):
         """Cancels an event callback.
 
         Args:
-            name (str): Name of the app or module.
-            handle: Previously supplied callback handle for the callback.
+            name (str): Name of the app that registered the callback.
+            handle (str): Handle produced by ``listen_event()`` when creating the callback.
 
         Returns:
             None.
@@ -140,7 +140,7 @@ class Events:
             if name in self.AD.callbacks.callbacks and self.AD.callbacks.callbacks[name] == {}:
                 del self.AD.callbacks.callbacks[name]
 
-        if not executed:
+        if not executed and not silent:
             self.logger.warning(
                 f"Invalid callback handle '{handle}' in cancel_event_callback() from app {name}"
             )
