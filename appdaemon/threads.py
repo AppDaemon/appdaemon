@@ -34,6 +34,7 @@ class Threading:
     logger: Logger
     """Standard python logger named ``AppDaemon._threading``
     """
+    name: str = "_threading"
     log_lock: threading.Lock
     """Threadsafe lock that helps prevent blocks of log output from different threads being mixed together
     """

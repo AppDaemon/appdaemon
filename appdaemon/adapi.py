@@ -3547,12 +3547,12 @@ class ADAPI:
             >>>     # need to get results, so will pass a callback for it
             >>>     # callback can be ignored, if the result is not needed
             >>>     f = self.submit_to_executor(self.run_request, url, callback=self.result_callback)
-            >>>
+
             >>> def run_request(self, url): # long running function
             >>>     import requests
             >>>     res = requests.get(url)
             >>>     return res.json()
-            >>>
+
             >>> def result_callback(self, kwargs):
             >>>     result = kwargs["result"]
             >>>     self.set_state("sensor.something", state="ready", attributes=result, replace=True) # picked up by another app
@@ -3589,14 +3589,24 @@ class ADAPI:
         self.AD.futures.add_future(self.name, future)
         return future
 
-    @utils.sync_decorator
-    async def create_task(
+    def create_task(
         self,
         coro: Coroutine[Any, Any, T],
         callback: Callable | None = None,
+        name: str | None = None,
         **kwargs
     ) -> asyncio.Task[T]:
-        """Schedules a Coroutine to be executed.
+        """Wrap the `coro` coroutine into a ``Task`` and schedule its execution. Return the ``Task`` object.
+
+        Uses AppDaemon's internal event loop to run the task, so the task will be run in the same thread as the app.
+        Running an async method like this is useful for long-running tasks because it bypasses the timeout that
+        AppDaemon otherwise imposes on callbacks.
+
+        The callback will be run in the app's thread, like other AppDaemon callbacks, and will have the normal timeout
+        imposed on it.
+
+        See `creating tasks <https://docs.python.org/3/library/asyncio-task.html#creating-tasks>`_ for in the python
+        documentation for more information.
 
         Args:
             coro: The coroutine object (`not coroutine function`) to be executed.
@@ -3604,12 +3614,12 @@ class ADAPI:
             **kwargs (optional): Any additional keyword arguments to send the callback.
 
         Returns:
-            A Future, which can be cancelled by calling f.cancel().
+            A ``Task`` object, which can be cancelled by calling f.cancel().
 
         Examples:
-            >>> f = self.create_task(asyncio.sleep(3), callback=self.coro_callback)
+            >>> task = self.create_task(asyncio.sleep(3), callback=self.my_callback)
 
-            >>> def coro_callback(self, kwargs):
+            >>> def my_callback(self, **kwargs: Any) -> Any: ...
 
         """
         managed_object = self.AD.app_management.objects[self.name]
@@ -3624,7 +3634,8 @@ class ADAPI:
             "pin_thread": managed_object.pin_thread,
         }
 
-        def callback_inner(f: asyncio.Task[T]):
+        def callback_inner(f: asyncio.Task[T]) -> None:
+            """This wraps the user-provided callback to ensure that it's run by the AppDaemon internals."""
             try:
                 kwargs["result"] = f.result()
                 sched_data["kwargs"] = kwargs
@@ -3632,9 +3643,10 @@ class ADAPI:
             except asyncio.CancelledError:
                 pass
 
-        task = asyncio.create_task(coro)
+        task = self.AD.loop.create_task(coro, name=name)
         if callback is not None:
             self.logger.debug("Adding add_done_callback for future %s for %s", task, self.name)
+            # Use the native python mechanism to add a callback to the task.
             task.add_done_callback(callback_inner)
 
         self.AD.futures.add_future(self.name, task)
