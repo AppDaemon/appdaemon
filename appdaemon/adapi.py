@@ -2202,22 +2202,54 @@ class ADAPI:
             case _:
                 self.logger.warning(f"Invalid event: {event}")
 
+    @overload
     @utils.sync_decorator
-    async def cancel_listen_event(self, handle: str) -> bool:
-        """Cancels a callback for a specific event.
+    async def cancel_listen_event(self, handle: str, *, silent: bool = False) -> bool: ...
+
+    @overload
+    @utils.sync_decorator
+    async def cancel_listen_event(self, handle: Iterable[str], *, silent: bool = False) -> dict[str, bool]: ...
+
+    @utils.sync_decorator
+    async def cancel_listen_event(self, handle: str | Iterable[str], *, silent: bool = False) -> bool | dict[str, bool]:
+        """Cancel a callback for a specific event.
 
         Args:
-            handle: A handle returned from a previous call to ``listen_event()``.
+            handle (str, Iterable[str]): A handle returned from a previous call to ``listen_event()``. Also works with
+                a list of handles.
+            silent (bool, optional): If ``True``, no warning will be issued if the handle is not found. Defaults to
+                ``False``. This is useful if you want to cancel a callback that may or may not exist.
 
         Returns:
-            Boolean.
+            A single boolean if a single handle is passed, or a dict mapping the handles to boolean values. Each boolean
+            value will be the result of canceling the corresponding handle.
 
         Examples:
+            Cancel a single callback.
             >>> self.cancel_listen_event(handle)
 
+            Cancel multiple callbacks.
+            >>> result = self.cancel_listen_event([handle1, handle2])
+            >>> all(result.values())  # Check if all handles were canceled successfully
+
         """
-        self.logger.debug("Canceling listen_event for %s", self.name)
-        return await self.AD.events.cancel_event_callback(self.name, handle)
+        cancel_callback = functools.partial(
+            self.AD.events.cancel_event_callback,
+            name=self.name,
+            silent=silent
+        )
+
+        match handle:
+            case str():
+                self.logger.debug("Canceling listen_event for %s", self.name)
+                return await cancel_callback(handle=handle)
+            case Iterable():
+                assert all(isinstance(h, str) for h in handle), "All handles must be strings"
+                self.logger.debug("Canceling %sx listen_event for %s", len(handle), self.name)
+                return {h: await cancel_callback(handle=h) for h in handle}
+            case _:
+                self.logger.warning(f"Invalid handle: {handle}")
+                return False
 
     @utils.sync_decorator
     async def info_listen_event(self, handle: str) -> bool:
