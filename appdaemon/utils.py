@@ -278,8 +278,8 @@ def _profile_this(fn):
     return profiled_fn
 
 
-def format_seconds(secs):
-    return str(timedelta(seconds=secs))
+def format_seconds(secs: str | int | float | timedelta) -> str:
+    return str(convert_timedelta(secs))
 
 
 def convert_timedelta(s: str | int | float | timedelta | None) -> timedelta:
