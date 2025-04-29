@@ -428,22 +428,6 @@ def day_of_week(day):
     raise ValueError("Incorrect type for 'day' in day_of_week()'")
 
 
-# don't use any type hints here, so that @wraps will work properly
-def executor_decorator(func):
-    """Use this decorator on synchronous class methods to have them run in the AD executor asynchronously"""
-
-    @wraps(func)
-    async def wrapper(self, *args, **kwargs):
-        ad: "AppDaemon" = self.AD
-        preloaded_function = functools.partial(func, self, *args, **kwargs)
-        ad.threading.logger.debug(f"Running {func.__qualname__} in the {type(ad.executor).__name__}")
-        # self.logger.debug(f"Running {func.__qualname__} in the {type(ad.executor).__name__}")
-        future = ad.loop.run_in_executor(executor=ad.executor, func=preloaded_function)
-        return await future
-
-    return wrapper
-
-
 def format_exception(e):
     # return "\n\n" + "".join(traceback.format_exception_only(e))
     return traceback.format_exc()
@@ -531,8 +515,19 @@ def warning_decorator(
     return decorator
 
 
+def executor_decorator(func: Callable[..., R]) -> Callable[..., Coroutine[Any, Any, R]]:
+    """Decorate a sync function to turn it into an async function that runs in a separate thread."""
+
+    @wraps(func)
+    async def wrapper(self, *args: Any, **kwargs: Any) -> R:
+        return await run_in_executor(self, func, *args, **kwargs)
+
+    return wrapper
+
+
 async def run_in_executor(self, fn: Callable[..., R], *args, **kwargs) -> R:
-    """Runs the function with the given arguments in the instance of :class:`~concurrent.futures.ThreadPoolExecutor` in the top-level :class:`~appdaemon.appdaemon.AppDaemon` object.
+    """Runs the function with the given arguments in the instance of :class:`~concurrent.futures.ThreadPoolExecutor` in
+    the top-level :class:`~appdaemon.appdaemon.AppDaemon` object.
 
     Args:
         self: Needs to have an ``AD`` attribute with the :class:`~appdaemon.appdaemon.AppDaemon` object
@@ -544,6 +539,7 @@ async def run_in_executor(self, fn: Callable[..., R], *args, **kwargs) -> R:
         Whatever the function returns
     """
     ad: "AppDaemon" = self.AD
+    ad.threading.logger.debug(f"Running {fn.__qualname__} in the {type(ad.executor).__name__}")
     preloaded_function = functools.partial(fn, *args, **kwargs)
     future = ad.loop.run_in_executor(executor=ad.executor, func=preloaded_function)
     return await future
