@@ -433,7 +433,7 @@ def format_exception(e):
     return traceback.format_exc()
 
 
-def log_warning_block(logger: Logger, exception_text: str, header: str | None = None, width: int = 60):
+def log_warning_block(logger: Logger, exception_text: str, header: str | None = None, width: int = 60) -> None:
     logger.warning("-" * width)
     logger.warning(header or "Unexpe")
     exception_text = ("-" * 60) + "\n" + exception_text
@@ -447,12 +447,10 @@ def warning_decorator(
     error_text: str | None = None,
     finally_text: str | None = None,
     reraise: bool = False,
-):
-    """Creates a decorator for a function that logs custom text before and after,
-    depending on whether it succeeds.
+) -> Callable[[Callable[..., Coroutine[Any, Any, R]]], Callable[..., Coroutine[Any, Any, R]]]:
+    """Decorate an async function to log messages at various stages around it running.
 
-    By default this does not reraise any exceptions that occur during the execution
-    of the wrapped function.
+    By default this does not reraise any exceptions that occur during the execution of the wrapped function.
 
     Only works on methods of AppDaemon subsystems because it uses the attributes:
         - self.logger
@@ -463,9 +461,9 @@ def warning_decorator(
 
     """
 
-    def decorator(func):
+    def decorator(func: Callable[..., Coroutine[Any, Any, R]]) -> Callable[..., Coroutine[Any, Any, R]]:
         @wraps(func)
-        async def wrapper(self, *args, **kwargs):
+        async def wrapper(self, *args: Any, **kwargs: Any) -> R:
             logger: Logger = self.logger
             error_logger: Logger = self.error
             nonlocal error_text
@@ -475,10 +473,7 @@ def warning_decorator(
                 if start_text is not None:
                     logger.debug(start_text)
 
-                if asyncio.iscoroutinefunction(func):
-                    result = await func(self, *args, **kwargs)
-                else:
-                    result = func(self, *args, **kwargs)
+                result = await func(self, *args, **kwargs)
             except SyntaxError as e:
                 logger.warning(error_text)
                 log_warning_block(error_logger, header=error_text, exception_text="".join(traceback.format_exception(e, limit=-1)))
