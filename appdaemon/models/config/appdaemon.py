@@ -103,10 +103,9 @@ class AppDaemonConfig(BaseModel, extra="allow"):
     load_distribution: str = "roundrobbin"
     threads: (
         Annotated[
-            int,
+            int | None,
             deprecated("Threads directive is deprecated apps - will be pinned. Use total_threads if you want to unpin your apps"),
         ]
-        | None
     ) = None
     total_threads: int | None = None
     """The number of dedicated worker threads to create for running the apps.
@@ -114,17 +113,15 @@ class AppDaemonConfig(BaseModel, extra="allow"):
     default to 10 if app pinning is turned off. Setting this to a specific
     value will turn off automatic thread management."""
     pin_apps: bool = True
-    """If true, AppDaemon apps will be pinned to a particular thread. This
-    should avoids complications around re-entrant code and locking of instance
-    variables."""
+    """If ``True``, AppDaemon apps will be each pinned to a particular thread. This avoids complications around
+    re-entrant code and locking of instance variables."""
     pin_threads: int | None = None
-    """Number of threads to use for pinned apps, allowing the user to section
-    off a sub-pool just for pinned apps. By default all threads are used for
-    pinned apps."""
+    """Number of threads to use for pinned apps, allowing the user to section off a sub-pool just for pinned apps. By
+    default all threads are used for pinned apps."""
     thread_duration_warning_threshold: float = 10
     threadpool_workers: int = 10
-    """Number of threads in AppDaemon's internal thread pool, which can be used
-    to execute functions asynchronously in worker threads.
+    """Number of threads in AppDaemon's internal thread pool, which can be used to execute functions asynchronously in
+    worker threads.
     """
 
     model_config = ConfigDict(

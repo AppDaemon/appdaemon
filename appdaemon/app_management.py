@@ -10,12 +10,12 @@ import subprocess
 import sys
 import traceback
 from collections import OrderedDict
-from collections.abc import Iterable
+from collections.abc import AsyncGenerator, Iterable
 from copy import copy
 from functools import partial, reduce, wraps
 from logging import Logger
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Literal, TypeVar
 
 from pydantic import ValidationError
 
@@ -32,6 +32,8 @@ from .models.internal.app_management import LoadingActions, ManagedObject, Updat
 if TYPE_CHECKING:
     from .appdaemon import AppDaemon
     from .plugin_management import PluginBase
+
+T = TypeVar("T")
 
 
 class AppManagement:
@@ -538,7 +540,7 @@ class AppManagement:
     async def read_all(self, config_files: Iterable[Path] = None) -> AllAppConfig:
         config_files = config_files or self.dependency_manager.config_files
 
-        async def config_model_factory():
+        async def config_model_factory() -> AsyncGenerator[AllAppConfig, None, None]:
             """Creates a generator that sets the config_path of app configs"""
             for path in config_files:
                 @ade.wrap_async(self.error, self.AD.app_dir, "Reading user apps")

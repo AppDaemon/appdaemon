@@ -25,6 +25,7 @@ if TYPE_CHECKING:
     from .appdaemon import AppDaemon
     from .models.config.app import AllAppConfig
 
+
 class Threading:
     """Subsystem container for managing :class:`~threading.Thread` objects"""
 
@@ -60,7 +61,7 @@ class Threading:
 
     def __init__(self, ad: "AppDaemon"):
         self.AD = ad
-        self.logger = ad.logging.get_child("_threading")
+        self.logger = ad.logging.get_child(self.name)
         self.log_lock = threading.Lock()
         self.diag = ad.logging.get_diag()
 
@@ -83,9 +84,10 @@ class Threading:
 
     @property
     def total_threads(self) -> int:
-        """Number of threads created for apps. By default this is
-        automatically calculated, but can also be manually configured by the
-        user in appdaemon.yaml.
+        """Number of threads created for apps.
+
+        By default this is automatically calculated, but can also be manually configured by the user in
+        ``appdaemon.yaml``.
         """
         return self.AD.config.total_threads
 
@@ -443,7 +445,9 @@ class Threading:
                 thread_name = f"thread.{thread_id}"
                 callback = await self.get_state("_threading", "admin", thread_name)
                 self.logger.warning(
-                    f"Excessive time spent in callback '{callback}', Thread '{thread_name}' - now complete after {duration} seconds (limit={self.AD.thread_duration_warning_threshold})"
+                    f"Excessive time spent in callback {callback}. "
+                    f"Thread entity: '{thread_name}' - now complete after {utils.format_timedelta(duration)} "
+                    f"(limit={utils.format_timedelta(self.AD.thread_duration_warning_threshold)})"
                 )
             await self.add_to_state("_threading", "admin", "sensor.threads_current_busy", -1)
 

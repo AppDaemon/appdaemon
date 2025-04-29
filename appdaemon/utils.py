@@ -211,7 +211,7 @@ R = TypeVar("R")
 
 def sync_decorator(coro_func: Callable[P, Awaitable[R]]) -> Callable[P, R]:
     """Wrap a coroutine function to ensure it gets run in the main thread.
-    
+
     This allows users to run async ADAPI methods as if they were regular sync methods. It works by checking to see if
     the function is being run in the main thread, which has the async event loop in it. If it is the main loop, then it
     creates a task and returns it. If it isn't, then it runs the coroutine in the main thread using
@@ -284,7 +284,7 @@ def format_seconds(secs):
 
 def convert_timedelta(s: str | int | float | timedelta | None) -> timedelta:
     """Convert disparate types into a timedelta object.
-    
+
     Args:
         s (str | int | float | timedelta | None): The value to convert. Can be a string, int, float, or timedelta.
             Numbers get interpreted as seconds. Strings can in different formats either ``HH:MM:SS``, ``MM:SS``, or
@@ -340,7 +340,7 @@ def convert_timedelta(s: str | int | float | timedelta | None) -> timedelta:
 
 def format_timedelta(td: str | int | float | timedelta | None) -> str:
     """Format a timedelta object into a human-readable string.
-    
+
     There are different brackets for lengths of time that will format the strings differently.
 
     Uses ``convert_timedelta`` to convert the input into a timedelta object before formatting the string.
@@ -363,7 +363,7 @@ def format_timedelta(td: str | int | float | timedelta | None) -> str:
 
         >>> format_timedelta(0)
         'No time'
-    
+
     """
     match td:
         case None:
@@ -377,7 +377,7 @@ def format_timedelta(td: str | int | float | timedelta | None) -> str:
                 return f"{seconds * 10**3:.3f}ms"
             elif seconds < 1:
                 return f"{seconds * 10**3:.0f}ms"
-            elif seconds < 10:
+            elif seconds < 25:
                 return f"{seconds:.1f}s"
             else:
                 td = timedelta(seconds=round(seconds, 0)) # Round off the seconds for longer durations
@@ -531,7 +531,7 @@ def warning_decorator(
     return decorator
 
 
-async def run_in_executor(self, fn, *args, **kwargs) -> Any:
+async def run_in_executor(self, fn: Callable[..., R], *args, **kwargs) -> R:
     """Runs the function with the given arguments in the instance of :class:`~concurrent.futures.ThreadPoolExecutor` in the top-level :class:`~appdaemon.appdaemon.AppDaemon` object.
 
     Args:
@@ -555,7 +555,7 @@ def run_coroutine_threadsafe(
     timeout: str | int | float | timedelta | None = None
 ) -> R:
     """Run an instantiated coroutine (async) from sync code.
-    
+
     This wraps the native python function ``asyncio.run_coroutine_threadsafe`` with logic to add a timeout. See
     `scheduling from other threads <https://docs.python.org/3/library/asyncio-task.html#scheduling-from-other-threads>`__
     for more details.

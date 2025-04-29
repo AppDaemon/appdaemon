@@ -3507,9 +3507,13 @@ class ADAPI:
     # Async
     #
 
-    async def run_in_executor(self, func: Callable, *args, **kwargs) -> Callable:
-        """Runs a Sync function from within an Async function using Executor threads.
-            The function is actually awaited during execution
+    async def run_in_executor(self, func: Callable[..., T], *args, **kwargs) -> T:
+        """Run a sync function from within an async function using a thread from AppDaemon's internal thread pool.
+
+        This essentially converts a sync function into an async function, which allows async functions to use it. This
+        is useful for even short-ish functions (even <1s execution time) because it allows the event loop to continue
+        processing other events while waiting for the function to complete. Blocking the event loop prevents AppDaemon's
+        internals from running, which interferes with all other apps, and can cause issues with connection timeouts.
 
         Args:
             func: The function to be executed.
@@ -3518,45 +3522,54 @@ class ADAPI:
 
         Returns:
             None
+
         Examples:
             >>> await self.run_in_executor(self.run_request)
 
         """
+        preloaded_function = functools.partial(func, *args, **kwargs)
+        future = self.AD.loop.run_in_executor(self.AD.executor, preloaded_function)
+        return await future
 
-        return await utils.run_in_executor(self, func, *args, **kwargs)
+    def submit_to_executor(
+        self,
+        func: Callable[..., T],
+        *args,
+        callback: Callable | None = None,
+        **kwargs
+    ) -> Future[T]:
+        """Submit a sync function from within another sync function to be executed using a thread from AppDaemon's
+        internal thread pool.
 
-    def submit_to_executor(self, func: Callable, *args, callback: Callable | None = None, **kwargs) -> Future:
-        """Submits a Sync function from within another Sync function to be executed using Executor threads.
-            The function is not waited to be executed. As it submits and continues the rest of the code.
-            This can be useful if wanting to execute a long running code, and don't want it to hold up the
-            thread for other callbacks.
+        This function does not wait for the result of the submitted function and immediately returns a Future object.
+        This is useful for executing long-running functions without blocking the thread for other callbacks. The result
+        can be retrieved later using the Future object, but it's recommended to use a callback to handle the result
+        instead.
 
         Args:
             func: The function to be executed.
             *args (optional): Any additional arguments to be used by the function
+            callback (optional): A callback function to be executed when the function has completed.
             **kwargs (optional): Any additional keyword arguments to be used by the function.
-            Part of the keyword arguments will be the ``callback``, which will be ran when the function has completed execution
 
         Returns:
-            A Future, which can be cancelled by calling f.cancel().
+            A Future object representing the result of the function.
 
         Examples:
-            >>>
-            >>> def state_cb(self, *args, **kwargs): # callback from an entity
-            >>>     # need to run a 30 seconds task, so need to free up the thread
-            >>>     # need to get results, so will pass a callback for it
-            >>>     # callback can be ignored, if the result is not needed
-            >>>     f = self.submit_to_executor(self.run_request, url, callback=self.result_callback)
+            Submit a long-running function to be executed in the background
+            >>> def initialize(self):
+                    self.long_future = self.submit_to_executor(self.long_request, url, callback=self.result_callback)
 
-            >>> def run_request(self, url): # long running function
-            >>>     import requests
-            >>>     res = requests.get(url)
-            >>>     return res.json()
+            Long running function:
+            >>> def long_request(self, url: str):
+                    import requests
+                    res = requests.get(url)
+                    return res.json()
 
-            >>> def result_callback(self, kwargs):
-            >>>     result = kwargs["result"]
-            >>>     self.set_state("sensor.something", state="ready", attributes=result, replace=True) # picked up by another app
-            >>>     # <other processing that is needed>
+            Callback to handle the result:
+            >>> def result_callback(self, result: dict, **kwargs):
+                    # Set the attributes of a sensor with the result
+                    self.set_state("sensor.url_result", state="ready", attributes=result, replace=True)
 
         """
 
@@ -3617,9 +3630,20 @@ class ADAPI:
             A ``Task`` object, which can be cancelled by calling f.cancel().
 
         Examples:
+            Define your callback
+            >>> def my_callback(self, **kwargs: Any) -> Any: ...
+
+            Create the task
             >>> task = self.create_task(asyncio.sleep(3), callback=self.my_callback)
 
-            >>> def my_callback(self, **kwargs: Any) -> Any: ...
+            Keyword Arguments
+            ^^^^^^^^^^^^^^^^^
+            Define your callback with a custom keyword argument ``my_kwarg``
+            >>> def my_callback(self, result: Any, my_kwarg: str, **kwargs: Any) -> Any:
+                    self.log(f"Result: {result}, my_kwarg: {my_kwarg}")
+
+            Use the custom keyword argument when creating the task
+            >>> task = self.create_task(asyncio.sleep(3), callback=self.my_callback, my_kwarg="special value")
 
         """
         managed_object = self.AD.app_management.objects[self.name]
