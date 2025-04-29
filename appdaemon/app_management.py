@@ -864,7 +864,9 @@ class AppManagement:
                     self.add_to_import_path(path)
             case 'legacy':
                 for root, subdirs, files in os.walk(self.AD.app_dir):
-                    if utils.is_valid_root_path(root) and root not in sys.path:
+                    base = os.path.basename(root)
+                    valid_root = base != "__pycache__" and not base.startswith(".")
+                    if valid_root and root not in sys.path:
                         self.add_to_import_path(root)
 
     async def _init_dep_manager(self):
