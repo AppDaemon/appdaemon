@@ -1074,14 +1074,7 @@ class Singleton(type):
 
 
 def time_str(start: float, now: float | None = None) -> str:
-    now = now or time.perf_counter()
-    match elapsed := now - start:
-        case _ if elapsed < 1:
-            return f"{elapsed * 10**3:.0f}ms"
-        case _ if elapsed > 10:
-            return f"{elapsed:.0f}s"
-        case _:
-            return f"{elapsed:.2f}s"
+    return format_timedelta((now or time.perf_counter()) - start)
 
 
 def clean_kwargs(**kwargs):
