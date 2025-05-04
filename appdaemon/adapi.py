@@ -1548,22 +1548,22 @@ class ADAPI:
             old=old,
             duration=duration,
             attribute=attribute,
-            timeout=timeout,
-            pin=pin,
-            pin_thread=pin_thread,
             **kwargs
         )
         kwargs = {k: v for k, v in kwargs.items() if v is not None}
         namespace = namespace or self.namespace
 
-        # prefill some arguments here
+        # pre-fill some arguments here
         add_callback = functools.partial(
             self.AD.state.add_state_callback,
             name=self.name,
             namespace=namespace,
             cb=callback,
+            timeout=timeout,
             oneshot=oneshot,
             immediate=immediate,
+            pin=pin,
+            pin_thread=pin_thread,
             kwargs=kwargs
         )
 
