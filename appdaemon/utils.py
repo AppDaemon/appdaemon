@@ -21,7 +21,7 @@ from datetime import timedelta, tzinfo
 from functools import wraps
 from logging import Logger
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Coroutine, Dict, Literal, ParamSpec, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, Coroutine, Dict, Literal, ParamSpec, Protocol, TypeVar
 
 import dateutil.parser
 import tomli
@@ -510,17 +510,25 @@ def warning_decorator(
     return decorator
 
 
+class Subsystem(Protocol):
+    """AppDaemon internal subsystem protocol."""
+    AD: "AppDaemon"
+    """Reference to the top-level AppDaemon object"""
+    logger: Logger
+
+
 def executor_decorator(func: Callable[..., R]) -> Callable[..., Coroutine[Any, Any, R]]:
     """Decorate a sync function to turn it into an async function that runs in a separate thread."""
 
     @wraps(func)
-    async def wrapper(self, *args: Any, **kwargs: Any) -> R:
+    async def wrapper(*args: Any, **kwargs: Any) -> R:
+        self: Subsystem = args[0]
         return await run_in_executor(self, func, *args, **kwargs)
 
     return wrapper
 
 
-async def run_in_executor(self, fn: Callable[..., R], *args, **kwargs) -> R:
+async def run_in_executor(self: Subsystem, fn: Callable[..., R], *args, **kwargs) -> R:
     """Runs the function with the given arguments in the instance of :class:`~concurrent.futures.ThreadPoolExecutor` in
     the top-level :class:`~appdaemon.appdaemon.AppDaemon` object.
 
@@ -533,10 +541,13 @@ async def run_in_executor(self, fn: Callable[..., R], *args, **kwargs) -> R:
     Returns:
         Whatever the function returns
     """
-    ad: "AppDaemon" = self.AD
-    ad.threading.logger.debug(f"Running {fn.__qualname__} in the {type(ad.executor).__name__}")
+    function_name = fn.__qualname__
+    executor_name = type(self.AD.executor).__name__
+    self.AD.threading.logger.debug(f"Running {function_name} in the {executor_name}")
+
     preloaded_function = functools.partial(fn, *args, **kwargs)
-    future = ad.loop.run_in_executor(executor=ad.executor, func=preloaded_function)
+    future = self.AD.loop.run_in_executor(executor=self.AD.executor, func=preloaded_function)
+    self.AD.futures.add_future(self.name, future)
     return await future
 
 
