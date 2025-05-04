@@ -46,6 +46,7 @@ class AppManagement:
     logger: Logger
     """Standard python logger named ``AppDaemon._app_management``
     """
+    name: str = "_app_management"
     error: Logger
     """Standard python logger named ``Error``
     """
@@ -82,7 +83,7 @@ class AppManagement:
     def __init__(self, ad: "AppDaemon"):
         self.AD = ad
         self.ext = self.AD.config.ext
-        self.logger = ad.logging.get_child("_app_management")
+        self.logger = ad.logging.get_child(self.name)
         self.error = ad.logging.get_error()
         self.diag = ad.logging.get_diag()
         self.filter_files = {}

@@ -28,6 +28,7 @@ class State:
 
     AD: "AppDaemon"
     logger: Logger
+    name: str = "_state"
     state: dict[str, dict[str, Any]]
 
     app_added_namespaces: Set[str]
@@ -36,7 +37,7 @@ class State:
         self.AD = ad
 
         self.state = {"default": {}, "admin": {}, "rules": {}}
-        self.logger = ad.logging.get_child("_state")
+        self.logger = ad.logging.get_child(self.name)
         self.error = ad.logging.get_error()
         self.app_added_namespaces = set()
 
