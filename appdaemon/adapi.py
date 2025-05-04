@@ -2295,7 +2295,7 @@ class ADAPI:
     #
 
     def parse_utc_string(self, utc_string: str) -> float:
-        """Converts a UTC to its string representation.
+        """Convert a UTC to its string representation.
 
         Args:
             utc_string (str): A string that contains a date and time to convert.
@@ -2306,7 +2306,7 @@ class ADAPI:
         """
         nums = list(map(
             int,
-            re.split(r"[^\d]", utc_string)[:-1] # skip the last one for AM/PM
+            re.split(r"[^\d]", utc_string)[:-1] # split by anything that's not a number and skip the last part for AM/PM
         ))[:7] # Use a max of 7 parts
         return dt.datetime(*nums).timestamp() + self.get_tz_offset() * 60
 
@@ -2414,10 +2414,9 @@ class ADAPI:
             05:33:17
 
         """
-        name = name or self.name
         return await self.AD.sched.parse_time(
             time_str=time_str,
-            name=name,
+            name=name or self.name,
             aware=aware,
             today=today,
             days_offset=days_offset
@@ -2480,10 +2479,9 @@ class ADAPI:
             >>> self.parse_datetime("sunrise + 01:00:00")
             2019-08-16 06:33:17
         """
-        name = name or self.name
         return await self.AD.sched.parse_datetime(
             time_str=time_str,
-            name=name,
+            name=name or self.name,
             aware=aware,
             today=today,
             days_offset=days_offset
@@ -2495,14 +2493,11 @@ class ADAPI:
 
         Examples:
             >>> self.get_now()
-            2019-08-16 21:17:41.098813+00:00
+            2019-08-16 21:17:41.098813-04:00
 
         """
-        now = await self.AD.sched.get_now()
-        now = now.astimezone(self.AD.tz)
-        if not aware:
-            now = now.replace(tzinfo=None)
-        return now
+        now =  await self.AD.sched.get_now()
+        return now.astimezone(self.AD.tz) if aware else self.AD.sched.make_naive(now)
 
     @utils.sync_decorator
     async def get_now_ts(self, aware: bool = False) -> float:
@@ -2516,54 +2511,40 @@ class ADAPI:
         return (await self.get_now(aware)).timestamp()
 
     @overload
-    async def now_is_between(
-        self,
-        start_time: str,
-        end_time: str,
-        name: str,
-        now: str
-    ) -> bool: ...  # fmt: skip
+    @utils.sync_decorator
+    async def now_is_between(self, start_time: str, end_time: str) -> bool: ...
 
     @overload
-    async def now_is_between(
-        self,
-        start_time: str,
-        end_time: str,
-        name: str
-    ) -> bool: ...  # fmt: skip
+    @utils.sync_decorator
+    async def now_is_between(self, start_time: str, end_time: str, name: str) -> bool: ...
 
     @overload
-    async def now_is_between(
-        self,
-        start_time: str,
-        end_time: str,
-        now: str
-    ) -> bool: ...  # fmt: skip
-
-    @overload
-    async def now_is_between(
-        self,
-        start_time: str,
-        end_time: str
-    ) -> bool: ...  # fmt: skip
+    @utils.sync_decorator
+    async def now_is_between(self, start_time: str, end_time: str, now: str) -> bool: ...
 
     @utils.sync_decorator
-    async def now_is_between(self, *args, **kwargs) -> bool:
-        """Determines if the current `time` is within the specified start and end times.
+    async def now_is_between(
+        self,
+        start_time: str | dt.datetime,
+        end_time: str | dt.datetime,
+        name: str | None = None,
+        now: str | None = None
+    ) -> bool:
+        """Determine if the current `time` is within the specified start and end times.
 
-        This function takes two string representations of a ``time``, or ``sunrise`` or ``sunset``
-        offset and returns ``true`` if the current time is between those 2 times. Its
-        implementation can correctly handle transitions across midnight.
+        This function takes two string representations of a ``time`` ()or ``sunrise`` or ``sunset`` offset) and returns
+        ``true`` if the current time is between those 2 times. Its implementation can correctly handle transitions
+        across midnight.
 
         Args:
             start_time (str): A string representation of the start time.
             end_time (str): A string representation of the end time.
             name (str, optional): Name of the calling app or module. It is used only for logging purposes.
-            now (str, optional): If specified, `now` is used as the time for comparison instead of the current time. Useful for testing.
+            now (str, optional): If specified, `now` is used as the time for comparison instead of the current time.
+                Useful for testing.
 
         Returns:
-            bool: ``True`` if the current time is within the specified start and end times,
-            ``False`` otherwise.
+            bool: ``True`` if the current time is within the specified start and end times, otherwise ``False``.
 
         Notes:
             The string representation of the ``start_time`` and ``end_time`` should follows
@@ -2583,23 +2564,24 @@ class ADAPI:
             >>>     #do something
 
         """
-        return await self.AD.sched.now_is_between(*args, **kwargs)
+        return await self.AD.sched.now_is_between(start_time, end_time, name or self.name, now)
 
     @utils.sync_decorator
     async def sunrise(self, aware: bool = False, today: bool = False, days_offset: int = 0) -> dt.datetime:
-        """Returns a `datetime` object that represents the next time Sunrise will occur.
+        """Return a `datetime` object that represent when a sunrise will occur.
 
         Args:
-            aware (bool, optional): Specifies if the created datetime object will be
-                `aware` of timezone or `not`.
-            today (bool, optional): Instead of the default behavior which is to return the next sunrise that will occur, setting this flag to true will return
-                 today's sunrise even if it is in the past
-            days_offset (int, optional): Specify the number of days (positive or negative) for the sunset. This can only be used in combination with the today
-                 flag
+            aware (bool, optional): Whether the resulting datetime object will be aware of timezone.
+            today (bool, optional): Defaults to ``False``, which will return the first sunrise in the future,
+                regardless of the day. If set to ``True``, the function will return the sunrise for the current day,
+                even if it is in the past.
+            days_offset (int, optional): Specify the number of days (positive or negative) for the sunrise. This can
+                only be used in combination with the today flag
 
         Examples:
             >>> self.sunrise()
             2023-02-02 07:11:50.150554
+
             >>> self.sunrise(today=True)
             2023-02-01 07:12:20.272403
 
@@ -2608,20 +2590,20 @@ class ADAPI:
 
     @utils.sync_decorator
     async def sunset(self, aware: bool = False, today: bool = False, days_offset: int = 0) -> dt.datetime:
-        """Returns a `datetime` object that represents the next time Sunset will occur.
+        """Return a `datetime` object that represent when a sunset will occur.
 
         Args:
-            aware (bool, optional): Specifies if the created datetime object will be
-                `aware` of timezone or `not`.
-            today (bool, optional): Instead of the default behavior which is to return
-                the next sunset that will occur, setting this flag to true will return
-                today's sunset even if it is in the past
-            days_offset (int, optional): Specify the number of days (positive or negative)
-                for the sunset. This can only be used in combination with the today flag
+            aware (bool, optional): Whether the resulting datetime object will be aware of timezone.
+            today (bool, optional): Defaults to ``False``, which will return the first sunset in the future,
+                regardless of the day. If set to ``True``, the function will return the sunset for the current day,
+                even if it is in the past.
+            days_offset (int, optional): Specify the number of days (positive or negative) for the sunset. This can
+                only be used in combination with the today flag
 
         Examples:
             >>> self.sunset()
             2023-02-01 18:09:00.730704
+
             >>> self.sunset(today=True, days_offset=1)
             2023-02-02 18:09:46.252314
 
@@ -2630,49 +2612,48 @@ class ADAPI:
 
     @utils.sync_decorator
     async def datetime(self, aware: bool = False) -> dt.datetime:
-        """Returns a `datetime` object representing the current Local Date and Time.
+        """Get a ``datetime`` object representing the current local date and time.
 
-        Use this in preference to the standard Python ways to discover the current
-        datetime, especially when using the "Time Travel" feature for testing.
+        Use this instead of the standard Python methods in order to correctly account for the time when using the time
+        travel feature, which is usually done for testing.
 
         Args:
-            aware (bool, optional): Specifies if the created datetime object will be
-                `aware` of timezone or `not`.
+            aware (bool, optional): Whether the resulting datetime object will be aware of timezone.
 
         Examples:
             >>> self.datetime()
             2019-08-15 20:15:55.549379
 
         """
-        return await self.get_now(aware)
+        return await self.get_now(aware=aware)
 
     @utils.sync_decorator
     async def time(self) -> dt.time:
-        """Returns a localised `time` object representing the current Local Time.
+        """Get a ``time`` object representing the current local time.
 
-        Use this in preference to the standard Python ways to discover the current time,
-        especially when using the "Time Travel" feature for testing.
+        Use this instead of the standard Python methods in order to correctly account for the time when using the time
+        travel feature, which is usually done for testing.
 
         Examples:
             >>> self.time()
             20:15:31.295751
 
         """
-        return (await self.datetime(aware=True)).time()
+        return (await self.get_now(aware=True)).time()
 
     @utils.sync_decorator
     async def date(self) -> dt.date:
-        """Returns a localised `date` object representing the current Local Date.
+        """Get a ``date`` object representing the current local date.
 
-        Use this in preference to the standard Python ways to discover the current date,
-        especially when using the "Time Travel" feature for testing.
+        Use this instead of the standard Python methods in order to correctly account for the time when using the time
+        travel feature, which is usually done for testing.
 
         Examples:
             >>> self.date()
             2019-08-15
 
         """
-        return (await self.datetime(aware=True)).date()
+        return (await self.get_now(aware=True)).date()
 
     def get_timezone(self) -> str:
         """Returns the current time zone."""
@@ -2734,6 +2715,7 @@ class ADAPI:
 
         Examples:
             >>> self.reset_timer(handle)
+            True
 
         """
         self.logger.debug("Resetting timer with handle %s for %s", handle, self.name)
@@ -3428,7 +3410,7 @@ class ADAPI:
             >>> self.run_at_sunrise(self.sun, random_start = -60*60, random_end = 30*60)
 
         """
-        sunrise = await self.AD.sched.next_sunrise()
+        sunrise = self.AD.sched.get_sunrise(today=False, aware=True)
         td = timedelta(seconds=float(offset)) if offset is not None else timedelta()
         self.logger.debug(f"Registering run_at_sunrise at {sunrise+td} with {args}, {kwargs}")
         return await self.AD.sched.insert_schedule(
