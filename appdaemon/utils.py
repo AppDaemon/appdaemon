@@ -279,10 +279,10 @@ def _profile_this(fn):
 
 
 def format_seconds(secs: str | int | float | timedelta) -> str:
-    return str(convert_timedelta(secs))
+    return str(parse_timedelta(secs))
 
 
-def convert_timedelta(s: str | int | float | timedelta | None) -> timedelta:
+def parse_timedelta(s: str | int | float | timedelta | None) -> timedelta:
     """Convert disparate types into a timedelta object.
 
     Args:
@@ -294,22 +294,22 @@ def convert_timedelta(s: str | int | float | timedelta | None) -> timedelta:
         Timedelta object.
 
     Examples:
-        >>> convert_timedelta(0.025374)
+        >>> parse_timedelta(0.025374)
         datetime.timedelta(microseconds=25374)
 
-        >>> convert_timedelta(0.687)
+        >>> parse_timedelta(0.687)
         datetime.timedelta(microseconds=687000)
 
-        >>> convert_timedelta(2.5)
+        >>> parse_timedelta(2.5)
         datetime.timedelta(seconds=2, microseconds=500000)
 
-        >>> convert_timedelta("25")
+        >>> parse_timedelta("25")
         datetime.timedelta(seconds=25)
 
-        >>> convert_timedelta("02:30")
+        >>> parse_timedelta("02:30")
         datetime.timedelta(seconds=150)
 
-        >>> convert_timedelta("00:00:00")
+        >>> parse_timedelta("00:00:00")
         datetime.timedelta(0)
 
     """
@@ -319,7 +319,7 @@ def convert_timedelta(s: str | int | float | timedelta | None) -> timedelta:
         case int() | float():
             return timedelta(seconds=s)
         case str():
-            parts = tuple(float(p.strip()) for p in s.split(":"))
+            parts = tuple(float(p.strip()) for p in re.split(r"[^\d]+", s))
             match len(parts):
                 case 1:
                     return timedelta(seconds=parts[0])
@@ -343,7 +343,7 @@ def format_timedelta(td: str | int | float | timedelta | None) -> str:
 
     There are different brackets for lengths of time that will format the strings differently.
 
-    Uses ``convert_timedelta`` to convert the input into a timedelta object before formatting the string.
+    Uses ``parse_timedelta`` to convert the input into a timedelta object before formatting the string.
 
     Examples:
         >>> format_timedelta(0.025374)
@@ -369,7 +369,7 @@ def format_timedelta(td: str | int | float | timedelta | None) -> str:
         case None:
             return 'never'
         case _:
-            td = convert_timedelta(td)
+            td = parse_timedelta(td)
             seconds = td.total_seconds()
             if seconds == 0:
                 return "No time"
@@ -572,7 +572,7 @@ def run_coroutine_threadsafe(
         Result from the coroutine
     """
     timeout = timeout or self.AD.config.internal_function_timeout
-    timeout = convert_timedelta(timeout)
+    timeout = parse_timedelta(timeout)
 
     if self.AD.loop.is_running():
         future = asyncio.run_coroutine_threadsafe(coro, self.AD.loop)

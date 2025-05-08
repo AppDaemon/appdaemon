@@ -246,7 +246,7 @@ class State:
         # If we have a timeout parameter, add a scheduler entry to delete the callback later
         #
         if timeout is not None:
-            exec_time = (await self.AD.sched.get_now()) + utils.convert_timedelta(timeout)
+            exec_time = (await self.AD.sched.get_now()) + utils.parse_timedelta(timeout)
             kwargs["__timeout"] = await self.AD.sched.insert_schedule(
                 name=name,
                 aware_dt=exec_time,
@@ -288,7 +288,7 @@ class State:
                         elif __attribute == "all":
                             __new_state = self.state[namespace][entity]
 
-                __duration = utils.convert_timedelta(kwargs.get("duration", 0))
+                __duration = utils.parse_timedelta(kwargs.get("duration", 0))
             if run:
                 exec_time = await self.AD.sched.get_now() + __duration
 

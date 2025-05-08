@@ -315,8 +315,7 @@ class Threading:
                 thread = 0
         else:
             if self.thread_count == self.pin_threads:
-                raise ValueError(
-                    "pin_threads must be set lower than threads if unpinned_apps are in use")
+                raise ValueError("pin_threads must be set lower than threads if unpinned_apps are in use")
             if self.AD.load_distribution == "load":
                 thread = self.min_q_id()
             elif self.AD.load_distribution == "random":
@@ -802,7 +801,7 @@ class Threading:
                         #
                         # Set a timer
                         #
-                        exec_time = await self.AD.sched.get_now() + utils.convert_timedelta(kwargs["duration"])
+                        exec_time = await self.AD.sched.get_now() + utils.parse_timedelta(kwargs["duration"])
 
                         #
                         # If it's a oneshot, scheduler will delete the callback once it has executed,

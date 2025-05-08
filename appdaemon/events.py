@@ -90,7 +90,7 @@ class Events:
 
         # Automatically cancel the callback after a timeout
         if timeout is not None:
-            exec_time = await self.AD.sched.get_now() + utils.convert_timedelta(timeout)
+            exec_time = await self.AD.sched.get_now() + utils.parse_timedelta(timeout)
             kwargs["__timeout"] = await self.AD.sched.insert_schedule(
                 name=name,
                 aware_dt=exec_time,

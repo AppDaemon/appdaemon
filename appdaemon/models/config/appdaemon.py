@@ -69,7 +69,7 @@ class AppDaemonConfig(BaseModel, extra="allow"):
     """How often in seconds to update the admin entities with the plugin performance data"""
     max_utility_skew: Annotated[
         timedelta,
-        BeforeValidator(utils.convert_timedelta)
+        BeforeValidator(utils.parse_timedelta)
     ] = Field(default_factory=lambda: timedelta(seconds=2))
     check_app_updates_profile: bool = False
     production_mode: bool = False
@@ -81,7 +81,7 @@ class AppDaemonConfig(BaseModel, extra="allow"):
     qsize_warning_iterations: int = 10
     internal_function_timeout: Annotated[
         timedelta,
-        BeforeValidator(utils.convert_timedelta)
+        BeforeValidator(utils.parse_timedelta)
     ] = Field(default_factory=lambda: timedelta(seconds=60))
     """Timeout for internal function calls. This determines how long apps can wait in their thread for an async function
     to complete in the main thread."""

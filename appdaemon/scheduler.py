@@ -173,7 +173,7 @@ class Scheduler:
             attributes={
                 "app": name,
                 "execution_time": utils.dt_to_str(ts, self.AD.tz, round=True),
-                "repeat": str(utils.convert_timedelta(interval)),
+                "repeat": str(utils.parse_timedelta(interval)),
                 "function": function_name,
                 "pinned": pin_app,
                 "pinned_thread": pin_thread,

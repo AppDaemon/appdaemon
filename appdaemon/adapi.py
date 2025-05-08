@@ -2797,7 +2797,7 @@ class ADAPI:
 
 
         """
-        delay = delay if isinstance(delay, timedelta) else utils.convert_timedelta(delay)
+        delay = delay if isinstance(delay, timedelta) else utils.parse_timedelta(delay)
         assert isinstance(delay, timedelta), f"Invalid delay: {delay}"
         self.logger.debug(f"Registering run_in in {delay.total_seconds():.1f}s for {self.name}")
         exec_time = (await self.get_now()) + delay
@@ -3200,7 +3200,7 @@ class ADAPI:
         pin_thread: int | None = None,
         **kwargs,
     ) -> str:
-        """Runs the callback with a configurable delay starting at a specific time.
+        """Run a function at a regular time interval.
 
         Args:
             callback: Function that will be called at the specified time interval. It must conform to the standard
@@ -3209,12 +3209,16 @@ class ADAPI:
                 the first time the callback is triggered. If this is in the past, the first trigger will be at the first
                 interval in the future.
 
-                - If this is an ``int`` or ``float``, it will be interpreted as seconds.
                 - If this is a ``str`` it will be parsed with ``parse_time()``.
                 - If this is a ``datetime.time`` object, the current date will be assumed.
                 - If this is a ``datetime.datetime`` object, it will be used as is.
 
             interval (str, int, float, datetime.timedelta): Time interval between callback triggers.
+
+                - If this is an ``int`` or ``float``, it will be interpreted as seconds.
+                - If this is a ``str`` it will be parsed with ``parse_timedelta()``.
+                - If this is a ``datetime.timedelta`` object, the current date will be assumed.
+
             *args: Arbitrary positional arguments to be provided to the callback function when it is triggered.
             random_start (int): Start of range of the random time.
             random_end (int): End of range of the random time.
@@ -3251,7 +3255,7 @@ class ADAPI:
             >>> self.run_every(self.timed_callback, start, interval)
 
         """
-        interval = utils.convert_timedelta(interval)
+        interval = utils.parse_timedelta(interval)
         assert isinstance(interval, dt.timedelta)
 
         match start:
