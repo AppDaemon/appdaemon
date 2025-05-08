@@ -1178,7 +1178,7 @@ def increment_callback_counter(app, name):
         # races during app.callback_counter += 1 so we need to use a lock. We'll just use that of the app.
         with app.lock:
             app.callback_counter += 1
-    except:
+    except Exception:
         error_logger = logging.getLogger("Error.{}".format(name))
         error_logger.warning("-" * 60)
         error_logger.warning("Unexpected error in worker for App %s:", name)
