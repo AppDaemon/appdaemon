@@ -2758,9 +2758,9 @@ class ADAPI:
         pin_thread: int | None = None,
         **kwargs
     ) -> str:
-        """Run the callback after a specified delay.
+        """Run a function after a specified delay.
 
-        This callback should always be used instead of ``time.sleep()``.
+        This method should always be used instead of ``time.sleep()``.
 
         Args:
             callback: Function that will be called after the specified delay. It must conform to the standard scheduler
@@ -2769,8 +2769,8 @@ class ADAPI:
                 interpreted as seconds. Strings can be in the format of ``HH:MM``, ``HH:MM:SS``, or
                 ``DD days, HH:MM:SS``. If a ``timedelta`` object is given, it will be used as is.
             *args: Arbitrary positional arguments to be provided to the callback function when it is triggered.
-            random_start (int): Start of range of the random time.
-            random_end (int): End of range of the random time.
+            random_start (int, optional): Start of range of the random time.
+            random_end (int, optional): End of range of the random time.
             pin (bool, optional): Optional setting to override the default thread pinning behavior. By default, this is
                 effectively ``True``, and ``pin_thread`` gets set when the app starts.
             pin_thread (int, optional): Specify which thread from the worker pool will run the callback. The threads
@@ -2824,7 +2824,7 @@ class ADAPI:
         pin_thread: int | None = None,
         **kwargs
     ) -> str:
-        """Run the callback once, at the specified time of day. This is essentially an alias for ``run_at()``.
+        """Run a function once, at the specified time of day. This is essentially an alias for ``run_at()``.
 
         Args:
             callback: Function that will be called at the specified time. It must conform to the standard scheduler
@@ -2834,8 +2834,8 @@ class ADAPI:
                 will occur. If the time specified is in the past, the callback will occur the `next day` at the
                 specified time.
             *args: Arbitrary positional arguments to be provided to the callback function when it is triggered.
-            random_start (int): Start of range of the random time.
-            random_end (int): End of range of the random time.
+            random_start (int, optional): Start of range of the random time.
+            random_end (int, optional): End of range of the random time.
             pin (bool, optional): Optional setting to override the default thread pinning behavior. By default, this is
                 effectively ``True``, and ``pin_thread`` gets set when the app starts.
             pin_thread (int, optional): Specify which thread from the worker pool will run the callback. The threads
@@ -2892,7 +2892,7 @@ class ADAPI:
         pin_thread: int | None = None,
         **kwargs
     ) -> str:
-        """Run the callback once, at the specified time of day.
+        """Run a function once, at the specified time of day.
 
         Args:
             callback: Function that will be called at the specified time. It must conform to the standard scheduler
@@ -2902,8 +2902,8 @@ class ADAPI:
                 will occur. If the time specified is in the past, the callback will occur the `next day` at the
                 specified time.
             *args: Arbitrary positional arguments to be provided to the callback function when it is triggered.
-            random_start (int): Start of range of the random time.
-            random_end (int): End of range of the random time.
+            random_start (int, optional): Start of range of the random time.
+            random_end (int, optional): End of range of the random time.
             pin (bool, optional): Optional setting to override the default thread pinning behavior. By default, this is
                 effectively ``True``, and ``pin_thread`` gets set when the app starts.
             pin_thread (int, optional): Specify which thread from the worker pool will run the callback. The threads
@@ -2974,22 +2974,27 @@ class ADAPI:
         pin_thread: int | None = None,
         **kwargs
     ) -> str:
-        """Run the callback at the same time every day.
+        """Run a function at the same time every day.
 
         Args:
             callback: Function that will be called every day at the specified time. It must conform to the standard
                 scheduler callback format documented `here <APPGUIDE.html#scheduler-callbacks>`__.
-            start (str, datetime.time): Time the callback will be triggered. It should be either a Python ``time``
-                object, ``datetime`` object, or a ``parse_time()`` formatted string that specifies when the callback
-                will occur. If the time specified is in the past, the callback will occur the `next day` at the
-                specified time.
+            start (str, datetime.time, datetime.datetime, optional): Start time for the interval calculation. If this is
+                in the future, this will be the first time the callback is triggered. If this is in the past, the
+                intervals will be calculated forward from the start time, and the first trigger will be the first
+                interval in the future.
+
+                - If this is a ``str`` it will be parsed with :meth:`~appdaemon.adapi.ADAPI.parse_time()`.
+                - If this is a ``datetime.time`` object, the current date will be assumed.
+                - If this is a ``datetime.datetime`` object, it will be used as is.
+
             *args: Arbitrary positional arguments to be provided to the callback function when it is triggered.
-            random_start (int): Start of range of the random time.
-            random_end (int): End of range of the random time.
+            random_start (int, optional): Start of range of the random time.
+            random_end (int, optional): End of range of the random time.
             pin (bool, optional): Optional setting to override the default thread pinning behavior. By default, this is
                 effectively ``True``, and ``pin_thread`` gets set when the app starts.
             pin_thread (int, optional): Specify which thread from the worker pool will run the callback. The threads
-                each have an ID number. The ID numbers start at 0 and go through (number of threads - 1).
+                each have an ID number, which start at 0 and go through (number of threads - 1).
             **kwargs: Arbitrary keyword parameters to be provided to the callback function when it is triggered.
 
         Returns:
@@ -3002,22 +3007,18 @@ class ADAPI:
         Examples:
             Run every day at 10:30am.
 
-            >>> def daily_callback(self, **kwargs): ...  # example callback
             >>> self.run_daily(self.daily_callback, datetime.time(10, 30))
 
             Run at 7:30pm every day using the ``parse_time()`` function.
 
-            >>> def daily_callback(self, **kwargs): ...  # example callback
             >>> handle = self.run_daily(self.daily_callback, "07:30:00 PM")
 
             Run every day at sunrise.
 
-            >>> def daily_callback(self, **kwargs): ...  # example callback
             >>> handle = self.run_daily(self.daily_callback, "sunrise")
 
             Run every day an hour after sunset.
 
-            >>> def daily_callback(self, **kwargs): ...  # example callback
             >>> handle = self.run_daily(self.daily_callback, "sunset + 01:00:00")
 
         """
@@ -3083,22 +3084,27 @@ class ADAPI:
         pin_thread: int | None = None,
         **kwargs,
     ) -> str:
-        """Runs the callback at the same time every hour.
+        """Run a function at the same time every hour.
 
         Args:
             callback: Function that will be called every hour starting at the specified time. It must conform to the
                 standard scheduler callback format documented `here <APPGUIDE.html#scheduler-callbacks>`__.
-            start (str, datetime.time): Time the callback will be triggered. It should be either a Python ``time``
-                object, ``datetime`` object, or a ``parse_time()`` formatted string that specifies when the callback
-                will occur. If the time specified is in the past, the callback will occur the `next day` at the
-                specified time.
+            start (str, datetime.time, datetime.datetime, optional): Start time for the interval calculation. If this is
+                in the future, this will be the first time the callback is triggered. If this is in the past, the
+                intervals will be calculated forward from the start time, and the first trigger will be the first
+                interval in the future.
+
+                - If this is a ``str`` it will be parsed with :meth:`~appdaemon.adapi.ADAPI.parse_time()`.
+                - If this is a ``datetime.time`` object, the current date will be assumed.
+                - If this is a ``datetime.datetime`` object, it will be used as is.
+
             *args: Arbitrary positional arguments to be provided to the callback function when it is triggered.
-            random_start (int): Start of range of the random time.
-            random_end (int): End of range of the random time.
+            random_start (int, optional): Start of range of the random time.
+            random_end (int, optional): End of range of the random time.
             pin (bool, optional): Optional setting to override the default thread pinning behavior. By default, this is
                 effectively ``True``, and ``pin_thread`` gets set when the app starts.
             pin_thread (int, optional): Specify which thread from the worker pool will run the callback. The threads
-                each have an ID number. The ID numbers start at 0 and go through (number of threads - 1).
+                each have an ID number, which start at 0 and go through (number of threads - 1).
             **kwargs: Arbitrary keyword parameters to be provided to the callback function when it is triggered.
 
         Returns:
@@ -3139,34 +3145,36 @@ class ADAPI:
         pin_thread: int | None = None,
         **kwargs,
     ) -> str:
-        """Runs the callback at the same time every minute.
+        """Run the callback at the same time every minute.
 
         Args:
-            callback: Function to be invoked every minute.
-                It must conform to the standard Scheduler Callback format documented
-                `here <APPGUIDE.html#about-schedule-callbacks>`__.
-            start: A Python ``time`` object that specifies when the callback will occur,
-                the hour and minute components of the time object are ignored. If the
-                time specified is in the past, the callback will occur the ``next minute`` at
-                the specified time. If time is not supplied, the callback will start a
-                minute from the time that ``run_minutely()`` was executed.
-            *args: Arbitrary positional arguments to be provided to the callback function
-                when it is invoked.
-            random_start (int): Start of range of the random time.
-            random_end (int): End of range of the random time.
+            callback: Function that will be called every hour starting at the specified time. It must conform to the
+                standard scheduler callback format documented `here <APPGUIDE.html#scheduler-callbacks>`__.
+            start (str, datetime.time, datetime.datetime, optional): Start time for the interval calculation. If this is
+                in the future, this will be the first time the callback is triggered. If this is in the past, the
+                intervals will be calculated forward from the start time, and the first trigger will be the first
+                interval in the future.
+
+                - If this is a ``str`` it will be parsed with :meth:`~appdaemon.adapi.ADAPI.parse_time()`.
+                - If this is a ``datetime.time`` object, the current date will be assumed.
+                - If this is a ``datetime.datetime`` object, it will be used as is.
+
+            *args: Arbitrary positional arguments to be provided to the callback function when it is triggered.
+            random_start (int, optional): Start of range of the random time.
+            random_end (int, optional): End of range of the random time.
             pin (bool, optional): Optional setting to override the default thread pinning behavior. By default, this is
                 effectively ``True``, and ``pin_thread`` gets set when the app starts.
             pin_thread (int, optional): Specify which thread from the worker pool will run the callback. The threads
-                each have an ID number. The ID numbers start at 0 and go through (number of threads - 1).
+                each have an ID number, which start at 0 and go through (number of threads - 1).
             **kwargs: Arbitrary keyword parameters to be provided to the callback function when it is triggered.
 
         Returns:
-            A handle that can be used to cancel the timer.
+            A handle that can be used to cancel the timer later before it's been executed.
 
         Note:
-            The ``random_start`` value must always be numerically lower than ``random_end`` value,
-            they can be negative to denote a random offset before and event, or positive to
-            denote a random offset after an event.
+            The ``random_start`` value must always be numerically lower than ``random_end`` value, they can be negative
+            to denote a random offset before and event, or positive to denote a random offset after an event.
+
 
         Examples:
             Run every minute on the minute.
@@ -3204,55 +3212,78 @@ class ADAPI:
 
         Args:
             callback: Function that will be called at the specified time interval. It must conform to the standard
-                scheduler callback format documented `here <APPGUIDE.html#scheduler-callbacks>`__
-            start (str, datetime.time): Start time for the interval calculation. If this is in the future, this will be
-                the first time the callback is triggered. If this is in the past, the first trigger will be at the first
+                scheduler callback format documented `here <APPGUIDE.html#scheduler-callbacks>`__.
+            start (str, datetime.time, datetime.datetime, optional): Start time for the interval calculation. If this is
+                in the future, this will be the first time the callback is triggered. If this is in the past, the
+                intervals will be calculated forward from the start time, and the first trigger will be the first
                 interval in the future.
 
-                - If this is a ``str`` it will be parsed with ``parse_time()``.
+                - If this is a ``str`` it will be parsed with :meth:`~appdaemon.adapi.ADAPI.parse_time()`.
                 - If this is a ``datetime.time`` object, the current date will be assumed.
                 - If this is a ``datetime.datetime`` object, it will be used as is.
 
             interval (str, int, float, datetime.timedelta): Time interval between callback triggers.
 
                 - If this is an ``int`` or ``float``, it will be interpreted as seconds.
-                - If this is a ``str`` it will be parsed with ``parse_timedelta()``.
-                - If this is a ``datetime.timedelta`` object, the current date will be assumed.
+                - If this is a ``str`` it will be parsed with ``parse_timedelta()``
+
+                    - ``HH:MM``
+                    - ``HH:MM:SS``
+                    - ``DD days, HH:MM:SS``
+
+                - If this is a ``timedelta`` object, the current date will be assumed.
 
             *args: Arbitrary positional arguments to be provided to the callback function when it is triggered.
-            random_start (int): Start of range of the random time.
-            random_end (int): End of range of the random time.
+            random_start (int, optional): Start of range of the random time.
+            random_end (int, optional): End of range of the random time.
             pin (bool, optional): Optional setting to override the default thread pinning behavior. By default, this is
                 effectively ``True``, and ``pin_thread`` gets set when the app starts.
             pin_thread (int, optional): Specify which thread from the worker pool will run the callback. The threads
-                each have an ID number. The ID numbers start at 0 and go through (number of threads - 1).
+                each have an ID number, which start at 0 and go through (number of threads - 1).
             **kwargs: Arbitrary keyword parameters to be provided to the callback function when it is triggered.
 
         Returns:
-            A handle that can be used to cancel the timer.
+            A handle that can be used to cancel the timer later before it's been executed.
 
         Note:
-            The ``random_start`` value must always be numerically lower than ``random_end`` value,
-            they can be negative to denote a random offset before and event, or positive to
-            denote a random offset after an event.
+            The ``random_start`` value must always be numerically lower than ``random_end`` value, they can be negative
+            to denote a random offset before an event, or positive to denote a random offset after an event.
 
         Examples:
             Run every 10 minutes starting now.
 
-            >>> def timed_callback(self, **kwargs): ...  # example callback
-            >>> self.run_every(self.timed_callback, interval=datetime.timedelta(minutes=10))
+            .. code-block:: python
+              :emphasize-lines: 3
+
+                class MyApp(ADAPI):
+                    def initialize(self):
+                        self.run_every(self.timed_callback, interval=datetime.timedelta(minutes=10))
+
+                    def timed_callback(self, **kwargs): ...  # example callback
 
             Run every 5 minutes starting in 5 seconds.
 
-            >>> def timed_callback(self, **kwargs): ...  # example callback
-            >>> self.run_every(self.timed_callback, "now+5", 5 * 60)
+            .. code-block:: python
+              :emphasize-lines: 3
+
+                class MyApp(ADAPI):
+                    def initialize(self):
+                        self.run_every(self.timed_callback, "now+5", 5 * 60)
+
+                    def timed_callback(self, **kwargs): ...  # example callback
 
             Run every 17 minutes starting in 2 hours time.
 
-            >>> def timed_callback(self, **kwargs): ...  # example callback
-            >>> start = self.get_now() + datetime.timedelta(hours=2)
-            >>> interval = datetime.timedelta(minutes=17)
-            >>> self.run_every(self.timed_callback, start, interval)
+            .. code-block:: python
+              :emphasize-lines: 5
+
+                class MyApp(ADAPI):
+                    def initialize(self):
+                        start = self.get_now() + datetime.timedelta(hours=2)
+                        interval = datetime.timedelta(minutes=17)
+                        self.run_every(self.timed_callback, start, interval)
+
+                    def timed_callback(self, **kwargs): ...  # example callback
 
         """
         interval = utils.parse_timedelta(interval)
@@ -3316,8 +3347,8 @@ class ADAPI:
             offset (int, optional): The time in seconds that the callback should be delayed after
                 sunset. A negative value will result in the callback occurring before sunset.
                 This parameter cannot be combined with ``random_start`` or ``random_end``.
-            random_start (int): Start of range of the random time.
-            random_end (int): End of range of the random time.
+            random_start (int, optional): Start of range of the random time.
+            random_end (int, optional): End of range of the random time.
             pin (bool, optional): Optional setting to override the default thread pinning behavior. By default, this is
                 effectively ``True``, and ``pin_thread`` gets set when the app starts.
             pin_thread (int, optional): Specify which thread from the worker pool will run the callback. The threads
@@ -3389,8 +3420,8 @@ class ADAPI:
             offset (int, optional): The time in seconds that the callback should be delayed after
                 sunrise. A negative value will result in the callback occurring before sunrise.
                 This parameter cannot be combined with ``random_start`` or ``random_end``.
-            random_start (int): Start of range of the random time.
-            random_end (int): End of range of the random time.
+            random_start (int, optional): Start of range of the random time.
+            random_end (int, optional): End of range of the random time.
             pin (bool, optional): Optional setting to override the default thread pinning behavior. By default, this is
                 effectively ``True``, and ``pin_thread`` gets set when the app starts.
             pin_thread (int, optional): Specify which thread from the worker pool will run the callback. The threads
