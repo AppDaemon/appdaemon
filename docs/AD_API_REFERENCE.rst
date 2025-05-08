@@ -1,65 +1,262 @@
-AppDaemon API Reference
-=======================
+AppDaemon APIs
+==============
 
-A number of api calls are native to AppDaemon and will exist in any App as they are inherited through the plugin API.
-If the ``get_plugin_api()`` style of declarations is used, these functions will become available via an object created
-by the ``get_ad_api()`` call:
-
-.. code:: python
-
-    import adbase as ad
-
-    class Test(ad.ADBase):
-
-        def initialize(self):
-
-            self.adapi = self.get_ad_api()
-            handle = self.adapi.run_in(callback, 20)
-
-These calls are documented below.
-
-.. _AppDaemon App Creation:
+The AppDaemon API comes in the form of a class called ``ADAPI``, which provides high-level functionality for users to
+create their apps. This includes common functions such as listening for events/state changes, scheduling, manipulating
+entities, and calling services. The API is designed to be easy to use and understand, while still providing the power
+and flexibility needed to create complex automations.
 
 App Creation
 ------------
 
-To create apps based on just the AppDaemon base API, use some code like the following:
+To use the API, create a new class that inherits from ``ADAPI`` and implement the ``initialize()`` method. This method
+is required for all apps and is called when the app is started.
 
 .. code:: python
 
-    import adbase as ad
+    from appdaemon.adapi import ADAPI
 
-    class MyApp(ad.ADBase):
 
-      def initialize(self):
+    class MyApp(ADAPI):
+        def initialize(self):
+            self.log("MyApp is starting")
+
+            # Use any of the ADAPI methods
+            # handle = self.listen_state(...)
+            # handle = self.listen_event(...)
+            # handle = self.run_in(...)
+            # handle = self.run_every(...)
+
+Alternatively, the ``ADBase`` class can be used, which can provide some advantages, such as being able to access APIs
+for plugins in mulitple namespaces.
+
+.. code:: python
+
+    from appdaemon.adapi import ADAPI
+    from appdaemon.adbase import ADBase
+    from appdaemon.plugins.mqtt import Mqtt
+
+
+    class MyApp(ADBase):
+        adapi: ADAPI    # This type annotation helps your IDE with autocompletion
+        mqttapi: Mqtt
+
+        def initialize(self):
+            self.adapi = self.get_ad_api()
+            self.adapi.log("MyApp is starting")
+
+            # This requires having defined a plugin in the mqtt namespace in appdaemon.yaml
+            self.mqttapi = self.get_plugin_api('mqtt')
+
+            # Use any of the ADAPI methods through self.adapi
+            # handle = self.adapi.listen_state(...)
+            # handle = self.adapi.listen_event(...)
+            # handle = self.adapi.run_in(...)
+            # handle = self.adapi.run_every(...)
 
 Entity Class
 ------------
 
-As manipulating entities is a core center point of writing automation apps, easy access and manipulation of entities is very important.
-AppDaemon supports the ability to access entities as class objects in their own right, via the api call ``get_entity(entity)``.
-This AD does by creating an object which links to the given entity within a specified namespace per app, using an `Entity` class which can be used within the app.
-When this is done, the returned object allows to maximise the OOP nature of python while working with entities. AD will do this,
-even if the entity doesn't actually exist in AD at that point in time. If this is the case, the returned object can be used to add the entity.
-for example:
+Interacting with entities is a core part of writing automation apps, so being able to easily access and manipulate them
+is important. AppDaemon supports this by providing entities as python objects.
+
+The ``Entity`` class is essentially a light wrapper around ``ADAPI`` methods that pre-fills some arguments. Because of
+this, the entity doesn't have to actually exist for the ``Entity`` object to be created and used. If the entity doesn't
+exist, some methods will fail, but others will not. For example, ``get_state()`` will fail, but calling ``set_state()``
+for an entity that doesn't exist will create it. This is useful for creating sensor entities that are available in Home
+Assistant.
 
 .. code:: python
 
-    import adbase as ad
+    from appdaemon.adapi import ADAPI
 
-    class TestApp(ad.ADBase):
 
+    class MyApp(ADAPI):
         def initialize(self):
+            self.log("MyApp is starting")
 
-            self.adapi = self.get_ad_api()
-            self.adapi.run_in(self.callback, 20)
+            # Get light entity class
+            self.kitchen_light = self.get_entity("light.kitchen_ceiling_light")
 
-            # get light entity class
-            self.kitchen_light = self.adapi.get_entity("light.kitchen_ceiling_light", namespace="hass")
+            # Assign a callback for when the state changes to on
+            self.kitchen_light.listen_state(
+                self.state_callback,
+                attribute="brightness",
+                new='on'
+            )
 
-        def callback(self, cb_args):
-            if self.kitchen_ceiling_light.is_state("off"):
-                self.kitchen_ceiling_light.turn_on(brightness=200)
+        def state_callback(self, entity, attribute, old, new, **kwargs):
+            self.log(f'{self.kitchen_light.friendly_name} turned on')
+
+Services
+--------
+
+AppDaemon provides some services from some built-in namespaces. These services can be called from any app, provided they
+use the correct namepsace. These services are listed below
+
+Note: A service call always uses the app's default namespace. See the section on
+`namespaces <APPGUIDE.html#namespaces>`__ for more information.
+
+admin
+~~~~~
+
+**app/create**
+
+Used to create a new app. For this service to be used, the module must be existing and provided with the module's class. If no `app` name is given, the module name will be used as the app's name by default. The service call also accepts ``app_file`` if wanting to create the app within a certain `yaml` file. Or ``app_dir``, if wanting the created app's `yaml` file within a certain directory. If no file or directory is given, by default the app `yaml` file will be generated in a directory ``ad_apps``, using the app's name. It should be noted that ``app_dir`` and ``app_file`` when specified, will be created within the AD's apps directory.
+
+.. code:: python
+
+    data = {}
+    data["module"] = "web_app"
+    data["class"] = "WebApp"
+    data["namespace"] = "admin"
+    data["app"] = "web_app3"
+    data["endpoint"] = "endpoint3"
+    data["app_dir"] = "web_apps"
+    data["app_file"] = "web_apps.yaml"
+
+    self.call_service("app/create", **data)
+
+**app/edit**
+
+Used to edit an existing app. This way, an app' args can be edited in realtime with new args
+
+.. code:: python
+
+    self.call_service("app/edit", app="light_app", module="light_system", namespace="admin")
+
+**app/remove**
+
+Used to remove an existing app. This way, an existing app will be deleted. If the app is the last app in the ``yaml``
+file, the file will be deleted
+
+.. code:: python
+
+    self.call_service("app/remove", app="light_app", namespace="admin")
+
+**app/start**
+
+Starts an app that has been terminated. The `app` name arg is required.
+
+.. code:: python
+
+    self.call_service("app/start", app="light_app", namespace="admin")
+
+**app/stop**
+
+Stops a running app. The `app` name arg is required.
+
+.. code:: python
+
+    self.call_service("app/stop", app="light_app", namespace="admin")
+
+**app/restart**
+
+Restarts a running app. This service basically stops and starts the app. The `app` name arg is required.
+
+.. code:: python
+
+    self.call_service("app/restart", app="light_app", namespace="admin")
+
+**app/reload**
+
+Checks for an app update. Useful if AD is running in production mode, and app changes need to be checked and loaded.
+
+.. code:: python
+
+    self.call_service("app/reload", namespace="admin")
+
+**app/enable**
+
+Enables a disabled app, so it can be loaded by AD.
+
+.. code:: python
+
+    self.call_service("app/enable", app="living_room_app", namespace="admin")
+
+**app/disable**
+
+Disables an enabled app, so it cannot be loaded by AD. This service call is persistent, so even if AD restarts, the app
+will not be restarted
+
+.. code:: python
+
+    self.call_service("app/disable", app="living_room_app", namespace="admin")
+
+**production_mode/set**
+
+Sets the production mode AD is running on. The value of the `mode` arg has to be `True` or `False`.
+
+.. code:: python
+
+    self.call_service("production_mode/set", mode=True, namespace="admin")
+
+All namespaces except ``global``, and ``admin``:
+
+**state/add_entity**
+
+Adds an existing entity to the required namespace.
+
+.. code:: python
+
+    self.call_service(
+        "state/set",
+        entity_id="sensor.test",
+        state="on",
+        attributes={"friendly_name" : "Sensor Test"},
+        namespace="default"
+    )
+
+**state/set**
+
+Sets the state of an entity. This service allows any key-worded args to define what entity's values need to be set.
+
+.. code:: python
+
+    self.call_service(
+        "state/set",
+        entity_id="sensor.test",
+        state="on",
+        attributes={"friendly_name" : "Sensor Test"},
+        namespace="default"
+    )
+
+**state/remove_entity**
+
+Removes an existing entity from the required namespace.
+
+.. code:: python
+
+    self.call_service("state/remove_entity", entity_id="sensor.test", namespace="default")
+
+All namespaces except ``admin``:
+
+**event/fire**
+
+Fires an event within the specified namespace. The `event` arg is required.
+
+.. code:: python
+
+    self.call_service("event/fire", event="test_event", entity_id="appdaemon.test", namespace="hass")
+
+rules
+~~~~~
+
+**sequence/run**
+
+Runs a predefined sequence. The `entity_id` arg with the sequence full-qualified entity name is required.
+
+.. code:: python
+
+    self.call_service("sequence/run", entity_id ="sequence.christmas_lights", namespace="rules")
+
+**sequence/cancel**
+
+Cancels a predefined sequence. The `entity_id` arg with the sequence full-qualified entity name is required.
+
+.. code:: python
+
+    self.call_service("sequence/cancel", entity_id ="sequence.christmas_lights", namespace="rules")
 
 Reference
 ---------
@@ -125,19 +322,19 @@ Time
 Scheduler
 ~~~~~~~~~
 
+.. autofunction:: appdaemon.adapi.ADAPI.run_at
+.. autofunction:: appdaemon.adapi.ADAPI.run_in
+.. autofunction:: appdaemon.adapi.ADAPI.run_once
+.. autofunction:: appdaemon.adapi.ADAPI.run_every
+.. autofunction:: appdaemon.adapi.ADAPI.run_daily
+.. autofunction:: appdaemon.adapi.ADAPI.run_hourly
+.. autofunction:: appdaemon.adapi.ADAPI.run_minutely
+.. autofunction:: appdaemon.adapi.ADAPI.run_at_sunset
+.. autofunction:: appdaemon.adapi.ADAPI.run_at_sunrise
 .. autofunction:: appdaemon.adapi.ADAPI.timer_running
 .. autofunction:: appdaemon.adapi.ADAPI.cancel_timer
 .. autofunction:: appdaemon.adapi.ADAPI.info_timer
 .. autofunction:: appdaemon.adapi.ADAPI.reset_timer
-.. autofunction:: appdaemon.adapi.ADAPI.run_in
-.. autofunction:: appdaemon.adapi.ADAPI.run_once
-.. autofunction:: appdaemon.adapi.ADAPI.run_at
-.. autofunction:: appdaemon.adapi.ADAPI.run_daily
-.. autofunction:: appdaemon.adapi.ADAPI.run_hourly
-.. autofunction:: appdaemon.adapi.ADAPI.run_minutely
-.. autofunction:: appdaemon.adapi.ADAPI.run_every
-.. autofunction:: appdaemon.adapi.ADAPI.run_at_sunset
-.. autofunction:: appdaemon.adapi.ADAPI.run_at_sunrise
 
 Service
 ~~~~~~~
@@ -186,129 +383,6 @@ Namespace
 .. autofunction:: appdaemon.adapi.ADAPI.get_namespace
 .. autofunction:: appdaemon.adapi.ADAPI.list_namespaces
 .. autofunction:: appdaemon.adapi.ADAPI.save_namespace
-
-Services
-~~~~~~~~~
-
-Note: A service call always uses the app's default namespace. Although namespaces allow a new and easy way to work with multiple namespaces from within a single App, it is essential to understand how they work before using them in service's calls.
-See the section on `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
-
-AppDaemon has a predefined list of namespaces that can be used only for particular services. Listed below are the services by namespace.
-
-``admin`` namespace only:
-
-**app/create**
-
-Used to create a new app. For this service to be used, the module must be existing and provided with the module's class. If no `app` name is given, the module name will be used as the app's name by default. The service call also accepts ``app_file`` if wanting to create the app within a certain `yaml` file. Or ``app_dir``, if wanting the created app's `yaml` file within a certain directory. If no file or directory is given, by default the app `yaml` file will be generated in a directory ``ad_apps``, using the app's name. It should be noted that ``app_dir`` and ``app_file`` when specified, will be created within the AD's apps directory.
-
-.. code:: python
-
-    data = {}
-    data["module"] = "web_app"
-    data["class"] = "WebApp"
-    data["namespace"] = "admin"
-    data["app"] = "web_app3"
-    data["endpoint"] = "endpoint3"
-    data["app_dir"] = "web_apps"
-    data["app_file"] = "web_apps.yaml"
-
-    self.call_service("app/create", **data)
-
-**app/edit**
-
-Used to edit an existing app. This way, an app' args can be edited in realtime with new args
-
-    >>> self.call_service("app/edit", app="light_app", module="light_system", namespace="admin")
-
-**app/remove**
-
-Used to remove an existing app. This way, an existing app will be deleted. If the app is the last app in the ``yaml`` file, the file will be deleted
-
-    >>> self.call_service("app/remove", app="light_app", namespace="admin")
-
-**app/start**
-
-Starts an app that has been terminated. The `app` name arg is required.
-
-    >>> self.call_service("app/start", app="light_app", namespace="admin")
-
-**app/stop**
-
-Stops a running app. The `app` name arg is required.
-
-    >>> self.call_service("app/stop", app="light_app", namespace="admin")
-
-**app/restart**
-
-Restarts a running app. This service basically stops and starts the app. The `app` name arg is required.
-
-    >>> self.call_service("app/restart", app="light_app", namespace="admin")
-
-**app/reload**
-
-Checks for an app update. Useful if AD is running in production mode, and app changes need to be checked and loaded.
-
-    >>> self.call_service("app/reload", namespace="admin")
-
-**app/enable**
-
-Enables a disabled app, so it can be loaded by AD.
-
-    >>> self.call_service("app/enable", app="living_room_app", namespace="admin")
-
-**app/disable**
-
-Disables an enabled app, so it cannot be loaded by AD. This service call is persistent, so even if AD restarts, the app will not be restarted
-
-    >>> self.call_service("app/disable", app="living_room_app", namespace="admin")
-
-**production_mode/set**
-
-Sets the production mode AD is running on. The value of the `mode` arg has to be `True` or `False`.
-
-    >>> self.call_service("production_mode/set", mode=True, namespace="admin")
-
-All namespaces except ``global``, and ``admin``:
-
-**state/add_entity**
-
-Adds an existing entity to the required namespace.
-
-    >>> self.call_service("state/set", entity_id="sensor.test", state="on", attributes={"friendly_name" : "Sensor Test"}, namespace="default")
-
-**state/set**
-
-Sets the state of an entity. This service allows any key-worded args to define what entity's values need to be set.
-
-    >>> self.call_service("state/set", entity_id="sensor.test", state="on", attributes={"friendly_name" : "Sensor Test"}, namespace="default")
-
-**state/remove_entity**
-
-Removes an existing entity from the required namespace.
-
-    >>> self.call_service("state/remove_entity", entity_id="sensor.test", namespace="default")
-
-All namespaces except ``admin``:
-
-**event/fire**
-
-Fires an event within the specified namespace. The `event` arg is required.
-
-    >>> self.call_service("event/fire", event="test_event", entity_id="appdaemon.test", namespace="hass")
-
-``rules`` namespace only:
-
-**sequence/run**
-
-Runs a predefined sequence. The `entity_id` arg with the sequence full-qualified entity name is required.
-
-    >>> self.call_service("sequence/run", entity_id ="sequence.christmas_lights", namespace="rules")
-
-**sequence/cancel**
-
-Cancels a predefined sequence. The `entity_id` arg with the sequence full-qualified entity name is required.
-
-    >>> self.call_service("sequence/cancel", entity_id ="sequence.christmas_lights", namespace="rules")
 
 
 Threading
