@@ -189,7 +189,7 @@ class State:
         timeout: str | int | float | timedelta | None = None,
         oneshot: bool = False,
         immediate: bool = False,
-        pin: bool = False,
+        pin: bool | None = None,
         pin_thread: int | None = None,
         kwargs: dict[str, Any] = None
     ):  # noqa: C901

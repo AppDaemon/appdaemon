@@ -1379,7 +1379,7 @@ class ADAPI:
         timeout: str | int | float | timedelta | None = None,
         immediate: bool = False,
         oneshot: bool = False,
-        pin: bool = True,
+        pin: bool | None = None,
         pin_thread: int | None = None,
         **kwargs: Any
     ) -> str: ...
@@ -1398,7 +1398,7 @@ class ADAPI:
         timeout: str | int | float | timedelta | None = None,
         immediate: bool = False,
         oneshot: bool = False,
-        pin: bool = True,
+        pin: bool | None = None,
         pin_thread: int | None = None,
         **kwargs: Any
     ) -> list[str]: ...
@@ -1416,7 +1416,7 @@ class ADAPI:
         timeout: str | int | float | timedelta | None = None,
         immediate: bool = False,
         oneshot: bool = False,
-        pin: bool = True,
+        pin: bool | None = None,
         pin_thread: int | None = None,
         **kwargs: Any
     ) -> str | list[str]:
@@ -2081,7 +2081,7 @@ class ADAPI:
         namespace: str | None = None,
         timeout: str | int | float | timedelta | None = None,
         oneshot: bool = False,
-        pin: bool = True,
+        pin: bool | None = None,
         pin_thread: int | None = None,
         **kwargs: Any | Callable[[Any], bool]
     ) -> str: ...
@@ -2096,7 +2096,7 @@ class ADAPI:
         namespace: str | None = None,
         timeout: str | int | float | timedelta | None = None,
         oneshot: bool = False,
-        pin: bool = True,
+        pin: bool | None = None,
         pin_thread: int | None = None,
         **kwargs: Any | Callable[[Any], bool]
     ) -> list[str]: ...
@@ -2110,7 +2110,7 @@ class ADAPI:
         namespace: str | Literal["global"] | None = None,
         timeout: str | int | float | timedelta | None = None,
         oneshot: bool = False,
-        pin: bool = True,
+        pin: bool | None = None,
         pin_thread: int | None = None,
         **kwargs: Any | Callable[[Any], bool]
     ) -> str | list[str]:

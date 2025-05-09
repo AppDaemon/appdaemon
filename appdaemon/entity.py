@@ -70,7 +70,7 @@ class Entity:
     @utils.sync_decorator
     async def set_state(
         self,
-        state: Any | None,
+        state: Any | None = None,
         attributes: dict | None = None,
         replace: bool = False,
         **kwargs
@@ -189,7 +189,7 @@ class Entity:
         timeout: str | int | float | timedelta | None = None,
         immediate: bool = False,
         oneshot: bool = False,
-        pin: bool = False,
+        pin: bool | None = None,
         pin_thread: int | None = None,
         **kwargs: Any
     ) -> str:

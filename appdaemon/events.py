@@ -1,5 +1,6 @@
 from collections.abc import Iterable
 import datetime
+import json
 import traceback
 import uuid
 from copy import deepcopy
@@ -39,7 +40,7 @@ class Events:
         event: str | Iterable[str] | None = None,
         timeout: str | int | float | datetime.timedelta | None = None,
         oneshot: bool = False,
-        pin: bool = True,
+        pin: bool | None = None,
         pin_thread: int | None = None,
         kwargs: dict[str, Any] = None, # Intentionally not expanding the kwargs here so that there are no name clashes
     ) -> str | list[str] | None:
@@ -272,9 +273,10 @@ class Events:
 
         except Exception:
             self.logger.warning("-" * 60)
-            self.logger.warning("Unexpected error during process_event()")
+            self.logger.warning("Unexpected error during process_event()") 
             self.logger.warning("-" * 60)
             self.logger.warning(traceback.format_exc())
+            self.logger.warning(json.dumps(data, indent=4))
             self.logger.warning("-" * 60)
 
     async def has_log_callback(self, name: str):
