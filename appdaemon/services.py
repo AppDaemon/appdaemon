@@ -43,6 +43,7 @@ class Services:
 
     AD: "AppDaemon"
     logger: Logger
+    name: str = "_services"
     error: Logger
     services: Dict[str, Dict[str, Any]]
     services_lock: threading.RLock
@@ -53,11 +54,8 @@ class Services:
         self.services = {}
         self.services_lock = threading.RLock()
         self.app_registered_services = {}
-        self.logger = ad.logging.get_child("_services")
-
-    @property
-    def error(self) -> Logger:
-        return self.AD.logging.get_error()
+        self.logger = ad.logging.get_child(self.name)
+        self.error = ad.logging.get_error()
 
     @overload
     def register_service(
