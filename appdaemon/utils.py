@@ -541,7 +541,7 @@ async def run_in_executor(self: Subsystem, fn: Callable[..., R], *args, **kwargs
     Returns:
         Whatever the function returns
     """
-    function_name = fn.__qualname__
+    function_name = unwrapped(fn).__qualname__
     executor_name = type(self.AD.executor).__name__
     self.AD.threading.logger.debug(f"Running {function_name} in the {executor_name}")
 
@@ -1073,6 +1073,8 @@ def make_endpoint(base: str, endpoint: str) -> str:
 def unwrapped(func: Callable) -> Callable:
     while hasattr(func, "__wrapped__"):
         func = func.__wrapped__
+    if isinstance(func, functools.partial):
+        func = func.func
     return func
 
 
