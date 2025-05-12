@@ -1919,16 +1919,6 @@ class ADAPI:
                 services which might take a long time to complete. This effectively bypasses the ``timeout`` argument
                 because it only applies to this function, which will return immediately instead of waiting for the
                 result if a `callback` is specified.
-            hass_timeout (str | int | float, optional): Only applicable to the Hass plugin. Sets the amount of time to
-                wait for a response from Home Assistant. If no value is specified, the default timeout is 10s. The
-                default value can be changed using the ``ws_timeout`` setting the in the Hass plugin configuration in
-                ``appdaemon.yaml``. Even if no data is returned from the service call, Home Assistant will still send an
-                acknowledgement back to AppDaemon, which this timeout applies to. Note that this is separate from the
-                ``timeout``. If ``timeout`` is shorter than this one, it will trigger before this one does.
-            suppress_log_messages (bool, optional): Only applicable to the Hass plugin. If this is set to ``True``,
-                Appdaemon will suppress logging of warnings for service calls to Home Assistant, specifically timeouts
-                and non OK statuses. Use this flag and set it to ``True`` to supress these log messages if you are
-                performing your own error checking as described `here <APPGUIDE.html#some-notes-on-service-calls>`__
             service_data (dict, optional): Used as an additional dictionary to pass arguments into the ``service_data``
                 field of the JSON that goes to Home Assistant. This is useful if you have a dictionary that you want to
                 pass in that has a key like ``target`` which is otherwise used for the ``target`` argument.
@@ -1952,7 +1942,7 @@ class ADAPI:
                     entity_id="calendar.home",
                     start_date_time="2024-08-25 00:00:00",
                     end_date_time="2024-08-27 00:00:00",
-                )["result]["response"]["calendar.home"]["events"]
+                )["result"]["response"]["calendar.home"]["events"]
 
             MQTT
             ^^^^
