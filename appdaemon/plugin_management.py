@@ -420,7 +420,8 @@ class PluginManagement:
             plugin['object'].ready_event for plugin in self.plugin_objs.values()
         )
         tasks = [self.AD.loop.create_task(e.wait()) for e in events]
-        await asyncio.wait(tasks, timeout=timeout)
+        if tasks:
+            await asyncio.wait(tasks, timeout=timeout)
         self.logger.info('All plugins ready')
 
     def get_config_for_namespace(self, namespace: str) -> PluginConfig:
