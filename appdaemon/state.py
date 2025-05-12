@@ -700,10 +700,10 @@ class State:
         name: str,
         namespace: str,
         entity: str,
-        _silent: bool,
-        state: Any,
-        attributes: dict,
-        replace: bool,
+        _silent: bool = False,
+        state: Any | None = None,
+        attributes: dict | None = None,
+        replace: bool = False,
         **kwargs
     ) -> None: ...
 
