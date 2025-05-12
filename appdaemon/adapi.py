@@ -779,8 +779,12 @@ class ADAPI:
             >>> self.add_entity('mqtt.living_room_temperature', namespace='mqtt')
 
         """
-        namespace = namespace or self.namespace
-        await self.get_entity_api(namespace, entity_id).add(state, attributes)
+
+        if self.entity_exists(entity_id, namespace):
+            self.logger.warning("%s already exists, will not be adding it", entity_id)
+            return None
+
+        return await self.AD.state.add_entity(namespace, entity_id, state, attributes)
 
     @utils.sync_decorator
     async def entity_exists(self, entity_id: str, namespace: str | None = None) -> bool:
@@ -2206,8 +2210,7 @@ class ADAPI:
         """Cancel a callback for a specific event.
 
         Args:
-            handle (str, Iterable[str]): A handle returned from a previous call to ``listen_event()``. Also works with
-                a list of handles.
+            handle (str, Iterable[str]): Handle(s) returned from a previous call to ``listen_event()``.
             silent (bool, optional): If ``True``, no warning will be issued if the handle is not found. Defaults to
                 ``False``. This is useful if you want to cancel a callback that may or may not exist.
 
@@ -2218,10 +2221,12 @@ class ADAPI:
         Examples:
             Cancel a single callback.
             >>> self.cancel_listen_event(handle)
+            True
 
             Cancel multiple callbacks.
             >>> result = self.cancel_listen_event([handle1, handle2])
             >>> all(result.values())  # Check if all handles were canceled successfully
+            True
 
         """
         cancel_callback = functools.partial(
@@ -3727,17 +3732,11 @@ class ADAPI:
     # Other
     #
 
-    def get_entity(self, entity: str, namespace: str | None = None) -> Entity:
+    def get_entity(self, entity: str, namespace: str | None = None, check_existence: bool = True) -> Entity:
         namespace = namespace or self.namespace
-        self._check_entity(namespace, entity)
-        return Entity(self.logger, self.AD, self.name, namespace, entity)
-
-    def get_entity_api(self, namespace: str | None, entity_id: str | None, check_existence: bool = True) -> Entity:
-        """Sometimes this gets called when creating a new entity, so the check needs to be suppressed"""
-        namespace = namespace or self.namespace
-        if check_existence and entity_id is not None:
-            self._check_entity(namespace, entity_id)
-        return Entity.entity_api(self.logger, self.AD, self.name, namespace, entity_id)
+        if check_existence:
+            self._check_entity(namespace, entity)
+        return Entity(self, namespace, entity)
 
     def run_in_thread(self, callback: Callable, thread: int, **kwargs) -> None:
         """Schedules a callback to be run in a different thread from the current one.
