@@ -321,25 +321,25 @@ class ADAPI:
         pin_thread: int | None = None,
         **kwargs
     ) -> str:
-        """Registers the App to receive a callback every time an App logs a message.
+        """Register a callback for whenever an app logs a message.
 
         Args:
-            callback (function): Function to be called when a message is logged.
+            callback: Function that will be called when a message is logged. It must conform to the standard event
+                callback format documented `here <APPGUIDE.html#event-callbacks>`__
             level (str, optional): Minimum level for logs to trigger the callback. Lower levels will be ignored. Default
                 is ``INFO``.
+            namespace (str, optional): Namespace to use for the call. Defaults to ``admin`` for log callbacks. See the
+                `namespace documentation <APPGUIDE.html#namespaces>`__ for more information.
             log (str, optional): Name of the log to listen to, default is all logs. The name should be one of the 4
                 built in types ``main_log``, ``error_log``, ``diag_log`` or ``access_log`` or a user defined log entry.
             pin (bool, optional): Optional setting to override the default thread pinning behavior. By default, this is
                 effectively ``True``, and ``pin_thread`` gets set when the app starts.
             pin_thread (int, optional): Specify which thread from the worker pool will run the callback. The threads
                 each have an ID number. The ID numbers start at 0 and go through (number of threads - 1).
-            **kwargs: Arbitrary keyword parameters to be provided to the callback function when it is triggered.
+            **kwargs (optional): One or more keyword arguments to supply to the callback.
 
         Returns:
-            A unique identifier that can be used to cancel the callback if required. Since variables created within
-            object methods are local to the function they are created in, and in all likelihood, the cancellation will
-            be invoked later in a different function, it is recommended that handles are stored in the object
-            namespace, e.g., self.handle.
+            A handle that can be used to cancel the callback.
 
         Examples:
             Listen to all ``WARNING`` log messages of the system.
@@ -359,10 +359,14 @@ class ADAPI:
             >>> self.handle = self.listen_log(self.cb, "WARNING", log="my_custom_log")
 
         """
-
         return await self.AD.logging.add_log_callback(
-            namespace, self.name, callback, level,
-            log=log, pin=pin, pin_thread=pin_thread,
+            namespace=namespace,
+            name=self.name,
+            callback=callback,
+            level=level,
+            log=log,
+            pin=pin,
+            pin_thread=pin_thread,
             **kwargs
         )
 
