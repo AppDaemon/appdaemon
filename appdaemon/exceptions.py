@@ -358,6 +358,8 @@ class PinOutofRange(AppDaemonException):
     pin_thread: int
     total_threads: int
 
+    def __str__(self):
+        return f"Pin thread {self.pin_thread} out of range. Must be between 0 and {self.total_threads - 1}"
 
 @dataclass
 class BadClassSignature(AppDaemonException):
