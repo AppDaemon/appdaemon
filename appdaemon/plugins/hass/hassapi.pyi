@@ -1,4 +1,4 @@
-from typing import Any, Callable, overload
+from typing import Any, Callable
 
 from appdaemon.adapi import ADAPI
 from appdaemon.adbase import ADBase

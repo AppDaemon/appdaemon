@@ -273,7 +273,7 @@ class Events:
 
         except Exception:
             self.logger.warning("-" * 60)
-            self.logger.warning("Unexpected error during process_event()") 
+            self.logger.warning("Unexpected error during process_event()")
             self.logger.warning("-" * 60)
             self.logger.warning(traceback.format_exc())
             self.logger.warning(json.dumps(data, indent=4))

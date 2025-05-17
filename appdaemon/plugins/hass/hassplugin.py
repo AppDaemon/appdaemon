@@ -214,8 +214,8 @@ class HassPlugin(PluginBase):
             await self.ready_event.wait()
 
         await self.notify_plugin_started(
-            await self.get_hass_config(),
-            await self.get_complete_state()
+            meta=await self.get_hass_config(),
+            state=await self.get_complete_state()
         )
         self.first_time = False
 
