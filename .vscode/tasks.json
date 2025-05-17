@@ -19,39 +19,55 @@
         },
         {
             "label": "Build Docs",
-            "command": "sphinx-build",
-            "args": ["-T", "-E", "${workspaceFolder}/docs", "${workspaceFolder}/.docs_build"],
-            "type": "shell",
+            "detail": "Builds the Sphinx documentation into the ./.docs_build directory.",
+            "type": "process",
+            "problemMatcher": [],
+            "command": "${workspaceFolder}/.venv/bin/sphinx-build",
+            "args": [
+                "-T", "-E",
+                "${workspaceFolder}/docs",
+                "${workspaceFolder}/.docs_build"
+            ],
             "presentation":
                 {
                     "echo": true,
                     "reveal": "always",
-                    "focus": false,
+                    "focus": true,
                     "panel": "shared",
-                    "showReuseMessage": false,
+                    "showReuseMessage": true,
                     "clear": true
                 },
         },
         {
             "label": "Auto Build Docs",
-            "command": "sphinx-autobuild",
-            "args": ["-T", "-E", "${workspaceFolder}/docs", "${workspaceFolder}/.docs_build", "--port", "9999"],
-            "type": "shell",
+            "detail": "Runs the Sphinx documentation server with hot reloading.",
+            "type": "process",
+            "problemMatcher": [],
+            "command": "${workspaceFolder}/.venv/bin/sphinx-autobuild",
+            "args": [
+                "-T", "-E",
+                "${workspaceFolder}/docs",
+                "${workspaceFolder}/.docs_build",
+                "--port", "9999",
+                "--watch", "${workspaceFolder}/appdaemon",
+            ],
             "presentation":
                 {
                     "echo": true,
                     "reveal": "always",
                     "focus": false,
                     "panel": "shared",
-                    "showReuseMessage": false,
+                    "showReuseMessage": true,
                     "clear": true
                 },
         },
         {
             "label": "Build Package",
+            "detail": "Builds the package into the ./.dist directory.",
             "command": "uv",
             "args": ["build"],
             "type": "shell",
+            "problemMatcher": [],
             "presentation":
                 {
                     "echo": true,
@@ -64,65 +80,89 @@
         },
         {
             "label": "Build Runtime Requirements",
+            "detail": "Builds the runtime requirements into the requirements.txt file.",
             "command": "uv",
-            "args": ["pip", "compile", "--resolver=backtracking",  "--upgrade", "pyproject.toml"],
+            "args": [
+                "pip", "compile",
+                "-o", "requirements.txt",
+                "--upgrade", "pyproject.toml",
+            ],
             "type": "shell",
+            "problemMatcher": [],
             "presentation":
                 {
                     "echo": true,
                     "reveal": "always",
-                    "focus": false,
+                    "focus": true,
                     "panel": "shared",
-                    "showReuseMessage": false,
+                    "showReuseMessage": true,
                     "clear": true
                 },
         },
         {
             "label": "Build Dev Requirements",
+            "detail": "Builds the runtime requirements into the dev-requirements.txt file.",
             "command": "uv",
-            "args": ["pip", "compile", "--extra=dev", "--output-file=dev-requirements.txt", "--resolver=backtracking",  "--upgrade", "pyproject.toml"],
+            "args": [
+                "pip", "compile",
+                "--group", "dev",
+                "-o", "dev-requirements.txt",
+                "--upgrade", "pyproject.toml"
+            ],
             "type": "shell",
+            "problemMatcher": [],
             "presentation":
                 {
                     "echo": true,
                     "reveal": "always",
-                    "focus": false,
+                    "focus": true,
                     "panel": "shared",
-                    "showReuseMessage": false,
+                    "showReuseMessage": true,
                     "clear": true
                 },
         },
         {
             "label": "Build Doc Requirements",
+            "detail": "Builds the runtime requirements into the doc-requirements.txt file.",
             "command": "uv",
-            "args": ["pip", "compile", "--extra=doc", "--output-file=doc-requirements.txt", "--resolver=backtracking", "--upgrade", "pyproject.toml"],
+            "args": [
+                "pip", "compile",
+                "--extra", "doc",
+                "-o", "doc-requirements.txt",
+                "--upgrade", "pyproject.toml"
+            ],
             "type": "shell",
+            "problemMatcher": [],
             "presentation":
                 {
                     "echo": true,
                     "reveal": "always",
-                    "focus": false,
+                    "focus": true,
                     "panel": "shared",
-                    "showReuseMessage": false,
+                    "showReuseMessage": true,
                     "clear": true
                 },
         },
         {
             "label": "Build All Requirements",
-            "dependsOn": ["Build Runtime Requirements", "Build Dev Requirements", "Build Doc Requirements"]
+            "detail": "Build all the requirements.txt files.",
+            "dependsOn": ["Build Runtime Requirements", "Build Dev Requirements", "Build Doc Requirements"],
+            "type": "shell",
+            "problemMatcher": [],
         },
         {
             "label": "Install Dependencies",
-            "command": "pip",
-            "args": ["install", "-r", "requirements.txt", "-r", "doc-requirements.txt", "-r", "dev-requirements.txt"],
+            "command": "uv",
+            "args": ["sync", "-U", "--all-extras"],
             "type": "shell",
+            "problemMatcher": [],
             "presentation":
                 {
                     "echo": true,
                     "reveal": "always",
                     "focus": false,
                     "panel": "shared",
-                    "showReuseMessage": false,
+                    "showReuseMessage": true,
                     "clear": true
                 },
         },
