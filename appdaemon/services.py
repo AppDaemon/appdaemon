@@ -2,7 +2,6 @@ import asyncio
 import functools
 import threading
 from collections import defaultdict
-from copy import deepcopy
 from logging import Logger
 from typing import TYPE_CHECKING, Any, Callable
 
@@ -75,7 +74,7 @@ class Services:
 
         with self.services_lock:
             # first we confirm if the namespace exists
-            if __name and self.AD.state.namespace_exists(namespace):
+            if __name and not self.AD.state.namespace_exists(namespace):
                 raise NamespaceException(f"Namespace {namespace}, doesn't exist")
 
             elif not callable(callback):
@@ -166,15 +165,10 @@ class Services:
             return True
 
     def clear_services(self, name: str) -> None:
-        """Used to clear services"""
-
-        if name not in self.app_registered_services:
-            return
-
-        app_services = deepcopy(self.app_registered_services[name])
-
-        for app_service in app_services:
-            self.deregister_service(*app_service.split(":"), name)
+        """Clear any services registered by the app with the given name."""
+        with self.services_lock:
+            for app_service in self.list_app_services(name):
+                self.deregister_service(**app_service)
 
     def list_services(self, ns: str = "global") -> list[dict[str, str]]:
         with self.services_lock:
@@ -185,6 +179,20 @@ class Services:
                 for domain, domain_services in ns_services.items()
                 for service in domain_services
             ]
+
+    def list_app_services(self, app_name: str) -> list[dict[str, str]]:
+        return [
+            dict(
+                namespace=namespace,
+                domain=domain,
+                service=service_name,
+                __name=app_name,
+            )
+            for namespace, ns_services in self.services.items()
+            for domain, domain_services in ns_services.items()
+            for service_name, info in domain_services.items()
+            if info.get("__name") == app_name
+        ]
 
     async def call_service(
         self,
