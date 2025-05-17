@@ -186,7 +186,7 @@ class Services:
                 namespace=namespace,
                 domain=domain,
                 service=service_name,
-                name=app_name,
+                __name=app_name,
             )
             for namespace, ns_services in self.services.items()
             for domain, domain_services in ns_services.items()
