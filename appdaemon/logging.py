@@ -517,7 +517,7 @@ class Logging(metaclass=utils.Singleton):
             ``None`` or a list of the callback handles, 1 for each logging level above the one given
 
         """
-        pin_app, pin_thread =self.AD.threading.determine_thread(self.name, pin, pin_thread)
+        pin_app, pin_thread =self.AD.threading.determine_thread(name, pin, pin_thread)
 
         #
         # Add the callback
