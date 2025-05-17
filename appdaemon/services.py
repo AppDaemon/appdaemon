@@ -74,7 +74,7 @@ class Services:
 
         with self.services_lock:
             # first we confirm if the namespace exists
-            if __name and self.AD.state.namespace_exists(namespace):
+            if __name and not self.AD.state.namespace_exists(namespace):
                 raise NamespaceException(f"Namespace {namespace}, doesn't exist")
 
             elif not callable(callback):
