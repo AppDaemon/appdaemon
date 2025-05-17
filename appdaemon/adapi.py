@@ -1427,8 +1427,8 @@ class ADAPI:
         """Registers a callback to react to state changes.
 
         The callback needs to have the following form:
-        >>> def my_callback(self, entity: str, attribute: str, old: Any, new: Any, **kwargs: Any) -> None:
-                ...
+
+        >>> def my_callback(self, entity: str, attribute: str, old: Any, new: Any, **kwargs: Any) -> None: ...
 
         Args:
             callback: Function that will be called when the callback gets triggered. It must conform to the standard
@@ -1515,8 +1515,8 @@ class ADAPI:
 
             >>> self.handle = self.listen_state(self.my_callback, "light.office_1", attribute = "all")
 
-            Listen for a change involving the brightness attribute of `light.office1` and return the
-            brightness attribute.
+            Listen for a change involving the brightness attribute of `light.office1` and return the brightness
+            attribute.
 
             >>> self.handle = self.listen_state(self.my_callback, "light.office_1", attribute = "brightness")
 
@@ -1524,10 +1524,15 @@ class ADAPI:
 
             >>> self.handle = self.listen_state(self.my_callback, "light.office_1", new = "on")
 
-            Listen for a state change involving `light.office1` turning on when the previous state was not unknown or unavailable,
-            and return the state attribute.
+            Listen for a state change involving `light.office1` turning on when the previous state was not unknown or
+            unavailable, and return the state attribute.
 
-            >>> self.handle = self.listen_state(self.my_callback, "light.office_1", new = "on", old=lambda x: x not in ["unknown", "unavailable"])
+            >>> self.handle = self.listen_state(
+                self.my_callback,
+                "light.office_1",
+                new="on",
+                old=lambda x: x.lower() not in {"unknown", "unavailable"}
+            )
 
             Listen for a change involving `light.office1` changing from brightness 100 to 200 and return the
             brightness attribute.
@@ -2112,8 +2117,8 @@ class ADAPI:
 
 
         The callback needs to have the following form:
-        >>> def my_callback(self, event_name: str, event_data: dict[str, Any], **kwargs: Any) -> None:
-                ...
+
+        >>> def my_callback(self, event_name: str, event_data: dict[str, Any], **kwargs: Any) -> None: ...
 
         Args:
             callback: Function that will be called when the event is fired. It must conform to the standard event
@@ -3578,16 +3583,19 @@ class ADAPI:
 
         Examples:
             Submit a long-running function to be executed in the background
+
             >>> def initialize(self):
                     self.long_future = self.submit_to_executor(self.long_request, url, callback=self.result_callback)
 
             Long running function:
+
             >>> def long_request(self, url: str):
                     import requests
                     res = requests.get(url)
                     return res.json()
 
             Callback to handle the result:
+
             >>> def result_callback(self, result: dict, **kwargs):
                     # Set the attributes of a sensor with the result
                     self.set_state("sensor.url_result", state="ready", attributes=result, replace=True)
@@ -3652,18 +3660,22 @@ class ADAPI:
 
         Examples:
             Define your callback
+
             >>> def my_callback(self, **kwargs: Any) -> Any: ...
 
             Create the task
+
             >>> task = self.create_task(asyncio.sleep(3), callback=self.my_callback)
 
             Keyword Arguments
             ^^^^^^^^^^^^^^^^^
             Define your callback with a custom keyword argument ``my_kwarg``
+
             >>> def my_callback(self, result: Any, my_kwarg: str, **kwargs: Any) -> Any:
                     self.log(f"Result: {result}, my_kwarg: {my_kwarg}")
 
             Use the custom keyword argument when creating the task
+
             >>> task = self.create_task(asyncio.sleep(3), callback=self.my_callback, my_kwarg="special value")
 
         """
