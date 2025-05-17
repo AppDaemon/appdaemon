@@ -166,6 +166,38 @@
                     "clear": true
                 },
         },
+                {
+            "label": "Install Pre-commit Hooks",
+            "command": "uv",
+            "args": ["run", "pre-commit", "install"],
+            "type": "shell",
+            "problemMatcher": [],
+            "presentation":
+                {
+                    "echo": true,
+                    "reveal": "always",
+                    "focus": false,
+                    "panel": "shared",
+                    "showReuseMessage": true,
+                    "clear": true
+                },
+        },
+        {
+            "label": "Set up Environment",
+            "detail": "Create the venv, install dependencies, and install pre-commit hooks.",
+            "dependsOn": ["Install Dependencies", "Install Pre-commit Hooks"],
+            "type": "shell",
+            "problemMatcher": [],
+            "presentation":
+                {
+                    "echo": true,
+                    "reveal": "always",
+                    "focus": false,
+                    "panel": "shared",
+                    "showReuseMessage": true,
+                    "clear": true
+                },
+        },
     ],
     "inputs":
     [
