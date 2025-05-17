@@ -320,7 +320,7 @@ class ADAPI:
         pin: bool | None = None,
         pin_thread: int | None = None,
         **kwargs
-    ) -> str:
+    ) -> list[str] | None:
         """Register a callback for whenever an app logs a message.
 
         Args:
