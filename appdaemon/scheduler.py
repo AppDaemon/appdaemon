@@ -505,13 +505,7 @@ class Scheduler:
         interval: int | float | timedelta,
         start: time | datetime | str | None = None,
     ) -> datetime:
-        match interval:
-            case int() | float():
-                interval = timedelta(seconds=interval)
-            case timedelta():
-                ...
-            case _:
-                raise ValueError(f'Bad value for interval: {interval}')
+        interval = utils.parse_timedelta(interval)
 
         now = (await self.get_now()).astimezone(self.AD.tz)
 
