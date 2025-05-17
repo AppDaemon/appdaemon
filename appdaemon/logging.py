@@ -7,7 +7,7 @@ import uuid
 from collections import OrderedDict
 from logging import Logger, StreamHandler
 from logging.handlers import RotatingFileHandler
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union, overload
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 
 import pytz
 
@@ -178,6 +178,7 @@ class Logging(metaclass=utils.Singleton):
     AD: "AppDaemon"
     """Reference to the top-level AppDaemon container object
     """
+    name: str = "_logging"
 
     config: Dict[str, Dict[str, Any]]
 
@@ -493,10 +494,16 @@ class Logging(metaclass=utils.Singleton):
             return True
         return False
 
-    @overload
-    async def add_log_callback(self, namespace: str, name: str, callback: Callable, level: str | int, pin: bool | None = None, pin_thread: int | None = None, **kwargs) -> list[str] | None: ...
-
-    async def add_log_callback(self, namespace: str, name: str, callback: Callable, level: str | int, **kwargs) -> list[str] | None:
+    async def add_log_callback(
+        self,
+        namespace: str,
+        name: str,
+        callback: Callable,
+        level: str | int,
+        pin: bool | None = None,
+        pin_thread: int | None = None,
+        **kwargs
+    ) -> list[str] | None:
         """Adds a callback for log which is called internally by apps.
 
         Args:
@@ -510,80 +517,66 @@ class Logging(metaclass=utils.Singleton):
             ``None`` or a list of the callback handles, 1 for each logging level above the one given
 
         """
-        if self.AD.threading.validate_pin(name, kwargs) is True:
-            if "pin" in kwargs:
-                pin_app = kwargs["pin"]
-            else:
-                pin_app = self.AD.app_management.objects[name].pin_app
+        pin_app, pin_thread =self.AD.threading.determine_thread(self.name, pin, pin_thread)
 
-            if "pin_thread" in kwargs:
-                pin_thread = kwargs["pin_thread"]
-                pin_app = True
-            else:
-                pin_thread = self.AD.app_management.objects[name].pin_thread
+        #
+        # Add the callback
+        #
+        async with self.AD.callbacks.callbacks_lock:
+            if name not in self.AD.callbacks.callbacks:
+                self.AD.callbacks.callbacks[name] = {}
 
-            #
-            # Add the callback
-            #
+            # Add a separate callback for each log level
+            handles = []
+            for thislevel in self.log_levels:
+                if self.log_levels[thislevel] >= self.log_levels[level]:
+                    handle = uuid.uuid4().hex
+                    cb_kwargs = copy.deepcopy(kwargs)
+                    cb_kwargs["level"] = thislevel
+                    self.AD.callbacks.callbacks[name][handle] = {
+                        "name": name,
+                        "id": self.AD.app_management.objects[name].id,
+                        "type": "log",
+                        "function": callback,
+                        "namespace": namespace,
+                        "pin_app": pin_app,
+                        "pin_thread": pin_thread,
+                        "kwargs": cb_kwargs,
+                    }
 
-            async with self.AD.callbacks.callbacks_lock:
-                if name not in self.AD.callbacks.callbacks:
-                    self.AD.callbacks.callbacks[name] = {}
+                    handles.append(handle)
 
-                # Add a separate callback for each log level
-                handles = []
-                for thislevel in self.log_levels:
-                    if self.log_levels[thislevel] >= self.log_levels[level]:
-                        handle = uuid.uuid4().hex
-                        cb_kwargs = copy.deepcopy(kwargs)
-                        cb_kwargs["level"] = thislevel
-                        self.AD.callbacks.callbacks[name][handle] = {
-                            "name": name,
-                            "id": self.AD.app_management.objects[name].id,
-                            "type": "log",
-                            "function": callback,
-                            "namespace": namespace,
-                            "pin_app": pin_app,
-                            "pin_thread": pin_thread,
-                            "kwargs": cb_kwargs,
-                        }
+                    #
+                    # If we have a timeout parameter, add a scheduler entry to delete the callback later
+                    #
+                    if "timeout" in cb_kwargs:
+                        exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=int(kwargs["timeout"]))
 
-                        handles.append(handle)
-
-                        #
-                        # If we have a timeout parameter, add a scheduler entry to delete the callback later
-                        #
-                        if "timeout" in cb_kwargs:
-                            exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=int(kwargs["timeout"]))
-
-                            cb_kwargs["__timeout"] = await self.AD.sched.insert_schedule(
-                                name=name,
-                                aware_dt=exec_time,
-                                callback=None,
-                                repeat=False,
-                                type_=None,
-                                __log_handle=handle,
-                            )
-
-                        await self.AD.state.add_entity(
-                            "admin",
-                            "log_callback.{}".format(handle),
-                            "active",
-                            {
-                                "app": name,
-                                "function": callback.__name__,
-                                "pinned": pin_app,
-                                "pinned_thread": pin_thread,
-                                "fired": 0,
-                                "executed": 0,
-                                "kwargs": cb_kwargs,
-                            },
+                        cb_kwargs["__timeout"] = await self.AD.sched.insert_schedule(
+                            name=name,
+                            aware_dt=exec_time,
+                            callback=None,
+                            repeat=False,
+                            type_=None,
+                            __log_handle=handle,
                         )
 
-            return handles
+                    await self.AD.state.add_entity(
+                        "admin",
+                        f"log_callback.{handle}",
+                        "active",
+                        {
+                            "app": name,
+                            "function": callback.__name__,
+                            "pinned": pin_app,
+                            "pinned_thread": pin_thread,
+                            "fired": 0,
+                            "executed": 0,
+                            "kwargs": cb_kwargs,
+                        },
+                    )
 
-        else:
-            return None
+        return handles
 
     async def process_log_callbacks(self, namespace, log_data):
         """Process Log callbacks"""
