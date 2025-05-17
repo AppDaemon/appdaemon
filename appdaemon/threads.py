@@ -1002,6 +1002,7 @@ class Threading:
                 async def safe_callback():
                     """Wraps actually calling the function for the callback with logic to transform exceptions based
                     on the callback type"""
+                    increment_callback_counter(app, name)
                     try:
                         await funcref()
                     except Exception as exc:
@@ -1095,6 +1096,7 @@ class Threading:
                     def safe_callback():
                         """Wraps actually calling the function for the callback with logic to transform exceptions based
                         on the callback type"""
+                        increment_callback_counter(app, name)
                         try:
                             funcref()
                         except Exception as exc:
@@ -1195,3 +1197,17 @@ class Threading:
                     "Logged an error to %s",
                     self.AD.logging.get_filename("error_log"),
                 )
+
+def increment_callback_counter(app, name):
+    try:
+        # This function may be called concurrently and the GIL won't protect us against
+        # races during app.callback_counter += 1 so we need to use a lock. We'll just use that of the app.
+        with app.lock:
+            app.callback_counter += 1
+    except Exception:
+        error_logger = logging.getLogger("Error.{}".format(name))
+        error_logger.warning("-" * 60)
+        error_logger.warning("Unexpected error in worker for App %s:", name)
+        error_logger.warning("-" * 60)
+        error_logger.warning(traceback.format_exc())
+        error_logger.warning("-" * 60)

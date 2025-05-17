@@ -107,6 +107,7 @@ class ADBase:
 
         self.namespace = "default"
         self.dashboard_dir = None
+        self.callback_counter = 0
 
         if self.AD.http is not None:
             self.dashboard_dir = self.AD.http.dashboard_dir
