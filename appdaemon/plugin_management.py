@@ -7,7 +7,7 @@ import traceback
 from collections.abc import Generator, Iterable
 from logging import Logger
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, Type, Union
+from typing import TYPE_CHECKING, Any, Dict, Type
 
 from . import utils
 from .app_management import UpdateMode
@@ -106,23 +106,6 @@ class PluginBase(abc.ABC):
 
     def set_log_level(self, level):
         self.logger.setLevel(self.AD.logging.log_levels[level])
-
-    async def perf_data(self) -> Dict[str, Union[int, float]]:
-        data = {
-            "bytes_sent": self.bytes_sent,
-            "bytes_recv": self.bytes_recv,
-            "requests_sent": self.requests_sent,
-            "updates_recv": self.updates_recv,
-            "duration": await self.AD.sched.get_now_ts() - self.last_check_ts,
-        }
-
-        self.bytes_sent = 0
-        self.bytes_recv = 0
-        self.requests_sent = 0
-        self.updates_recv = 0
-        self.last_check_ts = await self.AD.sched.get_now_ts()
-
-        return data
 
     def update_perf(self, **kwargs):
         self.bytes_sent += kwargs.get("bytes_sent", 0)
@@ -230,11 +213,11 @@ class PluginManagement:
     """
     plugin_objs: Dict[str, PluginBase]
     """Dictionary storing the instantiated plugin objects.
-    {<namespace>: {
+    ``{<namespace>: {
     "object": <PluginBase>,
     "active": <bool>,
     "name": <str>
-    }}
+    }}``
     """
     required_meta = ["latitude", "longitude", "elevation", "time_zone"]
     last_plugin_state: dict[str, datetime.datetime]
@@ -390,7 +373,7 @@ class PluginManagement:
     def get_plugin_cfg(self, plugin: str) -> PluginConfig:
         return self.config[plugin]
 
-    def get_plugin_object(self, namespace: str) -> PluginBase:
+    def get_plugin_object(self, namespace: str) -> PluginBase | None:
         if not (plugin := self.plugin_objs.get(namespace)):
             for _, cfg in self.config.items():
                 if namespace in cfg.namespaces:
@@ -437,7 +420,8 @@ class PluginManagement:
             plugin['object'].ready_event for plugin in self.plugin_objs.values()
         )
         tasks = [self.AD.loop.create_task(e.wait()) for e in events]
-        await asyncio.wait(tasks, timeout=timeout)
+        if tasks:
+            await asyncio.wait(tasks, timeout=timeout)
         self.logger.info('All plugins ready')
 
     def get_config_for_namespace(self, namespace: str) -> PluginConfig:

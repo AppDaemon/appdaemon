@@ -1,18 +1,22 @@
-import datetime
+from datetime import timedelta
 import threading
 import traceback
 import uuid
 from copy import copy, deepcopy
 from logging import Logger
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Set, Union, overload
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Protocol, Set, Union, overload
 
 from . import exceptions as ade
 from . import utils
 
 if TYPE_CHECKING:
-    from appdaemon.adbase import ADBase
-    from appdaemon.appdaemon import AppDaemon
+    from .adbase import ADBase
+    from .appdaemon import AppDaemon
+
+
+class StateCallback(Protocol):
+    def __call__(self, entity: str, attribute: str, old: Any, new: Any, **kwargs: Any) -> None: ...
 
 
 class State:
@@ -24,6 +28,7 @@ class State:
 
     AD: "AppDaemon"
     logger: Logger
+    name: str = "_state"
     state: dict[str, dict[str, Any]]
 
     app_added_namespaces: Set[str]
@@ -32,7 +37,7 @@ class State:
         self.AD = ad
 
         self.state = {"default": {}, "admin": {}, "rules": {}}
-        self.logger = ad.logging.get_child("_state")
+        self.logger = ad.logging.get_child(self.name)
         self.error = ad.logging.get_error()
         self.app_added_namespaces = set()
 
@@ -176,148 +181,160 @@ class State:
         self.save_all_namespaces()
 
     async def add_state_callback(
-            self,
-            name: str,
-            namespace: str,
-            entity: str,
-            cb: Callable,
-            kwargs: dict[str, Any]
+        self,
+        name: str,
+        namespace: str,
+        entity: str | None,
+        cb: StateCallback,
+        timeout: str | int | float | timedelta | None = None,
+        oneshot: bool = False,
+        immediate: bool = False,
+        pin: bool | None = None,
+        pin_thread: int | None = None,
+        kwargs: dict[str, Any] = None
     ):  # noqa: C901
-        # Filter none values, which might be present as defaults
-        kwargs = {k: v for k, v in kwargs.items() if v is not None}
+        """Add a state callback to AppDaemon's internal dicts.
 
-        if self.AD.threading.validate_pin(name, kwargs) is True:
-            if "pin" in kwargs:
-                pin_app = kwargs["pin"]
-            else:
-                pin_app = self.AD.app_management.objects[name].pin_app
+        Uses the internal callback lock to ensure that the callback is added in a thread-safe manner.
 
-            if "pin_thread" in kwargs:
-                pin_thread = kwargs["pin_thread"]
-                pin_app = True
-            else:
-                pin_thread = self.AD.app_management.objects[name].pin_thread
+        Args:
+            name: Name of the app registering the callback. This is important because all callbacks have to be
+                associated with an app.
+            namespace: Namespace of the entity to listen to.
+            entity (str, optional): Entity ID for listening to state changes. If ``None``, the callback will be invoked
+                for all state changes in the namespace.
+            cb (StateCallback): Callback function to be invoked when the state changes.
+            oneshot (bool, optional): If ``True``, the callback will be removed after it is executed once. Defaults to
+                ``False``.
+            immediate (bool, optional): If ``True``, the callback will be executed immediately if the entity is already
+                in the new state. Defaults to ``False``.
+            kwargs (dict, optional): Additional parameters arguments to be passed to the callback function.
 
-            #
-            # Add the callback
-            #
+        Returns:
+            A string made from ``uuid4().hex`` that is used to identify the callback. This can be used to cancel the
+            callback later.
+        """
+        if oneshot: # this is still a little awkward, but it works until this can be refactored
+            # This needs to be in the kwargs dict here that gets passed around later, so that the dispatcher knows to
+            # cancel the callback after the first run.
+            kwargs["oneshot"] = oneshot
 
-            async with self.AD.callbacks.callbacks_lock:
-                if name not in self.AD.callbacks.callbacks:
-                    self.AD.callbacks.callbacks[name] = {}
+        pin, pin_thread = self.AD.threading.determine_thread(name, pin, pin_thread)
 
-                handle = uuid.uuid4().hex
-                self.AD.callbacks.callbacks[name][handle] = {
-                    "name": name,
-                    "id": self.AD.app_management.objects[name].id,
-                    "type": "state",
-                    "function": cb,
-                    "entity": entity,
-                    "namespace": namespace,
-                    "pin_app": pin_app,
-                    "pin_thread": pin_thread,
-                    "kwargs": kwargs,
-                }
+        #
+        # Add the callback
+        #
 
-            #
-            # If we have a timeout parameter, add a scheduler entry to delete the callback later
-            #
-            if "timeout" in kwargs:
-                timeout = kwargs.pop("timeout")
-                exec_time = (await self.AD.sched.get_now()) + datetime.timedelta(seconds=int(timeout))
+        async with self.AD.callbacks.callbacks_lock:
+            if name not in self.AD.callbacks.callbacks:
+                self.AD.callbacks.callbacks[name] = {}
 
-                kwargs["__timeout"] = await self.AD.sched.insert_schedule(
+            handle = uuid.uuid4().hex
+            self.AD.callbacks.callbacks[name][handle] = {
+                "name": name,
+                "id": self.AD.app_management.objects[name].id,
+                "type": "state",
+                "function": cb,
+                "entity": entity,
+                "namespace": namespace,
+                "pin_app": pin,
+                "pin_thread": pin_thread,
+                "kwargs": kwargs,
+            }
+
+        #
+        # If we have a timeout parameter, add a scheduler entry to delete the callback later
+        #
+        if timeout is not None:
+            exec_time = (await self.AD.sched.get_now()) + utils.parse_timedelta(timeout)
+            kwargs["__timeout"] = await self.AD.sched.insert_schedule(
+                name=name,
+                aware_dt=exec_time,
+                callback=None,
+                repeat=False,
+                type_=None,
+                __state_handle=handle,
+            )
+        #
+        # In the case of a quick_start parameter,
+        # start the clock immediately if the device is already in the new state
+        #
+        if immediate:
+            __new_state = None
+            __attribute = None
+            run = False
+
+            if entity is not None and entity in self.state[namespace]:
+                run = True
+
+                if "attribute" in kwargs:
+                    __attribute = kwargs["attribute"]
+                if "new" in kwargs:
+                    if __attribute is None and self.state[namespace][entity].get("state") == kwargs["new"]:
+                        __new_state = kwargs["new"]
+                    elif (
+                        __attribute is not None
+                        and self.state[namespace][entity]["attributes"].get(__attribute) == kwargs["new"]
+                    ):
+                        __new_state = kwargs["new"]
+                    else:
+                        run = False
+                else:  # use the present state of the entity
+                    if __attribute is None and "state" in self.state[namespace][entity]:
+                        __new_state = self.state[namespace][entity]["state"]
+                    elif __attribute is not None:
+                        if __attribute in self.state[namespace][entity]["attributes"]:
+                            __new_state = self.state[namespace][entity]["attributes"][__attribute]
+                        elif __attribute == "all":
+                            __new_state = self.state[namespace][entity]
+
+                __duration = utils.parse_timedelta(kwargs.get("duration", 0))
+            if run:
+                exec_time = await self.AD.sched.get_now() + __duration
+
+                if kwargs.get("oneshot", False):
+                    kwargs["__handle"] = handle
+
+                __scheduler_handle = await self.AD.sched.insert_schedule(
                     name=name,
                     aware_dt=exec_time,
-                    callback=None,
+                    callback=cb,
                     repeat=False,
                     type_=None,
-                    __state_handle=handle,
+                    __entity=entity,
+                    __attribute=__attribute,
+                    __old_state=None,
+                    __new_state=__new_state,
+                    **kwargs,
                 )
-            #
-            # In the case of a quick_start parameter,
-            # start the clock immediately if the device is already in the new state
-            #
-            if kwargs.get("immediate") is True:
-                __duration = 0  # run it immediately
-                __new_state = None
-                __attribute = None
-                run = False
 
-                if entity is not None and entity in self.state[namespace]:
-                    run = True
+                if __duration.total_seconds() >= 1:  # it only stores it when needed
+                    kwargs["__duration"] = __scheduler_handle
 
-                    if "attribute" in kwargs:
-                        __attribute = kwargs["attribute"]
-                    if "new" in kwargs:
-                        if __attribute is None and self.state[namespace][entity].get("state") == kwargs["new"]:
-                            __new_state = kwargs["new"]
-                        elif (
-                            __attribute is not None
-                            and self.state[namespace][entity]["attributes"].get(__attribute) == kwargs["new"]
-                        ):
-                            __new_state = kwargs["new"]
-                        else:
-                            run = False
-                    else:  # use the present state of the entity
-                        if __attribute is None and "state" in self.state[namespace][entity]:
-                            __new_state = self.state[namespace][entity]["state"]
-                        elif __attribute is not None:
-                            if __attribute in self.state[namespace][entity]["attributes"]:
-                                __new_state = self.state[namespace][entity]["attributes"][__attribute]
-                            elif __attribute == "all":
-                                __new_state = self.state[namespace][entity]
+        await self.AD.state.add_entity(
+            "admin",
+            f"state_callback.{handle}",
+            "active",
+            {
+                "app": name,
+                "listened_entity": entity,
+                "function": cb.__name__,
+                "pinned": pin,
+                "pinned_thread": pin_thread,
+                "fired": 0,
+                "executed": 0,
+                "kwargs": kwargs,
+            },
+        )
 
-                    if "duration" in kwargs:
-                        __duration = int(kwargs["duration"])
-                if run:
-                    exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=__duration)
+        return handle
 
-                    if kwargs.get("oneshot", False):
-                        kwargs["__handle"] = handle
-
-                    __scheduler_handle = await self.AD.sched.insert_schedule(
-                        name=name,
-                        aware_dt=exec_time,
-                        callback=cb,
-                        repeat=False,
-                        type_=None,
-                        __entity=entity,
-                        __attribute=__attribute,
-                        __old_state=None,
-                        __new_state=__new_state,
-                        **kwargs,
-                    )
-
-                    if __duration >= 1:  # it only stores it when needed
-                        kwargs["__duration"] = __scheduler_handle
-
-            await self.AD.state.add_entity(
-                "admin",
-                "state_callback.{}".format(handle),
-                "active",
-                {
-                    "app": name,
-                    "listened_entity": entity,
-                    "function": cb.__name__,
-                    "pinned": pin_app,
-                    "pinned_thread": pin_thread,
-                    "fired": 0,
-                    "executed": 0,
-                    "kwargs": kwargs,
-                },
-            )
-
-            return handle
-        else:
-            return None
-
-    async def cancel_state_callback(self, handle, name, silent=False):
+    async def cancel_state_callback(self, handle: str, name: str, silent: bool = False) -> bool:
         executed = False
         async with self.AD.callbacks.callbacks_lock:
             if name in self.AD.callbacks.callbacks and handle in self.AD.callbacks.callbacks[name]:
                 del self.AD.callbacks.callbacks[name][handle]
-                await self.AD.state.remove_entity("admin", "state_callback.{}".format(handle))
+                await self.AD.state.remove_entity("admin", f"state_callback.{handle}")
                 executed = True
 
             if name in self.AD.callbacks.callbacks and self.AD.callbacks.callbacks[name] == {}:
@@ -330,15 +347,32 @@ class State:
 
         return executed
 
-    async def info_state_callback(self, handle, name):
+    async def info_state_callback(self, handle: str, name: str) -> tuple[str, str, Any, dict[str, Any]]:
+        """Get information about a state callback
+
+        Needs to be async to use the callback lock.
+
+        Args:
+            handle (str): Handle from when the callback was registered.
+            name (str): Name of the app that registered the callback. Every callback is registered under an app, so this
+                is required to find the callback information.
+
+        Returns:
+            A tuple with the namespace, entity, attribute, and kwargs of the callback
+        """
         async with self.AD.callbacks.callbacks_lock:
-            if name in self.AD.callbacks.callbacks and handle in self.AD.callbacks.callbacks[name]:
+            if (
+                (app_callbacks := self.AD.callbacks.callbacks.get(name, False)) and # This app has callbacks
+                (callback := app_callbacks.get(handle, False))                      # This callback handle exists for it
+            ):  # fmt: skip
                 callback = self.AD.callbacks.callbacks[name][handle]
+                app_object = self.AD.app_management.objects[name].object
+                sanitized_kwargs = self.sanitize_state_kwargs(app_object, callback["kwargs"])
                 return (
                     callback["namespace"],
                     callback["entity"],
                     callback["kwargs"].get("attribute", None),
-                    self.sanitize_state_kwargs(self.AD.app_management.objects[name].object, callback["kwargs"]),
+                    sanitized_kwargs,
                 )
             else:
                 raise ValueError("Invalid handle: {}".format(handle))
@@ -429,7 +463,7 @@ class State:
                         # Remove the callback if appropriate
                         if executed is True:
                             remove = callback["kwargs"].get("oneshot", False)
-                            if remove is True:
+                            if remove:
                                 removes.append({"name": callback["name"], "uuid": uuid_})
 
         for remove in removes:
@@ -535,9 +569,9 @@ class State:
         self,
         name: str,
         namespace: str,
-        entity_id: Optional[str] = None,
-        attribute: Optional[str] = None,
-        default=None,
+        entity_id: str | None = None,
+        attribute: str | None = None,
+        default: Any | None = None,
         copy: bool = True,
     ):
         self.logger.debug("get_state: %s.%s %s %s", entity_id, attribute, default, copy)
@@ -666,17 +700,17 @@ class State:
         name: str,
         namespace: str,
         entity: str,
-        _silent: bool,
-        state: Any,
-        attributes: dict,
-        replace: bool,
+        _silent: bool = False,
+        state: Any | None = None,
+        attributes: dict | None = None,
+        replace: bool = False,
         **kwargs
     ) -> None: ...
 
     async def set_state(self, name: str, namespace: str, entity: str, _silent: bool = False, **kwargs):
-        """Sets the internal state of an entity. Uses relevant plugin objects based on namespace.
+        """Sets the internal state of an entity.
 
-        Fires the ``state_changed`` event under the namespace
+        Fires the ``state_changed`` event under the namespace, and uses relevant plugin objects based on namespace.
 
         Args:
             name: Only used for a log message

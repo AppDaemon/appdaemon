@@ -1,37 +1,16 @@
 import asyncio
 import functools
 import threading
+from collections import defaultdict
 from copy import deepcopy
-from dataclasses import dataclass
 from logging import Logger
-from typing import TYPE_CHECKING, Any, Callable, Dict, Set, overload
+from typing import TYPE_CHECKING, Any, Callable
 
-import appdaemon.utils as utils
+from appdaemon import utils
 from appdaemon.exceptions import DomainException, NamespaceException, ServiceException
 
 if TYPE_CHECKING:
     from appdaemon.appdaemon import AppDaemon
-
-
-@dataclass
-class ServiceDefinition:
-    __name: str | None = None
-    callback: str | None = None
-
-
-@dataclass
-class DomainServices:
-    _services: dict[str, ServiceDefinition]
-
-
-@dataclass
-class NamespaceServices:
-    _services: dict[str, DomainServices]
-
-
-@dataclass
-class ServiceCollection:
-    _services: dict[str, NamespaceServices]
 
 
 class Services:
@@ -42,36 +21,50 @@ class Services:
     """
 
     AD: "AppDaemon"
+    name: str = "_services"
     logger: Logger
     error: Logger
-    services: Dict[str, Dict[str, Any]]
-    services_lock: threading.RLock
-    app_registered_services: Dict[str, Set]
+    services: dict[
+        str,                    # namespace
+        dict[
+            str,                # domain
+            dict[
+                str,            # service
+                dict[str, Any]  # service info
+            ]
+        ]
+    ] = {}
+    services_lock: threading.RLock = threading.RLock()
+    app_registered_services: defaultdict[str, set[str]] = defaultdict(set)
 
     def __init__(self, ad: "AppDaemon"):
         self.AD = ad
-        self.services = {}
-        self.services_lock = threading.RLock()
-        self.app_registered_services = {}
-        self.logger = ad.logging.get_child("_services")
+        self.logger = ad.logging.get_child(self.name)
+        self.error = ad.logging.get_error()
 
-    @property
-    def error(self) -> Logger:
-        return self.AD.logging.get_error()
-
-    @overload
     def register_service(
         self,
         namespace: str,
         domain: str,
         service: str,
         callback: Callable,
-        __slient: bool,
-        __name: str,
-        **kwargs
-    ) -> None: ...
+        __silent: bool = False,
+        __name: str | None = None,
+        **kwargs: Any,
+    ) -> None:
+        """Register a service with AppDaemon. This method should only be used by AppDaemon internals.
 
-    def register_service(self, namespace: str, domain: str, service: str, callback: Callable, **kwargs) -> None:
+        Services are tracked with a nested dicts structure.
+
+        Args:
+            namespace (str): Namespace of the service
+            domain (str): Domain of the service
+            service (str): Name of the service
+            callback (Callable): Callback function to be called when the service is invoked
+            __silent (bool, optional): If True, do not send a registration event. Defaults to False.
+            __name (str | None, optional): Name of the app registering the service. Defaults to None.
+            **kwargs: Additional keyword arguments to be passed to the callback function.
+        """
         self.logger.debug(
             "register_service called: %s.%s.%s -> %s",
             namespace,
@@ -80,12 +73,9 @@ class Services:
             callback,
         )
 
-        __silent = kwargs.pop("__silent", False)
-
         with self.services_lock:
-            name = kwargs.get("__name")
             # first we confirm if the namespace exists
-            if name and namespace not in self.AD.state.state:
+            if __name and self.AD.state.namespace_exists(namespace):
                 raise NamespaceException(f"Namespace {namespace}, doesn't exist")
 
             elif not callable(callback):
@@ -100,35 +90,30 @@ class Services:
             if service in self.services[namespace][domain]:
                 # there was a service already registered before
                 # so if a different app, we ask to deregister first
-                service_app = self.services[namespace][domain][service].get(
-                    "__name")
-                if service_app and service_app != name:
+                service_app = self.services[namespace][domain][service].get("__name")
+                if service_app and service_app != __name:
                     self.logger.warning(
                         f"This service '{domain}/{service}' already registered to a "
                         f"different app '{service_app}', and so cannot be registered "
-                        f"to {name}. Do deregister from app first"
+                        f"to {__name}. Do deregister from app first"
                     )
                     return
 
             self.services[namespace][domain][service] = {
                 "callback": callback,
-                "__name": name,
+                "__name": __name,
                 **kwargs
             }
 
-            if __silent is False:
+            if __name:
+                self.app_registered_services[__name].add(f"{namespace}:{domain}:{service}")
+
+            if not __silent:
                 data = {
                     "event_type": "service_registered",
                     "data": {"namespace": namespace, "domain": domain, "service": service},
                 }
-                self.AD.loop.create_task(
-                    self.AD.events.process_event(namespace, data))
-
-            if name:
-                if name not in self.app_registered_services:
-                    self.app_registered_services[name] = set()
-
-                self.app_registered_services[name].add(f"{namespace}:{domain}:{service}")
+                self.AD.loop.create_task(self.AD.events.process_event(namespace, data))
 
     def deregister_service(self, namespace: str, domain: str, service: str, __name: str) -> bool:
         """Used to unregister a service"""

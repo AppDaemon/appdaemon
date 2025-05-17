@@ -21,7 +21,7 @@ class Futures:
         self.futures = defaultdict(list)
 
     def add_future(self, app_name: str, future: asyncio.Future):
-        """Add a future to the registry and a callback that removes itself after it finishes."""
+        """Add a future to the registry and a callback that removes itself from the registry after it finishes."""
         self.futures[app_name].append(future)
         def safe_remove(f):
             try:

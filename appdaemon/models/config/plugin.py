@@ -97,7 +97,7 @@ class HASSConfig(PluginConfig):
     q_timeout: int = 30
     ws_timeout: Annotated[
         timedelta,
-        BeforeValidator(utils.convert_timedelta)
+        BeforeValidator(utils.parse_timedelta)
     ] = Field(default_factory=lambda: timedelta(seconds=10))
     """Default timeout for waiting for responses from the websocket connection"""
     # return_result: bool | None = None

@@ -1204,7 +1204,7 @@ class Hass(ADBase, ADAPI):
             entity_id=entity_id,
             duration=duration,
         )
-        if res['success']:
+        if isinstance(res, dict) and res['success']:
             return [
                 {
                     k: datetime.fromisoformat(v) if k in ('start', 'end') else v

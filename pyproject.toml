@@ -7,7 +7,7 @@ authors = [
 ]
 dynamic = ["version"] # The verison is computed dynamically. See `tool.setuptools.dynamic` section below.
 license= { file = "LICENSE.md" }
-requires-python = ">=3.10,<3.14"
+requires-python = ">=3.10,<3.13"
 keywords=[ "appdaemon", "home", "automation" ]
 dependencies = [
     'importlib-metadata; python_version<"3.8"',

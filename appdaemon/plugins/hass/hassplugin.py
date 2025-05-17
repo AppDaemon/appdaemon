@@ -214,8 +214,8 @@ class HassPlugin(PluginBase):
             await self.ready_event.wait()
 
         await self.notify_plugin_started(
-            await self.get_hass_config(),
-            await self.get_complete_state()
+            meta=await self.get_hass_config(),
+            state=await self.get_complete_state()
         )
         self.first_time = False
 
@@ -352,7 +352,7 @@ class HassPlugin(PluginBase):
         self._silent_results[self.id] = silent
 
         try:
-            timeout = utils.convert_timedelta(timeout) if timeout is not None else self.config.ws_timeout
+            timeout = utils.parse_timedelta(timeout) if timeout is not None else self.config.ws_timeout
             result: dict = await asyncio.wait_for(future, timeout=timeout.total_seconds())
         except asyncio.TimeoutError:
             ad_status = ServiceCallStatus.TIMEOUT

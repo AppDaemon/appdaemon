@@ -1,16 +1,21 @@
 from collections.abc import Iterable
 import datetime
+import json
 import traceback
 import uuid
 from copy import deepcopy
 from logging import Logger
-from typing import TYPE_CHECKING, Any, overload
+from typing import TYPE_CHECKING, Any, Protocol
 from collections.abc import Callable
 
 import appdaemon.utils as utils
 
 if TYPE_CHECKING:
     from appdaemon.appdaemon import AppDaemon
+
+
+class EventCallback(Protocol):
+    def __call__(self, event_name: str, data: dict[str, Any], **kwargs: Any) -> None: ...
 
 
 class Events:
@@ -27,109 +32,98 @@ class Events:
         self.AD = ad
         self.logger = ad.logging.get_child("_events")
 
-    @overload
     async def add_event_callback(
         self,
         name: str,
         namespace: str,
         cb: Callable,
-        event: str | Iterable[str],
-        timeout: int,
-        oneshot: bool,
-        pin: bool,
-        pin_thread: int,
-        **kwargs
-    ) -> str | list[str]: ...
+        event: str | Iterable[str] | None = None,
+        timeout: str | int | float | datetime.timedelta | None = None,
+        oneshot: bool = False,
+        pin: bool | None = None,
+        pin_thread: int | None = None,
+        kwargs: dict[str, Any] = None, # Intentionally not expanding the kwargs here so that there are no name clashes
+    ) -> str | list[str] | None:
+        """Add an event callback to AppDaemon's internal dicts.
 
-    async def add_event_callback(
-        self,
-        name: str,
-        namespace: str,
-        cb: Callable,
-        event: str | Iterable[str],
-        **kwargs
-    ) -> str | None:
-        """Adds a callback for an event which is called internally by apps.
+        Uses the internal callback lock to ensure that the callback is added in a thread-safe manner, and adds an entity
+        in the admin namespace to track the callback.
+
+        Includes a feature to automatically cancel the callback after a timeout, if specified.
 
         Args:
-            name (str): Name of the app.
-            namespace (str): Namespace of the event.
+            name (str): Name of the app registering the callback. This is important because all callbacks have to be
+                associated with an app.
+            namespace (str): Namespace to listen for the event in. All events are fired in a namespace, and this will
+                only listen for events in that namespace.
             cb (Callable): Callback function.
             event (str | Iterable[str]): Name of the event.
             timeout (int, optional):
-            oneshot (bool, optional):
-            pin (bool, optional):
-            pin_thread (int, optional):
-            **kwargs: List of values to filter on, and additional arguments to pass to the callback.
+            oneshot (bool, optional): If ``True``, the callback will be removed after it is executed once. Defaults to
+                ``False``.
+            kwargs: List of values to filter on, and additional arguments to pass to the callback.
 
         Returns:
             ``None`` or the reference to the callback handle.
         """
+        if oneshot: # this is still a little awkward, but it works until this can be refactored
+            # This needs to be in the kwargs dict here that gets passed around later, so that the dispatcher knows to
+            # cancel the callback after the first run.
+            kwargs["oneshot"] = oneshot
 
-        if self.AD.threading.validate_pin(name, kwargs) is True:
-            if "pin" in kwargs:
-                pin_app = kwargs["pin_app"]
-            else:
-                pin_app = self.AD.app_management.objects[name].pin_app
+        pin, pin_thread = self.AD.threading.determine_thread(name, pin, pin_thread)
 
-            if "pin_thread" in kwargs:
-                pin_thread = kwargs["pin_thread"]
-                pin_app = True
-            else:
-                pin_thread = self.AD.app_management.objects[name].pin_thread
+        async with self.AD.callbacks.callbacks_lock:
+            if name not in self.AD.callbacks.callbacks:
+                self.AD.callbacks.callbacks[name] = {}
+            handle = uuid.uuid4().hex
+            self.AD.callbacks.callbacks[name][handle] = {
+                "name": name,
+                "id": self.AD.app_management.objects[name].id,
+                "type": "event",
+                "function": cb,
+                "namespace": namespace,
+                "event": event,
+                "pin_app": pin,
+                "pin_thread": pin_thread,
+                "kwargs": kwargs,
+            }
 
-            async with self.AD.callbacks.callbacks_lock:
-                if name not in self.AD.callbacks.callbacks:
-                    self.AD.callbacks.callbacks[name] = {}
-                handle = uuid.uuid4().hex
-                self.AD.callbacks.callbacks[name][handle] = {
-                    "name": name,
-                    "id": self.AD.app_management.objects[name].id,
-                    "type": "event",
-                    "function": cb,
-                    "namespace": namespace,
-                    "event": event,
-                    "pin_app": pin_app,
-                    "pin_thread": pin_thread,
-                    "kwargs": kwargs,
-                }
-
-            if "timeout" in kwargs:
-                timeout = kwargs.pop("timeout")
-                exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=int(timeout))
-
-                kwargs["__timeout"] = await self.AD.sched.insert_schedule(
-                    name=name,
-                    aware_dt=exec_time,
-                    callback=None,
-                    repeat=False,
-                    type_=None,
-                    __event_handle=handle,
-                )
-
-            await self.AD.state.add_entity(
-                "admin",
-                f"event_callback.{handle}",
-                "active",
-                {
-                    "app": name,
-                    "event_name": event,
-                    "function": cb.__name__,
-                    "pinned": pin_app,
-                    "pinned_thread": pin_thread,
-                    "fired": 0,
-                    "executed": 0,
-                    "kwargs": kwargs,
-                },
+        # Automatically cancel the callback after a timeout
+        if timeout is not None:
+            exec_time = await self.AD.sched.get_now() + utils.parse_timedelta(timeout)
+            kwargs["__timeout"] = await self.AD.sched.insert_schedule(
+                name=name,
+                aware_dt=exec_time,
+                callback=None,
+                repeat=False,
+                type_=None,
+                __event_handle=handle,
             )
-            return handle
 
-    async def cancel_event_callback(self, name, handle):
+        await self.AD.state.add_entity(
+            namespace="admin",
+            entity=f"event_callback.{handle}",
+            state="active",
+            attributes={
+                "app": name,
+                "event_name": event,
+                "function": cb.__name__,
+                "pinned": pin,
+                "pinned_thread": pin_thread,
+                "fired": 0,
+                "executed": 0,
+                "kwargs": kwargs,
+            },
+        )
+        return handle
+
+    async def cancel_event_callback(self, name: str, handle: str, *, silent: bool = False):
         """Cancels an event callback.
 
         Args:
-            name (str): Name of the app or module.
-            handle: Previously supplied callback handle for the callback.
+            name (str): Name of the app that registered the callback.
+            handle (str): Handle produced by ``listen_event()`` when creating the callback.
 
         Returns:
             None.
@@ -147,7 +141,7 @@ class Events:
             if name in self.AD.callbacks.callbacks and self.AD.callbacks.callbacks[name] == {}:
                 del self.AD.callbacks.callbacks[name]
 
-        if not executed:
+        if not executed and not silent:
             self.logger.warning(
                 f"Invalid callback handle '{handle}' in cancel_event_callback() from app {name}"
             )
@@ -199,7 +193,7 @@ class Events:
 
         if hasattr(plugin, "fire_plugin_event"):
             # We assume that the event will come back to us via the plugin
-            await plugin.fire_plugin_event(event, namespace, **kwargs)
+            return await plugin.fire_plugin_event(event, namespace, **kwargs)
         else:
             # Just fire the event locally
             await self.AD.events.process_event(namespace, {"event_type": event, "data": kwargs})
@@ -282,6 +276,7 @@ class Events:
             self.logger.warning("Unexpected error during process_event()")
             self.logger.warning("-" * 60)
             self.logger.warning(traceback.format_exc())
+            self.logger.warning(json.dumps(data, indent=4))
             self.logger.warning("-" * 60)
 
     async def has_log_callback(self, name: str):
@@ -310,7 +305,7 @@ class Events:
 
         return has_log_callback
 
-    async def process_event_callbacks(self, namespace, data):
+    async def process_event_callbacks(self, namespace: str, data: dict[str, Any]) -> None:
         """Processes a pure event callback.
 
         Locate any callbacks that may be registered for this event, check for filters and if appropriate,
@@ -407,4 +402,4 @@ class Events:
     @staticmethod
     def sanitize_event_kwargs(app, kwargs):
         kwargs_copy = kwargs.copy()
-        return utils._sanitize_kwargs(kwargs_copy, ["__silent"])
+        return utils._sanitize_kwargs(kwargs_copy, ["__silent", "pin_app"])

@@ -16,12 +16,12 @@ import sys
 import threading
 import time
 import traceback
-from collections.abc import Iterable
-from datetime import timedelta
+from collections.abc import Awaitable, Iterable
+from datetime import timedelta, tzinfo
 from functools import wraps
 from logging import Logger
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Coroutine, Dict
+from typing import TYPE_CHECKING, Any, Callable, Coroutine, Dict, Literal, ParamSpec, Protocol, TypeVar
 
 import dateutil.parser
 import tomli
@@ -205,28 +205,40 @@ def check_state(logger, new_state, callback_state, name) -> bool:
     return passed
 
 
-def sync_decorator(coro_func):  # no type hints here, so that @wraps(func) works properly
+P = ParamSpec("P")
+R = TypeVar("R")
+
+
+def sync_decorator(coro_func: Callable[P, Awaitable[R]]) -> Callable[P, R]:
+    """Wrap a coroutine function to ensure it gets run in the main thread.
+
+    This allows users to run async ADAPI methods as if they were regular sync methods. It works by checking to see if
+    the function is being run in the main thread, which has the async event loop in it. If it is the main loop, then it
+    creates a task and returns it. If it isn't, then it runs the coroutine in the main thread using
+    ``run_coroutine_threadsafe``.
+
+    See
+    `scheduling from other threads <https://docs.python.org/3/library/asyncio-task.html#scheduling-from-other-threads>`__
+    for more details.
+    """
     @wraps(coro_func)
-    def wrapper(self, *args, timeout: str | int | float | None = None, **kwargs):
-        # self.logger.debug(f"Wrapping async function {coro_func.__qualname__}")
+    def wrapper(self, *args, timeout: str | int | float | timedelta | None = None, **kwargs) -> R:
         ad: "AppDaemon" = self.AD
 
-        try:
-            # Checks to see if it's being called from the main thread, which has the event loop in it
-            running_loop = ad.main_thread_id == threading.current_thread().ident
+        # Checks to see if it's being called from the main thread, which has the event loop in it
+        in_main_thread = ad.main_thread_id == threading.current_thread().ident
 
-            coro = coro_func(self, *args, **kwargs)
-            if running_loop:
-                task = asyncio.create_task(coro)
-                ad.futures.add_future(self.name, task)
-                return task
-            else:
-                return run_coroutine_threadsafe(self, coro, timeout=timeout)
-        except Exception:
-            # except Exception as e:
-            # ad.threading.logger.error(f"Error running coroutine threadsafe: {e}")
-            # ad.threading.logger.error(format_exception(e))
-            raise
+        # pass through the timeout argument if the function accepts it
+        if 'timeout' in inspect.signature(coro_func).parameters:
+            kwargs['timeout'] = timeout
+
+        coro = coro_func(self, *args, **kwargs)
+        if in_main_thread:
+            task = asyncio.create_task(coro)
+            ad.futures.add_future(self.name, task)
+            return task
+        else:
+            return run_coroutine_threadsafe(self, coro, timeout=timeout)
 
     return wrapper
 
@@ -266,18 +278,48 @@ def _profile_this(fn):
     return profiled_fn
 
 
-def format_seconds(secs):
-    return str(timedelta(seconds=secs))
+def format_seconds(secs: str | int | float | timedelta) -> str:
+    return str(parse_timedelta(secs))
 
 
-def convert_timedelta(s: str | int | float | timedelta | None) -> timedelta | None:
+def parse_timedelta(s: str | int | float | timedelta | None) -> timedelta:
+    """Convert disparate types into a timedelta object.
+
+    Args:
+        s (str | int | float | timedelta | None): The value to convert. Can be a string, int, float, or timedelta.
+            Numbers get interpreted as seconds. Strings can in different formats either ``HH:MM:SS``, ``MM:SS``, or
+            ``SS``.
+
+    Returns:
+        Timedelta object.
+
+    Examples:
+        >>> parse_timedelta(0.025374)
+        datetime.timedelta(microseconds=25374)
+
+        >>> parse_timedelta(0.687)
+        datetime.timedelta(microseconds=687000)
+
+        >>> parse_timedelta(2.5)
+        datetime.timedelta(seconds=2, microseconds=500000)
+
+        >>> parse_timedelta("25")
+        datetime.timedelta(seconds=25)
+
+        >>> parse_timedelta("02:30")
+        datetime.timedelta(seconds=150)
+
+        >>> parse_timedelta("00:00:00")
+        datetime.timedelta(0)
+
+    """
     match s:
         case timedelta():
             return s
         case int() | float():
             return timedelta(seconds=s)
         case str():
-            parts = tuple(float(p) for p in s.split(":"))
+            parts = tuple(float(p.strip()) for p in re.split(r"[^\d]+", s))
             match len(parts):
                 case 1:
                     return timedelta(seconds=parts[0])
@@ -290,20 +332,60 @@ def convert_timedelta(s: str | int | float | timedelta | None) -> timedelta | No
                 case 4:
                     day, hour, min, sec = parts
                     return timedelta(days=day, hours=hour, minutes=min, seconds=sec)
+        case None:
+            return timedelta()
+        case _:
+            raise ValueError(f"Invalid type for timedelta: {type(s)}. Must be str, int, float, or timedelta")
 
 
-def format_timedelta(td: timedelta) -> str:
-    seconds = td.total_seconds()
-    if seconds == 0:
-        return "No time"
-    elif seconds < 0.1:
-        return f"{seconds * 10**3:.3f}ms"
-    elif seconds < 1:
-        return f"{seconds * 10**3:.0f}ms"
-    elif seconds < 10:
-        return f"{td.total_seconds():.1f}s"
-    else:
-        return str(td).split(".")[0]
+def format_timedelta(td: str | int | float | timedelta | None) -> str:
+    """Format a timedelta object into a human-readable string.
+
+    There are different brackets for lengths of time that will format the strings differently.
+
+    Uses ``parse_timedelta`` to convert the input into a timedelta object before formatting the string.
+
+    Examples:
+        >>> format_timedelta(0.025374)
+        '25.374ms'
+
+        >>> format_timedelta(0.687)
+        '687ms'
+
+        >>> format_timedelta(2.5)
+        '2.5s'
+
+        >>> format_timedelta(25)
+        '25s'
+
+        >>> format_timedelta(None)
+        'never'
+
+        >>> format_timedelta(0)
+        'No time'
+
+    """
+    match td:
+        case None:
+            return 'never'
+        case _:
+            td = parse_timedelta(td)
+            seconds = td.total_seconds()
+            if seconds == 0:
+                return "No time"
+            elif seconds < 0.1:
+                return f"{seconds * 10**3:.3f}ms"
+            elif seconds < 1:
+                return f"{seconds * 10**3:.0f}ms"
+            elif seconds < 25:
+                return f"{seconds:.1f}s"
+            else:
+                td = timedelta(seconds=round(seconds, 0)) # Round off the seconds for longer durations
+                res = str(td)
+                hours = int(seconds / 3600)
+                if hours == 0: # Remove the hours portion if it's 0
+                    res = res.split(':', 1)[1]
+                return res
 
 
 def deep_compare(check: dict, data: dict) -> bool:
@@ -346,28 +428,12 @@ def day_of_week(day):
     raise ValueError("Incorrect type for 'day' in day_of_week()'")
 
 
-# don't use any type hints here, so that @wraps will work properly
-def executor_decorator(func):
-    """Use this decorator on synchronous class methods to have them run in the AD executor asynchronously"""
-
-    @wraps(func)
-    async def wrapper(self, *args, **kwargs):
-        ad: "AppDaemon" = self.AD
-        preloaded_function = functools.partial(func, self, *args, **kwargs)
-        ad.threading.logger.debug(f"Running {func.__qualname__} in the {type(ad.executor).__name__}")
-        # self.logger.debug(f"Running {func.__qualname__} in the {type(ad.executor).__name__}")
-        future = ad.loop.run_in_executor(executor=ad.executor, func=preloaded_function)
-        return await future
-
-    return wrapper
-
-
 def format_exception(e):
     # return "\n\n" + "".join(traceback.format_exception_only(e))
     return traceback.format_exc()
 
 
-def log_warning_block(logger: Logger, exception_text: str, header: str | None = None, width: int = 60):
+def log_warning_block(logger: Logger, exception_text: str, header: str | None = None, width: int = 60) -> None:
     logger.warning("-" * width)
     logger.warning(header or "Unexpe")
     exception_text = ("-" * 60) + "\n" + exception_text
@@ -381,21 +447,23 @@ def warning_decorator(
     error_text: str | None = None,
     finally_text: str | None = None,
     reraise: bool = False,
-):
-    """Creates a decorator for a function that logs custom text before and after,
-    depending on whether it succeeds.
+) -> Callable[[Callable[..., Coroutine[Any, Any, R]]], Callable[..., Coroutine[Any, Any, R]]]:
+    """Decorate an async function to log messages at various stages around it running.
 
-    By default this does not reraise any exceptions that occur during the execution
-    of the wrapped function.
+    By default this does not reraise any exceptions that occur during the execution of the wrapped function.
 
     Only works on methods of AppDaemon subsystems because it uses the attributes:
         - self.logger
         - self.AD
+
+    Raises:
+        By default, only ever re-raises an AppDaemonException
+
     """
 
-    def decorator(func):
+    def decorator(func: Callable[..., Coroutine[Any, Any, R]]) -> Callable[..., Coroutine[Any, Any, R]]:
         @wraps(func)
-        async def wrapper(self, *args, **kwargs):
+        async def wrapper(self, *args: Any, **kwargs: Any) -> R:
             logger: Logger = self.logger
             error_logger: Logger = self.error
             nonlocal error_text
@@ -405,10 +473,7 @@ def warning_decorator(
                 if start_text is not None:
                     logger.debug(start_text)
 
-                if asyncio.iscoroutinefunction(func):
-                    result = await func(self, *args, **kwargs)
-                else:
-                    result = func(self, *args, **kwargs)
+                result = await func(self, *args, **kwargs)
             except SyntaxError as e:
                 logger.warning(error_text)
                 log_warning_block(error_logger, header=error_text, exception_text="".join(traceback.format_exception(e, limit=-1)))
@@ -445,8 +510,27 @@ def warning_decorator(
     return decorator
 
 
-async def run_in_executor(self, fn, *args, **kwargs) -> Any:
-    """Runs the function with the given arguments in the instance of :class:`~concurrent.futures.ThreadPoolExecutor` in the top-level :class:`~appdaemon.appdaemon.AppDaemon` object.
+class Subsystem(Protocol):
+    """AppDaemon internal subsystem protocol."""
+    AD: "AppDaemon"
+    """Reference to the top-level AppDaemon object"""
+    logger: Logger
+
+
+def executor_decorator(func: Callable[..., R]) -> Callable[..., Coroutine[Any, Any, R]]:
+    """Decorate a sync function to turn it into an async function that runs in a separate thread."""
+
+    @wraps(func)
+    async def wrapper(*args: Any, **kwargs: Any) -> R:
+        self: Subsystem = args[0]
+        return await run_in_executor(self, func, *args, **kwargs)
+
+    return wrapper
+
+
+async def run_in_executor(self: Subsystem, fn: Callable[..., R], *args, **kwargs) -> R:
+    """Runs the function with the given arguments in the instance of :class:`~concurrent.futures.ThreadPoolExecutor` in
+    the top-level :class:`~appdaemon.appdaemon.AppDaemon` object.
 
     Args:
         self: Needs to have an ``AD`` attribute with the :class:`~appdaemon.appdaemon.AppDaemon` object
@@ -457,30 +541,42 @@ async def run_in_executor(self, fn, *args, **kwargs) -> Any:
     Returns:
         Whatever the function returns
     """
-    ad: "AppDaemon" = self.AD
+    function_name = unwrapped(fn).__qualname__
+    executor_name = type(self.AD.executor).__name__
+    self.AD.threading.logger.debug(f"Running {function_name} in the {executor_name}")
+
     preloaded_function = functools.partial(fn, *args, **kwargs)
-    future = ad.loop.run_in_executor(executor=ad.executor, func=preloaded_function)
+    future = self.AD.loop.run_in_executor(executor=self.AD.executor, func=preloaded_function)
+    self.AD.futures.add_future(self.name, future)
     return await future
 
 
-def run_coroutine_threadsafe(self: "ADBase", coro: Coroutine, timeout: str | int | float | None = None) -> Any:
-    """This runs an instantiated coroutine (async) from sync code. This handles the logic for cancelling
-    coroutines that run too long.
+def run_coroutine_threadsafe(
+    self: "ADBase",
+    coro: Coroutine[Any, Any, R],
+    timeout: str | int | float | timedelta | None = None
+) -> R:
+    """Run an instantiated coroutine (async) from sync code.
+
+    This wraps the native python function ``asyncio.run_coroutine_threadsafe`` with logic to add a timeout. See
+    `scheduling from other threads <https://docs.python.org/3/library/asyncio-task.html#scheduling-from-other-threads>`__
+    for more details.
 
     Args:
-        self (ADBase): Needs to have a ``self.AD`` attribute with the ``AppDaemon`` object.
+        self (ADBase): Needs to have a ``self.AD`` attribute with a reference to the ``AppDaemon`` object.
         coro (Coroutine): An instantiated coroutine that hasn't been awaited.
-        timeout (float | None, optional): Optional timeout. Defaults to None,
-            which will block indefinitely
+        timeout (float | None, optional): Optional timeout to use. If no value is provided then the value set in
+            ``appdaemon.internal_function_timeout`` in the ``appdaemon.yaml`` file will be used.
 
     Returns:
         Result from the coroutine
     """
     timeout = timeout or self.AD.config.internal_function_timeout
-    timeout = convert_timedelta(timeout)
+    timeout = parse_timedelta(timeout)
 
     if self.AD.loop.is_running():
         future = asyncio.run_coroutine_threadsafe(coro, self.AD.loop)
+        self.AD.futures.add_future(self.name, future)
         try:
             return future.result(timeout.total_seconds())
         except concurrent.futures.CancelledError:
@@ -547,13 +643,6 @@ def find_path(name: str) -> Path:
         raise FileNotFoundError(f"Did not find {name} in {search_paths}")
 
 
-def single_or_list(field):
-    if isinstance(field, list):
-        return field
-    else:
-        return [field]
-
-
 def _sanitize_kwargs(kwargs, keys):
     for key in keys:
         if key in kwargs:
@@ -561,42 +650,8 @@ def _sanitize_kwargs(kwargs, keys):
     return kwargs
 
 
-def process_arg(self, arg, args, **kwargs):
-    if args:
-        if arg in args:
-            value = args[arg]
-            if "int" in kwargs and kwargs["int"] is True:
-                try:
-                    value = int(value)
-                    setattr(self, arg, value)
-                except ValueError:
-                    self.logger.warning(
-                        "Invalid value for %s: %s, using default(%s)",
-                        value,
-                        getattr(self, arg),
-                    )
-            if "float" in kwargs and kwargs["float"] is True:
-                try:
-                    value = float(value)
-                    setattr(self, arg, value)
-                except ValueError:
-                    self.logger.warning(
-                        "Invalid value for %s: %s, using default(%s)",
-                        arg,
-                        value,
-                        getattr(self, arg),
-                    )
-            else:
-                setattr(self, arg, value)
-
-
 def find_owner(filename):
     return pwd.getpwuid(os.stat(filename).st_uid).pw_name
-
-
-def is_valid_root_path(root: str) -> bool:
-    root = os.path.basename(root)
-    return root != "__pycache__" and not root.startswith(".")
 
 
 def check_path(type, logger, inpath, pathtype="directory", permissions=None):  # noqa: C901
@@ -702,7 +757,19 @@ def str_to_dt(time):
     return dateutil.parser.parse(time)
 
 
-def dt_to_str(dt, tz=None):
+def dt_to_str(dt: datetime, tz: tzinfo | None = None, *, round: bool = False) -> str | Literal["never"]:
+    """Convert a datetime object to a string.
+
+    This function provides a single place for standardizing the conversion of datetimes to strings.
+
+    Args:
+        dt (datetime): The datetime object to convert.
+        tz (tzinfo, optional): Optional timezone to apply. Defaults to None.
+        round (bool, optional): Whether to round the datetime to the nearest second. Defaults to False.
+    """
+    if round:
+        dt = dt.replace(microsecond=0)
+
     if dt == datetime.datetime(1970, 1, 1, 0, 0, 0, 0):
         return "never"
     else:
@@ -968,14 +1035,7 @@ class Singleton(type):
 
 
 def time_str(start: float, now: float | None = None) -> str:
-    now = now or time.perf_counter()
-    match elapsed := now - start:
-        case _ if elapsed < 1:
-            return f"{elapsed * 10**3:.0f}ms"
-        case _ if elapsed > 10:
-            return f"{elapsed:.0f}s"
-        case _:
-            return f"{elapsed:.2f}s"
+    return format_timedelta((now or time.perf_counter()) - start)
 
 
 def clean_kwargs(**kwargs):
@@ -1013,6 +1073,8 @@ def make_endpoint(base: str, endpoint: str) -> str:
 def unwrapped(func: Callable) -> Callable:
     while hasattr(func, "__wrapped__"):
         func = func.__wrapped__
+    if isinstance(func, functools.partial):
+        func = func.func
     return func
 
 

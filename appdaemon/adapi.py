@@ -4,23 +4,25 @@ import functools
 import inspect
 import logging
 import re
+import sys
 import uuid
-from collections.abc import Coroutine, Iterable, Mapping
+from collections.abc import Callable, Coroutine, Iterable, Mapping
 from concurrent.futures import Future
 from copy import deepcopy
 from datetime import timedelta
 from logging import Logger
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, overload
-from collections.abc import Callable
+from typing import TYPE_CHECKING, Any, Literal, TypeVar, overload
 
-import iso8601
-
-from appdaemon import utils
+from appdaemon import dependency, utils
 from appdaemon import exceptions as ade
 from appdaemon.appdaemon import AppDaemon
 from appdaemon.entity import Entity
+from appdaemon.events import EventCallback
 from appdaemon.logging import Logging
+from appdaemon.state import StateCallback
+
+T = TypeVar("T")
 
 
 # Check if the module is being imported using the legacy method
@@ -51,26 +53,14 @@ class ADAPI:
     AD: AppDaemon
     """Reference to the top-level AppDaemon container object
     """
-    name: str
-    """The app name, which is set by the top-level key in the YAML file
-    """
     config_model: "AppConfig"
     """Pydantic model of the app configuration
     """
     config: dict[str, Any]
     """Dictionary of the AppDaemon configuration
     """
-    app_config: dict[str, Any]
-    """Dictionary of the full app configuration, which includes all apps
-    """
     args: dict[str, Any]
     """Dictionary of this app's configuration
-    """
-
-    app_dir: Path
-    config_dir: Path
-    _logging: Logging
-    """Reference to the Logging subsystem object
     """
     logger: Logger
     err: Logger
@@ -135,16 +125,19 @@ class ADAPI:
     # Properties
     #
     @property
-    def app_config(self) -> dict:
-        """Full set of loaded app configurations."""
+    def app_config(self) -> dict[str, dict[str, Any]]:
+        """Dict of the full dump of all the config for all apps"""
         return self.AD.app_management.app_config.model_dump(by_alias=True, exclude_unset=True)
 
     @property
     def app_dir(self) -> Path:
+        """Top-level path to where AppDaemon looks for user's apps. Defaults to ``./apps`` relative to the config
+        directory, but can be overridden in ``appdaemon.app_dir`` in the ``appdaemon.yaml`` file."""
         return self.AD.app_dir
 
     @property
     def config_dir(self) -> Path:
+        """Directory that contains the ``appdaemon.yaml`` file."""
         return self.AD.config_dir
 
     @property
@@ -153,10 +146,12 @@ class ADAPI:
 
     @property
     def _logging(self) -> Logging:
+        """Reference to the AppDaemon Logging subsystem object."""
         return self.AD.logging
 
     @property
     def name(self) -> str:
+        """The name for the app, as defined by it's key in the corresponding YAML file."""
         return self.config_model.name
 
     @property
@@ -168,7 +163,6 @@ class ADAPI:
     # Logging
     #
 
-    @overload
     def _log(
         self,
         logger: Logger,
@@ -176,19 +170,9 @@ class ADAPI:
         level: str | int = "INFO",
         *args,
         ascii_encode: bool = True,
-        exc_info: bool = False,
         stack_info: bool = False,
         stacklevel: int = 1,
         extra: Mapping[str, object] | None = None,
-    ) -> None: ...
-
-    def _log(
-        self,
-        logger: Logger,
-        msg: str,
-        level: str | int = "INFO",
-        *args,
-        ascii_encode: bool = True,
         **kwargs
     ) -> None:
         if ascii_encode:
@@ -200,9 +184,18 @@ class ADAPI:
             case int():
                 assert level in logging._levelToName
 
-        logger.log(level, msg, *args, **kwargs)
+        extra = extra or {}
+        extra = dict(extra) if not isinstance(extra, dict) else extra
+        extra.update(kwargs)
+        logger.log(
+            level,
+            msg,
+            *args,
+            stack_info=stack_info,
+            stacklevel=stacklevel,
+            extra=extra
+        )
 
-    @overload
     def log(
         self,
         msg: str,
@@ -210,36 +203,24 @@ class ADAPI:
         level: str | int = "INFO",
         log: str | None = None,
         ascii_encode: bool | None = None,
-        exc_info: bool = False,
         stack_info: bool = False,
         stacklevel: int = 1,
         extra: Mapping[str, object] | None = None,
-    ) -> None: ...
-
-    def log(
-        self,
-        msg: str,
-        *args,
-        level: str | int = "INFO",
-        log: str | None = None,
         **kwargs
     ) -> None:
         """Logs a message to AppDaemon's main logfile.
 
         Args:
             msg (str): The message to log.
-            level (str, optional): The log level of the message - takes a string representing the
-                standard logger levels (Default: ``"WARNING"``).
-            log (str, optional): Send the message to a specific log, either system or user_defined.
-                System logs are ``main_log``, ``error_log``, ``diag_log`` or ``access_log``.
-                Any other value in use here must have a corresponding user-defined entity in
-                the ``logs`` section of appdaemon.yaml.
-            ascii_encode (bool, optional): Switch to disable the encoding of all log messages to
-                ascii. Set this to false if you want to log UTF-8 characters (Default is controlled by
-                ``appdaemon.ascii_encode``, and is True unless modified).
-            exc_info (bool, optional):
+            level (str, optional): String representing the standard logger levels. Defaults to ``INFO``.
+            log (str, optional): Send the message to a specific log, either system or user_defined. System logs are
+                ``main_log``, ``error_log``, ``diag_log`` or ``access_log``. Any other value in use here must have a
+                corresponding user-defined entity in the ``logs`` section of appdaemon.yaml.
+            ascii_encode (bool, optional): Switch to disable the encoding of all log messages to ascii. Set this to
+                false if you want to log UTF-8 characters (Default is controlled by ``appdaemon.ascii_encode``, and is
+                True unless modified).
             stack_info (bool, optional): If ``True`` the stack info will included.
-            stacklevel (int, optional):
+            stacklevel (int, optional): Defaults to 1.
             extra (dict, optional): Extra values to add to the log record
 
         Returns:
@@ -270,33 +251,30 @@ class ADAPI:
         # Its a user defined log
         logger = self.logger if log is None else self.get_user_log(log)
 
-        kwargs['ascii_encode'] = kwargs.get('ascii_encode', self.AD.config.ascii_encode)
+        kwargs = dict(
+            ascii_encode=ascii_encode or self.AD.config.ascii_encode,
+            stack_info=stack_info,
+            stacklevel=stacklevel,
+            extra=extra,
+            **kwargs
+        )
 
         try:
             msg = self._sub_stack(msg)
         except IndexError as i:
-            self._log(self.err, i, "ERROR", *args, **kwargs)
+            self._log(self.err, str(i), "ERROR", *args, **kwargs)
 
         self._log(logger, msg, level, *args, **kwargs)
 
-    @overload
     def error(
         self,
         msg: str,
         *args,
         level: str | int = "INFO",
         ascii_encode: bool = True,
-        exc_info: bool = False,
         stack_info: bool = False,
         stacklevel: int = 1,
-        extra: Mapping[str, object] | None = None
-    ) -> None: ...
-
-    def error(
-        self,
-        msg: str,
-        *args,
-        level: str | int = "INFO",
+        extra: Mapping[str, object] | None = None,
         **kwargs
     ) -> None:
         """Logs a message to AppDaemon's error logfile.
@@ -304,10 +282,9 @@ class ADAPI:
         Args:
             msg (str): The message to log.
             *args: Positional arguments for populating the msg fields
-            level (str, optional): The log level of the message - takes a string representing the
-                standard logger levels.
-            ascii_encode (bool, optional): Switch to disable the encoding of all log messages to
-                ascii. Set this to false if you want to log UTF-8 characters (Default: ``True``).
+            level (str, optional): String representing the standard logger levels. Defaults to ``INFO``.
+            ascii_encode (bool, optional): Switch to disable the encoding of all log messages to ascii. Set this to
+                false if you want to log UTF-8 characters (Default: ``True``).
             stack_info (bool, optional): If ``True`` the stack info will included.
             **kwargs: Keyword arguments
 
@@ -324,19 +301,14 @@ class ADAPI:
             >>> self.error("Some Critical string", level = "CRITICAL")
 
         """
-        self._log(self.err, msg, level, *args, **kwargs)
-
-    @overload
-    async def listen_log(
-        self,
-        callback: Callable,
-        level: str | int,
-        namespace: str,
-        log: str,
-        pin: bool,
-        pin_thread: int,
-        **kwargs
-    ) -> str: ...
+        self._log(
+            self.err, msg, level, *args,
+            ascii_encode=ascii_encode or self.AD.config.ascii_encode,
+            stack_info=stack_info,
+            stacklevel=stacklevel,
+            extra=extra,
+            **kwargs
+        )
 
     @utils.sync_decorator
     async def listen_log(
@@ -344,29 +316,29 @@ class ADAPI:
         callback: Callable,
         level: str | int = "INFO",
         namespace: str = "admin",
+        log: str | None = None,
+        pin: bool | None = None,
+        pin_thread: int | None = None,
         **kwargs
     ) -> str:
         """Registers the App to receive a callback every time an App logs a message.
 
         Args:
             callback (function): Function to be called when a message is logged.
-            level (str): Logging level to be used - lower levels will not be forwarded
-                to the app (Default: ``"INFO"``).
-            **kwargs (optional): Zero or more keyword arguments.
-
-        Keyword Args:
-            log (str, optional): Name of the log to listen to, default is all logs. The name
-                should be one of the 4 built in types ``main_log``, ``error_log``, ``diag_log``
-                or ``access_log`` or a user defined log entry.
-            pin (bool, optional): If True, the callback will be pinned to a particular thread.
-            pin_thread (int, optional): Specify which thread from the worker pool the callback
-                will be run by (0 - number of threads -1).
+            level (str, optional): Minimum level for logs to trigger the callback. Lower levels will be ignored. Default
+                is ``INFO``.
+            log (str, optional): Name of the log to listen to, default is all logs. The name should be one of the 4
+                built in types ``main_log``, ``error_log``, ``diag_log`` or ``access_log`` or a user defined log entry.
+            pin (bool, optional): Optional setting to override the default thread pinning behavior. By default, this is
+                effectively ``True``, and ``pin_thread`` gets set when the app starts.
+            pin_thread (int, optional): Specify which thread from the worker pool will run the callback. The threads
+                each have an ID number. The ID numbers start at 0 and go through (number of threads - 1).
+            **kwargs: Arbitrary keyword parameters to be provided to the callback function when it is triggered.
 
         Returns:
-            A unique identifier that can be used to cancel the callback if required.
-            Since variables created within object methods are local to the function they are
-            created in, and in all likelihood, the cancellation will be invoked later in a
-            different function, it is recommended that handles are stored in the object
+            A unique identifier that can be used to cancel the callback if required. Since variables created within
+            object methods are local to the function they are created in, and in all likelihood, the cancellation will
+            be invoked later in a different function, it is recommended that handles are stored in the object
             namespace, e.g., self.handle.
 
         Examples:
@@ -388,7 +360,11 @@ class ADAPI:
 
         """
 
-        return await self.AD.logging.add_log_callback(namespace, self.name, callback, level, **kwargs)
+        return await self.AD.logging.add_log_callback(
+            namespace, self.name, callback, level,
+            log=log, pin=pin, pin_thread=pin_thread,
+            **kwargs
+        )
 
     @utils.sync_decorator
     async def cancel_listen_log(self, handle: str) -> None:
@@ -435,8 +411,8 @@ class ADAPI:
         """Gets the specified-user logger of the App.
 
         Args:
-            log (str): The name of the log you want to get the underlying logger object from,
-                as described in the ``logs`` section of ``appdaemon.yaml``.
+            log (str): The name of the log you want to get the underlying logger object from, as described in the
+                ``logs`` section of ``appdaemon.yaml``.
 
         Returns:
             The underlying logger object used for the error log.
@@ -448,19 +424,16 @@ class ADAPI:
             >>> log.error("Log an error", stack_info=True, exc_info=True)
 
         """
-        logger = None
-        if log in self.user_logs:
-            # Did we use it already?
-            logger = self.user_logs[log]
-        else:
+
+        if (logger := self.user_logs.get(log)) is None:
             # Build it on the fly
-            parent = self.AD.logging.get_user_log(self, log)
-            if parent is not None:
+            if (parent := self.AD.logging.get_user_log(self, log)) is not None:
                 logger = parent.getChild(self.name)
                 self.user_logs[log] = logger
                 if "log_level" in self.args:
                     logger.setLevel(self.args["log_level"])
 
+        assert isinstance(logger, Logger)
         return logger
 
     def set_log_level(self, level: str | int) -> None:
@@ -472,7 +445,7 @@ class ADAPI:
         Returns:
             None.
 
-        Notes:
+        Note:
             Supported log levels: ``INFO``, ``WARNING``, ``ERROR``, ``CRITICAL``,
             ``DEBUG``, ``NOTSET``.
 
@@ -494,7 +467,7 @@ class ADAPI:
         Returns:
             None.
 
-        Notes:
+        Note:
             Supported log levels: ``INFO``, ``WARNING``, ``ERROR``, ``CRITICAL``,
             ``DEBUG``, ``NOTSET``.
 
@@ -570,11 +543,17 @@ class ADAPI:
     # Namespace
     #
 
-    def set_namespace(self, namespace: str) -> None:
-        """Sets a new namespace for the App to use from that point forward.
+    def set_namespace(self, namespace: str, writeback: str = "safe", persist: bool = True) -> None:
+        """Set the current namespace of the app
+
+        See the `namespace documentation <APPGUIDE.html#namespaces>`__ for more information.
 
         Args:
             namespace (str): Name of the new namespace
+            writeback (str, optional): The writeback to be used if a new namespace gets created. Will be ``safe`` by
+                default.
+            persist (bool, optional): Whether to make the namespace persistent if a new one is created. Defaults to
+                ``True``.
 
         Returns:
             None.
@@ -584,21 +563,32 @@ class ADAPI:
 
         """
         # Keeping namespace get/set functions for legacy compatibility
+        if not self.namespace_exists(namespace):
+            self.add_namespace(
+                namespace=namespace,
+                writeback=writeback,
+                persist=persist
+            )
         self.namespace = namespace
 
     def get_namespace(self) -> str:
-        """Returns the App's namespace."""
+        """Get the app's current namespace.
+
+        See the `namespace documentation <APPGUIDE.html#namespaces>`__ for more information.
+        """
         # Keeping namespace get/set functions for legacy compatibility
         return self.namespace
 
     def namespace_exists(self, namespace: str) -> bool:
-        """Checks the existence of a namespace in AppDaemon.
+        """Check the existence of a namespace in AppDaemon.
+
+        See the `namespace documentation <APPGUIDE.html#namespaces>`__ for more information.
 
         Args:
-            namespace (str): The namespace to be checked if it exists.
+            namespace (str): The namespace to be checked.
 
         Returns:
-            bool: ``True`` if the namespace exists, ``False`` otherwise.
+            bool: ``True`` if the namespace exists, otherwise ``False``.
 
         Examples:
             Check if the namespace ``storage`` exists within AD
@@ -616,23 +606,23 @@ class ADAPI:
         writeback: str = "safe",
         persist: bool = True
     ) -> str | None:
-        """Used to add a user-defined namespaces from apps, which has a database file associated with it.
+        """Add a user-defined namespace, which has a database file associated with it.
 
-        This way, when AD restarts these entities will be reloaded into AD with its
-        previous states within the namespace. This can be used as a basic form of
-        non-volatile storage of entity data. Depending on the configuration of the
+        When AppDaemon restarts these entities will be loaded into the namespace with all their previous states. This
+        can be used as a basic form of non-volatile storage of entity data. Depending on the configuration of the
         namespace, this function can be setup to constantly be running automatically
-        or only when AD shutdown. This function also allows for users to manually
-        execute the command as when needed.
+        or only when AD shutdown.
+
+        See the `namespace documentation <APPGUIDE.html#namespaces>`__ for more information.
 
         Args:
-            namespace (str): The namespace to be newly created, which must not be same as the operating namespace
+            namespace (str): The name of the new namespace to create
             writeback (optional): The writeback to be used. Will be ``safe`` by default
-            persist (bool, optional): If to make the namespace persistent. So if AD reboots
-                it will startup will all the created entities being intact. It is persistent by default
+            persist (bool, optional): Whether to make the namespace persistent. Persistent namespaces are stored in a
+                database file and are reloaded when AppDaemon restarts. Defaults to ``True``
 
         Returns:
-            The file path to the newly created namespace. WIll be None if not persistent
+            The file path to the newly created namespace. Will be ``None`` if not persistent
 
         Examples:
             Add a new namespace called `storage`.
@@ -640,17 +630,18 @@ class ADAPI:
             >>> self.add_namespace("storage")
 
         """
-        if namespace == self.namespace:  # if it belongs to this app's namespace
-            raise ValueError("Cannot add namespace with the same name as operating namespace")
-
-        return await self.AD.state.add_namespace(namespace, writeback, persist, self.name)
+        new_namespace = await self.AD.state.add_namespace(namespace, writeback, persist, self.name)
+        self.AD.state.app_added_namespaces.add(new_namespace)
+        return new_namespace
 
     @utils.sync_decorator
     async def remove_namespace(self, namespace: str) -> dict[str, Any] | None:
-        """Used to remove a previously user-defined namespaces from apps, which has a database file associated with it.
+        """Remove a user-defined namespace, which has a database file associated with it.
+
+        See the `namespace documentation <APPGUIDE.html#namespaces>`__ for more information.
 
         Args:
-            namespace (str): The namespace to be removed, which must not be same as the operating namespace
+            namespace (str): The namespace to be removed, which must not be the current namespace.
 
         Returns:
             The data within that namespace
@@ -662,13 +653,12 @@ class ADAPI:
 
         """
         if namespace == self.namespace:  # if it belongs to this app's namespace
-            raise ValueError("Cannot remove namespace with the same name as operating namespace")
+            raise ValueError("Cannot remove the current namespace")
 
         return await self.AD.state.remove_namespace(namespace)
 
-    @utils.sync_decorator
-    async def list_namespaces(self) -> list[str]:
-        """Returns a list of available namespaces.
+    def list_namespaces(self) -> list[str]:
+        """Get a list of all the namespaces in AppDaemon.
 
         Examples:
             >>> self.list_namespaces()
@@ -729,7 +719,7 @@ class ADAPI:
         """
         return self.AD.app_management.get_app(name)
 
-    def _check_entity(self, namespace: str, entity_id: str):
+    def _check_entity(self, namespace: str, entity_id: str | None) -> None:
         """Ensures that the entity exists in the given namespace"""
         if (
             entity_id is not None and
@@ -789,8 +779,12 @@ class ADAPI:
             >>> self.add_entity('mqtt.living_room_temperature', namespace='mqtt')
 
         """
-        namespace = namespace or self.namespace
-        await self.get_entity_api(namespace, entity_id).add(state, attributes)
+
+        if self.entity_exists(entity_id, namespace):
+            self.logger.warning("%s already exists, will not be adding it", entity_id)
+            return None
+
+        return await self.AD.state.add_entity(namespace, entity_id, state, attributes)
 
     @utils.sync_decorator
     async def entity_exists(self, entity_id: str, namespace: str | None = None) -> bool:
@@ -1075,6 +1069,7 @@ class ADAPI:
         elif "queryResult" in data and "action" in data["queryResult"]:
             self.dialogflow_v = 2
             return data["queryResult"]["action"]
+        return None
 
     @staticmethod
     def get_dialogflow_slot_value(data, slot=None) -> Any | None:
@@ -1148,7 +1143,7 @@ class ADAPI:
     #
 
     @staticmethod
-    def format_alexa_response(speech=None, card=None, title=None) -> dict:
+    def format_alexa_response(speech: str | None = None, card: str | None = None, title: str | None = None) -> dict:
         """Formats a response to be returned to Alexa including speech and a card.
 
         Args:
@@ -1163,7 +1158,7 @@ class ADAPI:
             >>> ADAPI.format_alexa_response(speech = "Hello World", card = "Greetings to the world", title = "Hello")
 
         """
-        response = {"shouldEndSession": True}
+        response: dict[str, Any] = {"shouldEndSession": True}
 
         if speech is not None:
             response["outputSpeech"] = {"type": "PlainText", "text": speech}
@@ -1171,9 +1166,7 @@ class ADAPI:
         if card is not None:
             response["card"] = {"type": "Simple", "title": title, "content": card}
 
-        speech = {"version": "1.0", "response": response, "sessionAttributes": {}}
-
-        return speech
+        return {"version": "1.0", "response": response, "sessionAttributes": {}}
 
     @staticmethod
     def get_alexa_error(data: dict) -> str | None:
@@ -1244,7 +1237,12 @@ class ADAPI:
     #
 
     @utils.sync_decorator
-    async def register_endpoint(self, callback: Callable[[Any, dict], Any], endpoint: str = None, **kwargs) -> str | None:
+    async def register_endpoint(
+        self,
+        callback: Callable[[Any, dict], Any],
+        endpoint: str | None = None,
+        **kwargs
+    ) -> str | None:
         """Registers an endpoint for API calls into the current App.
 
         Args:
@@ -1284,6 +1282,7 @@ class ADAPI:
                 "register_endpoint for %s failed - HTTP component is not configured",
                 endpoint,
             )
+            return None
 
     @utils.sync_decorator
     async def deregister_endpoint(self, handle: str) -> None:
@@ -1306,7 +1305,12 @@ class ADAPI:
     #
 
     @utils.sync_decorator
-    async def register_route(self, callback: Callable[[Any, dict], Any], route: str = None, **kwargs) -> str | None:
+    async def register_route(
+        self,
+        callback: Callable[[Any, dict], Any],
+        route: str | None = None,
+        **kwargs: dict[str, Any]
+    ) -> str | None:
         """Registers a route for Web requests into the current App.
            By registering an app web route, this allows to make use of AD's internal web server to serve
            web clients. All routes registered using this api call, can be accessed using
@@ -1343,6 +1347,7 @@ class ADAPI:
             return await self.AD.http.register_route(callback, route, self.name, **kwargs)
         else:
             self.logger.warning("register_route for %s filed - HTTP component is not configured", route)
+            return None
 
     @utils.sync_decorator
     async def deregister_route(self, handle: str) -> None:
@@ -1365,90 +1370,110 @@ class ADAPI:
     #
 
     @overload
+    @utils.sync_decorator
     async def listen_state(
         self,
-        callback: Callable,
-        entity_id: str | Iterable[str],
-        namespace: str,
-        new: str | Callable,
-        old: str | Callable,
-        duration: int,
-        attribute: str,
-        timeout: int,
-        immediate: bool,
-        oneshot: bool,
-        pin: bool,
-        pin_thread: int,
-        **kwargs,
-    ) -> str | list[str]: ...
+        callback: StateCallback,
+        entity_id: str | None,
+        namespace: str | None = None,
+        new: str | Callable[[Any], bool] | None = None,
+        old: str | Callable[[Any], bool] | None = None,
+        duration: str | int | float | timedelta | None = None,
+        attribute: str | None = None,
+        timeout: str | int | float | timedelta | None = None,
+        immediate: bool = False,
+        oneshot: bool = False,
+        pin: bool | None = None,
+        pin_thread: int | None = None,
+        **kwargs: Any
+    ) -> str: ...
+
+    @overload
+    @utils.sync_decorator
+    async def listen_state(
+        self,
+        callback: StateCallback,
+        entity_id: Iterable[str],
+        namespace: str | None = None,
+        new: str | Callable[[Any], bool] | None = None,
+        old: str | Callable[[Any], bool] | None = None,
+        duration: str | int | float | timedelta | None = None,
+        attribute: str | None = None,
+        timeout: str | int | float | timedelta | None = None,
+        immediate: bool = False,
+        oneshot: bool = False,
+        pin: bool | None = None,
+        pin_thread: int | None = None,
+        **kwargs: Any
+    ) -> list[str]: ...
 
     @utils.sync_decorator
     async def listen_state(
         self,
-        callback: Callable,
+        callback: StateCallback,
         entity_id: str | Iterable[str] | None = None,
         namespace: str | None = None,
-        **kwargs
+        new: str | Callable[[Any], bool] | None = None,
+        old: str | Callable[[Any], bool] | None = None,
+        duration: str | int | float | timedelta | None = None,
+        attribute: str| None = None,
+        timeout: str | int | float | timedelta | None = None,
+        immediate: bool = False,
+        oneshot: bool = False,
+        pin: bool | None = None,
+        pin_thread: int | None = None,
+        **kwargs: Any
     ) -> str | list[str]:
         """Registers a callback to react to state changes.
 
-        This function allows the user to register a callback for a wide variety of state changes.
+        The callback needs to have the following form:
+
+        >>> def my_callback(self, entity: str, attribute: str, old: Any, new: Any, **kwargs: Any) -> None: ...
 
         Args:
-            callback: Function to be invoked when the requested state change occurs. It must conform
-                to the standard State Callback format documented `here <APPGUIDE.html#state-callbacks>`__
-            entity_id (str|list, optional): name of an entity or device type. If just a device type is provided,
-                e.g., `light`, or `binary_sensor`. ``listen_state()`` will subscribe to state changes of all
-                devices of that type. If a fully qualified entity_id is provided, ``listen_state()`` will
-                listen for state changes for just that entity. If a list of entities, it will subscribe for those
-                entities, and return their handles
-            namespace (str, optional): Namespace to use for the call. See the section on
-                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description. In most cases,
-                it is safe to ignore this parameter. The value ``global`` for namespace has special
-                significance and means that the callback will listen to state updates from any plugin.
-            new (str, Callable, optional): If ``new`` is supplied as a parameter, callbacks will only be made if the
-                state of the selected attribute (usually state) in the new state match the value
-                of ``new``. The parameter type is defined by the namespace or plugin that is responsible
-                for the entity. If it looks like a float, list, or dictionary, it may actually be a string.
-                If ``new`` is a callable (lambda, function, etc), then it will be invoked with the new state,
-                and if it returns ``True``, it will be considered to match.
-            old (str, Callable, optional): If ``old`` is supplied as a parameter, callbacks will only be made if the
-                state of the selected attribute (usually state) in the old state match the value
-                of ``old``. The same caveats on types for the ``new`` parameter apply to this parameter.
-                If ``old`` is a callable (lambda, function, etc), then it will be invoked with the old state,
-                and if it returns a ``True``, it will be considered to match.
-            duration (int, optional): If ``duration`` is supplied as a parameter, the callback will not
-                fire unless the state listened for is maintained for that number of seconds. This
-                requires that a specific attribute is specified (or the default of ``state`` is used),
-                and should be used in conjunction with the ``old`` or ``new`` parameters, or both. When
-                the callback is called, it is supplied with the values of ``entity``, ``attr``, ``old``,
-                and ``new`` that were current at the time the actual event occurred, since the assumption
-                is that none of them have changed in the intervening period.
+            callback: Function that will be called when the callback gets triggered. It must conform to the standard
+                state callback format documented `here <APPGUIDE.html#state-callbacks>`__
+            entity_id (str | Iterable[str], optional): Entity ID or a domain. If a domain is provided, e.g., ``light``,
+                or ``binary_sensor`` the callback will be triggered for state changes of any entities in that domain.
+                If a list of entities is provided, the callback will be registered for each of those entities.
+            namespace (str, optional): Optional namespace to use. Defaults to using the app's current namespace. See
+                the `namespace documentation <APPGUIDE.html#namespaces>`__ for more information. Using the value
+                ``global`` will register the callback for all namespaces.
+            new (str | Callable[[Any], bool], optional): If given, the callback will only be invoked if the state of
+                the selected attribute (usually state) matches this value in the new data. The data type is dependent on
+                the specific entity and attribute. Values that look like ints or floats are often actually strings, so
+                be careful when comparing them. The ``self.get_state()`` method is useful for checking the data type of
+                the desired attribute. If ``new`` is a callable (lambda, function, etc), then it will be called with
+                the new state, and the callback will only be invoked if the callable returns ``True``.
+            old (str | Callable[[Any], bool], optional): If given, the callback will only be invoked if the selected
+                attribute (usually state) changed from this value in the new data. The data type is dependent on the
+                specific entity and attribute. Values that look like ints or floats are often actually strings, so be
+                careful when comparing them. The ``self.get_state()`` method is useful for checking the data type of
+                the desired attribute. If ``old`` is a callable (lambda, function, etc), then it will be called with
+                the old state, and the callback will only be invoked if the callable returns ``True``.
+            duration (str | int | float | timedelta, optional): If supplied, the callback will not be invoked unless the
+                desired state is maintained for that amount of time. This requires that a specific attribute is
+                specified (or the default of ``state`` is used), and should be used in conjunction with either or both
+                of the ``new`` and ``old`` parameters. When the callback is called, it is supplied with the values of
+                ``entity``, ``attr``, ``old``, and ``new`` that were current at the time the actual event occurred,
+                since the assumption is that none of them have changed in the intervening period.
 
-                If you use ``duration`` when listening for an entire device type rather than a specific
-                entity, or for all state changes, you may get unpredictable results, so it is recommended
-                that this parameter is only used in conjunction with the state of specific entities.
-            attribute (str, optional): Name of an attribute within the entity state object. If this
-                parameter is specified in addition to a fully qualified ``entity_id``. ``listen_state()``
-                will subscribe to changes for just that attribute within that specific entity.
-                The ``new`` and ``old`` parameters in the callback function will be provided with
-                a single value representing the attribute.
-
-                The value ``all`` for attribute has special significance and will listen for any
-                state change within the specified entity, and supply the callback functions with
-                the entire state dictionary for the specified entity rather than an individual
-                attribute value.
-            timeout (int, optional): If ``timeout`` is supplied as a parameter, the callback will be created as normal,
-                 but after ``timeout`` seconds, the callback will be removed. If activity for the listened state has
-                 occurred that would trigger a duration timer, the duration timer will still be fired even though the
-                 callback has been deleted.
-            immediate (bool, optional): It enables the countdown for a delay parameter to start
-                at the time, if given. If the ``duration`` parameter is not given, the callback runs immediately.
-                What this means is that after the callback is registered, rather than requiring one or more
-                state changes before it runs, it immediately checks the entity's states based on given
-                parameters. If the conditions are right, the callback runs immediately at the time of
-                registering. This can be useful if, for instance, you want the callback to be triggered
-                immediately if a light is already `on`, or after a ``duration`` if given.
+                If you use ``duration`` when listening for an entire device type rather than a specific entity, or for
+                all state changes, you may get unpredictable results, so it is recommended that this parameter is only
+                used in conjunction with the state of specific entities.
+            attribute (str, optional): Optional name of an attribute to use for the new/old checks. If not specified,
+                the default behavior is to use the value of ``state``. Using the value ``all`` will cause the callback
+                to get triggered for any change in state, and the new/old values used for the callback will be the
+                entire state dict rather than the individual value of an attribute.
+            timeout (str | int | float | timedelta, optional): If given, the callback will be automatically removed
+                after that amount of time. If activity for the listened state has occurred that would trigger a
+                duration timer, the duration timer will still be fired even though the callback has been removed.
+            immediate (bool, optional): If given, it enables the countdown for a delay parameter to start at the time.
+                If the ``duration`` parameter is not given, the callback runs immediately. What this means is that
+                after the callback is registered, rather than requiring one or more state changes before it runs, it
+                immediately checks the entity's states based on given parameters. If the conditions are right, the
+                callback runs immediately at the time of registering. This can be useful if, for instance, you want the
+                callback to be triggered immediately if a light is already `on`, or after a ``duration`` if given.
 
                 If ``immediate`` is in use, and ``new`` and ``duration`` are both set, AppDaemon will check
                 if the entity is already set to the new state and if so it will start the clock
@@ -1457,22 +1482,21 @@ class ADAPI:
                 entity. If ``attribute`` is specified, the state of the attribute will be used instead of
                 state. In these cases, ``old`` will be ignored and when the callback is triggered, its
                 state will be set to ``None``.
-            oneshot (bool, optional): If ``True``, the callback will be automatically cancelled
-                after the first state change that results in a callback.
-            pin (bool, optional): If ``True``, the callback will be pinned to a particular thread.
-            pin_thread (int, optional): Sets which thread from the worker pool the callback will be
-                run by (0 - number of threads -1).
-            **kwargs (optional): Zero or more keyword arguments that will be supplied to the callback
-                when it is called.
+            oneshot (bool, optional): If ``True``, the callback will be automatically removed after the first time it
+                gets invoked.
+            pin (bool, optional): Optional setting to override the default thread pinning behavior. By default, this is
+                effectively ``True``, and ``pin_thread`` gets set when the app starts.
+            pin_thread (int, optional): Specify which thread from the worker pool will run the callback. The threads
+                each have an ID number. The ID numbers start at 0 and go through (number of threads - 1).
+            **kwargs: Arbitrary keyword parameters to be provided to the callback function when it is triggered.
 
-        Notes:
+        Note:
             The ``old`` and ``new`` args can be used singly or together.
 
         Returns:
-            A unique identifier that can be used to cancel the callback if required. Since variables
-            created within object methods are local to the function they are created in, and in all
-            likelihood, the cancellation will be invoked later in a different function, it is
-            recommended that handles are stored in the object namespace, e.g., `self.handle`.
+            A string that uniquely identifies the callback and can be used to cancel it later if necessary. Since
+            variables created within object methods are local to the function they are created in, it's recommended to
+            store the handles in the app's instance variables, e.g. ``self.handle``.
 
         Examples:
             Listen for any state change and return the state attribute.
@@ -1491,8 +1515,8 @@ class ADAPI:
 
             >>> self.handle = self.listen_state(self.my_callback, "light.office_1", attribute = "all")
 
-            Listen for a change involving the brightness attribute of `light.office1` and return the
-            brightness attribute.
+            Listen for a change involving the brightness attribute of `light.office1` and return the brightness
+            attribute.
 
             >>> self.handle = self.listen_state(self.my_callback, "light.office_1", attribute = "brightness")
 
@@ -1500,10 +1524,15 @@ class ADAPI:
 
             >>> self.handle = self.listen_state(self.my_callback, "light.office_1", new = "on")
 
-            Listen for a state change involving `light.office1` turning on when the previous state was not unknown or unavailable,
-            and return the state attribute.
+            Listen for a state change involving `light.office1` turning on when the previous state was not unknown or
+            unavailable, and return the state attribute.
 
-            >>> self.handle = self.listen_state(self.my_callback, "light.office_1", new = "on", old=lambda x: x not in ["unknown", "unavailable"])
+            >>> self.handle = self.listen_state(
+                self.my_callback,
+                "light.office_1",
+                new="on",
+                old=lambda x: x.lower() not in {"unknown", "unavailable"}
+            )
 
             Listen for a change involving `light.office1` changing from brightness 100 to 200 and return the
             brightness attribute.
@@ -1524,30 +1553,49 @@ class ADAPI:
             >>> self.handle = self.listen_state(self.my_callback, ["light.office_1", "light.office2"], new="on")
 
         """
+        kwargs = dict(
+            new=new,
+            old=old,
+            duration=duration,
+            attribute=attribute,
+            **kwargs
+        )
+        kwargs = {k: v for k, v in kwargs.items() if v is not None}
         namespace = namespace or self.namespace
+
+        # pre-fill some arguments here
+        add_callback = functools.partial(
+            self.AD.state.add_state_callback,
+            name=self.name,
+            namespace=namespace,
+            cb=callback,
+            timeout=timeout,
+            oneshot=oneshot,
+            immediate=immediate,
+            pin=pin,
+            pin_thread=pin_thread,
+            kwargs=kwargs
+        )
 
         match entity_id:
             case str() | None:
                 self._check_entity(namespace, entity_id)
-                return await self.get_entity_api(namespace, entity_id).listen_state(callback, **kwargs)
+                return await add_callback(entity=entity_id)
             case Iterable():
                 for e in entity_id:
                     self._check_entity(namespace, e)
-                return [
-                    await self.get_entity_api(namespace, e).listen_state(callback, **kwargs)
-                    for e in entity_id
-                ]
+                return [await add_callback(entity=e) for e in entity_id]
 
     @utils.sync_decorator
-    async def cancel_listen_state(self, handle: str, silent: bool = False) -> bool:
-        """Cancels a ``listen_state()`` callback.
+    async def cancel_listen_state(self, handle: str, name: str | None = None, silent: bool = False) -> bool:
+        """Cancel a ``listen_state()`` callback.
 
-        This will mean that the App will no longer be notified for the specific
-        state change that has been cancelled. Other state changes will continue
-        to be monitored.
+        This will prevent any further calls to the callback function. Other state callbacks will not be affected.
 
         Args:
             handle: The handle returned when the ``listen_state()`` call was made.
+            name (str, optional): The name of the app that registered the callback. Defaults to the name of the current
+                app. This is useful if you want to get the information of a callback registered by another app.
             silent (bool, optional): If ``True``, no warning will be issued if the handle is not found.
 
         Returns:
@@ -1561,70 +1609,72 @@ class ADAPI:
             >>> self.cancel_listen_state(self.dummy_handle, silent=True)
 
         """
-        self.logger.debug("Canceling listen_state for %s", self.name)
-        return bool(await self.AD.state.cancel_state_callback(handle, self.name, silent))
+        name = name or self.name
+        self.logger.debug("Canceling listen_state for %s", name)
+        return bool(await self.AD.state.cancel_state_callback(handle=handle, name=name, silent=silent))
 
     @utils.sync_decorator
-    async def info_listen_state(self, handle: str) -> dict:
-        """Gets information on state a callback from its handle.
+    async def info_listen_state(self, handle: str, name: str | None = None) -> tuple[str, str, Any, dict[str, Any]]:
+        """Get information on state a callback from its handle.
 
         Args:
-            handle: The handle returned when the ``listen_state()`` call was made.
+            handle (str): The handle returned when the ``listen_state()`` call was made.
+            name (str, optional): The name of the app that registered the callback. Defaults to the name of the current
+                app. This is useful if you want to get the information of a callback registered by another app.
 
         Returns:
-            The values supplied for ``entity``, ``attribute``, and ``kwargs`` when
+            The values supplied for ``namespace``, ``entity``, ``attribute``, and ``kwargs`` when
             the callback was initially created.
 
         Examples:
-            >>> entity, attribute, kwargs = self.info_listen_state(self.handle)
+            >>> namespace, entity, attribute, kwargs = self.info_listen_state(self.handle)
 
         """
-        self.logger.debug("Calling info_listen_state for %s", self.name)
-        return await self.AD.state.info_state_callback(handle, self.name)
+        name = name or self.name
+        self.logger.debug("Calling info_listen_state for %s", name)
+        return await self.AD.state.info_state_callback(handle=handle, name=name)
 
-    def get_state(
+    @utils.sync_decorator
+    async def get_state(
         self,
         entity_id: str | None = None,
-        attribute: str | None = None,
+        attribute: str | Literal["all"] | None = None,
         default: Any | None = None,
         namespace: str | None = None,
         copy: bool = True,
         **kwargs,  # left in intentionally for compatibility
-    ) -> Any:
-        """Gets the state of any component within Home Assistant.
+    ) -> Any | dict[str, Any] | None:
+        """Get the state of an entity from AppDaemon's internals.
 
-        State updates are continuously tracked, so this call runs locally and does not require
-        AppDaemon to call back to Home Assistant. In other words, states are updated using a
-        push-based approach instead of a pull-based one.
+        Home Assistant emits a ``state_changed`` event for every state change, which it sends to AppDaemon over the
+        websocket connection made by the plugin. Appdaemon uses the data in these events to update its internal state.
+        This method returns values from this internal state, so it does **not** make any external requests to Home
+        Assistant.
+
+        Other plugins that emit ``state_changed`` events will also have their states tracked internally by AppDaemon.
+
+        It's common for entities to have a state that's always one of ``on``, ``off``, or ``unavailable``. This applies
+        to entities in the ``light``, ``switch``, ``binary_sensor``, and ``input_boolean`` domains in Home Assistant,
+        among others.
 
         Args:
-            entity_id (str, optional): This is the name of an entity or device type. If just
-                a device type is provided, e.g., `light` or `binary_sensor`, `get_state()`
-                will return a dictionary of all devices of that type, indexed by the ``entity_id``,
-                containing all the state for each entity. If a fully qualified ``entity_id``
-                is provided, ``get_state()`` will return the state attribute for that entity,
-                e.g., ``on`` or ``off`` for a light.
-            attribute (str, optional): Name of an attribute within the entity state object.
-                If this parameter is specified in addition to a fully qualified ``entity_id``,
-                a single value representing the attribute will be returned. The value ``all``
-                for attribute has special significance and will return the entire state
-                dictionary for the specified entity rather than an individual attribute value.
-            default (any, optional): The value to return when the requested attribute or the
-                whole entity doesn't exist (Default: ``None``).
-            namespace(str, optional): Namespace to use for the call. See the section on
-                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
-                In most cases, it is safe to ignore this parameter.
-            copy (bool, optional): By default, a copy of the stored state object is returned.
-                When you set ``copy`` to ``False``, you get the same object as is stored
-                internally by AppDaemon. Avoiding the copying brings a small performance gain,
-                but also gives you write-access to the internal AppDaemon data structures,
-                which is dangerous. Only disable copying when you can guarantee not to modify
-                the returned state object, e.g., you do read-only operations.
+            entity_id (str, optional): Full entity ID or just a domain. If a full entity ID is provided, the result
+                will be for that entity only. If a domain is provided, the result will be a dict that maps the entity
+                IDs to their respective results.
+            attribute (str, optional): Optionally specify an attribute to return. If not used, the state of the entity
+                will be returned. The value ``all`` can be used to return the entire state dict rather than a single
+                value.
+            default (any, optional): The value to return when the entity or the attribute doesn't exist.
+            namespace (str, optional): Optional namespace to use. Defaults to using the app's current namespace. The
+                current namespace can be changed using ``self.set_namespace``. See the
+                `namespace documentation <APPGUIDE.html#namespaces>`__ for more information.
+            copy (bool, optional): Whether to return a copy of the internal data. This is ``True`` by default in order
+                to protect the user from accidentally modifying AppDaemon's internal data structures, which is dangerous
+                and can cause undefined behvaior. Only set this to ``False`` for read-only operations.
 
         Returns:
-            The entire state of Home Assistant at that given time, if  if ``get_state()``
-            is called with no parameters. This will consist of a dictionary with a key
-            for each entity. Under that key will be the standard entity state information.
+            The state or attribute of the entity ID provided or a dict of that maps entity IDs to their respective
+            results. If called with no parameters, this will return the entire state dict.
 
         Examples:
             Get the state of the entire system.
@@ -1651,20 +1701,14 @@ class ADAPI:
         if kwargs:
             self.logger.warning(f"Extra kwargs passed to get_state, will be ignored: {kwargs}")
 
-        namespace or self.namespace
-        api = self.get_entity_api(namespace, entity_id)
-        return api.get_state(attribute=attribute, default=default, copy=copy)
-
-    @overload
-    async def set_state(
-        self,
-        entity_id: str,
-        state: Any | None,
-        namespace: str | None,
-        attributes: dict,
-        replace: bool,
-        **kwargs
-    ) -> dict: ...
+        return await self.AD.state.get_state(
+            name=self.name,
+            namespace=namespace or self.namespace,
+            entity_id=entity_id,
+            attribute=attribute,
+            default=default,
+            copy=copy
+        )
 
     @utils.sync_decorator
     async def set_state(
@@ -1672,28 +1716,31 @@ class ADAPI:
         entity_id: str,
         state: Any | None = None,
         namespace: str | None = None,
+        attributes: dict[str, Any] | None = None,
+        replace: bool = False,
         check_existence: bool = True,
-        **kwargs
-    ) -> dict:
-        """Updates the state of the specified entity.
+        **kwargs: Any
+    ) -> dict[str, Any]:
+        """Update the state of the specified entity.
+
+        This causes a ``state_changed`` event to be emitted in the entity's namespace. If that namespace is associated
+        with a Home Assistant plugin, it will use the ``/api/states/<entity_id>`` endpoint of the
+        `REST API <https://developers.home-assistant.io/docs/api/rest/>`__ to update the state of the entity. This
+        method can be useful to create entities in Home Assistant, but they won't persist across restarts.
 
         Args:
             entity_id (str): The fully qualified entity id (including the device type).
             state: New state value to be set.
-            attributes (optional): Entity's attributes to be updated.
-            namespace(str, optional): If a `namespace` is provided, AppDaemon will change
-                the state of the given entity in the given namespace. On the other hand,
-                if no namespace is given, AppDaemon will use the last specified namespace
-                or the default namespace. See the section on `namespaces <APPGUIDE.html#namespaces>`__
-                for a detailed description. In most cases, it is safe to ignore this parameter.
-            replace(bool, optional): If a `replace` flag is given and set to ``True`` and ``attributes``
-                is provided, AD will attempt to replace its internal entity register with the newly
-                supplied attributes completely. This can be used to replace attributes in an entity
-                which are no longer needed. Do take note this is only possible for internal entity state.
-                For plugin based entities, this is not recommended, as the plugin will mostly replace
-                the new values, when next it updates.
-            check_existence(bool, optional): Set to False to suppress a warning about the entity not
-                existing when using set_state to create an entity. Defaults to True.
+            namespace(str, optional): Optional namespace to use. Defaults to using the app's current namespace. See
+                the `namespace documentation <APPGUIDE.html#namespaces>`__ for more information.
+            attributes (dict[str, Any], optional): Optional dictionary to use for the attributes. If replace is
+                ``False``, then the attribute dict will use the built-in update method on this dict. If replace is
+                ``True``, then the attribute dict will be entirely replaced with this one.
+            replace(bool, optional): Whether to replace rather than update the attributes. Defaults to ``False``. For
+                plugin based entities, this is not recommended, as the plugin will mostly replace the new values, when
+                next it updates.
+            check_existence(bool, optional): Whether to check if the entity exists before setting the state. Defaults to
+                ``True``, but it can be useful to set to ``False`` when using this method to create an entity.
             **kwargs (optional): Zero or more keyword arguments. Extra keyword arguments will be assigned as attributes.
 
         Returns:
@@ -1706,17 +1753,25 @@ class ADAPI:
 
             Update the state and attribute of an entity.
 
-            >>> self.set_state(entity_id="light.office_1", state = "on", attributes = {"color_name": "red"})
+            >>> self.set_state(entity_id="light.office_1", state="on", attributes={"color_name": "red"})
 
             Update the state of an entity within the specified namespace.
 
-            >>> self.set_state("light.office_1", state="off", namespace ="hass")
+            >>> self.set_state("light.office_1", state="off", namespace="hass")
 
         """
-
         namespace = namespace or self.namespace
-        entity_api = self.get_entity_api(namespace, entity_id, check_existence=check_existence)
-        return await entity_api.set_state(state=state, **kwargs)
+        if check_existence:
+            self._check_entity(namespace, entity_id)
+        return await self.AD.state.set_state(
+            name=self.name,
+            namespace=namespace,
+            entity=entity_id,
+            state=state,
+            attributes=attributes,
+            replace=replace,
+            **kwargs
+        )
 
     #
     # Services
@@ -1724,7 +1779,13 @@ class ADAPI:
 
     @staticmethod
     def _check_service(service: str) -> None:
-        if service.find("/") == -1:
+        """Check if the service name is formatted correctly.
+
+        Raises:
+            ValueError: If the service name is invalid.
+
+        """
+        if not isinstance(service, str) and len(str.split('/')) == 2:
             raise ValueError(f"Invalid Service Name: {service}")
 
     def register_service(
@@ -1734,23 +1795,26 @@ class ADAPI:
         namespace: str | None = None,
         **kwargs
     ) -> None:
-        """Registers a service that can be called from other apps, the REST API and the Event Stream
+        """Register a service that can be called from other apps, the REST API, and the event stream.
 
-        Using this function, an App can register a function to be available in the service registry.
-        This will automatically make it available to other apps using the `call_service()` API call, as well as publish
-        it as a service in the REST API and make it available to the `call_service` command in the event stream.
-        It should be noted that registering services within a plugin's namespace is a bad idea. It could work, but not always reliable
-        It is recommended to make use of this api, within a user definded namespace, or one not tied to a plugin.
+        This makes a function available to be called in other apps using ``call_service(...)``. The service function can
+        accept arbitrary keyword arguments.
+
+        Registering services in namespaces that already have plugins is not recommended, as it can lead to some
+        unpredictable behavior. Intead, it's recommended to use a user-defined namespace or one that is not tied to
+        plugin.
 
         Args:
-            service: Name of the service, in the format `domain/service`. If the domain does not exist it will be created
-            cb: A reference to the function to be called when the service is requested. This function may be a regular
-                function, or it may be async. Note that if it is an async function, it will run on AppDaemon's main loop
-                meaning that any issues with the service could result in a delay of AppDaemon's core functions.
-            namespace(str, optional): Namespace to use for the call. See the section on
-                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
-                In most cases, it is safe to ignore this parameter.
-            **kwargs (optional): Zero or more keyword arguments. Extra keyword arguments will be stored alongside the service definition.
+            service: Name of the service, in the format ``domain/service``. If the domain does not exist it will be
+                created.
+            cb: The function to use for the service. This will accept both sync and async functions. Async functions are
+                not recommended, as AppDaemon's threading model makes them unnecessary. Async functions run in the event
+                loop along with AppDaemon internal functions, so any blocking or delays, can cause AppDaemon itself to
+                hang.
+            namespace (str, optional): Optional namespace to use. Defaults to using the app's current namespace. See the
+                `namespace documentation <APPGUIDE.html#namespaces>`__ for more information.
+            **kwargs (optional): Zero or more keyword arguments. Extra keyword arguments will be stored alongside the
+                service definition.
 
         Returns:
             None
@@ -1758,7 +1822,7 @@ class ADAPI:
         Examples:
             >>> self.register_service("myservices/service1", self.mycallback)
 
-            >>> async def mycallback(self, namespace, domain, service, kwargs):
+            >>> async def mycallback(self, namespace: str, domain: str, service: str, kwargs):
             >>>     self.log("Service called")
 
         """
@@ -1776,7 +1840,11 @@ class ADAPI:
         )
 
     def deregister_service(self, service: str, namespace: str | None = None) -> bool:
-        """Deregisters a service that had been previously registered
+        """Deregister a service that had been previously registered.
+
+        This will immediately remove the service from AppDaemon's internal service registry, which will make it
+        unavailable to other apps using the ``call_service()`` API call, as well as published as a service in the REST
+        API
 
         Using this function, an App can deregister a service call, it has initially registered in the service registry.
         This will automatically make it unavailable to other apps using the `call_service()` API call, as well as published
@@ -1784,20 +1852,19 @@ class ADAPI:
         This function can only be used, within the app that registered it in the first place
 
         Args:
-            service: Name of the service, in the format `domain/service`.
-            namespace(str, optional): Namespace to use for the call. See the section on
-                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
-                In most cases, it is safe to ignore this parameter.
+            service: Name of the service, in the format ``domain/service``.
+            namespace (str, optional): Optional namespace to use. Defaults to using the app's current namespace. See the
+                `namespace documentation <APPGUIDE.html#namespaces>`__ for more information.
 
         Returns:
-            Bool
+            ``True`` if the service was successfully deregistered, ``False`` otherwise.
 
         Examples:
             >>> self.deregister_service("myservices/service1")
 
         """
-        self.logger.debug("deregister_service: %s, %s", service, namespace)
         namespace = namespace or self.namespace
+        self.logger.debug("deregister_service: %s, %s", service, namespace)
         self._check_service(service)
         return self.AD.services.deregister_service(namespace, *service.split("/"), __name=self.name)
 
@@ -1805,13 +1872,12 @@ class ADAPI:
         """List all services available within AppDaemon
 
         Args:
-            namespace(str, optional): If a ``namespace`` is provided, this function will return services only in that
-                namespace. Otherwise, the default value for ``namespace`` is ``global``, which will return services
-                across all namespaces. See the section on `namespaces <APPGUIDE.html#namespaces>`__ for more
+            namespace (str, optional): Optional namespace to use. The default is ``flobal``, which will return services
+                across all namespaces. See the `namespace documentation <APPGUIDE.html#namespaces>`__ for more
                 information.
 
         Returns:
-            List of dictionary with keys ``namespace``, ``domain``, and ``service``.
+            List of dicts with keys ``namespace``, ``domain``, and ``service``.
 
         Examples:
             >>> services = self.list_services()
@@ -1825,18 +1891,6 @@ class ADAPI:
         self.logger.debug("list_services: %s", namespace)
         return self.AD.services.list_services(namespace)
 
-    @overload # This overload provides the type hints for the Hass-specific version of this method
-    async def call_service(
-        self,
-        service: str,
-        namespace: str | None = None,
-        timeout: str | int | float | None = None,
-        callback: Callable | None = None,
-        hass_timeout: str | int | float | None = None,
-        suppress_log_messages: bool = False,
-        **data,
-    ) -> Any: ...
-
     @utils.sync_decorator
     async def call_service(
         self,
@@ -1844,7 +1898,7 @@ class ADAPI:
         namespace: str | None = None,
         timeout: str | int | float | None = None,  # Used by utils.sync_decorator
         callback: Callable[[Any], Any] | None = None,
-        **data: dict[str, Any] | None,
+        **data: Any,
     ) -> Any:
         """Calls a Service within AppDaemon.
 
@@ -1874,16 +1928,6 @@ class ADAPI:
                 services which might take a long time to complete. This effectively bypasses the ``timeout`` argument
                 because it only applies to this function, which will return immediately instead of waiting for the
                 result if a `callback` is specified.
-            hass_timeout (str | int | float, optional): Only applicable to the Hass plugin. Sets the amount of time to
-                wait for a response from Home Assistant. If no value is specified, the default timeout is 10s. The
-                default value can be changed using the ``ws_timeout`` setting the in the Hass plugin configuration in
-                ``appdaemon.yaml``. Even if no data is returned from the service call, Home Assistant will still send an
-                acknowledgement back to AppDaemon, which this timeout applies to. Note that this is separate from the
-                ``timeout``. If ``timeout`` is shorter than this one, it will trigger before this one does.
-            suppress_log_messages (bool, optional): Only applicable to the Hass plugin. If this is set to ``True``,
-                Appdaemon will suppress logging of warnings for service calls to Home Assistant, specifically timeouts
-                and non OK statuses. Use this flag and set it to ``True`` to supress these log messages if you are
-                performing your own error checking as described `here <APPGUIDE.html#some-notes-on-service-calls>`__
             service_data (dict, optional): Used as an additional dictionary to pass arguments into the ``service_data``
                 field of the JSON that goes to Home Assistant. This is useful if you have a dictionary that you want to
                 pass in that has a key like ``target`` which is otherwise used for the ``target`` argument.
@@ -1907,7 +1951,7 @@ class ADAPI:
                     entity_id="calendar.home",
                     start_date_time="2024-08-25 00:00:00",
                     end_date_time="2024-08-27 00:00:00",
-                )["result]["response"]["calendar.home"]["events"]
+                )["result"]["response"]["calendar.home"]["events"]
 
             MQTT
             ^^^^
@@ -1956,19 +2000,23 @@ class ADAPI:
     # Sequences
 
     @utils.sync_decorator
-    async def run_sequence(self, sequence: str | list[dict[str, dict[str, str]]], namespace: str | None = None) -> Any:
-        """Run an AppDaemon Sequence. Sequences are defined in a valid apps.yaml file or inline, and are sequences of
-        service calls.
+    async def run_sequence(
+        self,
+        sequence: str | list[dict[str, dict[str, str]]],
+        namespace: str | None = None
+    ) -> Any:
+        """Run an AppDaemon Sequence.
+
+        Sequences are defined in a valid apps.yaml file or inline, and are sequences of service calls.
 
         Args:
-            sequence: The sequence name, referring to the correct entry in apps.yaml, or a list containing
-                actual commands to run
-            namespace(str, optional): If a `namespace` is provided, AppDaemon will change
+            sequence: The sequence name, referring to the correct entry in apps.yaml, or a list containing actual
+                commands to run
+            namespace(str, optional): If a ``namespace`` is provided, AppDaemon will change
                 the state of the given entity in the given namespace. On the other hand,
                 if no namespace is given, AppDaemon will use the last specified namespace
                 or the default namespace. See the section on `namespaces <APPGUIDE.html#namespaces>`__
                 for a detailed description. In most cases, it is safe to ignore this parameter.
-            **kwargs (optional): Zero or more keyword arguments.
 
         Returns:
             A handle that can be used with `cancel_sequence()` to terminate the script.
@@ -1982,8 +2030,11 @@ class ADAPI:
 
             Run an inline sequence.
 
-            >>> handle = self.run_sequence([{"light/turn_on": {"entity_id": "light.office_1"}}, {"sleep": 5}, {"light.turn_off":
-            {"entity_id": "light.office_1"}}])
+            >>> handle = self.run_sequence([
+                    {"light/turn_on": {"entity_id": "light.office_1"}},
+                    {"sleep": 5},
+                    {"light.turn_off": {"entity_id": "light.office_1"}}
+                ])
 
         """
         namespace = namespace or self.namespace
@@ -2020,65 +2071,82 @@ class ADAPI:
     #
 
     @overload
+    @utils.sync_decorator
     async def listen_event(
         self,
-        callback: Callable,
-        event: str | list[str],
-        namespace: str | None,
-        timeout: int,
-        oneshot: bool,
-        pin: bool,
-        pin_thread: int,
-        **kwargs
-    ) -> str | list[str]: ...
+        callback: EventCallback,
+        event: str | None = None,
+        *,
+        namespace: str | None = None,
+        timeout: str | int | float | timedelta | None = None,
+        oneshot: bool = False,
+        pin: bool | None = None,
+        pin_thread: int | None = None,
+        **kwargs: Any | Callable[[Any], bool]
+    ) -> str: ...
+
+    @overload
+    @utils.sync_decorator
+    async def listen_event(
+        self,
+        callback: EventCallback,
+        event: list[str],
+        *,
+        namespace: str | None = None,
+        timeout: str | int | float | timedelta | None = None,
+        oneshot: bool = False,
+        pin: bool | None = None,
+        pin_thread: int | None = None,
+        **kwargs: Any | Callable[[Any], bool]
+    ) -> list[str]: ...
 
     @utils.sync_decorator
     async def listen_event(
         self,
-        callback: Callable,
-        event: str | list[str] = None,
-        namespace: str | None = None,
-        **kwargs
+        callback: EventCallback,
+        event: str | Iterable[str] | None = None,
+        *,
+        namespace: str | Literal["global"] | None = None,
+        timeout: str | int | float | timedelta | None = None,
+        oneshot: bool = False,
+        pin: bool | None = None,
+        pin_thread: int | None = None,
+        **kwargs: Any | Callable[[Any], bool]
     ) -> str | list[str]:
-        """Registers a callback for a specific event, or any event.
+        """Register a callback for a specific event, multiple events, or any event.
+
+
+        The callback needs to have the following form:
+
+        >>> def my_callback(self, event_name: str, event_data: dict[str, Any], **kwargs: Any) -> None: ...
 
         Args:
-            callback: Function to be invoked when the event is fired.
-                It must conform to the standard Event Callback format documented `here <APPGUIDE.html#about-event-callbacks>`__
-            event (str|list, optional): Name of the event to subscribe to. Can be a standard
-                Home Assistant event such as `service_registered`, an arbitrary
-                custom event such as `"MODE_CHANGE"` or a list of events `["pressed", "released"]`. If no event is specified,
-                `listen_event()` will subscribe to all events.
-            namespace(str, optional): Namespace to use for the call. See the section on
-                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
-                In most cases, it is safe to ignore this parameter. The value ``global``
-                for namespace has special significance, and means that the callback will
-                listen to state updates from any plugin.
-            oneshot (bool, optional): If ``True``, the callback will be automatically cancelled
-                after the first state change that results in a callback.
-            pin (bool, optional): If ``True``, the callback will be pinned to a particular thread.
-            pin_thread (int, optional): Specify which thread from the worker pool the callback
-                will be run by (0 - number of threads -1).
-            timeout (int, optional): If ``timeout`` is supplied as a parameter, the callback will be created as normal,
-                 but after ``timeout`` seconds, the callback will be removed.
-            **kwargs (optional): One or more keyword value pairs representing App specific
-                parameters to supply to the callback. If the keywords match values within the
-                event data, they will act as filters, meaning that if they don't match the
-                values, the callback will not fire. If the values provided are callable (lambda,
-                function, etc), then they'll be invoked with the events content, and if they return
-                ``True``, they'll be considered to match.
+            callback: Function that will be called when the event is fired. It must conform to the standard event
+                callback format documented `here <APPGUIDE.html#event-callbacks>`__
+            event (str | list[str], optional): Name of the event to subscribe to. Can be a standard Home Assistant
+                event such as ``service_registered``, an arbitrary custom event such as ``MODE_CHANGE`` or a list of
+                events `["pressed", "released"]`. If no event is specified, `listen_event()` will subscribe to all
+                events.
+            namespace (str, optional): Optional namespace to use. Defaults to using the app's current namespace. The
+                value ``global`` will register the callback for all namespaces. See the
+                `namespace documentation <APPGUIDE.html#namespaces>`__ for more information.
+            timeout (str, int, float, timedelta, optional): If supplied, the callback will be created as normal, but the
+                callback will be removed after the timeout.
+            oneshot (bool, optional): If ``True``, the callback will be automatically cancelled after the first state
+                change that results in a callback. Defaults to ``False``.
+            pin (bool, optional): Optional setting to override the default thread pinning behavior. By default, this is
+                effectively ``True``, and ``pin_thread`` gets set when the app starts.
+            pin_thread (int, optional): Specify which thread from the worker pool will run the callback. The threads
+                each have an ID number. The ID numbers start at 0 and go through (number of threads - 1).
+            **kwargs (optional): One or more keyword value pairs representing app-specific parameters to supply to the
+                callback. If the event has data that matches one of these keywords, it will be filtered by the value
+                passed in with this function. This means that if the value in the event data does not match, the
+                callback will not be called. If the values provided are callable (lambda, function, etc), then they'll
+                be invoked with the events content, and if they return ``True``, they'll be considered to match.
 
-                As an example of this, a `Minimote` controller when activated will generate
-                an event called zwave.scene_activated, along with 2 pieces of data that are
-                specific to the event - entity_id and scene. If you include keyword values
-                for either of those, the values supplied to the `listen_event()` call must
-                match the values in the event or it will not fire. If the keywords do not
-                match any of the data in the event they are simply ignored.
-
-                Filtering will work with any event type, but it will be necessary to figure
-                out the data associated with the event to understand what values can be
-                filtered on. This can be achieved by examining Home Assistant's `logfiles`
-                when the event fires.
+                Filtering will work with any event type, but it will be necessary to figure out the data associated
+                with the event to understand what values can be filtered on. This can be achieved by examining Home
+                Assistant's ``logfiles`` when the event fires.
 
         Returns:
             A handle that can be used to cancel the callback.
@@ -2090,51 +2158,99 @@ class ADAPI:
 
             Listen for a `minimote` event activating scene 3.
 
-            >>> self.listen_event(self.generic_event, "zwave.scene_activated", scene_id = 3)
+            >>> self.listen_event(self.generic_event, "zwave.scene_activated", scene_id=3)
 
             Listen for a `minimote` event activating scene 3 from a specific `minimote` .
 
-            >>> self.listen_event(self.generic_event, "zwave.scene_activated", entity_id = "minimote_31", scene_id = 3)
+            >>> self.listen_event(self.generic_event, "zwave.scene_activated", entity_id="minimote_31", scene_id=3)
 
-            Listen for a `minimote` event activating scene 3 from certain `minimote` (starting with 3), matched with code.
+            Listen for a `minimote` event activating scene 3 from certain `minimote` (starting with 3), matched with
+            code.
 
-            >>> self.listen_event(self.generic_event, "zwave.scene_activated", entity_id = lambda x: x.starts_with("minimote_3"), scene_id = 3)
+            >>> self.listen_event(
+                    self.generic_event,
+                    "zwave.scene_activated",
+                    entity_id=lambda x: x.starts_with("minimote_3"),
+                    scene_id=3
+                )
 
             Listen for some custom events of a button being pressed.
 
             >>> self.listen_event(self.button_event, ["pressed", "released"])
 
         """
-        self.logger.debug(f"Calling listen_event for {self.name} for {event}: {kwargs}")
-        namespace = namespace or self.namespace
+        self.logger.debug(f"Calling listen_event() for {self.name} for {event}: {kwargs}")
+
+        # pre-fill some arguments here
+        add_callback = functools.partial(
+            self.AD.events.add_event_callback,
+            name=self.name,
+            namespace=namespace or self.namespace,
+            cb=callback,
+            timeout=timeout,
+            oneshot=oneshot,
+            pin=pin,
+            pin_thread=pin_thread,
+            kwargs=kwargs
+        )
 
         match event:
             case str() | None:
-                return await self.AD.events.add_event_callback(self.name, namespace, callback, event, **kwargs)
+                return await add_callback(event=event)
             case Iterable():
-                return [
-                    await self.AD.events.add_event_callback(self.name, namespace, callback, e, **kwargs)
-                    for e in event
-                ]
+                return [await add_callback(event=e) for e in event]
             case _:
                 self.logger.warning(f"Invalid event: {event}")
 
+    @overload
     @utils.sync_decorator
-    async def cancel_listen_event(self, handle: str) -> bool:
-        """Cancels a callback for a specific event.
+    async def cancel_listen_event(self, handle: str, *, silent: bool = False) -> bool: ...
+
+    @overload
+    @utils.sync_decorator
+    async def cancel_listen_event(self, handle: Iterable[str], *, silent: bool = False) -> dict[str, bool]: ...
+
+    @utils.sync_decorator
+    async def cancel_listen_event(self, handle: str | Iterable[str], *, silent: bool = False) -> bool | dict[str, bool]:
+        """Cancel a callback for a specific event.
 
         Args:
-            handle: A handle returned from a previous call to ``listen_event()``.
+            handle (str, Iterable[str]): Handle(s) returned from a previous call to ``listen_event()``.
+            silent (bool, optional): If ``True``, no warning will be issued if the handle is not found. Defaults to
+                ``False``. This is useful if you want to cancel a callback that may or may not exist.
 
         Returns:
-            Boolean.
+            A single boolean if a single handle is passed, or a dict mapping the handles to boolean values. Each boolean
+            value will be the result of canceling the corresponding handle.
 
         Examples:
+            Cancel a single callback.
             >>> self.cancel_listen_event(handle)
+            True
+
+            Cancel multiple callbacks.
+            >>> result = self.cancel_listen_event([handle1, handle2])
+            >>> all(result.values())  # Check if all handles were canceled successfully
+            True
 
         """
-        self.logger.debug("Canceling listen_event for %s", self.name)
-        return await self.AD.events.cancel_event_callback(self.name, handle)
+        cancel_callback = functools.partial(
+            self.AD.events.cancel_event_callback,
+            name=self.name,
+            silent=silent
+        )
+
+        match handle:
+            case str():
+                self.logger.debug("Canceling listen_event for %s", self.name)
+                return await cancel_callback(handle=handle)
+            case Iterable():
+                assert all(isinstance(h, str) for h in handle), "All handles must be strings"
+                self.logger.debug("Canceling %sx listen_event for %s", len(handle), self.name)
+                return {h: await cancel_callback(handle=h) for h in handle}
+            case _:
+                self.logger.warning(f"Invalid handle: {handle}")
+                return False
 
     @utils.sync_decorator
     async def info_listen_event(self, handle: str) -> bool:
@@ -2158,13 +2274,12 @@ class ADAPI:
         """Fires an event on the AppDaemon bus, for apps and plugins.
 
         Args:
-            event: Name of the event. Can be a standard Home Assistant event such as
-                `service_registered` or an arbitrary custom event such as "MODE_CHANGE".
+            event: Name of the event. Can be a standard Home Assistant event such as ``service_registered`` or an
+                arbitrary custom event such as "MODE_CHANGE".
             namespace(str, optional): Namespace to use for the call. See the section on
-                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
-                In most cases, it is safe to ignore this parameter.
-            **kwargs (optional): Zero or more keyword arguments that will be supplied as
-                part of the event.
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description. In most cases, it is safe to
+                ignore this parameter.
+            **kwargs (optional): Zero or more keyword arguments that will be supplied as part of the event.
 
         Returns:
             None.
@@ -2180,8 +2295,8 @@ class ADAPI:
     # Time
     #
 
-    def parse_utc_string(self, utc_string: str) -> dt.datetime:
-        """Converts a UTC to its string representation.
+    def parse_utc_string(self, utc_string: str) -> float:
+        """Convert a UTC to its string representation.
 
         Args:
             utc_string (str): A string that contains a date and time to convert.
@@ -2190,31 +2305,32 @@ class ADAPI:
             An POSIX timestamp that is equivalent to the date and time contained in `utc_string`.
 
         """
-        return dt.datetime(*map(int, re.split(r"[^\d]", utc_string)[:-1])).timestamp() + self.get_tz_offset() * 60
+        nums = list(map(
+            int,
+            re.split(r"[^\d]", utc_string)[:-1] # split by anything that's not a number and skip the last part for AM/PM
+        ))[:7] # Use a max of 7 parts
+        return dt.datetime(*nums).timestamp() + self.get_tz_offset() * 60
 
     def get_tz_offset(self) -> float:
         """Returns the timezone difference between UTC and Local Time in minutes."""
         return self.AD.tz.utcoffset(self.datetime()).total_seconds() / 60
 
-    @staticmethod
-    def convert_utc(utc: str) -> dt.datetime:
+    def convert_utc(self, utc: str) -> dt.datetime:
         """Gets a `datetime` object for the specified UTC.
 
-        Home Assistant provides timestamps of several different sorts that may be
-        used to gain additional insight into state changes. These timestamps are
-        in UTC and are coded as `ISO 8601` combined date and time strings. This function
-        will accept one of these strings and convert it to a localised Python
-        `datetime` object representing the timestamp.
+        Home Assistant provides timestamps of several different sorts that can be used to gain additional insight into
+        state changes. These timestamps are in UTC and are coded as `ISO 8601` combined date and time strings. This
+        function will accept one of these strings and convert it to a localised Python ``datetime`` object representing
+        the timestamp.
 
         Args:
-            utc: An `ISO 8601` encoded date and time string in the following
-                format: `2016-07-13T14:24:02.040658-04:00`
+            utc: An `ISO 8601` encoded date and time string in the following format: `2016-07-13T14:24:02.040658-04:00`
 
         Returns:
              A localised Python `datetime` object representing the timestamp.
 
         """
-        return iso8601.parse_date(utc)
+        return dt.datetime.fromisoformat(utc).astimezone(self.AD.tz)
 
     @utils.sync_decorator
     async def sun_up(self) -> bool:
@@ -2244,7 +2360,7 @@ class ADAPI:
         """
         return await self.AD.sched.sun_down()
 
-    @overload
+    @utils.sync_decorator
     async def parse_time(
         self,
         time_str: str,
@@ -2252,10 +2368,7 @@ class ADAPI:
         aware: bool = False,
         today: bool = False,
         days_offset: int = 0
-    ) -> dt.time: ...
-
-    @utils.sync_decorator
-    async def parse_time(self, time_str: str, name: str | None = None, *args, **kwargs) -> dt.time:
+    ) -> dt.time:
         """Creates a `time` object from its string representation.
 
         This functions takes a string representation of a time, or sunrise,
@@ -2302,10 +2415,15 @@ class ADAPI:
             05:33:17
 
         """
-        name = name or self.name
-        return await self.AD.sched.parse_time(time_str, name, *args, **kwargs)
+        return await self.AD.sched.parse_time(
+            time_str=time_str,
+            name=name or self.name,
+            aware=aware,
+            today=today,
+            days_offset=days_offset
+        )
 
-    @overload
+    @utils.sync_decorator
     async def parse_datetime(
         self,
         time_str: str,
@@ -2313,10 +2431,7 @@ class ADAPI:
         aware: bool = False,
         today: bool = False,
         days_offset: int = 0
-    ) -> dt.time: ...
-
-    @utils.sync_decorator
-    async def parse_datetime(self, time_str: str, name: str | None = None, *args, **kwargs) -> dt.datetime:
+    ) -> dt.datetime:
         """Creates a `datetime` object from its string representation.
 
         This function takes a string representation of a date and time, or sunrise,
@@ -2365,8 +2480,13 @@ class ADAPI:
             >>> self.parse_datetime("sunrise + 01:00:00")
             2019-08-16 06:33:17
         """
-        name = name or self.name
-        return await self.AD.sched.parse_datetime(time_str, name, *args, **kwargs)
+        return await self.AD.sched.parse_datetime(
+            time_str=time_str,
+            name=name or self.name,
+            aware=aware,
+            today=today,
+            days_offset=days_offset
+        )
 
     @utils.sync_decorator
     async def get_now(self, aware: bool = True) -> dt.datetime:
@@ -2374,14 +2494,11 @@ class ADAPI:
 
         Examples:
             >>> self.get_now()
-            2019-08-16 21:17:41.098813+00:00
+            2019-08-16 21:17:41.098813-04:00
 
         """
-        now = await self.AD.sched.get_now()
-        now = now.astimezone(self.AD.tz)
-        if not aware:
-            now = now.replace(tzinfo=None)
-        return now
+        now =  await self.AD.sched.get_now()
+        return now.astimezone(self.AD.tz) if aware else self.AD.sched.make_naive(now)
 
     @utils.sync_decorator
     async def get_now_ts(self, aware: bool = False) -> float:
@@ -2395,27 +2512,42 @@ class ADAPI:
         return (await self.get_now(aware)).timestamp()
 
     @overload
-    async def now_is_between(self, start_time: str, end_time: str, name: str | None = None, now: str | None = None) -> bool: ...
+    @utils.sync_decorator
+    async def now_is_between(self, start_time: str, end_time: str) -> bool: ...
+
+    @overload
+    @utils.sync_decorator
+    async def now_is_between(self, start_time: str, end_time: str, name: str) -> bool: ...
+
+    @overload
+    @utils.sync_decorator
+    async def now_is_between(self, start_time: str, end_time: str, now: str) -> bool: ...
 
     @utils.sync_decorator
-    async def now_is_between(self, *args, **kwargs) -> bool:
-        """Determines if the current `time` is within the specified start and end times.
+    async def now_is_between(
+        self,
+        start_time: str | dt.datetime,
+        end_time: str | dt.datetime,
+        name: str | None = None,
+        now: str | None = None
+    ) -> bool:
+        """Determine if the current `time` is within the specified start and end times.
 
-        This function takes two string representations of a ``time``, or ``sunrise`` or ``sunset``
-        offset and returns ``true`` if the current time is between those 2 times. Its
-        implementation can correctly handle transitions across midnight.
+        This function takes two string representations of a ``time`` ()or ``sunrise`` or ``sunset`` offset) and returns
+        ``true`` if the current time is between those 2 times. Its implementation can correctly handle transitions
+        across midnight.
 
         Args:
             start_time (str): A string representation of the start time.
             end_time (str): A string representation of the end time.
             name (str, optional): Name of the calling app or module. It is used only for logging purposes.
-            now (str, optional): If specified, `now` is used as the time for comparison instead of the current time. Useful for testing.
+            now (str, optional): If specified, `now` is used as the time for comparison instead of the current time.
+                Useful for testing.
 
         Returns:
-            bool: ``True`` if the current time is within the specified start and end times,
-            ``False`` otherwise.
+            bool: ``True`` if the current time is within the specified start and end times, otherwise ``False``.
 
-        Notes:
+        Note:
             The string representation of the ``start_time`` and ``end_time`` should follows
             one of these formats:
 
@@ -2433,23 +2565,24 @@ class ADAPI:
             >>>     #do something
 
         """
-        return await self.AD.sched.now_is_between(*args, **kwargs)
+        return await self.AD.sched.now_is_between(start_time, end_time, name or self.name, now)
 
     @utils.sync_decorator
     async def sunrise(self, aware: bool = False, today: bool = False, days_offset: int = 0) -> dt.datetime:
-        """Returns a `datetime` object that represents the next time Sunrise will occur.
+        """Return a `datetime` object that represent when a sunrise will occur.
 
         Args:
-            aware (bool, optional): Specifies if the created datetime object will be
-                `aware` of timezone or `not`.
-            today (bool, optional): Instead of the default behavior which is to return the next sunrise that will occur, setting this flag to true will return
-                 today's sunrise even if it is in the past
-            days_offset (int, optional): Specify the number of days (positive or negative) for the sunset. This can only be used in combination with the today
-                 flag
+            aware (bool, optional): Whether the resulting datetime object will be aware of timezone.
+            today (bool, optional): Defaults to ``False``, which will return the first sunrise in the future,
+                regardless of the day. If set to ``True``, the function will return the sunrise for the current day,
+                even if it is in the past.
+            days_offset (int, optional): Specify the number of days (positive or negative) for the sunrise. This can
+                only be used in combination with the today flag
 
         Examples:
             >>> self.sunrise()
             2023-02-02 07:11:50.150554
+
             >>> self.sunrise(today=True)
             2023-02-01 07:12:20.272403
 
@@ -2458,20 +2591,20 @@ class ADAPI:
 
     @utils.sync_decorator
     async def sunset(self, aware: bool = False, today: bool = False, days_offset: int = 0) -> dt.datetime:
-        """Returns a `datetime` object that represents the next time Sunset will occur.
+        """Return a `datetime` object that represent when a sunset will occur.
 
         Args:
-            aware (bool, optional): Specifies if the created datetime object will be
-                `aware` of timezone or `not`.
-            today (bool, optional): Instead of the default behavior which is to return
-                the next sunset that will occur, setting this flag to true will return
-                today's sunset even if it is in the past
-            days_offset (int, optional): Specify the number of days (positive or negative)
-                for the sunset. This can only be used in combination with the today flag
+            aware (bool, optional): Whether the resulting datetime object will be aware of timezone.
+            today (bool, optional): Defaults to ``False``, which will return the first sunset in the future,
+                regardless of the day. If set to ``True``, the function will return the sunset for the current day,
+                even if it is in the past.
+            days_offset (int, optional): Specify the number of days (positive or negative) for the sunset. This can
+                only be used in combination with the today flag
 
         Examples:
             >>> self.sunset()
             2023-02-01 18:09:00.730704
+
             >>> self.sunset(today=True, days_offset=1)
             2023-02-02 18:09:46.252314
 
@@ -2480,49 +2613,48 @@ class ADAPI:
 
     @utils.sync_decorator
     async def datetime(self, aware: bool = False) -> dt.datetime:
-        """Returns a `datetime` object representing the current Local Date and Time.
+        """Get a ``datetime`` object representing the current local date and time.
 
-        Use this in preference to the standard Python ways to discover the current
-        datetime, especially when using the "Time Travel" feature for testing.
+        Use this instead of the standard Python methods in order to correctly account for the time when using the time
+        travel feature, which is usually done for testing.
 
         Args:
-            aware (bool, optional): Specifies if the created datetime object will be
-                `aware` of timezone or `not`.
+            aware (bool, optional): Whether the resulting datetime object will be aware of timezone.
 
         Examples:
             >>> self.datetime()
             2019-08-15 20:15:55.549379
 
         """
-        return await self.get_now(aware)
+        return await self.get_now(aware=aware)
 
     @utils.sync_decorator
     async def time(self) -> dt.time:
-        """Returns a localised `time` object representing the current Local Time.
+        """Get a ``time`` object representing the current local time.
 
-        Use this in preference to the standard Python ways to discover the current time,
-        especially when using the "Time Travel" feature for testing.
+        Use this instead of the standard Python methods in order to correctly account for the time when using the time
+        travel feature, which is usually done for testing.
 
         Examples:
             >>> self.time()
             20:15:31.295751
 
         """
-        return (await self.datetime(aware=True)).time()
+        return (await self.get_now(aware=True)).time()
 
     @utils.sync_decorator
     async def date(self) -> dt.date:
-        """Returns a localised `date` object representing the current Local Date.
+        """Get a ``date`` object representing the current local date.
 
-        Use this in preference to the standard Python ways to discover the current date,
-        especially when using the "Time Travel" feature for testing.
+        Use this instead of the standard Python methods in order to correctly account for the time when using the time
+        travel feature, which is usually done for testing.
 
         Examples:
             >>> self.date()
             2019-08-15
 
         """
-        return (await self.datetime(aware=True)).date()
+        return (await self.get_now(aware=True)).date()
 
     def get_timezone(self) -> str:
         """Returns the current time zone."""
@@ -2534,16 +2666,17 @@ class ADAPI:
 
     @utils.sync_decorator
     async def timer_running(self, handle: str) -> bool:
-        """Checks if a previously created timer is still running.
+        """Check if a previously created timer is still running.
 
         Args:
-            handle: A handle value returned from the original call to create the timer.
+            handle (str): The handle returned from the original call to create the timer.
 
         Returns:
-            Boolean.
+            Boolean representing whether the timer is still running.
 
         Examples:
             >>> self.timer_running(handle)
+            True
 
         """
         name = self.name
@@ -2552,20 +2685,21 @@ class ADAPI:
 
     @utils.sync_decorator
     async def cancel_timer(self, handle: str, silent: bool = False) -> bool:
-        """Cancels a previously created timer.
+        """Cancel a previously created timer.
 
         Args:
-            handle: A handle value returned from the original call to create the timer.
-            silent: (boolean, optional) don't issue a warning if the handle is invalid.
-                This can sometimes occur due to race conditions and is usually harmless.
-                Defaults to False
+            handle (str): The handle returned from the original call to create the timer.
+            silent (bool, optional): Set to ``True`` to suppress warnings if the handle is not found. Defaults to
+                ``False``.
 
         Returns:
-            Boolean.
+            Boolean representing whether the timer was successfully canceled.
 
         Examples:
             >>> self.cancel_timer(handle)
-            >>> self.cancel_timer(handle, True)
+            True
+
+            >>> self.cancel_timer(handle, silent=True)
 
         """
         self.logger.debug("Canceling timer with handle %s for %s", handle, self.name)
@@ -2573,17 +2707,19 @@ class ADAPI:
 
     @utils.sync_decorator
     async def reset_timer(self, handle: str) -> bool:
-        """Resets a previously created timer.
+        """Reset a previously created timer.
+
+        The timer must be actively running, and not a sun-related one like sunrise/sunset for it to be reset.
 
         Args:
-            handle: A valid handle value returned from the original call to create the timer.
-                The timer must be actively running, and not a Sun related one like sunrise/sunset for it to be resetted.
+            handle (str): The handle returned from the original call to create the timer.
 
         Returns:
-            Boolean, true if the reset succeeded.
+            Boolean representing whether the timer reset was successful.
 
         Examples:
             >>> self.reset_timer(handle)
+            True
 
         """
         self.logger.debug("Resetting timer with handle %s for %s", handle, self.name)
@@ -2591,22 +2727,21 @@ class ADAPI:
 
     @utils.sync_decorator
     async def info_timer(self, handle: str) -> tuple[dt.datetime, int, dict] | None:
-        """Gets information on a scheduler event from its handle.
+        """Get information about a previously created timer.
 
         Args:
-            handle: The handle returned when the scheduler call was made.
+            handle (str): The handle returned from the original call to create the timer.
 
         Returns:
-            `time` - datetime object representing the next time the callback will be fired
+            A tuple with the following values or ``None`` if handle is invalid or timer no longer exists.
 
-            `interval` - repeat interval if applicable, `0` otherwise.
-
-            `kwargs` - the values supplied when the callback was initially created.
-
-            or ``None`` - if handle is invalid or timer no longer exists.
+            - `time` - datetime object representing the next time the callback will be fired
+            - `interval` - repeat interval if applicable, `0` otherwise.
+            - `kwargs` - the values supplied when the callback was initially created.
 
         Examples:
-            >>> time, interval, kwargs = self.info_timer(handle)
+            >>> if (info := self.info_timer(handle)) is not None:
+            >>>     time, interval, kwargs = info
 
         """
         return await self.AD.sched.info_timer(handle, self.name)
@@ -2615,53 +2750,54 @@ class ADAPI:
     async def run_in(
         self,
         callback: Callable,
-        delay: float,
+        delay: str | int | float | timedelta,
         *args,
-        random_start: int = None,
-        random_end: int = None,
+        random_start: int | None = None,
+        random_end: int | None = None,
         pin: bool | None = None,
         pin_thread: int | None = None,
         **kwargs
     ) -> str:
-        """Runs the callback in a defined number of seconds.
+        """Run a function after a specified delay.
 
-        This is used to add a delay, for instance, a 60 second delay before
-        a light is turned off after it has been triggered by a motion detector.
-        This callback should always be used instead of ``time.sleep()`` as
-        discussed previously.
+        This method should always be used instead of ``time.sleep()``.
 
         Args:
-            callback: Function to be invoked when the requested state change occurs.
-                It must conform to the standard Scheduler Callback format documented
-                `here <APPGUIDE.html#about-schedule-callbacks>`__.
-            delay (float): Delay, in seconds before the callback is invoked.
+            callback: Function that will be called after the specified delay. It must conform to the standard scheduler
+                callback format documented `here <APPGUIDE.html#scheduler-callbacks>`__.
+            delay (str, int, float, datetime.timedelta): Delay before the callback is executed. Numbers will be
+                interpreted as seconds. Strings can be in the format of ``HH:MM``, ``HH:MM:SS``, or
+                ``DD days, HH:MM:SS``. If a ``timedelta`` object is given, it will be used as is.
+            *args: Arbitrary positional arguments to be provided to the callback function when it is triggered.
             random_start (int, optional): Start of range of the random time.
             random_end (int, optional): End of range of the random time.
-            pin (bool, optional): If True, the callback will be pinned to a particular thread.
-            pin_thread (int, optional): Specify which thread from the worker pool the callback
-                will be run by (0 - number of threads -1).
-            **kwargs: Arbitrary keyword parameters to be provided to the callback
-                function when it is invoked.
+            pin (bool, optional): Optional setting to override the default thread pinning behavior. By default, this is
+                effectively ``True``, and ``pin_thread`` gets set when the app starts.
+            pin_thread (int, optional): Specify which thread from the worker pool will run the callback. The threads
+                each have an ID number. The ID numbers start at 0 and go through (number of threads - 1).
+            **kwargs: Arbitrary keyword parameters to be provided to the callback function when it is triggered.
 
         Returns:
-            A handle that can be used to cancel the timer.
+            A handle that can be used to cancel the timer later before it's been executed.
 
-        Notes:
-            The ``random_start`` value must always be numerically lower than ``random_end`` value,
-            they can be negative to denote a random offset before and event, or positive to
-            denote a random offset after an event.
+        Note:
+            The ``random_start`` value must always be numerically lower than ``random_end`` value, they can be negative
+            to denote a random offset before and event, or positive to denote a random offset after an event.
 
         Examples:
-            Run the specified callback after 10 seconds.
+            Run the specified callback after 0.5 seconds.
 
-            >>> self.handle = self.run_in(self.run_in_c, 10)
+            >>> def delayed_callback(self, **kwargs): ... # example callback
+            >>> self.handle = self.run_in(self.delayed_callback, 0.5)
 
-            Run the specified callback after 10 seconds with a keyword arg (title).
+            Run the specified callback after 2.7 seconds with a custom keyword arg ``title``.
 
-            >>> self.handle = self.run_in(self.run_in_c, 5, title = "run_in5")
+            >>> def delayed_callback(self, title: str, **kwargs): ... # example callback
+            >>> self.handle = self.run_in(self.delayed_callback, 2.7, title="Delayed Callback Title")
+
 
         """
-        delay = delay if isinstance(delay, timedelta) else utils.convert_timedelta(delay)
+        delay = delay if isinstance(delay, timedelta) else utils.parse_timedelta(delay)
         assert isinstance(delay, timedelta), f"Invalid delay: {delay}"
         self.logger.debug(f"Registering run_in in {delay.total_seconds():.1f}s for {self.name}")
         exec_time = (await self.get_now()) + delay
@@ -2680,59 +2816,59 @@ class ADAPI:
     async def run_once(
         self,
         callback: Callable,
-        start: dt.time | str | None = None,
+        start: str | dt.time | dt.datetime | None = None,
         *args,
-        random_start: int = None,
-        random_end: int = None,
+        random_start: int | None = None,
+        random_end: int | None = None,
         pin: bool | None = None,
         pin_thread: int | None = None,
         **kwargs
     ) -> str:
-        """Runs the callback once, at the specified time of day.
+        """Run a function once, at the specified time of day. This is essentially an alias for ``run_at()``.
 
         Args:
-            callback: Function to be invoked at the specified time of day.
-                It must conform to the standard Scheduler Callback format documented
-                `here <APPGUIDE.html#about-schedule-callbacks>`__.
-            start: Should be either a Python ``time`` object or a ``parse_time()`` formatted
-                string that specifies when the callback will occur. If the time
-                specified is in the past, the callback will occur the ``next day`` at
-                the specified time.
-            *args: Arbitrary positional arguments to be provided to the callback function
-                when it is invoked.
-            random_start (int): Start of range of the random time.
-            random_end (int): End of range of the random time.
-            pin (bool, optional): If True, the callback will be pinned to a particular thread.
-            pin_thread (int, optional): Specify which thread from the worker pool the callback
-                will be run by (0 - number of threads -1).
-            **kwargs: Arbitrary keyword parameters to be provided to the callback
-                function when it is invoked.
+            callback: Function that will be called at the specified time. It must conform to the standard scheduler
+                callback format documented `here <APPGUIDE.html#scheduler-callbacks>`__.
+            start (str, datetime.time): Time the callback will be triggered. It should be either a Python ``time``
+                object, ``datetime`` object, or a ``parse_time()`` formatted string that specifies when the callback
+                will occur. If the time specified is in the past, the callback will occur the `next day` at the
+                specified time.
+            *args: Arbitrary positional arguments to be provided to the callback function when it is triggered.
+            random_start (int, optional): Start of range of the random time.
+            random_end (int, optional): End of range of the random time.
+            pin (bool, optional): Optional setting to override the default thread pinning behavior. By default, this is
+                effectively ``True``, and ``pin_thread`` gets set when the app starts.
+            pin_thread (int, optional): Specify which thread from the worker pool will run the callback. The threads
+                each have an ID number. The ID numbers start at 0 and go through (number of threads - 1).
+            **kwargs: Arbitrary keyword parameters to be provided to the callback function when it is triggered.
 
         Returns:
-            A handle that can be used to cancel the timer.
+            A handle that can be used to cancel the timer later before it's been executed.
 
-        Notes:
-            The ``random_start`` value must always be numerically lower than ``random_end`` value,
-            they can be negative to denote a random offset before and event, or positive to
-            denote a random offset after an event.
+        Note:
+            The ``random_start`` value must always be numerically lower than ``random_end`` value, they can be negative
+            to denote a random offset before and event, or positive to denote a random offset after an event.
 
         Examples:
-            Run at 4pm today, or 4pm tomorrow if it is already after 4pm.
+            Run at 10:30am today, or 10:30am tomorrow if it is already after 10:30am.
 
-            >>> runtime = datetime.time(16, 0, 0)
-            >>> handle = self.run_once(self.run_once_c, runtime)
+            >>> def delayed_callback(self, **kwargs): ...  # example callback
+            >>> handle = self.run_once(self.delayed_callback, datetime.time(10, 30, 0))
 
-            Run today at 10:30 using the `parse_time()` function.
+            Run today at 04:00pm using the ``parse_time()`` function.
 
-            >>> handle = self.run_once(self.run_once_c, "10:30:00")
+            >>> def delayed_callback(self, **kwargs): ...  # example callback
+            >>> handle = self.run_once(self.delayed_callback, "04:00:00 PM")
 
             Run at sunset.
 
-            >>> handle = self.run_once(self.run_once_c, "sunset")
+            >>> def delayed_callback(self, **kwargs): ...  # example callback
+            >>> handle = self.run_once(self.delayed_callback, "sunset")
 
             Run an hour after sunrise.
 
-            >>> handle = self.run_once(self.run_once_c, "sunrise + 01:00:00")
+            >>> def delayed_callback(self, **kwargs): ...  # example callback
+            >>> handle = self.run_once(self.delayed_callback, "sunrise + 01:00:00")
 
         """
         return await self.run_at(
@@ -2748,65 +2884,59 @@ class ADAPI:
     async def run_at(
         self,
         callback: Callable,
-        start: dt.time | str | None = None,
+        start: str | dt.time | dt.datetime | None = None,
         *args,
-        random_start: int = None,
-        random_end: int = None,
+        random_start: int | None = None,
+        random_end: int | None = None,
         pin: bool | None = None,
         pin_thread: int | None = None,
         **kwargs
     ) -> str:
-        """Runs the callback once, at the specified time of day.
+        """Run a function once, at the specified time of day.
 
         Args:
-            callback: Function to be invoked at the specified time of day.
-                It must conform to the standard Scheduler Callback format documented
-                `here <APPGUIDE.html#about-schedule-callbacks>`__.
-            start: Should be either a Python ``datetime`` object or a ``parse_time()`` formatted
-                string that specifies when the callback will occur.
-            *args: Arbitrary positional arguments to be provided to the callback function
-                when it is invoked.
-            random_start (int): Start of range of the random time.
-            random_end (int): End of range of the random time.
-            pin (bool, optional): If ``True``, the callback will be pinned to a particular thread.
-            pin_thread (int, optional): Specify which thread from the worker pool the callback
-                will be run by (0 - number of threads -1).
-            **kwargs: Arbitrary keyword parameters to be provided to the callback
-                function when it is invoked.
+            callback: Function that will be called at the specified time. It must conform to the standard scheduler
+                callback format documented `here <APPGUIDE.html#scheduler-callbacks>`__.
+            start (str, datetime.time): Time the callback will be triggered. It should be either a Python ``time``
+                object, ``datetime`` object, or a ``parse_time()`` formatted string that specifies when the callback
+                will occur. If the time specified is in the past, the callback will occur the `next day` at the
+                specified time.
+            *args: Arbitrary positional arguments to be provided to the callback function when it is triggered.
+            random_start (int, optional): Start of range of the random time.
+            random_end (int, optional): End of range of the random time.
+            pin (bool, optional): Optional setting to override the default thread pinning behavior. By default, this is
+                effectively ``True``, and ``pin_thread`` gets set when the app starts.
+            pin_thread (int, optional): Specify which thread from the worker pool will run the callback. The threads
+                each have an ID number. The ID numbers start at 0 and go through (number of threads - 1).
+            **kwargs: Arbitrary keyword parameters to be provided to the callback function when it is triggered.
 
         Returns:
-            A handle that can be used to cancel the timer.
+            A handle that can be used to cancel the timer later before it's been executed.
 
-        Notes:
-            The ``random_start`` value must always be numerically lower than ``random_end`` value,
-            they can be negative to denote a random offset before and event, or positive to
-            denote a random offset after an event.
-
-            The ``run_at()`` function will ``raise`` an exception if the specified time is in the ``past``.
+        Note:
+            The ``random_start`` value must always be numerically lower than ``random_end`` value, they can be negative
+            to denote a random offset before and event, or positive to denote a random offset after an event.
 
         Examples:
-            Run at 4pm today.
+            Run at 10:30am today, or 10:30am tomorrow if it is already after 10:30am.
 
-            >>> runtime = datetime.time(16, 0, 0)
-            >>> today = datetime.date.today()
-            >>> event = datetime.datetime.combine(today, runtime)
-            >>> handle = self.run_at(self.run_at_c, event)
+            >>> def delayed_callback(self, **kwargs): ...  # example callback
+            >>> handle = self.run_once(self.delayed_callback, datetime.time(10, 30, 0))
 
-            Run today at 10:30 using the `parse_time()` function.
+            Run today at 04:00pm using the `parse_time()` function.
 
-            >>> handle = self.run_at(self.run_at_c, "10:30:00")
+            >>> def delayed_callback(self, **kwargs): ...  # example callback
+            >>> handle = self.run_once(self.delayed_callback, "04:00:00 PM")
 
-            Run on a specific date and time.
+            Run at sunset.
 
-            >>> handle = self.run_at(self.run_at_c, "2018-12-11 10:30:00")
+            >>> def delayed_callback(self, **kwargs): ...  # example callback
+            >>> handle = self.run_once(self.delayed_callback, "sunset")
 
-            Run at the next sunset.
+            Run an hour after sunrise.
 
-            >>> handle = self.run_at(self.run_at_c, "sunset")
-
-            Run an hour after the next sunrise.
-
-            >>> handle = self.run_at(self.run_at_c, "sunrise + 01:00:00")
+            >>> def delayed_callback(self, **kwargs): ...  # example callback
+            >>> handle = self.run_once(self.delayed_callback, "sunrise + 01:00:00")
 
         """
         match start:
@@ -2836,70 +2966,71 @@ class ADAPI:
     async def run_daily(
         self,
         callback: Callable,
-        start: dt.time | str | None = None,
+        start: str | dt.time | dt.datetime | None = None,
         *args,
-        random_start: int = None,
-        random_end: int = None,
+        random_start: int | None = None,
+        random_end: int | None = None,
         pin: bool | None = None,
         pin_thread: int | None = None,
-        **cb_kwargs
+        **kwargs
     ) -> str:
-        """Runs the callback at the same time every day.
+        """Run a function at the same time every day.
 
         Args:
-            callback: Function to be invoked every day at the specified time.
-                It must conform to the standard Scheduler Callback format documented
-                `here <APPGUIDE.html#about-schedule-callbacks>`__.
-            start: A Python ``time`` object that specifies when the callback will occur,
-                the hour and minute components of the time object are ignored. If the
-                time specified is in the past, the callback will occur the ``next minute`` at
-                the specified time. If time is not supplied, the callback will start a
-                minute from the time that ``run_daily()`` was executed.
-            *args: Arbitrary positional arguments to be provided to the callback function
-                when it is invoked.
-            random_start (int): Start of range of the random time.
-            random_end (int): End of range of the random time.
-            pin (bool, optional): If True, the callback will be pinned to a particular thread.
-            pin_thread (int, optional): Specify which thread from the worker pool the callback
-                will be run by (0 - number of threads -1).
-            **cb_kwargs: Arbitrary keyword parameters to be provided to the callback
-                function when it is invoked.
+            callback: Function that will be called every day at the specified time. It must conform to the standard
+                scheduler callback format documented `here <APPGUIDE.html#scheduler-callbacks>`__.
+            start (str, datetime.time, datetime.datetime, optional): Start time for the interval calculation. If this is
+                in the future, this will be the first time the callback is triggered. If this is in the past, the
+                intervals will be calculated forward from the start time, and the first trigger will be the first
+                interval in the future.
+
+                - If this is a ``str`` it will be parsed with :meth:`~appdaemon.adapi.ADAPI.parse_time()`.
+                - If this is a ``datetime.time`` object, the current date will be assumed.
+                - If this is a ``datetime.datetime`` object, it will be used as is.
+
+            *args: Arbitrary positional arguments to be provided to the callback function when it is triggered.
+            random_start (int, optional): Start of range of the random time.
+            random_end (int, optional): End of range of the random time.
+            pin (bool, optional): Optional setting to override the default thread pinning behavior. By default, this is
+                effectively ``True``, and ``pin_thread`` gets set when the app starts.
+            pin_thread (int, optional): Specify which thread from the worker pool will run the callback. The threads
+                each have an ID number, which start at 0 and go through (number of threads - 1).
+            **kwargs: Arbitrary keyword parameters to be provided to the callback function when it is triggered.
 
         Returns:
-            A handle that can be used to cancel the timer.
+            A handle that can be used to cancel the timer later before it's been executed.
 
-        Notes:
-            The ``random_start`` value must always be numerically lower than ``random_end`` value,
-            they can be negative to denote a random offset before and event, or positive to
-            denote a random offset after an event.
+        Note:
+            The ``random_start`` value must always be numerically lower than ``random_end`` value, they can be negative
+            to denote a random offset before and event, or positive to denote a random offset after an event.
 
         Examples:
-            Run daily at 7pm.
+            Run every day at 10:30am.
 
-            >>> runtime = datetime.time(19, 0, 0)
-            >>> self.run_daily(self.run_daily_c, runtime)
+            >>> self.run_daily(self.daily_callback, datetime.time(10, 30))
 
-            Run at 10:30 every day using the `parse_time()` function.
+            Run at 7:30pm every day using the ``parse_time()`` function.
 
-            >>> handle = self.run_daily(self.run_daily_c, "10:30:00")
+            >>> handle = self.run_daily(self.daily_callback, "07:30:00 PM")
 
             Run every day at sunrise.
 
-            >>> handle = self.run_daily(self.run_daily_c, "sunrise")
+            >>> handle = self.run_daily(self.daily_callback, "sunrise")
 
             Run every day an hour after sunset.
 
-            >>> handle = self.run_daily(self.run_daily_c, "sunset + 01:00:00")
+            >>> handle = self.run_daily(self.daily_callback, "sunset + 01:00:00")
 
         """
         offset = 0
-        sun = None
+        sun: Literal["sunrise", "sunset"] | None = None
         match start:
             case str():
                 info = await self.AD.sched._parse_time(start, self.name)
                 start, offset, sun = info["datetime"], info["offset"], info["sun"]
             case dt.time():
-                start = dt.datetime.combine(await self.date(), start).astimezone(self.AD.tz)
+                date = await self.date()
+                start = dt.datetime.combine(date, start).astimezone(self.AD.tz)
             case dt.datetime():
                 ...
             case _:
@@ -2920,7 +3051,7 @@ class ADAPI:
                     timedelta(days=1),
                     *args,
                     **ad_kwargs,
-                    **cb_kwargs
+                    **kwargs
                 )
             case "sunrise":
                 return await self.run_at_sunrise(
@@ -2929,7 +3060,7 @@ class ADAPI:
                     repeat=True,
                     offset=offset,
                     **ad_kwargs,
-                    **cb_kwargs
+                    **kwargs
                 )
             case "sunset":
                 return await self.run_at_sunset(
@@ -2938,49 +3069,50 @@ class ADAPI:
                     repeat=True,
                     offset=offset,
                     **ad_kwargs,
-                    **cb_kwargs
+                    **kwargs
                 )
 
     @utils.sync_decorator
     async def run_hourly(
         self,
         callback: Callable,
-        start: dt.time | dt.datetime | str | None = None,
+        start: str | dt.time | dt.datetime | None = None,
         *args,
-        random_start: int = None,
-        random_end: int = None,
+        random_start: int | None = None,
+        random_end: int | None = None,
         pin: bool | None = None,
         pin_thread: int | None = None,
         **kwargs,
     ) -> str:
-        """Runs the callback at the same time every hour.
+        """Run a function at the same time every hour.
 
         Args:
-            callback: Function to be invoked every hour at the specified time.
-                It must conform to the standard Scheduler Callback format documented
-                `here <APPGUIDE.html#about-schedule-callbacks>`__.
-            start: A Python ``time`` object that specifies when the callback will occur,
-                the hour and minute components of the time object are ignored. If the
-                time specified is in the past, the callback will occur the ``next minute`` at
-                the specified time. If time is not supplied, the callback will start a
-                minute from the time that ``run_hourly()`` was executed.
-            *args: Arbitrary positional arguments to be provided to the callback function
-                when it is invoked.
-            random_start (int): Start of range of the random time.
-            random_end (int): End of range of the random time.
-            pin (bool, optional): If True, the callback will be pinned to a particular thread.
-            pin_thread (int, optional): Specify which thread from the worker pool the callback
-                will be run by (0 - number of threads -1).
-            **kwargs: Arbitrary keyword parameters to be provided to the callback
-                function when it is invoked.
+            callback: Function that will be called every hour starting at the specified time. It must conform to the
+                standard scheduler callback format documented `here <APPGUIDE.html#scheduler-callbacks>`__.
+            start (str, datetime.time, datetime.datetime, optional): Start time for the interval calculation. If this is
+                in the future, this will be the first time the callback is triggered. If this is in the past, the
+                intervals will be calculated forward from the start time, and the first trigger will be the first
+                interval in the future.
+
+                - If this is a ``str`` it will be parsed with :meth:`~appdaemon.adapi.ADAPI.parse_time()`.
+                - If this is a ``datetime.time`` object, the current date will be assumed.
+                - If this is a ``datetime.datetime`` object, it will be used as is.
+
+            *args: Arbitrary positional arguments to be provided to the callback function when it is triggered.
+            random_start (int, optional): Start of range of the random time.
+            random_end (int, optional): End of range of the random time.
+            pin (bool, optional): Optional setting to override the default thread pinning behavior. By default, this is
+                effectively ``True``, and ``pin_thread`` gets set when the app starts.
+            pin_thread (int, optional): Specify which thread from the worker pool will run the callback. The threads
+                each have an ID number, which start at 0 and go through (number of threads - 1).
+            **kwargs: Arbitrary keyword parameters to be provided to the callback function when it is triggered.
 
         Returns:
-            A handle that can be used to cancel the timer.
+            A handle that can be used to cancel the timer later before it's been executed.
 
-        Notes:
-            The ``random_start`` value must always be numerically lower than ``random_end`` value,
-            they can be negative to denote a random offset before and event, or positive to
-            denote a random offset after an event.
+        Note:
+            The ``random_start`` value must always be numerically lower than ``random_end`` value, they can be negative
+            to denote a random offset before and event, or positive to denote a random offset after an event.
 
         Examples:
             Run every hour, on the hour.
@@ -3005,42 +3137,44 @@ class ADAPI:
     async def run_minutely(
         self,
         callback: Callable,
-        start: dt.time | dt.datetime | str | None = None,
+        start: str | dt.time | dt.datetime | None = None,
         *args,
-        random_start: int = None,
-        random_end: int = None,
+        random_start: int | None = None,
+        random_end: int | None = None,
         pin: bool | None = None,
         pin_thread: int | None = None,
         **kwargs,
     ) -> str:
-        """Runs the callback at the same time every minute.
+        """Run the callback at the same time every minute.
 
         Args:
-            callback: Function to be invoked every minute.
-                It must conform to the standard Scheduler Callback format documented
-                `here <APPGUIDE.html#about-schedule-callbacks>`__.
-            start: A Python ``time`` object that specifies when the callback will occur,
-                the hour and minute components of the time object are ignored. If the
-                time specified is in the past, the callback will occur the ``next minute`` at
-                the specified time. If time is not supplied, the callback will start a
-                minute from the time that ``run_minutely()`` was executed.
-            *args: Arbitrary positional arguments to be provided to the callback function
-                when it is invoked.
-            random_start (int): Start of range of the random time.
-            random_end (int): End of range of the random time.
-            pin (bool, optional): If True, the callback will be pinned to a particular thread.
-            pin_thread (int, optional): Specify which thread from the worker pool the callback
-                will be run by (0 - number of threads -1).
-            **kwargs: Arbitrary keyword parameters to be provided to the callback
-                function when it is invoked.
+            callback: Function that will be called every hour starting at the specified time. It must conform to the
+                standard scheduler callback format documented `here <APPGUIDE.html#scheduler-callbacks>`__.
+            start (str, datetime.time, datetime.datetime, optional): Start time for the interval calculation. If this is
+                in the future, this will be the first time the callback is triggered. If this is in the past, the
+                intervals will be calculated forward from the start time, and the first trigger will be the first
+                interval in the future.
+
+                - If this is a ``str`` it will be parsed with :meth:`~appdaemon.adapi.ADAPI.parse_time()`.
+                - If this is a ``datetime.time`` object, the current date will be assumed.
+                - If this is a ``datetime.datetime`` object, it will be used as is.
+
+            *args: Arbitrary positional arguments to be provided to the callback function when it is triggered.
+            random_start (int, optional): Start of range of the random time.
+            random_end (int, optional): End of range of the random time.
+            pin (bool, optional): Optional setting to override the default thread pinning behavior. By default, this is
+                effectively ``True``, and ``pin_thread`` gets set when the app starts.
+            pin_thread (int, optional): Specify which thread from the worker pool will run the callback. The threads
+                each have an ID number, which start at 0 and go through (number of threads - 1).
+            **kwargs: Arbitrary keyword parameters to be provided to the callback function when it is triggered.
 
         Returns:
-            A handle that can be used to cancel the timer.
+            A handle that can be used to cancel the timer later before it's been executed.
 
-        Notes:
-            The ``random_start`` value must always be numerically lower than ``random_end`` value,
-            they can be negative to denote a random offset before and event, or positive to
-            denote a random offset after an event.
+        Note:
+            The ``random_start`` value must always be numerically lower than ``random_end`` value, they can be negative
+            to denote a random offset before and event, or positive to denote a random offset after an event.
+
 
         Examples:
             Run every minute on the minute.
@@ -3065,79 +3199,123 @@ class ADAPI:
     async def run_every(
         self,
         callback: Callable,
-        start: dt.time | dt.datetime | str | None = None,
-        interval: int | float | dt.timedelta = 0,
+        start: str | dt.time | dt.datetime | None = None,
+        interval: str | int | float | dt.timedelta = 0,
         *args,
-        random_start: int = None,
-        random_end: int = None,
+        random_start: int | None = None,
+        random_end: int | None = None,
         pin: bool | None = None,
         pin_thread: int | None = None,
         **kwargs,
     ) -> str:
-        """Runs the callback with a configurable delay starting at a specific time.
+        """Run a function at a regular time interval.
 
         Args:
-            callback: Function to be invoked when the time interval is reached.
-                It must conform to the standard Scheduler Callback format documented
-                `here <APPGUIDE.html#about-schedule-callbacks>`__.
-            start: A Python ``datetime`` object that specifies when the initial callback
-                will occur, or can take the `now` string alongside an added offset. If given
-                in the past, it will be executed in the next interval time.
-            interval (int): Frequency (expressed in seconds) in which the callback should be executed.
-            *args: Arbitrary positional arguments to be provided to the callback function
-                when it is invoked.
+            callback: Function that will be called at the specified time interval. It must conform to the standard
+                scheduler callback format documented `here <APPGUIDE.html#scheduler-callbacks>`__.
+            start (str, datetime.time, datetime.datetime, optional): Start time for the interval calculation. If this is
+                in the future, this will be the first time the callback is triggered. If this is in the past, the
+                intervals will be calculated forward from the start time, and the first trigger will be the first
+                interval in the future.
+
+                - If this is a ``str`` it will be parsed with :meth:`~appdaemon.adapi.ADAPI.parse_time()`.
+                - If this is a ``datetime.time`` object, the current date will be assumed.
+                - If this is a ``datetime.datetime`` object, it will be used as is.
+
+            interval (str, int, float, datetime.timedelta): Time interval between callback triggers.
+
+                - If this is an ``int`` or ``float``, it will be interpreted as seconds.
+                - If this is a ``str`` it will be parsed with ``parse_timedelta()``
+
+                    - ``HH:MM``
+                    - ``HH:MM:SS``
+                    - ``DD days, HH:MM:SS``
+
+                - If this is a ``timedelta`` object, the current date will be assumed.
+
+            *args: Arbitrary positional arguments to be provided to the callback function when it is triggered.
             random_start (int, optional): Start of range of the random time.
             random_end (int, optional): End of range of the random time.
-            pin (bool, optional): If ``True``, the callback will be pinned to a particular thread.
-            pin_thread (int, optional): Specify which thread from the worker pool the callback
-                will be run by (0 - number of threads -1).
-            **kwargs: Arbitrary keyword parameters to be provided to the callback
-                function when it is invoked.
+            pin (bool, optional): Optional setting to override the default thread pinning behavior. By default, this is
+                effectively ``True``, and ``pin_thread`` gets set when the app starts.
+            pin_thread (int, optional): Specify which thread from the worker pool will run the callback. The threads
+                each have an ID number, which start at 0 and go through (number of threads - 1).
+            **kwargs: Arbitrary keyword parameters to be provided to the callback function when it is triggered.
 
         Returns:
-            A handle that can be used to cancel the timer.
+            A handle that can be used to cancel the timer later before it's been executed.
 
-        Notes:
-            The ``random_start`` value must always be numerically lower than ``random_end`` value,
-            they can be negative to denote a random offset before and event, or positive to
-            denote a random offset after an event.
+        Note:
+            The ``random_start`` value must always be numerically lower than ``random_end`` value, they can be negative
+            to denote a random offset before an event, or positive to denote a random offset after an event.
 
         Examples:
-            Run every 17 minutes starting in 2 hours time.
-
-            >>> self.run_every(self.run_every_c, time, 17 * 60)
-
             Run every 10 minutes starting now.
 
-            >>> self.run_every(self.run_every_c, "now", 10 * 60)
+            .. code-block:: python
+              :emphasize-lines: 3
 
-            Run every 5 minutes starting now plus 5 seconds.
+                class MyApp(ADAPI):
+                    def initialize(self):
+                        self.run_every(self.timed_callback, interval=datetime.timedelta(minutes=10))
 
-            >>> self.run_every(self.run_every_c, "now+5", 5 * 60)
+                    def timed_callback(self, **kwargs): ...  # example callback
+
+            Run every 5 minutes starting in 5 seconds.
+
+            .. code-block:: python
+              :emphasize-lines: 3
+
+                class MyApp(ADAPI):
+                    def initialize(self):
+                        self.run_every(self.timed_callback, "now+5", 5 * 60)
+
+                    def timed_callback(self, **kwargs): ...  # example callback
+
+            Run every 17 minutes starting in 2 hours time.
+
+            .. code-block:: python
+              :emphasize-lines: 5
+
+                class MyApp(ADAPI):
+                    def initialize(self):
+                        start = self.get_now() + datetime.timedelta(hours=2)
+                        interval = datetime.timedelta(minutes=17)
+                        self.run_every(self.timed_callback, start, interval)
+
+                    def timed_callback(self, **kwargs): ...  # example callback
 
         """
-        match interval:
-            case int() | float():
-                interval = dt.timedelta(seconds=interval)
-            case dt.timedelta():
-                ...
-            case _:
-                raise ValueError(f"Bad value for interval: {interval}")
-
+        interval = utils.parse_timedelta(interval)
         assert isinstance(interval, dt.timedelta)
 
-        aware_start = await self.AD.sched.get_next_period(interval, start)
+        match start:
+            case str():
+                if not start.startswith("now"):
+                    info = await self.AD.sched._parse_time(start, self.name)
+                    start = info["datetime"]
+            case dt.time():
+                date = await self.date()
+                start = dt.datetime.combine(date, start).astimezone(self.AD.tz)
+            case dt.datetime():
+                ...
+            case None:
+                pass # This will be handled by get_next_period
+            case _:
+                raise ValueError("Invalid type for start")
+
+        next_period = await self.AD.sched.get_next_period(interval, start)
 
         self.logger.debug(
             "Registering %s for run_every in %s intervals, starting %s",
             callback.__name__,
             interval,
-            aware_start,
+            next_period,
         )
 
         return await self.AD.sched.insert_schedule(
             name=self.name,
-            aware_dt=aware_start,
+            aware_dt=next_period,
             callback=functools.partial(callback, *args, **kwargs),
             repeat=True,
             interval=interval.total_seconds(),
@@ -3154,8 +3332,8 @@ class ADAPI:
         *args,
         repeat: bool = False,
         offset: int | None = None,
-        random_start: int = None,
-        random_end: int = None,
+        random_start: int | None = None,
+        random_end: int | None = None,
         pin: bool | None = None,
         pin_thread: int | None = None,
         **kwargs,
@@ -3165,23 +3343,22 @@ class ADAPI:
         Args:
             callback: Function to be invoked at or around sunset. It must conform to the
                 standard Scheduler Callback format documented `here <APPGUIDE.html#about-schedule-callbacks>`__.
-            *args: Arbitrary positional arguments to be provided to the callback function
-                when it is invoked.
+            *args: Arbitrary positional arguments to be provided to the callback function when it is triggered.
             offset (int, optional): The time in seconds that the callback should be delayed after
                 sunset. A negative value will result in the callback occurring before sunset.
                 This parameter cannot be combined with ``random_start`` or ``random_end``.
-            random_start (int): Start of range of the random time.
-            random_end (int): End of range of the random time.
-            pin (bool, optional): If ``True``, the callback will be pinned to a particular thread.
-            pin_thread (int, optional): Specify which thread from the worker pool the callback
-                will be run by (0 - number of threads -1).
-            **kwargs: Arbitrary keyword arguments to be provided to the callback
-                function when it is invoked.
+            random_start (int, optional): Start of range of the random time.
+            random_end (int, optional): End of range of the random time.
+            pin (bool, optional): Optional setting to override the default thread pinning behavior. By default, this is
+                effectively ``True``, and ``pin_thread`` gets set when the app starts.
+            pin_thread (int, optional): Specify which thread from the worker pool will run the callback. The threads
+                each have an ID number. The ID numbers start at 0 and go through (number of threads - 1).
+            **kwargs: Arbitrary keyword parameters to be provided to the callback function when it is triggered.
 
         Returns:
             A handle that can be used to cancel the timer.
 
-        Notes:
+        Note:
             The ``random_start`` value must always be numerically lower than ``random_end`` value,
             they can be negative to denote a random offset before and event, or positive to
             denote a random offset after an event.
@@ -3205,7 +3382,7 @@ class ADAPI:
 
         """
         sunset = await self.AD.sched.next_sunset()
-        td = timedelta(seconds=offset)
+        td = timedelta(seconds=float(offset)) if offset is not None else timedelta()
         self.logger.debug(f"Registering run_at_sunset at {sunset+td} with {args}, {kwargs}")
         return await self.AD.sched.insert_schedule(
             name=self.name,
@@ -3227,8 +3404,8 @@ class ADAPI:
         *args,
         repeat: bool = False,
         offset: int | None = None,
-        random_start: int = None,
-        random_end: int = None,
+        random_start: int | None = None,
+        random_end: int | None = None,
         pin: bool | None = None,
         pin_thread: int | None = None,
         **kwargs,
@@ -3243,18 +3420,18 @@ class ADAPI:
             offset (int, optional): The time in seconds that the callback should be delayed after
                 sunrise. A negative value will result in the callback occurring before sunrise.
                 This parameter cannot be combined with ``random_start`` or ``random_end``.
-            random_start (int): Start of range of the random time.
-            random_end (int): End of range of the random time.
-            pin (bool, optional): If ``True``, the callback will be pinned to a particular thread.
-            pin_thread (int, optional): Specify which thread from the worker pool the callback
-                will be run by (0 - number of threads -1).
-            **kwargs: Arbitrary keyword arguments to be provided to the callback
-                function when it is invoked.
+            random_start (int, optional): Start of range of the random time.
+            random_end (int, optional): End of range of the random time.
+            pin (bool, optional): Optional setting to override the default thread pinning behavior. By default, this is
+                effectively ``True``, and ``pin_thread`` gets set when the app starts.
+            pin_thread (int, optional): Specify which thread from the worker pool will run the callback. The threads
+                each have an ID number. The ID numbers start at 0 and go through (number of threads - 1).
+            **kwargs: Arbitrary keyword parameters to be provided to the callback function when it is triggered.
 
         Returns:
             A handle that can be used to cancel the timer.
 
-        Notes:
+        Note:
             The ``random_start`` value must always be numerically lower than ``random_end`` value,
             they can be negative to denote a random offset before and event, or positive to
             denote a random offset after an event.
@@ -3277,8 +3454,8 @@ class ADAPI:
             >>> self.run_at_sunrise(self.sun, random_start = -60*60, random_end = 30*60)
 
         """
-        sunrise = await self.AD.sched.next_sunrise()
-        td = timedelta(seconds=offset)
+        sunrise = self.AD.sched.get_sunrise(today=False, aware=True)
+        td = timedelta(seconds=float(offset)) if offset is not None else timedelta()
         self.logger.debug(f"Registering run_at_sunrise at {sunrise+td} with {args}, {kwargs}")
         return await self.AD.sched.insert_schedule(
             name=self.name,
@@ -3356,9 +3533,13 @@ class ADAPI:
     # Async
     #
 
-    async def run_in_executor(self, func: Callable, *args, **kwargs) -> Callable:
-        """Runs a Sync function from within an Async function using Executor threads.
-            The function is actually awaited during execution
+    async def run_in_executor(self, func: Callable[..., T], *args, **kwargs) -> T:
+        """Run a sync function from within an async function using a thread from AppDaemon's internal thread pool.
+
+        This essentially converts a sync function into an async function, which allows async functions to use it. This
+        is useful for even short-ish functions (even <1s execution time) because it allows the event loop to continue
+        processing other events while waiting for the function to complete. Blocking the event loop prevents AppDaemon's
+        internals from running, which interferes with all other apps, and can cause issues with connection timeouts.
 
         Args:
             func: The function to be executed.
@@ -3367,45 +3548,57 @@ class ADAPI:
 
         Returns:
             None
+
         Examples:
             >>> await self.run_in_executor(self.run_request)
 
         """
+        preloaded_function = functools.partial(func, *args, **kwargs)
+        future = self.AD.loop.run_in_executor(self.AD.executor, preloaded_function)
+        return await future
 
-        return await utils.run_in_executor(self, func, *args, **kwargs)
+    def submit_to_executor(
+        self,
+        func: Callable[..., T],
+        *args,
+        callback: Callable | None = None,
+        **kwargs
+    ) -> Future[T]:
+        """Submit a sync function from within another sync function to be executed using a thread from AppDaemon's
+        internal thread pool.
 
-    def submit_to_executor(self, func: Callable, *args, callback: Callable | None = None, **kwargs) -> Future:
-        """Submits a Sync function from within another Sync function to be executed using Executor threads.
-            The function is not waited to be executed. As it submits and continues the rest of the code.
-            This can be useful if wanting to execute a long running code, and don't want it to hold up the
-            thread for other callbacks.
+        This function does not wait for the result of the submitted function and immediately returns a Future object.
+        This is useful for executing long-running functions without blocking the thread for other callbacks. The result
+        can be retrieved later using the Future object, but it's recommended to use a callback to handle the result
+        instead.
 
         Args:
             func: The function to be executed.
             *args (optional): Any additional arguments to be used by the function
+            callback (optional): A callback function to be executed when the function has completed.
             **kwargs (optional): Any additional keyword arguments to be used by the function.
-            Part of the keyword arguments will be the ``callback``, which will be ran when the function has completed execution
 
         Returns:
-            A Future, which can be cancelled by calling f.cancel().
+            A Future object representing the result of the function.
 
         Examples:
-            >>>
-            >>> def state_cb(self, *args, **kwargs): # callback from an entity
-            >>>     # need to run a 30 seconds task, so need to free up the thread
-            >>>     # need to get results, so will pass a callback for it
-            >>>     # callback can be ignored, if the result is not needed
-            >>>     f = self.submit_to_executor(self.run_request, url, callback=self.result_callback)
-            >>>
-            >>> def run_request(self, url): # long running function
-            >>>     import requests
-            >>>     res = requests.get(url)
-            >>>     return res.json()
-            >>>
-            >>> def result_callback(self, kwargs):
-            >>>     result = kwargs["result"]
-            >>>     self.set_state("sensor.something", state="ready", attributes=result, replace=True) # picked up by another app
-            >>>     # <other processing that is needed>
+            Submit a long-running function to be executed in the background
+
+            >>> def initialize(self):
+                    self.long_future = self.submit_to_executor(self.long_request, url, callback=self.result_callback)
+
+            Long running function:
+
+            >>> def long_request(self, url: str):
+                    import requests
+                    res = requests.get(url)
+                    return res.json()
+
+            Callback to handle the result:
+
+            >>> def result_callback(self, result: dict, **kwargs):
+                    # Set the attributes of a sensor with the result
+                    self.set_state("sensor.url_result", state="ready", attributes=result, replace=True)
 
         """
 
@@ -3427,7 +3620,7 @@ class ADAPI:
 
                 # callback(f.result(), kwargs)
             except Exception as e:
-                self.error(e, level="ERROR")
+                self.error(str(e), level="ERROR")
 
         future = self.AD.executor.submit(func, *args, **kwargs)
 
@@ -3438,9 +3631,24 @@ class ADAPI:
         self.AD.futures.add_future(self.name, future)
         return future
 
-    @utils.sync_decorator
-    async def create_task(self, coro: Coroutine, callback: Callable | None = None, **kwargs) -> Future:
-        """Schedules a Coroutine to be executed.
+    def create_task(
+        self,
+        coro: Coroutine[Any, Any, T],
+        callback: Callable | None = None,
+        name: str | None = None,
+        **kwargs
+    ) -> asyncio.Task[T]:
+        """Wrap the `coro` coroutine into a ``Task`` and schedule its execution. Return the ``Task`` object.
+
+        Uses AppDaemon's internal event loop to run the task, so the task will be run in the same thread as the app.
+        Running an async method like this is useful for long-running tasks because it bypasses the timeout that
+        AppDaemon otherwise imposes on callbacks.
+
+        The callback will be run in the app's thread, like other AppDaemon callbacks, and will have the normal timeout
+        imposed on it.
+
+        See `creating tasks <https://docs.python.org/3/library/asyncio-task.html#creating-tasks>`_ for in the python
+        documentation for more information.
 
         Args:
             coro: The coroutine object (`not coroutine function`) to be executed.
@@ -3448,12 +3656,27 @@ class ADAPI:
             **kwargs (optional): Any additional keyword arguments to send the callback.
 
         Returns:
-            A Future, which can be cancelled by calling f.cancel().
+            A ``Task`` object, which can be cancelled by calling f.cancel().
 
         Examples:
-            >>> f = self.create_task(asyncio.sleep(3), callback=self.coro_callback)
-            >>>
-            >>> def coro_callback(self, kwargs):
+            Define your callback
+
+            >>> def my_callback(self, **kwargs: Any) -> Any: ...
+
+            Create the task
+
+            >>> task = self.create_task(asyncio.sleep(3), callback=self.my_callback)
+
+            Keyword Arguments
+            ^^^^^^^^^^^^^^^^^
+            Define your callback with a custom keyword argument ``my_kwarg``
+
+            >>> def my_callback(self, result: Any, my_kwarg: str, **kwargs: Any) -> Any:
+                    self.log(f"Result: {result}, my_kwarg: {my_kwarg}")
+
+            Use the custom keyword argument when creating the task
+
+            >>> task = self.create_task(asyncio.sleep(3), callback=self.my_callback, my_kwarg="special value")
 
         """
         managed_object = self.AD.app_management.objects[self.name]
@@ -3468,19 +3691,19 @@ class ADAPI:
             "pin_thread": managed_object.pin_thread,
         }
 
-        def callback_inner(f):
+        def callback_inner(f: asyncio.Task[T]) -> None:
+            """This wraps the user-provided callback to ensure that it's run by the AppDaemon internals."""
             try:
                 kwargs["result"] = f.result()
                 sched_data["kwargs"] = kwargs
                 self.create_task(self.AD.threading.dispatch_worker(self.name, sched_data))
-
-                # callback(f.result(), kwargs)
             except asyncio.CancelledError:
                 pass
 
-        task = asyncio.create_task(coro)
+        task = self.AD.loop.create_task(coro, name=name)
         if callback is not None:
             self.logger.debug("Adding add_done_callback for future %s for %s", task, self.name)
+            # Use the native python mechanism to add a callback to the task.
             task.add_done_callback(callback_inner)
 
         self.AD.futures.add_future(self.name, task)
@@ -3498,7 +3721,7 @@ class ADAPI:
         Returns:
             Result or `None`.
 
-        Notes:
+        Note:
             This function is not available in sync apps.
 
         Examples:
@@ -3521,17 +3744,11 @@ class ADAPI:
     # Other
     #
 
-    def get_entity(self, entity: str, namespace: str | None = None) -> Entity:
+    def get_entity(self, entity: str, namespace: str | None = None, check_existence: bool = True) -> Entity:
         namespace = namespace or self.namespace
-        self._check_entity(namespace, entity)
-        return Entity(self.logger, self.AD, self.name, namespace, entity)
-
-    def get_entity_api(self, namespace: str, entity_id: str, check_existence: bool = True) -> Entity:
-        """Sometimes this gets called when creating a new entity, so the check needs to be suppressed"""
-        namespace = namespace or self.namespace
-        if check_existence and entity_id is not None:
-            self._check_entity(namespace, entity_id)
-        return Entity.entity_api(self.logger, self.AD, self.name, namespace, entity_id)
+        if check_existence:
+            self._check_entity(namespace, entity)
+        return Entity(self, namespace, entity)
 
     def run_in_thread(self, callback: Callable, thread: int, **kwargs) -> None:
         """Schedules a callback to be run in a different thread from the current one.
@@ -3612,3 +3829,45 @@ class ADAPI:
 
         """
         self.log("depends_on_module is deprecated", level="WARNING")
+
+    #
+    # Dependencies
+    #
+
+    def get_app_python_dependencies(self, app_name: str | None = None) -> list[Path]:
+        """Get a list of paths to python files that this app depends on, even indirectly. If any of the files for these
+        modules change, the app will be reloaded.
+
+        Args:
+            app_name (str): Name of the app to get dependencies for. If not provided, uses the current app's name.
+
+        Returns:
+            Sorted list of paths to Python files that the given app depends on.
+        """
+        app_name = app_name or self.name
+
+        # Include any apps that the given one depends on
+        apps = {app_name} | dependency.find_all_dependents(
+            app_name,
+            self.AD.app_management.dependency_manager.app_deps.dep_graph,
+        )  # fmt: skip
+
+        # Get all the python modules for the included apps
+        modules = {
+            self.AD.app_management.app_config[app_name].module_name
+            for app_name in apps
+        }  # fmt: skip
+
+        # Get the transitive closure of all those modules
+        graph = self.AD.app_management.dependency_manager.python_deps.dep_graph
+        modules |= dependency.find_all_dependents(modules, graph)
+
+        # Filter for modules whose files are in the app directory
+        deps = sorted(
+            p for d in modules
+            if ((mod := sys.modules.get(d)) is not None) and
+            (file := mod.__file__) is not None and
+            (p := Path(file)).is_relative_to(self.AD.app_dir)
+        )  # fmt: skip
+
+        return deps

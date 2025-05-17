@@ -167,13 +167,13 @@ class Scheduler:
                 function_name = callback.__name__
 
         await self.AD.state.add_entity(
-            "admin",
-            "scheduler_callback.{}".format(handle),
-            "active",
-            {
+            namespace="admin",
+            entity=f"scheduler_callback.{handle}",
+            state="active",
+            attributes={
                 "app": name,
-                "execution_time": utils.dt_to_str(ts.replace(microsecond=0), self.AD.tz),
-                "repeat": str(timedelta(seconds=interval)),
+                "execution_time": utils.dt_to_str(ts, self.AD.tz, round=True),
+                "repeat": str(utils.parse_timedelta(interval)),
                 "function": function_name,
                 "pinned": pin_app,
                 "pinned_thread": pin_thread,
@@ -296,7 +296,8 @@ class Scheduler:
         return False
 
     # noinspection PyBroadException
-    async def exec_schedule(self, name, args, uuid_):
+    async def exec_schedule(self, name: str, args: dict[str, Any], uuid_: str) -> None:
+        self.logger.debug("Executing: %s", args)
         try:
             # Call function
             if "__entity" in args["kwargs"]:
@@ -408,8 +409,7 @@ class Scheduler:
         if longitude < -180 or longitude > 180:
             raise ValueError("Longitude needs to be -180 .. 180")
 
-        self.location = Location(LocationInfo(
-            "", "", self.AD.tz.zone, latitude, longitude))
+        self.location = Location(LocationInfo("", "", self.AD.tz.zone, latitude, longitude))
 
     async def sun(self, type: str, secs_offset: int) -> datetime:
         return (await self.get_next_sun_event(type, secs_offset)) + timedelta(seconds=secs_offset)
@@ -505,13 +505,7 @@ class Scheduler:
         interval: int | float | timedelta,
         start: time | datetime | str | None = None,
     ) -> datetime:
-        match interval:
-            case int() | float():
-                interval = timedelta(seconds=interval)
-            case timedelta():
-                ...
-            case _:
-                raise ValueError(f'Bad value for interval: {interval}')
+        interval = utils.parse_timedelta(interval)
 
         now = (await self.get_now()).astimezone(self.AD.tz)
 
@@ -692,7 +686,6 @@ class Scheduler:
                         # so check our callbacks are still valid before we execute them
                         if name in self.schedule and uuid_ in self.schedule[name]:
                             args = self.schedule[name][uuid_]
-                            self.logger.debug("Executing: %s", args)
                             await self.exec_schedule(name, args, uuid_)
                     else:
                         break
@@ -898,7 +891,7 @@ class Scheduler:
         end_time: str | datetime,
         name: str | None = None,
         now: str | None = None
-    ):
+    ) -> bool:
         start_time_dt = (await self.get_dt_from_param(start_time, name, today=True, days_offset=0))["datetime"]
         end_time_dt = (await self.get_dt_from_param(end_time, name, today=True, days_offset=0))["datetime"]
 
@@ -958,7 +951,7 @@ class Scheduler:
         aware: bool = False,
         today: bool = False,
         days_offset: int = 0
-    ):
+    ) -> time:
         if aware is True:
             return (
                 (await self._parse_time(time_str, name, today=today, days_offset=days_offset))["datetime"]
@@ -977,7 +970,7 @@ class Scheduler:
             aware: bool = False,
             today: bool = False,
             days_offset: int = 0
-    ):
+    ) -> datetime:
         if aware is True:
             return (await self._parse_time(time_str, name, today=today, days_offset=days_offset))[
                 "datetime"

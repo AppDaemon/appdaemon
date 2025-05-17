@@ -10,12 +10,12 @@ import subprocess
 import sys
 import traceback
 from collections import OrderedDict
-from collections.abc import Iterable
+from collections.abc import AsyncGenerator, Iterable
 from copy import copy
 from functools import partial, reduce, wraps
 from logging import Logger
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Literal, TypeVar
 
 from pydantic import ValidationError
 
@@ -33,6 +33,8 @@ if TYPE_CHECKING:
     from .appdaemon import AppDaemon
     from .plugin_management import PluginBase
 
+T = TypeVar("T")
+
 
 class AppManagement:
     """Subsystem container for managing app lifecycles"""
@@ -44,6 +46,7 @@ class AppManagement:
     logger: Logger
     """Standard python logger named ``AppDaemon._app_management``
     """
+    name: str = "_app_management"
     error: Logger
     """Standard python logger named ``Error``
     """
@@ -80,7 +83,7 @@ class AppManagement:
     def __init__(self, ad: "AppDaemon"):
         self.AD = ad
         self.ext = self.AD.config.ext
-        self.logger = ad.logging.get_child("_app_management")
+        self.logger = ad.logging.get_child(self.name)
         self.error = ad.logging.get_error()
         self.diag = ad.logging.get_diag()
         self.filter_files = {}
@@ -468,7 +471,7 @@ class AppManagement:
         )
 
         if (pin := cfg.pin_thread) and pin >= self.AD.threading.total_threads:
-            raise ade.PinOutofRange()
+            raise ade.PinOutofRange(pin_thread=pin, total_threads=self.AD.threading.total_threads)
         elif (obj := self.objects.get(app_name)) and obj.pin_thread is not None:
             pin = obj.pin_thread
         else:
@@ -538,7 +541,7 @@ class AppManagement:
     async def read_all(self, config_files: Iterable[Path] = None) -> AllAppConfig:
         config_files = config_files or self.dependency_manager.config_files
 
-        async def config_model_factory():
+        async def config_model_factory() -> AsyncGenerator[AllAppConfig, None, None]:
             """Creates a generator that sets the config_path of app configs"""
             for path in config_files:
                 @ade.wrap_async(self.error, self.AD.app_dir, "Reading user apps")
@@ -862,7 +865,9 @@ class AppManagement:
                     self.add_to_import_path(path)
             case 'legacy':
                 for root, subdirs, files in os.walk(self.AD.app_dir):
-                    if utils.is_valid_root_path(root) and root not in sys.path:
+                    base = os.path.basename(root)
+                    valid_root = base != "__pycache__" and not base.startswith(".")
+                    if valid_root and root not in sys.path:
                         self.add_to_import_path(root)
 
     async def _init_dep_manager(self):
