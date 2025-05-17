@@ -186,6 +186,20 @@ class Services:
                 for service in domain_services
             ]
 
+    def list_app_services(self, app_name: str) -> list[dict[str, str]]:
+        return [
+            dict(
+                namespace=namespace,
+                domain=domain,
+                service=service_name,
+                name=app_name,
+            )
+            for namespace, ns_services in self.services.items()
+            for domain, domain_services in ns_services.items()
+            for service_name, info in domain_services.items()
+            if info.get("__name") == app_name
+            ]
+
     async def call_service(
         self,
         namespace: str,
