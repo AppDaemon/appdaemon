@@ -2,7 +2,6 @@ import asyncio
 import functools
 import threading
 from collections import defaultdict
-from copy import deepcopy
 from logging import Logger
 from typing import TYPE_CHECKING, Any, Callable
 
@@ -166,15 +165,10 @@ class Services:
             return True
 
     def clear_services(self, name: str) -> None:
-        """Used to clear services"""
-
-        if name not in self.app_registered_services:
-            return
-
-        app_services = deepcopy(self.app_registered_services[name])
-
-        for app_service in app_services:
-            self.deregister_service(*app_service.split(":"), name)
+        """Clear any services registered by the app with the given name."""
+        with self.services_lock:
+            for app_service in self.list_app_services(name):
+                self.deregister_service(**app_service)
 
     def list_services(self, ns: str = "global") -> list[dict[str, str]]:
         with self.services_lock:
@@ -198,7 +192,7 @@ class Services:
             for domain, domain_services in ns_services.items()
             for service_name, info in domain_services.items()
             if info.get("__name") == app_name
-            ]
+        ]
 
     async def call_service(
         self,
