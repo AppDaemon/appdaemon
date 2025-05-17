@@ -418,8 +418,7 @@ class AppManagement:
         except Exception:
             error_logger = logging.getLogger(f"Error.{app_name}")
             error_logger.warning("-" * 60)
-            error_logger.warning(
-                "Unexpected error terminating app: %s:", app_name)
+            error_logger.warning("Unexpected error terminating app: %s:", app_name)
             error_logger.warning("-" * 60)
             error_logger.warning(traceback.format_exc())
             error_logger.warning("-" * 60)
