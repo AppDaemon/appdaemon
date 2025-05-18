@@ -136,6 +136,10 @@ class ADAPI:
         return self.AD.app_dir
 
     @property
+    def callback_counter(self) -> int:
+        return self.AD.app_management.objects[self.name].callback_counter
+
+    @property
     def config_dir(self) -> Path:
         """Directory that contains the ``appdaemon.yaml`` file."""
         return self.AD.config_dir
