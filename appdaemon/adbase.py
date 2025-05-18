@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING
 from appdaemon import adapi
 from appdaemon.utils import StateAttrs
 
-
 # Check if the module is being imported using the legacy method
 if __name__ == Path(__file__).name:
     from appdaemon.logging import Logging
@@ -82,13 +81,8 @@ class ADBase:
     """Dictionary of the app configuration
     """
 
-    name: str
-    namespace: str
+    _namespace: str
 
-    app_dir: Path
-    config_dir: Path
-
-    _logging: "Logging"
     logger: Logger
     err: Logger
 
@@ -107,7 +101,6 @@ class ADBase:
 
         self.namespace = "default"
         self.dashboard_dir = None
-        self.callback_counter = 0
 
         if self.AD.http is not None:
             self.dashboard_dir = self.AD.http.dashboard_dir
@@ -136,8 +129,8 @@ class ADBase:
 
         self._namespace = new
 
-        # NOTE: This gets called as a side effect of the __init__ method, so the
-        # self._plugin attribute should always be available
+        # NOTE: This gets called as a side effect of the __init__ method, so the self._plugin attribute should always
+        # be available
         self._plugin = self.AD.plugins.get_plugin_object(self.namespace)
         # Sometimes this will be None. Namespaces are not guaranteed to be associated with a plugin
 
@@ -173,9 +166,10 @@ class ADBase:
         return adapi.ADAPI(self.AD, self.config_model)
 
     def get_plugin_api(self, plugin_name: str):
-        app_cfg = self.app_config.root[self.name]
-        plugin_api = self.AD.plugins.get_plugin_api(plugin_name, app_cfg)
-        return plugin_api
+        """Get the plugin API for a specific plugin."""
+        if isinstance(cfg := self.app_config.root.get(self.name), AppConfig):
+            return self.AD.plugins.get_plugin_api(plugin_name, cfg)
+        self.logger.warning("No plugin API available for app '%s'", self.name)
 
     #
     # Constraints

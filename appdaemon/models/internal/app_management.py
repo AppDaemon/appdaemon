@@ -1,14 +1,14 @@
-from logging import Logger
+import threading
 import uuid
 from copy import copy, deepcopy
 from dataclasses import dataclass, field
 from enum import Enum, auto
+from logging import Logger
 from pathlib import Path
 from typing import Any, Literal
 
 from ...dependency import find_all_dependents, topo_sort
 from ...dependency_manager import DependencyManager
-
 
 
 class UpdateMode(Enum):
@@ -127,7 +127,14 @@ class ManagedObject:
     object: Any
     id: str = field(default_factory=lambda: uuid.uuid4().hex)
     module_path: Path | None = None
-    pin_app: bool = None
+    pin_app: bool | None = None
     pin_thread: int | None = None
     running: bool = False
     use_dictionary_unpacking: bool = False
+    callback_counter: int = 0
+    lock: threading.RLock = field(init=False, default_factory=threading.RLock)
+
+    def increment_callback_counter(self, n: int = 1) -> None:
+        """Increments the callback counter by one"""
+        with self.lock:
+            self.callback_counter += n

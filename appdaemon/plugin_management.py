@@ -482,7 +482,7 @@ class PluginManagement:
                 OK = False
         return OK
 
-    def get_plugin_api(self, plugin_name: str, app_cfg: AppConfig) -> "ADAPI":
+    def get_plugin_api(self, plugin_name: str, app_cfg: AppConfig) -> "ADAPI | None":
         if plugin_cfg := self.config.get(plugin_name):
             module = importlib.import_module(plugin_cfg.api_module)
             api_class: Type["ADAPI"] = getattr(module, plugin_cfg.api_class)
