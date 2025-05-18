@@ -25,7 +25,7 @@ from appdaemon.plugin_management import PluginBase
 
 from .exceptions import HAEventsSubError
 from .models import HASSMetaData
-from .utils import hass_check, looped_coro, ServiceCallStatus
+from .utils import ServiceCallStatus, hass_check, looped_coro
 
 
 class HASSWebsocketResponse(BaseModel):
@@ -561,7 +561,7 @@ class HassPlugin(PluginBase):
                 domain,
                 service,
                 self.call_plugin_service,
-                __silent=True,
+                silent=True,
             )
 
     #

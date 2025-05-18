@@ -47,8 +47,8 @@ class Services:
         domain: str,
         service: str,
         callback: Callable,
-        __silent: bool = False,
-        __name: str | None = None,
+        silent: bool = False,
+        name: str | None = None,
         **kwargs: Any,
     ) -> None:
         """Register a service with AppDaemon. This method should only be used by AppDaemon internals.
@@ -74,7 +74,7 @@ class Services:
 
         with self.services_lock:
             # first we confirm if the namespace exists
-            if __name and not self.AD.state.namespace_exists(namespace):
+            if name and not self.AD.state.namespace_exists(namespace):
                 raise NamespaceException(f"Namespace {namespace}, doesn't exist")
 
             elif not callable(callback):
@@ -90,31 +90,31 @@ class Services:
                 # there was a service already registered before
                 # so if a different app, we ask to deregister first
                 service_app = self.services[namespace][domain][service].get("__name")
-                if service_app and service_app != __name:
+                if service_app and service_app != name:
                     self.logger.warning(
                         f"This service '{domain}/{service}' already registered to a "
                         f"different app '{service_app}', and so cannot be registered "
-                        f"to {__name}. Do deregister from app first"
+                        f"to {name}. Do deregister from app first"
                     )
                     return
 
             self.services[namespace][domain][service] = {
                 "callback": callback,
-                "__name": __name,
+                "__name": name,
                 **kwargs
             }
 
-            if __name:
-                self.app_registered_services[__name].add(f"{namespace}:{domain}:{service}")
+            if name:
+                self.app_registered_services[name].add(f"{namespace}:{domain}:{service}")
 
-            if not __silent:
+            if not silent:
                 data = {
                     "event_type": "service_registered",
                     "data": {"namespace": namespace, "domain": domain, "service": service},
                 }
                 self.AD.loop.create_task(self.AD.events.process_event(namespace, data))
 
-    def deregister_service(self, namespace: str, domain: str, service: str, __name: str) -> bool:
+    def deregister_service(self, namespace: str, domain: str, service: str, name: str) -> bool:
         """Used to unregister a service"""
 
         self.logger.debug(
@@ -122,16 +122,16 @@ class Services:
             namespace,
             domain,
             service,
-            __name,
+            name,
         )
 
-        if __name not in self.app_registered_services:
-            raise ValueError(f"The given App {__name} has no services registered")
+        if name not in self.app_registered_services:
+            raise ValueError(f"The given App {name} has no services registered")
 
         app_service = f"{namespace}:{domain}:{service}"
 
-        if app_service not in self.app_registered_services[__name]:
-            raise ValueError(f"The given App {__name} doesn't have the given service registered it")
+        if app_service not in self.app_registered_services[name]:
+            raise ValueError(f"The given App {name} doesn't have the given service registered it")
 
         # if it gets here, then time to deregister
         with self.services_lock:
@@ -140,7 +140,7 @@ class Services:
 
             data = {
                 "event_type": "service_deregistered",
-                "data": {"namespace": namespace, "domain": domain, "service": service, "app": __name},
+                "data": {"namespace": namespace, "domain": domain, "service": service, "app": name},
             }
             self.AD.loop.create_task(
                 self.AD.events.process_event(namespace, data))
@@ -157,10 +157,10 @@ class Services:
                 # its empty
                 del self.services[namespace]
 
-            self.app_registered_services[__name].remove(app_service)
+            self.app_registered_services[name].remove(app_service)
 
-            if not self.app_registered_services[__name]:
-                del self.app_registered_services[__name]
+            if not self.app_registered_services[name]:
+                del self.app_registered_services[name]
 
             return True
 
@@ -186,7 +186,7 @@ class Services:
                 namespace=namespace,
                 domain=domain,
                 service=service_name,
-                __name=app_name,
+                name=app_name,
             )
             for namespace, ns_services in self.services.items()
             for domain, domain_services in ns_services.items()
