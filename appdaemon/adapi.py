@@ -1843,7 +1843,7 @@ class ADAPI:
             *service.split("/"),
             cb,
             __async="auto",
-            __name=self.name,
+            name=self.name,
             **kwargs
         )
 
@@ -1874,7 +1874,7 @@ class ADAPI:
         namespace = namespace or self.namespace
         self.logger.debug("deregister_service: %s, %s", service, namespace)
         self._check_service(service)
-        return self.AD.services.deregister_service(namespace, *service.split("/"), __name=self.name)
+        return self.AD.services.deregister_service(namespace, *service.split("/"), name=self.name)
 
     def list_services(self, namespace: str = "global") -> list[dict[str, str]]:
         """List all services available within AppDaemon
