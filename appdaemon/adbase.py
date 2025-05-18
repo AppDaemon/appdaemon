@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from appdaemon import adapi
+from appdaemon.models.config.app import AppConfig
 from appdaemon.utils import StateAttrs
 
 # Check if the module is being imported using the legacy method
@@ -23,7 +24,6 @@ if __name__ == Path(__file__).name:
 if TYPE_CHECKING:
     from .appdaemon import AppDaemon
     from .logging import Logging
-    from .models.config.app import AppConfig
 
 
 class Entities:  # @todo
