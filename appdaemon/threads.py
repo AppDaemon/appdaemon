@@ -7,18 +7,18 @@ import re
 import sys
 import threading
 import traceback
+from collections.abc import Callable
 from logging import Logger
 from queue import Queue
 from random import randint
 from threading import Thread
 from typing import TYPE_CHECKING, Any, ClassVar
-from collections.abc import Callable
 
 import iso8601
 
+from . import exceptions as ade
 from . import utils
 from .models.config.app import AppConfig
-from . import exceptions as ade
 
 if TYPE_CHECKING:
     from .adbase import ADBase
@@ -1002,7 +1002,7 @@ class Threading:
                 async def safe_callback():
                     """Wraps actually calling the function for the callback with logic to transform exceptions based
                     on the callback type"""
-                    increment_callback_counter(app, name)
+                    self.AD.app_management.objects[name].increment_callback_counter()
                     try:
                         await funcref()
                     except Exception as exc:
@@ -1096,7 +1096,7 @@ class Threading:
                     def safe_callback():
                         """Wraps actually calling the function for the callback with logic to transform exceptions based
                         on the callback type"""
-                        increment_callback_counter(app, name)
+                        self.AD.app_management.objects[name].increment_callback_counter()
                         try:
                             funcref()
                         except Exception as exc:
@@ -1197,17 +1197,3 @@ class Threading:
                     "Logged an error to %s",
                     self.AD.logging.get_filename("error_log"),
                 )
-
-def increment_callback_counter(app, name):
-    try:
-        # This function may be called concurrently and the GIL won't protect us against
-        # races during app.callback_counter += 1 so we need to use a lock. We'll just use that of the app.
-        with app.lock:
-            app.callback_counter += 1
-    except Exception:
-        error_logger = logging.getLogger("Error.{}".format(name))
-        error_logger.warning("-" * 60)
-        error_logger.warning("Unexpected error in worker for App %s:", name)
-        error_logger.warning("-" * 60)
-        error_logger.warning(traceback.format_exc())
-        error_logger.warning("-" * 60)
