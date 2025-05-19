@@ -256,16 +256,11 @@ class Utility:
             if self.AD.http is not None:
                 await self.AD.http.stop_server()
 
-    async def set_production_mode(self, mode: bool = True):
-        if mode is True:
-            self.logger.info("AD Production Mode Activated")
-        else:
-            self.logger.info("AD Production Mode Deactivated")
-        self.AD.production_mode = mode
-
     async def production_mode_service(self, ns, domain, service, kwargs):
-        if "mode" in kwargs:
-            mode = kwargs["mode"]
-            await self.set_production_mode(mode)
+        if mode := kwargs.get("mode"):
+            if isinstance(mode, bool):
+                self.AD.production_mode = mode
+            else:
+                self.logger.warning("Invalid 'mode' specified in service call")
         else:
             self.logger.warning("'Mode' not specified in service call")

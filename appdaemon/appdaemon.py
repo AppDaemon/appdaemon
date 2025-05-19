@@ -1,5 +1,4 @@
 import os
-import os.path
 import threading
 from asyncio import BaseEventLoop
 from concurrent.futures import ThreadPoolExecutor
@@ -275,6 +274,12 @@ class AppDaemon(metaclass=Singleton):
     @property
     def production_mode(self):
         return self.config.production_mode
+
+    @production_mode.setter
+    def production_mode(self, mode: bool):
+        self.config.production_mode = mode
+        action = "activated" if mode else "deactivated"
+        self.logger.info("AD Production Mode %s", action)
 
     @property
     def qsize_warning_iterations(self):

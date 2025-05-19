@@ -979,11 +979,11 @@ class ADAPI:
             The specified mode or ``None`` if a wrong parameter is passed.
 
         """
-        if not isinstance(mode, bool):
+        if isinstance(mode, bool):
+            self.AD.production_mode = mode
+            return mode
+        else:
             self.logger.warning("%s not a valid parameter for Production Mode", mode)
-            return
-        await self.AD.utility.set_production_mode(mode)
-        return mode
 
     #
     # Internal Helper functions
