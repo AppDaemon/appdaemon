@@ -393,10 +393,10 @@ class Hass(ADBase, ADAPI):
         state. Desired state defaults to ``on``
         """
         match value:
-            case Iterable():
-                constraints = value if isinstance(value, list) else list(value)
             case str():
                 constraints = [value]
+            case Iterable():
+                constraints = value if isinstance(value, list) else list(value)
 
         assert isinstance(value, list) and all(isinstance(v, str) for v in value)
 
