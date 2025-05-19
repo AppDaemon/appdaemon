@@ -569,50 +569,113 @@ By declaring the above, each time the function ``self.log()`` is used within the
 Global Module Dependencies
 --------------------------
 
-The previously described dependencies and load order have all been at the App level.
-It is however, sometimes convenient to have global modules that have no apps in them that nonetheless
-require dependency tracking. For instance, a global module might have a number of useful
-variables or functions in it. When they change, a number of apps may need to be restarted.
-as of AppDaemon 4.5 these dependencies are tracked autmatically and should just work.
-It is neccesarry to take some care about how apps are structured, especially if multiple subdirectories are used.
+.. admonition:: Deprecation warning
+  :class: warning
+
+    Global modules are deprecated and will be removed in a future release. AppDaemon now automatically tracks and
+    resolves dependencies using the :py:mod:`ast <ast>` package from the standard library.
 
 AppDir Structure
 ----------------
 
-So far, we have assumed that all apps and their configuration files are placed in a single directory. This works fine for simple setups
-but as the number of apps grows, it can be useful to organize them into subdirectories. AppDaemon will automatically search all subdirectories of the apps directory for apps and configuration files. This means that you can have a directory structure like this:
+So far, we have assumed that all apps and their configuration files are placed in a single directory. This works fine
+for simple setups but as the number of apps grows, it can be useful to organize them into subdirectories. AppDaemon will
+automatically search all subdirectories of the `apps` directory for apps and configuration files. This means that you
+can have a directory structure like this:
 
 .. code:: text
 
-    apps/
-        app1/
-            app1.py
-            app1.yaml
-        app2/
-            app2.py
-            app2.yaml
-        app3/
-            app3.py
-            app3.yaml
-        common/
-            common.py
-            common.yaml
+    conf/apps
+    ├── app1
+    │   ├── app1.py
+    │   └── app1.yaml
+    ├── app2
+    │   ├── app2.py
+    │   └── app2.yaml
+    ├── common
+    │   ├── my_globals.py
+    │   └── utils.py
+    └── some
+        └── deep
+            └── path
+                ├── app3.py
+                └── app3.yaml
 
+In this example, AppDaemon will find all the apps defined in `app1.yaml`, `app2.yaml`, and even `app3.yaml`, despite it
+being deep in a subdirectory. Each of those files would define apps using ``module: app1`` or ``module: app2`` etc. to
+refer to their respective python modules.
 
-In this example, AppDaemon will find all the apps in the app1, app2, and app3 directories, as well as the common.py and common.yaml files in the common directory.
-The apps can be configured in their respective YAML files, and they can also import functions or classes from the common module if needed, as long as some simple rules are adhered to.
-
-- If app1 wants to import a function called `common_funtion` from common.py, it can do so using the following import statement:
+Addtionally, apps in `app1.py`, `app2.py`, and `app3.py` can import things directly from `my_globals.py` and `utils.py`
+like this:
 
 .. code:: python
 
-    from common import common_function
+    # app1/app1.py
+    from appdaemon.adapi import ADAPI
 
-Note that there are no relative paths here - the AppDaemon system in combination with standard python rules will reslove this correctly,
-and importantly, will understand that app1 now relies on common.py, and any changes to common.py will result it common.py being reloaded,
-but this will also result in a reload of app1.py to pick up the changes
+    from my_globals import MY_GLOBAL_VAR
+    from utils import my_util_function
 
-- if app2 is a package in it's own right (e.g. it has an __init__.py at the top level) #### John, what happens here???
+    class MyApp(ADAPI):
+        def initialize(self):
+            ... # app code would go here
+
+.. admonition:: Note text
+  :class: note
+
+    Note that there are no relative paths here. AppDaemon handles adding all the relevant subdirectories to the import path,
+    which allows them to be directly imported, as if the files were next to each other. Furthermore, AppDaemon understands
+    that `app1.py` depends on both `my_globals.py` and `utils.py`, so if either of those files change, AppDaemon will reload
+    `app1.py` automatically.
+
+App Packages
+~~~~~~~~~~~~
+
+As app complexity increases, it's often useful to break the logic apart into multiple files, and sometimes these modules
+have the same name as modules in other directories. For example, what if an app needed its own set of utils? The module
+names can be managed by using ``__init__.py`` files.
+
+.. code:: text
+
+    conf/apps
+    ├── my_app
+    │   ├── __init__.py
+    │   ├── foo.py
+    │   ├── apps.yaml
+    │   └── utils.py
+    ├── common
+    │   ├── ... # other common modules
+    │   └── utils.py
+    ... # more apps down here
+
+In this example `foo.py` can import from both `utils.py` modules like this, which uses
+:py:ref:`package relative imports <relativeimports>` to reference the `utils.py` next to it as distinct from the one in
+the `common` directory
+
+.. code-block:: python
+  :emphasize-lines: 4,6
+
+    # my_app/foo.py
+    from appdaemon.adapi import ADAPI
+
+    from utils import global_util_function
+
+    from .utils import specific_util_function
+
+    class MyApp(ADAPI):
+        def initialize(self):
+            ... # app code would go here
+
+Using the ``__init__.py`` file indicates to Python/AppDaemon that the directory containing it is a package, and as such
+the its import name changes slightly. The `apps.yaml` file needs to be updated to reflect this.
+
+.. code-block:: yaml
+  :emphasize-lines: 3
+
+    # my_app/apps.yaml
+    my_app:
+      module: my_app.foo    # not just `foo`
+      class: MyApp
 
 
 Plugin Reloads
