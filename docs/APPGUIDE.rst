@@ -1055,26 +1055,26 @@ Consider the following App which schedules 1000 callbacks all to run at the exac
 
 .. code:: python
 
-    import hassapi as hass
     import datetime
 
-    class Locking(hass.Hass):
+    from appdaemon.plugins.hass import Hass
 
+    class Locking(Hass):
         def initialize(self):
             self.important_var = 0
 
             now = datetime.datetime.now()
             target = now + datetime.timedelta(seconds=2)
             for i in range (1000):
-                self.run_at(self.hass_cb, target)
+                self.run_at(self.callback, target)
 
-        def hass_cb(self, **kwargs):
+        def callback(self, **kwargs):
             self.important_var += 1
             self.log(self.important_var)
 
 As it is, it will result in unexpected results because ``self.important_var`` can be manipulated by multiple threads at once - for instance, a thread could get the value, add one to it and be just about to write it when another thread jumps in with a different value, which is immediately overwritten. Indeed, when this is run, the output shows just that:
 
-.. code::
+.. code:: text
 
     2018-11-04 16:07:01.615683 INFO lock: 981
     2018-11-04 16:07:01.616150 INFO lock: 982
@@ -1099,31 +1099,31 @@ As it is, it will result in unexpected results because ``self.important_var`` ca
 
 However, if we add the decorator to the callback function like so:
 
-.. code:: python
+.. code-block:: python
+  :emphasize-lines: 15
 
-    import hassapi as hass
-    import adbase as ad
     import datetime
 
-    class Locking(hass.Hass):
+    from appdaemon import adbase as ad
+    from appdaemon.plugins.hass import Hass
 
+    class Locking(Hass):
         def initialize(self):
             self.important_var = 0
 
             now = datetime.datetime.now()
             target = now + datetime.timedelta(seconds=2)
             for i in range (1000):
-                self.run_at(self.hass_cb, target)
+                self.run_at(self.callback, target)
 
         @ad.app_lock
-        def hass_cb(self, **kwargs):
+        def callback(self, **kwargs):
             self.important_var += 1
             self.log(self.important_var)
 
+The result is what we would hope for since ``self.important_var`` is only being accessed by one thread at a time:
 
-The result is what we would hope for since self.important_var is only being accessed by one thread at a time:
-
-.. code::
+.. code:: text
 
     2018-11-04 16:08:54.545795 INFO lock: 981
     2018-11-04 16:08:54.546202 INFO lock: 982
@@ -2155,7 +2155,7 @@ Here is an example of an App using the API:
 
 .. code:: python
 
-    from appdaemon.plugins.hass.hassapi import Hass
+    from appdaemon.plugins.hass import Hass
 
 
     class API(Hass):
@@ -2295,12 +2295,12 @@ want to configure.
 
 .. code:: python
 
-    import hassapi as hass
+    from appdaemon.plugins.hass import Hass
+
     import random
     import globals
 
-    class Alexa(hass.Hass):
-
+    class Alexa(Hass):
         def initialize(self):
             pass
 
@@ -2403,7 +2403,8 @@ Similarly, Dialogflow API for Google home is supported - here is the Google vers
 
 .. code:: python
 
-    import hassapi as hass
+    from appdaemon.plugins.hass import Hass
+
     import random
     import globals
 
@@ -2659,10 +2660,9 @@ As an example, this App is built using ADBase, and uses ``get_plugin_api()`` to 
 
 .. code:: python
 
-    import adbase as ad
+    from appdaemon import adbase as ad
 
     class GetAPI(ad.ADBase):
-
       def initialize(self):
 
         # Grab an object for the HASS API
@@ -2988,32 +2988,24 @@ After this step, your IDE will have access to the code for AppDaemon's APIs and 
 Import Statements
 ~~~~~~~~~~~~~~~~~
 
-With AppDameon installed, if we want to use the IDE's error checking for import statements, we need to follow a couple of simple rules to keep things working.
-In particular, rather than using AppDaemon's shortcuts for module imports we need to use their full paths. For instance:
+For your IDE to be able to link things appropriately, it needs to be pointed at the interpreter you are using, with
+AppDaemon installed in it. This is usually done by setting the interpreter in the IDE's settings, and pointing it at the
+virtual environment you are using.
+
+The AppDaemon API classes can be imported as in the below example, or any other standard way you prefer.
 
 .. code:: python
 
-    import import hassapi as hass
+    from appdaemon import adbase as ad      # Minimalist app base
+    from appdaemon.adapi import ADAPI       # Basic API
+    from appdaemon.plugins.hass import Hass # Home Assistant-specific API
+    from appdaemon.plugins.mqtt import Mqtt # MQTT-specific API
 
-becomes:
+Imports of other python modules/packages from your apps can be done in the standard python ways. See the
+`section on the app directory <#appdir-structure>`__ for more information.
 
-.. code:: python
-
-    import appdaemon.plugins.hass.hassapi as hass
-
-Similarly, for the adbase, adapi and mqtt plugins we would use:
-
-.. code:: python
-
-    import appdaemon.adapi
-    import appdaemon.adbase
-    import appdaemon.plugins.mqtt.mqttapi
-
-Finally, if you are using subdirectories for your apps and perhaps importing global modules, although it is not necessary to specify the full path
-relative to the app as far as AppDaemon is concerned as it automatically adds all directories in ``appdir`` to the import path, the IDE does
-not know this, so always specify the full path to your global modules relative to ``appdir``.
-
-With these preparations in place your IDE should give you correct error reporting and completion of API functions along with type hints and help text.
+With these preparations in place your IDE should give you correct error reporting and completion of API functions along
+with type hints and help text.
 
 Some Notes on Service Calls
 ---------------------------
