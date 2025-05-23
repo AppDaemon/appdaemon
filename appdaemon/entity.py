@@ -176,7 +176,6 @@ class Entity:
         """
         self.logger.debug("get state: %s, %s from %s", self.entity_id, self.namespace, self.name)
         return await self.adapi.get_state(
-            name=self.name,
             namespace=self.namespace,
             entity_id=self.entity_id,
             attribute=attribute,

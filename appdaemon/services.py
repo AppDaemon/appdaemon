@@ -3,13 +3,17 @@ import functools
 import threading
 from collections import defaultdict
 from logging import Logger
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any, Callable, Protocol
 
 from appdaemon import utils
 from appdaemon.exceptions import DomainException, NamespaceException, ServiceException
 
 if TYPE_CHECKING:
     from appdaemon.appdaemon import AppDaemon
+
+
+class ServiceCallback(Protocol):
+    def __call__(self, result: Any) -> None: ...
 
 
 class Services:
