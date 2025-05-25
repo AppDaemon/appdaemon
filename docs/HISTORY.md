@@ -46,6 +46,28 @@
 - AppDaemon will now discard any events that it attempts to process for an App that is initializing. This is intended to prevent race conditions during App Initialization
 - The ``--toml`` flag has been deprecated. AppDaemon will now work transparently with either yaml or toml files, allowing the user to mix and match and convert from one format to another over time. In the event of a conflict, the yaml file will take precedence.
 
+**Things to Look Out For**
+
+Release 4.5 of AppDaemon has been a long time coming, and this is in part due to the fact that we have rewritten some of the core parts of AppDaemon to make them more efficient and to provide a better platform for future development. While we have made avery effort to test the code, the wide variety of installs and usages of AppDaemon may throw up some unanticipated issues. For this reason, we recommend that upgrades to 4.5 are done with caution, and ideally with a backout plan. We will be releasing fixes for any issues with a rapid cadence until we are confident that things are stable again, however, those for whom stability is important might want to wait for one or two point releases before upgrading to 4.5.x.
+
+Areas that have been affected include:
+
+- Loading and dependencies of apps: we believe that the new system is practically identical to the old, but it is entirely new code
+- The reason for the above is that we now handle dependencies in global python modules without the need to mark them as such, and correctly reload all apps. This funcitonality never worked correctly in previous versions of AppDaemon, but should now be a seamless experience
+- Because of the above, although we don't enforce specific app hierarchies, some work better than others, especially if you are using global modules. The new guidelines are published in the [Appdir Structure](https://appdaemon.readthedocs.io/en/latest/APPGUIDE.html#appdir-structure) of the docs.
+- Most user input is now validated using Pydantic. This means that any input files such as `appdaemon.yaml` and `apps.yaml` will now produce warnings if additional or incorrcetly named fields are present. In some cases this may result in AppDaemon's refusal to start. We will log reasons for such events to the standard log files to enable you to troubleshoot
+- Please note that in cases where errors occur befor the AppDaemon.yaml file has been processed, these errors will be logged to standard out, since we cannot rely on configuration info to tell us where the logs should go. For this reason, if AppDaemon does not start after the upgrade, and you get no logging CHECK STANDARD OUT FOR ANY ERRORS:
+    - For a standard venv install this could be on the terminal
+    - For docker, you will need to look at docker logs
+    - For the HomeAssistamnt addon, you should check the addon logs.
+- The Home Assistant plugin has been rewritten to enable return information from HomeAssistamt service calls. This required some large changes under the hood but should be seamless. As a result of this it is  now possible to configure AppDaemon to obtain return information from all service calls whether they return data or not. Although this is not the defualt behavior, if enabled this may reveal issues with slow to complete servoce calls to for instance ZWave items that were not apparent before.
+
+If you find any issues, please  log them at AppDaemon's [Github](https://github.com/AppDaemon/appdaemon/issues):
+
+Or drop into our [Discord Server](https://discord.gg/aSqVEa5WpT):
+
+Either way, we will do our best to assist you!
+
 ## 4.4.2 (2023-04-16)
 
 **Features**
