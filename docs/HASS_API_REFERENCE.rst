@@ -1,8 +1,11 @@
 Hass Plugin/API
 ===============
 
-About the Plugin
-----------------
+About
+-----
+
+Hass Plugin
+~~~~~~~~~~~
 
 The `Hass` plugin connects to Home Assistant using the
 `websocket API <https://developers.home-assistant.io/docs/api/websocket/>`_ and maintains this connection while
@@ -11,13 +14,13 @@ AppDaemon is running. In addition, it maintains an HTTP session because some fun
 attempt to reconnect every 5s until it succeeds, any apps that are using the `Hass` API will be stopped and restarted
 when the connection is re-established.
 
-.. admonition:: Starting Event
-  :class: note
+Hass API
+~~~~~~~~
 
-    If/when the `Hass` plugin reconnects to Home Assistant, it will wait for the ``homeassistant_started`` event before
-    starting any of the apps that use the `Hass` API. Home Assistant will accept connections very early as it's
-    starting, even before some fundamental components have been loaded, which causes most apps to somehow fail without
-    waiting for this event. This is the same event that the Home Assistant web UI waits for to indicate readiness.
+The :py:class:`Hass <appdaemon.plugins.hass.hassapi.Hass>` API is an interface layer that makes it easy for users to
+interact with the `Hass` plugin. In addition to all the methods of the ``ADAPI``, it provides many methods that are
+specific to Home Assistant. Most of these methods simply wrap calling services with some logic that make them more
+convenient to use.
 
 Plugin Configuration
 --------------------
@@ -56,7 +59,8 @@ This is the full list of configuration options available for the `Hass` plugin.
      - URL to a Home Assistant instance, must include correct port and scheme (``http://`` or ``https://``)
    * - ``token``
      - required
-     - Long-lived token for for authentication with Home Assistant.
+     - Long-lived token for for authentication with Home Assistant. See the
+       `section on authentication <#authentication>`_ for more information on how to set it up.
    * - ``ha_key``
      - deprecated
      - Use ``token`` instead
@@ -149,6 +153,14 @@ from being started. Each condition only has to be met once for it to be consider
 When the plugin first starts with AppDaemon itself, it will check the conditions in the ``appdaemon_startup_conditions``
 key before starting any apps. If the connection to Home Assistant is broken and re-established, it will check the
 conditions in the ``plugin_startup_conditions`` key before starting any apps.
+
+.. admonition:: Starting Event
+  :class: note
+
+    If/when the `Hass` plugin reconnects to Home Assistant, it will wait for the ``homeassistant_started`` event before
+    starting any of the apps that use the `Hass` API. Home Assistant will accept connections very early as it's
+    starting, even before some fundamental components have been loaded, which causes most apps to somehow fail without
+    waiting for this event. This is the same event that the Home Assistant web UI waits for to indicate readiness.
 
 .. code:: yaml
 
@@ -256,14 +268,18 @@ Services
 ~~~~~~~~
 
 Services are now called `actions` in Home Assistant, but are sometimes also referred to as `service actions`. Any of
-them can be called by using the :py:meth:`call_service() <appdaemon.plugins.hass.hassapi.Hass.call_service>` method with
-their domain and service name. However AppDaemon uses the ``/`` delimter to separate the domain and service name,
-instead of the ``.`` used by Home Assistant, so ``light.turn_on`` in Home Assistant becomes ``light/turn_on`` in
-AppDaemon.
+them can be called by using the :py:meth:`call_service <appdaemon.plugins.hass.hassapi.Hass.call_service>` method with
+their domain and service name.
 
 The specific services available will vary depending on which integrations are installed in Home Assistant, but some
 common ones would be ``light/toggle``, ``switch/turn_off``, etc. These services would control physical devices, but
 services can do many other things as well.
+
+.. admonition:: Service Name Delimiter
+  :class: note
+
+    AppDaemon uses the ``/`` delimter to separate the domain and service name, instead of the ``.`` used by Home
+    Assistant, so ``light.turn_on`` in Home Assistant becomes ``light/turn_on`` in AppDaemon.
 
 Returning values
 ^^^^^^^^^^^^^^^^
@@ -271,6 +287,12 @@ Returning values
 As of AppDaemon v4.5.0, service calls can return values. When services are registered with AppDaemon, Home Assistant
 indicates whether they return values and whether doing so is optional. AppDaemon uses that information to automatically
 insert ``"return_response": true`` into the message it sends to Home Assistant if necessary.
+
+.. admonition:: Home Assistant Responses
+  :class: note
+
+    Home Assistant always responds with some kind of acknowledgement, even for services that don't otherwise return a
+    value. AppDaemon includes whatever it gets from Home Assistant in the result dict.
 
 .. list-table:: Result Dict
    :header-rows: 1
@@ -293,19 +315,57 @@ insert ``"return_response": true`` into the message it sends to Home Assistant i
    * - ``ad_duration``
      - Floating point number representing the round trip time of the request in seconds.
 
-.. admonition:: Home Assistant Responses
-  :class: note
+.. list-table:: AppDaemon Statuses
+   :header-rows: 1
+   :widths: 20 80
 
-    Home Assistant always responds with some kind of acknowledgement, even for services that don't otherwise return a
-    value. AppDaemon includes whatever it gets from Home Assistant in the result dict.
+   * - **Status**
+     - **Value**
+   * - ``OK``
+     - Inidcates that the process of calling the service didn't fail on the AppDaemon side. It could still have failed
+       on the Home Assistant side.
+   * - ``TIMEOUT``
+     - The service call timed out while waiting for a response from Home Assistant. This can happen if the
+       ``ws_timeout`` is set too low or if Home Assistant is overloaded.
+   * - ``TERMINATING``
+     - Indicates that the task for the service call was cancelled while it was waiting for a response from Home
+       Assistant.
 
+.. admonition:: Revealed Errors
+  :class: warning
+
+    With service calls now returning values, it's possible for operations that were silently failing before to now
+    produce warnings or errors. In most cases, this is beneficial/desired, but these can also be suppressed. For
+    example, Z-Wave devices are known to take a long time to respond, which can cause timeouts. However, most services
+    return nearly instantly.
+
+Timeouts
+^^^^^^^^
+
+These timeouts determine how long AppDaemon will wait for a response from Home Assistant before giving up and returning
+with a ``TIMEOUT`` for ``ad_status`` in the result dict.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 80
+
+   * - **Timeout**
+     - **Explanation**
+   * - ``hass_timeout``
+     - Provided with the service call and only affects that specific call.
+   * - ``ws_timeout``
+     - Provided in ``appdaemon.yaml`` and used as the default for all service calls. Can be overridden by
+       ``hass_timeout``.
+   * - ``internal_function_timeout``
+     - Provided in ``appdaemon.yaml`` and controls how long the app will internally wait for a response from the main
+       AppDaemon thread.
 
 Services and states
 ^^^^^^^^^^^^^^^^^^^
 
-Setting the state of an entity only changes how it appears in Home Assistant. That's perfect for some thing like sensors,
-but not for something like a light. To physically turn on a light, you should call the ``light/turn_on`` service. Merely
-setting the state will not do that.
+Setting the state of an entity only changes how it appears in Home Assistant, which is perfect for sensors, but not
+devices like lights. To physically turn on a light, you should call the ``light/turn_on`` service. Merely setting the
+state will not do that.
 
 Advanced Service Calls
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -314,7 +374,63 @@ The `Hass` API ultimately wraps the
 `calling a service action <https://developers.home-assistant.io/docs/api/websocket/#calling-a-service-action>`_ feature
 of the websocket API, so `anything` that can be done through that API, can be done with AppDaemon. Successfully calling
 the service action merely depends on formatting the arguments to
-:py:meth:`call_service() <appdaemon.plugins.hass.hassapi.Hass.call_service>` correctly.
+:py:meth:`call_service <appdaemon.plugins.hass.hassapi.Hass.call_service>` correctly.
+
+Here's one example
+
+.. code-block:: python
+
+    from appdaemon.plugins.hass import Hass
+
+
+    class MyApp(Hass):
+        def initialize(self):
+            self.call_service(
+                "notify/alexa_media",
+                service_data={
+                    "target": "media_player.tom_office",
+                    "data": {"type": "announce"}
+                }
+                message="This is a test message"
+            )
+
+Service Registration
+^^^^^^^^^^^^^^^^^^^^
+
+The `Hass` plugin registers the initial set of services immediately after it authenticates with Home Assistant.
+Afterwards, AppDaemon will register services whenever Home Assistant emits ``service_registered`` events. This makes all
+of the services/actions in Home Assistant available to AppDaemon apps. Users can still register their own services from
+apps using the ``register_service`` method.
+
+Error Handling
+^^^^^^^^^^^^^^
+
+Python got a match/case structure in v3.10, which has some very convenient patterns for handling the results returned
+by service calls. For example, this service call will fail because it has ``bogus_arg=42``, which isn't allowed by the
+``light/turn_on`` service in Home Assistant.
+
+.. code-block:: python
+
+    from appdaemon.plugins.hass import Hass
+    from appdaemon.utils import format_timedelta
+
+
+    class MyApp(Hass):
+        def initialize(self):
+            res = self.call_service("light/turn_on", entity_id="light.kitchen", bogus_arg=42)
+            match res:
+                case {'success': True}:
+                    self.log("Service call was successful")
+                case {'success': False, 'ad_status': 'OK', 'ad_duration': duration}:
+                    time_str = format_timedelta(duration)
+                    self.log(f"Service call failed on the Home Assistant side, and took {time_str}")
+                case _:
+                    self.log(f"Unexpected response format from service call: {res}")
+
+.. code:: text
+
+    WARNING HASS: Error with websocket result: invalid_format: extra keys not allowed @ data['bogus_arg']
+    INFO simple_app: Service call failed on the Home Assistant side, and took 8.583ms
 
 Rendering Templates
 ~~~~~~~~~~~~~~~~~~~
