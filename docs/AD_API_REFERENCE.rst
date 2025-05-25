@@ -263,19 +263,19 @@ Reference
 
 Entity API
 ~~~~~~~~~~
-.. autofunction:: appdaemon.entity.Entity.add
-.. autofunction:: appdaemon.entity.Entity.call_service
-.. autofunction:: appdaemon.entity.Entity.copy
-.. autofunction:: appdaemon.entity.Entity.exists
-.. autofunction:: appdaemon.entity.Entity.get_state
-.. autofunction:: appdaemon.entity.Entity.listen_state
-.. autofunction:: appdaemon.entity.Entity.is_state
-.. autofunction:: appdaemon.entity.Entity.set_namespace
-.. autofunction:: appdaemon.entity.Entity.set_state
-.. autofunction:: appdaemon.entity.Entity.toggle
-.. autofunction:: appdaemon.entity.Entity.turn_off
-.. autofunction:: appdaemon.entity.Entity.turn_on
-.. autofunction:: appdaemon.entity.Entity.wait_state
+.. automethod:: appdaemon.entity.Entity.add
+.. automethod:: appdaemon.entity.Entity.call_service
+.. automethod:: appdaemon.entity.Entity.copy
+.. automethod:: appdaemon.entity.Entity.exists
+.. automethod:: appdaemon.entity.Entity.get_state
+.. automethod:: appdaemon.entity.Entity.listen_state
+.. automethod:: appdaemon.entity.Entity.is_state
+.. automethod:: appdaemon.entity.Entity.set_namespace
+.. automethod:: appdaemon.entity.Entity.set_state
+.. automethod:: appdaemon.entity.Entity.toggle
+.. automethod:: appdaemon.entity.Entity.turn_off
+.. automethod:: appdaemon.entity.Entity.turn_on
+.. automethod:: appdaemon.entity.Entity.wait_state
 
 In addition to the above, there are a couple of property attributes the Entity class supports:
 -  entity_id
@@ -292,165 +292,165 @@ In addition to the above, there are a couple of property attributes the Entity c
 State
 ~~~~~
 
-.. autofunction:: appdaemon.adapi.ADAPI.get_state
-.. autofunction:: appdaemon.adapi.ADAPI.set_state
-.. autofunction:: appdaemon.adapi.ADAPI.listen_state
-.. autofunction:: appdaemon.adapi.ADAPI.cancel_listen_state
-.. autofunction:: appdaemon.adapi.ADAPI.info_listen_state
+.. automethod:: appdaemon.adapi.ADAPI.get_state
+.. automethod:: appdaemon.adapi.ADAPI.set_state
+.. automethod:: appdaemon.adapi.ADAPI.listen_state
+.. automethod:: appdaemon.adapi.ADAPI.cancel_listen_state
+.. automethod:: appdaemon.adapi.ADAPI.info_listen_state
 
 
 Time
 ~~~~
 
-.. autofunction:: appdaemon.adapi.ADAPI.parse_utc_string
-.. autofunction:: appdaemon.adapi.ADAPI.get_tz_offset
-.. autofunction:: appdaemon.adapi.ADAPI.convert_utc
-.. autofunction:: appdaemon.adapi.ADAPI.sun_up
-.. autofunction:: appdaemon.adapi.ADAPI.sun_down
-.. autofunction:: appdaemon.adapi.ADAPI.parse_time
-.. autofunction:: appdaemon.adapi.ADAPI.parse_datetime
-.. autofunction:: appdaemon.adapi.ADAPI.get_now
-.. autofunction:: appdaemon.adapi.ADAPI.get_now_ts
-.. autofunction:: appdaemon.adapi.ADAPI.now_is_between
-.. autofunction:: appdaemon.adapi.ADAPI.sunrise
-.. autofunction:: appdaemon.adapi.ADAPI.sunset
-.. autofunction:: appdaemon.adapi.ADAPI.time
-.. autofunction:: appdaemon.adapi.ADAPI.datetime
-.. autofunction:: appdaemon.adapi.ADAPI.date
-.. autofunction:: appdaemon.adapi.ADAPI.get_timezone
+.. automethod:: appdaemon.adapi.ADAPI.parse_utc_string
+.. automethod:: appdaemon.adapi.ADAPI.get_tz_offset
+.. automethod:: appdaemon.adapi.ADAPI.convert_utc
+.. automethod:: appdaemon.adapi.ADAPI.sun_up
+.. automethod:: appdaemon.adapi.ADAPI.sun_down
+.. automethod:: appdaemon.adapi.ADAPI.parse_time
+.. automethod:: appdaemon.adapi.ADAPI.parse_datetime
+.. automethod:: appdaemon.adapi.ADAPI.get_now
+.. automethod:: appdaemon.adapi.ADAPI.get_now_ts
+.. automethod:: appdaemon.adapi.ADAPI.now_is_between
+.. automethod:: appdaemon.adapi.ADAPI.sunrise
+.. automethod:: appdaemon.adapi.ADAPI.sunset
+.. automethod:: appdaemon.adapi.ADAPI.time
+.. automethod:: appdaemon.adapi.ADAPI.datetime
+.. automethod:: appdaemon.adapi.ADAPI.date
+.. automethod:: appdaemon.adapi.ADAPI.get_timezone
 
 Scheduler
 ~~~~~~~~~
 
-.. autofunction:: appdaemon.adapi.ADAPI.run_at
-.. autofunction:: appdaemon.adapi.ADAPI.run_in
-.. autofunction:: appdaemon.adapi.ADAPI.run_once
-.. autofunction:: appdaemon.adapi.ADAPI.run_every
-.. autofunction:: appdaemon.adapi.ADAPI.run_daily
-.. autofunction:: appdaemon.adapi.ADAPI.run_hourly
-.. autofunction:: appdaemon.adapi.ADAPI.run_minutely
-.. autofunction:: appdaemon.adapi.ADAPI.run_at_sunset
-.. autofunction:: appdaemon.adapi.ADAPI.run_at_sunrise
-.. autofunction:: appdaemon.adapi.ADAPI.timer_running
-.. autofunction:: appdaemon.adapi.ADAPI.cancel_timer
-.. autofunction:: appdaemon.adapi.ADAPI.info_timer
-.. autofunction:: appdaemon.adapi.ADAPI.reset_timer
+.. automethod:: appdaemon.adapi.ADAPI.run_at
+.. automethod:: appdaemon.adapi.ADAPI.run_in
+.. automethod:: appdaemon.adapi.ADAPI.run_once
+.. automethod:: appdaemon.adapi.ADAPI.run_every
+.. automethod:: appdaemon.adapi.ADAPI.run_daily
+.. automethod:: appdaemon.adapi.ADAPI.run_hourly
+.. automethod:: appdaemon.adapi.ADAPI.run_minutely
+.. automethod:: appdaemon.adapi.ADAPI.run_at_sunset
+.. automethod:: appdaemon.adapi.ADAPI.run_at_sunrise
+.. automethod:: appdaemon.adapi.ADAPI.timer_running
+.. automethod:: appdaemon.adapi.ADAPI.cancel_timer
+.. automethod:: appdaemon.adapi.ADAPI.info_timer
+.. automethod:: appdaemon.adapi.ADAPI.reset_timer
 
 Service
 ~~~~~~~
 
-.. autofunction:: appdaemon.adapi.ADAPI.register_service
-.. autofunction:: appdaemon.adapi.ADAPI.deregister_service
-.. autofunction:: appdaemon.adapi.ADAPI.list_services
-.. autofunction:: appdaemon.adapi.ADAPI.call_service
+.. automethod:: appdaemon.adapi.ADAPI.register_service
+.. automethod:: appdaemon.adapi.ADAPI.deregister_service
+.. automethod:: appdaemon.adapi.ADAPI.list_services
+.. automethod:: appdaemon.adapi.ADAPI.call_service
 
 Sequence
 ~~~~~~~~
 
-.. autofunction:: appdaemon.adapi.ADAPI.run_sequence
-.. autofunction:: appdaemon.adapi.ADAPI.cancel_sequence
+.. automethod:: appdaemon.adapi.ADAPI.run_sequence
+.. automethod:: appdaemon.adapi.ADAPI.cancel_sequence
 
 Events
 ~~~~~~
 
-.. autofunction:: appdaemon.adapi.ADAPI.listen_event
-.. autofunction:: appdaemon.adapi.ADAPI.cancel_listen_event
-.. autofunction:: appdaemon.adapi.ADAPI.info_listen_event
-.. autofunction:: appdaemon.adapi.ADAPI.fire_event
+.. automethod:: appdaemon.adapi.ADAPI.listen_event
+.. automethod:: appdaemon.adapi.ADAPI.cancel_listen_event
+.. automethod:: appdaemon.adapi.ADAPI.info_listen_event
+.. automethod:: appdaemon.adapi.ADAPI.fire_event
 
 Logging
 ~~~~~~~
 
-.. autofunction:: appdaemon.adapi.ADAPI.log
-.. autofunction:: appdaemon.adapi.ADAPI.error
-.. autofunction:: appdaemon.adapi.ADAPI.listen_log
-.. autofunction:: appdaemon.adapi.ADAPI.cancel_listen_log
-.. autofunction:: appdaemon.adapi.ADAPI.get_main_log
-.. autofunction:: appdaemon.adapi.ADAPI.get_error_log
-.. autofunction:: appdaemon.adapi.ADAPI.get_user_log
-.. autofunction:: appdaemon.adapi.ADAPI.set_log_level
-.. autofunction:: appdaemon.adapi.ADAPI.set_error_level
+.. automethod:: appdaemon.adapi.ADAPI.log
+.. automethod:: appdaemon.adapi.ADAPI.error
+.. automethod:: appdaemon.adapi.ADAPI.listen_log
+.. automethod:: appdaemon.adapi.ADAPI.cancel_listen_log
+.. automethod:: appdaemon.adapi.ADAPI.get_main_log
+.. automethod:: appdaemon.adapi.ADAPI.get_error_log
+.. automethod:: appdaemon.adapi.ADAPI.get_user_log
+.. automethod:: appdaemon.adapi.ADAPI.set_log_level
+.. automethod:: appdaemon.adapi.ADAPI.set_error_level
 
 Dashboard
 ~~~~~~~~~
 
-.. autofunction:: appdaemon.adapi.ADAPI.dash_navigate
+.. automethod:: appdaemon.adapi.ADAPI.dash_navigate
 
 Namespace
 ~~~~~~~~~
 
-.. autofunction:: appdaemon.adapi.ADAPI.set_namespace
-.. autofunction:: appdaemon.adapi.ADAPI.get_namespace
-.. autofunction:: appdaemon.adapi.ADAPI.list_namespaces
-.. autofunction:: appdaemon.adapi.ADAPI.save_namespace
+.. automethod:: appdaemon.adapi.ADAPI.set_namespace
+.. automethod:: appdaemon.adapi.ADAPI.get_namespace
+.. automethod:: appdaemon.adapi.ADAPI.list_namespaces
+.. automethod:: appdaemon.adapi.ADAPI.save_namespace
 
 
 Threading
 ~~~~~~~~~
 
-.. autofunction:: appdaemon.adapi.ADAPI.set_app_pin
-.. autofunction:: appdaemon.adapi.ADAPI.get_app_pin
-.. autofunction:: appdaemon.adapi.ADAPI.set_pin_thread
-.. autofunction:: appdaemon.adapi.ADAPI.get_pin_thread
+.. automethod:: appdaemon.adapi.ADAPI.set_app_pin
+.. automethod:: appdaemon.adapi.ADAPI.get_app_pin
+.. automethod:: appdaemon.adapi.ADAPI.set_pin_thread
+.. automethod:: appdaemon.adapi.ADAPI.get_pin_thread
 
 Async
 ~~~~~
 
-.. autofunction:: appdaemon.adapi.ADAPI.create_task
-.. autofunction:: appdaemon.adapi.ADAPI.run_in_executor
-.. autofunction:: appdaemon.adapi.ADAPI.sleep
+.. automethod:: appdaemon.adapi.ADAPI.create_task
+.. automethod:: appdaemon.adapi.ADAPI.run_in_executor
+.. automethod:: appdaemon.adapi.ADAPI.sleep
 
 
 Utility
 ~~~~~~~
 
-.. autofunction:: appdaemon.adapi.ADAPI.get_app
-.. autofunction:: appdaemon.adapi.ADAPI.get_ad_version
-.. autofunction:: appdaemon.adapi.ADAPI.entity_exists
-.. autofunction:: appdaemon.adapi.ADAPI.split_entity
-.. autofunction:: appdaemon.adapi.ADAPI.remove_entity
-.. autofunction:: appdaemon.adapi.ADAPI.split_device_list
-.. autofunction:: appdaemon.adapi.ADAPI.get_plugin_config
-.. autofunction:: appdaemon.adapi.ADAPI.friendly_name
-.. autofunction:: appdaemon.adapi.ADAPI.set_production_mode
-.. autofunction:: appdaemon.adapi.ADAPI.start_app
-.. autofunction:: appdaemon.adapi.ADAPI.stop_app
-.. autofunction:: appdaemon.adapi.ADAPI.restart_app
-.. autofunction:: appdaemon.adapi.ADAPI.reload_apps
+.. automethod:: appdaemon.adapi.ADAPI.get_app
+.. automethod:: appdaemon.adapi.ADAPI.get_ad_version
+.. automethod:: appdaemon.adapi.ADAPI.entity_exists
+.. automethod:: appdaemon.adapi.ADAPI.split_entity
+.. automethod:: appdaemon.adapi.ADAPI.remove_entity
+.. automethod:: appdaemon.adapi.ADAPI.split_device_list
+.. automethod:: appdaemon.adapi.ADAPI.get_plugin_config
+.. automethod:: appdaemon.adapi.ADAPI.friendly_name
+.. automethod:: appdaemon.adapi.ADAPI.set_production_mode
+.. automethod:: appdaemon.adapi.ADAPI.start_app
+.. automethod:: appdaemon.adapi.ADAPI.stop_app
+.. automethod:: appdaemon.adapi.ADAPI.restart_app
+.. automethod:: appdaemon.adapi.ADAPI.reload_apps
 
 Dialogflow
 ~~~~~~~~~~
 
-.. autofunction:: appdaemon.adapi.ADAPI.get_dialogflow_intent
-.. autofunction:: appdaemon.adapi.ADAPI.get_dialogflow_slot_value
-.. autofunction:: appdaemon.adapi.ADAPI.format_dialogflow_response
+.. automethod:: appdaemon.adapi.ADAPI.get_dialogflow_intent
+.. automethod:: appdaemon.adapi.ADAPI.get_dialogflow_slot_value
+.. automethod:: appdaemon.adapi.ADAPI.format_dialogflow_response
 
 Alexa
 ~~~~~
 
-.. autofunction:: appdaemon.adapi.ADAPI.get_alexa_intent
-.. autofunction:: appdaemon.adapi.ADAPI.get_alexa_slot_value
-.. autofunction:: appdaemon.adapi.ADAPI.format_alexa_response
-.. autofunction:: appdaemon.adapi.ADAPI.get_alexa_error
+.. automethod:: appdaemon.adapi.ADAPI.get_alexa_intent
+.. automethod:: appdaemon.adapi.ADAPI.get_alexa_slot_value
+.. automethod:: appdaemon.adapi.ADAPI.format_alexa_response
+.. automethod:: appdaemon.adapi.ADAPI.get_alexa_error
 
 API
 ~~~
 
-.. autofunction:: appdaemon.adapi.ADAPI.register_endpoint
-.. autofunction:: appdaemon.adapi.ADAPI.deregister_endpoint
+.. automethod:: appdaemon.adapi.ADAPI.register_endpoint
+.. automethod:: appdaemon.adapi.ADAPI.deregister_endpoint
 
 WebRoute
 ~~~
 
-.. autofunction:: appdaemon.adapi.ADAPI.register_route
-.. autofunction:: appdaemon.adapi.ADAPI.deregister_route
+.. automethod:: appdaemon.adapi.ADAPI.register_route
+.. automethod:: appdaemon.adapi.ADAPI.deregister_route
 
 Other
 ~~~~~
 
-.. autofunction:: appdaemon.adapi.ADAPI.run_in_thread
-.. autofunction:: appdaemon.adapi.ADAPI.submit_to_executor
-.. autofunction:: appdaemon.adapi.ADAPI.get_thread_info
-.. autofunction:: appdaemon.adapi.ADAPI.get_scheduler_entries
-.. autofunction:: appdaemon.adapi.ADAPI.get_callback_entries
-.. autofunction:: appdaemon.adapi.ADAPI.depends_on_module
+.. automethod:: appdaemon.adapi.ADAPI.run_in_thread
+.. automethod:: appdaemon.adapi.ADAPI.submit_to_executor
+.. automethod:: appdaemon.adapi.ADAPI.get_thread_info
+.. automethod:: appdaemon.adapi.ADAPI.get_scheduler_entries
+.. automethod:: appdaemon.adapi.ADAPI.get_callback_entries
+.. automethod:: appdaemon.adapi.ADAPI.depends_on_module
