@@ -471,7 +471,8 @@ to use it. For example, this service call will fail because it has ``bogus_arg=4
 
     class MyApp(Hass):
         def initialize(self):
-            res = self.call_service("light/turn_on", entity_id="light.kitchen", bogus_arg=42)
+            service = "climate/set_temperature"
+            res = self.call_service(service, entity_id="climate.living_room", bogus_arg=42)
             match res:
                 case {'success': True}:
                     self.log("Service call was successful")
@@ -483,7 +484,7 @@ to use it. For example, this service call will fail because it has ``bogus_arg=4
 
 .. code:: text
 
-    WARNING HASS: Error with websocket result: invalid_format: extra keys not allowed @ data['bogus_arg']
+    WARNING HASS: Error with websocket result: invalid_format: must contain at least one of temperature, target_temp_high, target_temp_low.
     INFO my_app: Service call failed on the Home Assistant side, and took 8.583ms
 
 By default, AppDaemon will log warnings for any service call that fails. If you prefer to do error checking yourself on
@@ -499,8 +500,9 @@ setting ``suppress_log_messages`` to true in the plugin configuration.
 
     class MyApp(Hass):
         def initialize(self):
+            service = "climate/set_temperature"
             res = self.call_service(
-                "light/turn_on",
+                service,
                 entity_id="light.kitchen",
                 bogus_arg=42,
                 suppress_log_messages=True,
@@ -509,7 +511,7 @@ setting ``suppress_log_messages`` to true in the plugin configuration.
                 case {'success': True}:
                     self.log("Service call was successful")
                 case {'success': False, 'ad_status': 'OK', 'error': error}:
-                    self.handle_error("light/turn_on", **error)
+                    self.handle_error(service, **error)
                 case _:
                     self.log(f"Unexpected response format from service call: {res}")
 
@@ -519,12 +521,6 @@ setting ``suppress_log_messages`` to true in the plugin configuration.
                 case "invalid_format":
                     if service_info := self.get_service_info(service):
                         valid_fields = service_info.get("fields", {})
-
-                        # handles merging the advanced fields if they exist
-                        adv = valid_fields.pop("advanced_fields", {})
-                        if adv_fields := adv.get("fields"):
-                            valid_fields.update(adv_fields)
-
                         field_names = "\n".join(f"  - {f}" for f in valid_fields)
                         self.log(
                             f"The service call had an invalid format. "
@@ -536,25 +532,12 @@ setting ``suppress_log_messages`` to true in the plugin configuration.
 
 .. code:: text
 
-    ERROR my_app: Service call failed: extra keys not allowed @ data['bogus_arg']
+    ERROR my_app: Service call failed: must contain at least one of temperature, target_temp_high, target_temp_low.
     ERROR my_app: The service call had an invalid format. Valid fields are:
-      - transition
-      - rgb_color
-      - color_temp_kelvin
-      - brightness_pct
-      - brightness_step_pct
-      - effect
-      - rgbw_color
-      - rgbww_color
-      - color_name
-      - hs_color
-      - xy_color
-      - color_temp
-      - brightness
-      - brightness_step
-      - white
-      - profile
-      - flash
+      - temperature
+      - target_temp_high
+      - target_temp_low
+      - hvac_mode
 
 Rendering Templates
 ~~~~~~~~~~~~~~~~~~~
