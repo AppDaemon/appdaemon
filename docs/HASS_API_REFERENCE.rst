@@ -25,7 +25,8 @@ convenient to use.
 Plugin Configuration
 --------------------
 
-See the `configuration section <CONFIGURE.html#hass>`__ of the documentation for more information.
+The `Hass` plugin must be configured in the ``appdaemon.yaml`` file under the ``plugins`` section in order for it to
+connect to Home Assistant. This example shows where it fits into the overall configuration file.
 
 .. code:: yaml
 
@@ -33,7 +34,7 @@ See the `configuration section <CONFIGURE.html#hass>`__ of the documentation for
     appdaemon:
       ... # other AppDaemon config here
       plugins:
-        HASS:
+        HASS:         # This is the name of the plugin, it can be anything
           type: hass  # required
           ha_url: ... # required
           token: ...  # required
@@ -367,6 +368,14 @@ Setting the state of an entity only changes how it appears in Home Assistant, wh
 devices like lights. To physically turn on a light, you should call the ``light/turn_on`` service. Merely setting the
 state will not do that.
 
+Service Registration
+^^^^^^^^^^^^^^^^^^^^
+
+The `Hass` plugin registers the initial set of services immediately after it authenticates with Home Assistant.
+Afterwards, AppDaemon will register services whenever Home Assistant emits ``service_registered`` events. This makes all
+of the services/actions in Home Assistant available to AppDaemon apps. Users can still register their own services from
+apps using the ``register_service`` method.
+
 Advanced Service Calls
 ^^^^^^^^^^^^^^^^^^^^^^
 
@@ -394,19 +403,64 @@ Here's one example
                 message="This is a test message"
             )
 
-Service Registration
-^^^^^^^^^^^^^^^^^^^^
+Debugging
+^^^^^^^^^
 
-The `Hass` plugin registers the initial set of services immediately after it authenticates with Home Assistant.
-Afterwards, AppDaemon will register services whenever Home Assistant emits ``service_registered`` events. This makes all
-of the services/actions in Home Assistant available to AppDaemon apps. Users can still register their own services from
-apps using the ``register_service`` method.
+Some services require a complex set of data, which can require some tinkering to format correctly. There are a few
+techniques that are useful for determining how that data should be formatted, starting with looking at the log text.
+Unless suppressed, AppDaemon will log warnings for any failed service calls. These warnings will have whatever message
+Home Assistant returned with the error, which is often helpful.
+
+Beyond that, it's possible to inspect the services more closely by using the
+:py:meth:`get_service_info <appdaemon.plugins.hass.hassapi.Hass.get_service_info>` method. This returns a nested dict
+of information about the service, which comes from a call to
+`get_services <https://developers.home-assistant.io/docs/api/websocket/#fetching-service-actions>`_ that AppDaemon does
+internally. This contains a little more detail than is visible in the Home Assistant developer tools.
+
+.. code-block:: python
+  :emphasize-lines: 10
+
+    from appdaemon.plugins.hass import Hass
+
+
+    class MyApp(Hass):
+        def initialize(self):
+            service = "climate/set_temperature"
+            self.log_service_details(service)
+
+        def log_service_details(self, service: str) -> None:
+            if service_info := self.get_service_info(service):
+                self.log(f"{service}: {service_info['name']}")
+                for field, info in service_info['fields'].items():
+                    self.log(f"  {field}: {info['description']}")
+                    match info:
+                        case {'selector': {'number': {'min': min_value, 'max': max_value}}}:
+                            self.log(f"    {min_value} to {max_value}")
+                        case {'selector': {'select': {'options': options}}}:
+                            self.log(f"    {', '.join(options)}")
+                        case _:
+                            pass
+
+.. code:: text
+
+    INFO my_app: climate/set_temperature: Set target temperature
+    INFO my_app:   temperature: The temperature setpoint.
+    INFO my_app:     0 to 250
+    INFO my_app:   target_temp_high: The max temperature setpoint.
+    INFO my_app:     0 to 250
+    INFO my_app:   target_temp_low: The min temperature setpoint.
+    INFO my_app:     0 to 250
+    INFO my_app:   hvac_mode: HVAC operation mode.
+    INFO my_app:     off, auto, cool, dry, fan_only, heat_cool, heat
+
+Turning up the logging level to ``DEBUG`` to inspect the raw JSON being sent over the websocket.
 
 Error Handling
 ^^^^^^^^^^^^^^
 
-Python got a match/case structure in v3.10, which has some very convenient patterns for handling the results returned
-by service calls. For example, this service call will fail because it has ``bogus_arg=42``, which isn't allowed by the
+Python got a :py:ref:`match/case structure in v3.10 <match>`, which has some very convenient patterns for handling the
+results returned by service calls. See :py:ref:`this tutorial <tut-match>` for more information about the different ways
+to use it. For example, this service call will fail because it has ``bogus_arg=42``, which isn't allowed by the
 ``light/turn_on`` service in Home Assistant.
 
 .. code-block:: python
@@ -417,7 +471,8 @@ by service calls. For example, this service call will fail because it has ``bogu
 
     class MyApp(Hass):
         def initialize(self):
-            res = self.call_service("light/turn_on", entity_id="light.kitchen", bogus_arg=42)
+            service = "climate/set_temperature"
+            res = self.call_service(service, entity_id="climate.living_room", bogus_arg=42)
             match res:
                 case {'success': True}:
                     self.log("Service call was successful")
@@ -429,12 +484,60 @@ by service calls. For example, this service call will fail because it has ``bogu
 
 .. code:: text
 
-    WARNING HASS: Error with websocket result: invalid_format: extra keys not allowed @ data['bogus_arg']
-    INFO simple_app: Service call failed on the Home Assistant side, and took 8.583ms
+    WARNING HASS: Error with websocket result: invalid_format: must contain at least one of temperature, target_temp_high, target_temp_low.
+    INFO my_app: Service call failed on the Home Assistant side, and took 8.583ms
 
 By default, AppDaemon will log warnings for any service call that fails. If you prefer to do error checking yourself on
-a per-call basis you can use the ``suppress_log_messages`` flag in the servicer call and set it to ``True``, or you can
-suppress log messages globally by setting ``suppress_log_messages`` to true in the plugin configuration.
+a per-call basis you can set the ``suppress_log_messages`` argument to ``True`` when using
+:py:meth:`call_service <appdaemon.plugins.hass.hassapi.Hass.call_service>`, or you can suppress log messages globally by
+setting ``suppress_log_messages`` to true in the plugin configuration.
+
+.. code-block:: python
+  :emphasize-lines: 10
+
+    from appdaemon.plugins.hass import Hass
+
+
+    class MyApp(Hass):
+        def initialize(self):
+            service = "climate/set_temperature"
+            res = self.call_service(
+                service,
+                entity_id="light.kitchen",
+                bogus_arg=42,
+                suppress_log_messages=True,
+            )
+            match res:
+                case {'success': True}:
+                    self.log("Service call was successful")
+                case {'success': False, 'ad_status': 'OK', 'error': error}:
+                    self.handle_error(service, **error)
+                case _:
+                    self.log(f"Unexpected response format from service call: {res}")
+
+        def handle_error(self, service: str, code: str, message: str) -> None:
+            self.log(f"Service call failed: {message}", level="ERROR")
+            match code:
+                case "invalid_format":
+                    if service_info := self.get_service_info(service):
+                        valid_fields = service_info.get("fields", {})
+                        field_names = "\n".join(f"  - {f}" for f in valid_fields)
+                        self.log(
+                            f"The service call had an invalid format. "
+                            f"Valid fields are:\n{field_names}",
+                            level="ERROR",
+                        )
+                case _:
+                    self.log(f"Unhandled error: {code}: {message}", level="ERROR")
+
+.. code:: text
+
+    ERROR my_app: Service call failed: must contain at least one of temperature, target_temp_high, target_temp_low.
+    ERROR my_app: The service call had an invalid format. Valid fields are:
+      - temperature
+      - target_temp_high
+      - target_temp_low
+      - hvac_mode
 
 Rendering Templates
 ~~~~~~~~~~~~~~~~~~~
