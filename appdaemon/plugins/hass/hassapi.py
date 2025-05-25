@@ -1022,7 +1022,7 @@ class Hass(ADBase, ADAPI):
     ) -> None:
         """Sends a notification.
 
-        This is a convenience function for the ``notify.notify`` service. It
+        This is a convenience function for the ``notify`` service. It
         will send a notification to a named notification service. If the name is
         not specified, it will default to ``notify/notify``.
 
@@ -1036,7 +1036,7 @@ class Hass(ADBase, ADAPI):
 
         Returns:
             Result of the `notify` function if any, see `service call notes
-            <APPGUIDE.html#some-notes-on-service-calls>`__ for more details.
+            <HASS_API_REFERENCE.html#advanced-service-calls>`__ for more details.
 
         Examples:
             >>> self.notify("Switching mode to Evening")
