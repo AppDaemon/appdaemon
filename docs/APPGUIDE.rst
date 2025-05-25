@@ -31,7 +31,7 @@ by importing from the supplied ``hassapi`` module. The start of an App might loo
 
 .. code:: python
 
-    from appdaemon.plugins.hass.hassapi import Hass
+    from appdaemon.plugins.hass import Hass
 
 
     class OutsideLights(Hass):
@@ -42,7 +42,7 @@ For MQTT you would use the mqttapi module:
 
 .. code:: python
 
-    from appdaemon.plugins.mqtt.mqttapi import Mqtt
+    from appdaemon.plugins.mqtt import Mqtt
 
 
     class OutsideLights(Mqtt):
@@ -114,7 +114,7 @@ comments):
 
 .. code:: python
 
-    from appdaemon.plugins.hass.hassapi import Hass
+    from appdaemon.plugins.hass import Hass
 
 
     # Declare Class
@@ -153,17 +153,19 @@ Configuration of Apps
 ---------------------
 
 Apps are configured by specifying new sections in an app configuration
-file. These configuration files can be written in either YAML or TOML, but must be the same type as the appdaemon configuration file, and which variant is used depends on the ``--toml`` flag
-supplied to AppDaemon at startup.
+file. These configuration files can be written in either YAML or TOML, but must be the same type as the appdaemon
+configuration file, and which variant is used depends on the ``--toml`` flag supplied to AppDaemon at startup.
 
-The App configuration files exist under the apps directory and can be called anything as long as they end in ``.yaml`` or ``.toml``.
-You can have one single file for configuration of all apps, or break it down to have one configuration file per App, or anything in between.
-Coupled with the fact that you can have any number of subdirectories for apps and configuration files, this gives you the flexibility to structure your apps as you see fit.
+The App configuration files exist under the apps directory and can be called anything as long as they end in ``.yaml``
+or ``.toml``. You can have one single file for configuration of all apps, or break it down to have one configuration
+file per App, or anything in between. Coupled with the fact that you can have any number of subdirectories for apps and
+configuration files, this gives you the flexibility to structure your apps as you see fit.
 
 It should also be noted that a "dot" ``.`` is not allowed in the app name.
 
-The entry for an individual App within a configuration file is simply a dictionary entry naming the App, with subfields to supply various parameters.
-The name of the section is the name the App is referred to within the system in log files etc. and must be unique.
+The entry for an individual App within a configuration file is simply a dictionary entry naming the App, with subfields
+to supply various parameters.The name of the section is the name the App is referred to within the system in log files
+etc. and must be unique.
 
 To configure a new App you need a minimum of two directives:
 
@@ -366,7 +368,11 @@ be accessed using the attribute ``self.app_dir``.
 Secrets
 ~~~~~~~
 
-AppDaemon supports the ability to pass sensitive arguments to apps, via the use of secrets in the main or app config file. This will allow separate storage of sensitive information such as passwords. For this to work, AppDaemon expects to find a file called ``secrets.yaml`` in the configuration directory, or a named file introduced by the top level ``secrets:`` section. The file should be a simple list of all the secrets. The secrets can be referred to using a ``!secret`` tag in the ``apps.yaml`` file.
+AppDaemon supports the ability to pass sensitive arguments to apps, via the use of secrets in the main or app config
+file. This will allow separate storage of sensitive information such as passwords. For this to work, AppDaemon expects
+to find a file called ``secrets.yaml`` in the configuration directory, or a named file introduced by the top level
+``secrets:`` section. The file should be a simple list of all the secrets. The secrets can be referred to using a
+``!secret`` tag in the ``apps.yaml`` file.
 
 An example ``secrets.yaml`` might look like this:
 
@@ -569,50 +575,113 @@ By declaring the above, each time the function ``self.log()`` is used within the
 Global Module Dependencies
 --------------------------
 
-The previously described dependencies and load order have all been at the App level.
-It is however, sometimes convenient to have global modules that have no apps in them that nonetheless
-require dependency tracking. For instance, a global module might have a number of useful
-variables or functions in it. When they change, a number of apps may need to be restarted.
-as of AppDaemon 4.5 these dependencies are tracked autmatically and should just work.
-It is neccesarry to take some care about how apps are structured, especially if multiple subdirectories are used.
+.. admonition:: Deprecation warning
+  :class: warning
+
+    Global modules are deprecated and will be removed in a future release. AppDaemon now automatically tracks and
+    resolves dependencies using the :py:mod:`ast <ast>` package from the standard library.
 
 AppDir Structure
 ----------------
 
-So far, we have assumed that all apps and their configuration files are placed in a single directory. This works fine for simple setups
-but as the number of apps grows, it can be useful to organize them into subdirectories. AppDaemon will automatically search all subdirectories of the apps directory for apps and configuration files. This means that you can have a directory structure like this:
+So far, we have assumed that all apps and their configuration files are placed in a single directory. This works fine
+for simple setups but as the number of apps grows, it can be useful to organize them into subdirectories. AppDaemon will
+automatically search all subdirectories of the `apps` directory for apps and configuration files. This means that you
+can have a directory structure like this:
 
 .. code:: text
 
-    apps/
-        app1/
-            app1.py
-            app1.yaml
-        app2/
-            app2.py
-            app2.yaml
-        app3/
-            app3.py
-            app3.yaml
-        common/
-            common.py
-            common.yaml
+    conf/apps
+    ├── app1
+    │   ├── app1.py
+    │   └── app1.yaml
+    ├── app2
+    │   ├── app2.py
+    │   └── app2.yaml
+    ├── common
+    │   ├── my_globals.py
+    │   └── utils.py
+    └── some
+        └── deep
+            └── path
+                ├── app3.py
+                └── app3.yaml
 
+In this example, AppDaemon will find all the apps defined in `app1.yaml`, `app2.yaml`, and even `app3.yaml`, despite it
+being deep in a subdirectory. Each of those files would define apps using ``module: app1`` or ``module: app2`` etc. to
+refer to their respective python modules.
 
-In this example, AppDaemon will find all the apps in the app1, app2, and app3 directories, as well as the common.py and common.yaml files in the common directory.
-The apps can be configured in their respective YAML files, and they can also import functions or classes from the common module if needed, as long as some simple rules are adhered to.
-
-- If app1 wants to import a function called `common_funtion` from common.py, it can do so using the following import statement:
+Addtionally, apps in `app1.py`, `app2.py`, and `app3.py` can import things directly from `my_globals.py` and `utils.py`
+like this:
 
 .. code:: python
 
-    from common import common_function
+    # app1/app1.py
+    from appdaemon.adapi import ADAPI
 
-Note that there are no relative paths here - the AppDaemon system in combination with standard python rules will reslove this correctly,
-and importantly, will understand that app1 now relies on common.py, and any changes to common.py will result it common.py being reloaded,
-but this will also result in a reload of app1.py to pick up the changes
+    from my_globals import MY_GLOBAL_VAR
+    from utils import my_util_function
 
-- if app2 is a package in it's own right (e.g. it has an __init__.py at the top level) #### John, what happens here???
+    class MyApp(ADAPI):
+        def initialize(self):
+            ... # app code would go here
+
+.. admonition:: Note text
+  :class: note
+
+    Note that there are no relative paths here. AppDaemon handles adding all the relevant subdirectories to the import path,
+    which allows them to be directly imported, as if the files were next to each other. Furthermore, AppDaemon understands
+    that `app1.py` depends on both `my_globals.py` and `utils.py`, so if either of those files change, AppDaemon will reload
+    `app1.py` automatically.
+
+App Packages
+~~~~~~~~~~~~
+
+As app complexity increases, it's often useful to break the logic apart into multiple files, and sometimes these modules
+have the same name as modules in other directories. For example, what if an app needed its own set of utils? The module
+names can be managed by using ``__init__.py`` files.
+
+.. code:: text
+
+    conf/apps
+    ├── my_app
+    │   ├── __init__.py
+    │   ├── foo.py
+    │   ├── apps.yaml
+    │   └── utils.py
+    ├── common
+    │   ├── ... # other common modules
+    │   └── utils.py
+    ... # more apps down here
+
+In this example `foo.py` can import from both `utils.py` modules like this, which uses
+:py:ref:`package relative imports <relativeimports>` to reference the `utils.py` next to it as distinct from the one in
+the `common` directory
+
+.. code-block:: python
+  :emphasize-lines: 4,6
+
+    # my_app/foo.py
+    from appdaemon.adapi import ADAPI
+
+    from utils import global_util_function
+
+    from .utils import specific_util_function
+
+    class MyApp(ADAPI):
+        def initialize(self):
+            ... # app code would go here
+
+Using the ``__init__.py`` file indicates to Python/AppDaemon that the directory containing it is a package, and as such
+the its import name changes slightly. The `apps.yaml` file needs to be updated to reflect this.
+
+.. code-block:: yaml
+  :emphasize-lines: 3
+
+    # my_app/apps.yaml
+    my_app:
+      module: my_app.foo    # not just `foo`
+      class: MyApp
 
 
 Plugin Reloads
@@ -992,26 +1061,26 @@ Consider the following App which schedules 1000 callbacks all to run at the exac
 
 .. code:: python
 
-    import hassapi as hass
     import datetime
 
-    class Locking(hass.Hass):
+    from appdaemon.plugins.hass import Hass
 
+    class Locking(Hass):
         def initialize(self):
             self.important_var = 0
 
             now = datetime.datetime.now()
             target = now + datetime.timedelta(seconds=2)
             for i in range (1000):
-                self.run_at(self.hass_cb, target)
+                self.run_at(self.callback, target)
 
-        def hass_cb(self, **kwargs):
+        def callback(self, **kwargs):
             self.important_var += 1
             self.log(self.important_var)
 
 As it is, it will result in unexpected results because ``self.important_var`` can be manipulated by multiple threads at once - for instance, a thread could get the value, add one to it and be just about to write it when another thread jumps in with a different value, which is immediately overwritten. Indeed, when this is run, the output shows just that:
 
-.. code::
+.. code:: text
 
     2018-11-04 16:07:01.615683 INFO lock: 981
     2018-11-04 16:07:01.616150 INFO lock: 982
@@ -1036,31 +1105,31 @@ As it is, it will result in unexpected results because ``self.important_var`` ca
 
 However, if we add the decorator to the callback function like so:
 
-.. code:: python
+.. code-block:: python
+  :emphasize-lines: 15
 
-    import hassapi as hass
-    import adbase as ad
     import datetime
 
-    class Locking(hass.Hass):
+    from appdaemon import adbase as ad
+    from appdaemon.plugins.hass import Hass
 
+    class Locking(Hass):
         def initialize(self):
             self.important_var = 0
 
             now = datetime.datetime.now()
             target = now + datetime.timedelta(seconds=2)
             for i in range (1000):
-                self.run_at(self.hass_cb, target)
+                self.run_at(self.callback, target)
 
         @ad.app_lock
-        def hass_cb(self, **kwargs):
+        def callback(self, **kwargs):
             self.important_var += 1
             self.log(self.important_var)
 
+The result is what we would hope for since ``self.important_var`` is only being accessed by one thread at a time:
 
-The result is what we would hope for since self.important_var is only being accessed by one thread at a time:
-
-.. code::
+.. code:: text
 
     2018-11-04 16:08:54.545795 INFO lock: 981
     2018-11-04 16:08:54.546202 INFO lock: 982
@@ -1233,33 +1302,37 @@ A Final Thought on Threading and Pinning
 
 Although pinning and scheduling has been thoroughly tested, in current real-world applications for AppDaemon, very few of these considerations matter, since in most cases AppDaemon will be able to respond to a callback immediately, and it is unlikely that any significant scheduler queueing will occur unless there are problems with apps blocking threads. At the rate that most people are using AppDaemon, events come in a few times a second, and modern hardware can usually handle the load pretty easily. The considerations above will start to matter more when event rates become a lot faster, by at least an order of magnitude. That is now a possibility with the recent upgrade to the scheduler allowing sub-second tick times, so the ability to lock and pin apps were added in anticipation of new applications for AppDaemon that may require more robust management of apps and much higher event rates.
 
-ASYNC Apps
+Async Apps
 ----------
 
-Note: This is an advanced feature and should only be used if you understand the usage and implications of async programming
-in Python. If you do not, then the previously described threaded model of apps is much safer and easier to work with.
+.. admonition:: Almost always unnecessary
+    :class: warning
 
-AppDaemon supports the use of async libraries from within apps as well as allowing a partial or complete async programming
-model. Callback functions can be converted into coroutines by using the `async` keyword during their declaration.
-AppDaemon will automatically detect all the App's coroutines and will schedule their execution on the main async loop.
-This also works for ``initialize()`` and ``terminate()``. Apps can be a mix of `sync` and `async` callbacks as desired.
-A fully async app might look like this:
+    It's **almost never** advantageous to use async programming in AppDaemon apps. The AppDaemon thread model already
+    effectively runs every app's callback in an async way. Regular callbacks are submitted to thread workers in a
+    non-blocking way from the async loop in the main thread and then awaited. Async callbacks will be run in the main
+    thread, so you can accidentally block the entire AppDaemon process if you're not careful. Only use async programming
+    sparingly and if you know what you're doing.
 
-.. code:: python
+Despite not being recommended, AppDaemon does support the partial or complete use of async programming in apps.
+Coroutine functions (defined with ``async def``) can be used in place of regular callback functions. AppDaemon will
+create an async task that schedules it to run in the main thread whenever the callback is triggered.
 
-    from appdaemon.plugins.hass.hassapi import Hass
+Apps can be a mix of `sync` and `async` callbacks as desired. A fully async app might look like this:
+
+.. code-block:: python
+  :emphasize-lines: 8
+
+    from appdaemon.plugins.hass import Hass
 
 
     class AsyncApp(Hass):
         async def initialize(self):
-            # Runs self.hass_cb in 10 seconds
+            # Runs self.delayed_callback in 10 seconds
             # Maybe access an async library to initialize something
-            self.run_in(self.hass_cb, 10)
+            self.handle = await self.run_in(self.delayed_callback, delay=10)
 
-        async def my_function(self):
-            ... # More async stuff here
-
-        async def hass_cb(self, **kwargs):
+        async def delayed_callback(self, **kwargs):
             # do some async stuff
 
             # Sleeps are perfectly acceptable
@@ -1268,41 +1341,40 @@ A fully async app might look like this:
             # Call another coroutine
             await my_function()
 
-When writing ASYNC apps, please be aware that most of the methods available in ADAPI (generally referenced as ``self.method_name()`` in an app) are async methods. While these coroutines are automatically turned into a ``future`` for you, if you intend to use the data they return you'll need to ``await`` them.
+        async def my_function(self):
+            ... # More async stuff here
 
-This will not give the expected result:
+Async Pitfalls
+~~~~~~~~~~~~~~
 
-.. code:: PYTHON
+A major complication of using async callbacks is that because they are run in the main thread, many methods for the API
+classes return async :py:class:`Task <asyncio.Task>` objects instead of the result of the method. In the example above,
+`self.run_in` returns a :py:class:`Task <asyncio.Task>` object instead of a `str` handle like it normally would. To get
+the normal result of the method, the task needs to be `awaited`.
+
+This will not give the expected result - the handle will be a `Task` object, not a `str`:
+
+.. code:: python
 
     async def some_method(self):
-        handle = self.run_in(self.cb, 30)
+        handle = self.run_in(self.callback, delay=30)
 
-This, however, will:
+This, however, will return a `str` handle as expected:
 
-.. code:: PYTHON
+.. code:: python
 
     async def some_method(self):
-        handle = await self.run_in(self.cb, 30)
+        handle = await self.run_in(self.callback, delay=30)
 
-If you do not need to use the return result of the method, and you do not need to know that it has completed before executing the next line of your code, then you do not need to ``await`` the method.
-
-ASYNC Advantages
+Async Advantages
 ~~~~~~~~~~~~~~~~
 
-- Programming using async constructs can seem natural to advanced users who have used it before, and in some cases, can provide performance benefits depending on the exact nature of the task.
-- Some external libraries are designed to be used in an async environment, and prior to AppDaemon async support it was not possible to make use of such libraries.
+- Async programming can sometimes provide performance benefits in situations where there are many simulatneous I/O bound tasks happening at once.
+- Some external libraries are designed with an async interface, and intended to be used that way.
 - Scheduling heavily concurrent tasks is very easy using async
-- Using ``sleep()`` in async apps is not harmful to the overall performance of AppDaemon as it is in regular sync apps
+- Using :py:meth:`sleep <appdaemon.adapi.ADAPI.sleep>` in async apps is not harmful to the overall performance of AppDaemon as it is in regular sync apps
 
-ASYNC Caveats
-~~~~~~~~~~~~~
-
-The AppDaemon implementation of ASYNC apps utilizes the same loop as the AppDaemon core. This means that a badly behaved
-app will not just tie up an individual app; it can potentially tie up all other apps, and the internals of AppDaemon.
-For this reason, it is recommended that only experienced users create apps with this model.
-
-
-ASYNC Tools
+Async Tools
 ~~~~~~~~~~~
 
 AppDaemon supplies a number of helper functions to make things a little easier:
@@ -1310,29 +1382,32 @@ AppDaemon supplies a number of helper functions to make things a little easier:
 Creating Tasks
 ^^^^^^^^^^^^^^
 
-For additional multitasking, Apps are fully able to create tasks or futures, however, the app has the responsibility to
-manage them. In particular, any created tasks or futures must be completed or actively canceled when the app is terminated
-or reloaded. If this is not the case, the code will not reload correctly due to Pyhton's garbage collection strategy. To assist
-with this, AppDaemon has a ``create_task()`` call, which returns a future. Tasks created in this way can be manipulated as
-desired, however, AppDaemon keeps track of them and will automatically cancel any outstanding futures if the app terminates
-or reloads. For this reason, AppDaemon's ``create_task()`` is the recommended way of doing this.
+Although it's possible to use the :py:func:`asyncio.create_task <asyncio.create_task>` function from inside async
+callbacks, it's not recommended because if any tasks created this way are not done when the app is reloaded or
+terminated, they won't be cleaned up. This can lead to unexpected behavior, as the tasks will continue to run in the
+background and might get recreated when the app starts again. Instead, it's recommended to use a helper method called
+:py:meth:`create_task() <appdaemon.adapi.ADAPI.create_task>` method that wraps
+:py:func:`asyncio.create_task <asyncio.create_task>` with logic to clean up the task when the app is reloaded or
+terminated.
 
-Use of Executors
-^^^^^^^^^^^^^^^^
+Using the Thread Pool
+^^^^^^^^^^^^^^^^^^^^^
 
-A standard pattern for running I/O intensive tasks such as file or network access in the async programming model is to
-use executor threads for these types of activities. AppDaemon supplies the ``run_in_executor()`` function to facilitate
-this, which uses a predefined thread-pool for execution. As mentioned above, holding up the loop with any blocking activity
-is harmful not only to the app but all other apps and AppDaemon's internals, so always use an executor for any function
-that may require it.
+The `ADAPI` class provides a method called :py:meth:`run_in_executor() <appdaemon.adapi.ADAPI.run_in_executor>` that
+allows the user to run a function in the internal :py:class:`ThreadPoolExecutor <concurrent.futures.ThreadPoolExecutor>`.
+This effectively allows the user to run blocking, sync code in a separate thread as if it was async, which prevents
+blocking any of the worker threads or the main thread. Otherwise, a long-running callback would block whatever thread
+it's in, which can cause problems. A standard pattern is to use other threads for I/O bound tasks, such as file or
+network access.
 
 Sleeping
 ^^^^^^^^
 
-Sleeping in Apps is perfectly fine using the async model. For this purpose, AppDaemon provides the ``sleep()`` function.
-If this function is used in a non-async callback, it will raise an exception.
+Sleeping in Apps is perfectly fine using the async model. For this purpose, AppDaemon provides the
+:py:meth:`sleep <appdaemon.adapi.ADAPI.sleep>` method. If this function is used in a non-async callback, it will raise
+an exception.
 
-ASYNC Threading Considerations
+Async Threading Considerations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Bear in mind, that although the async programming model is single threaded, in an event-driven environment such as AppDaemon, concurrency is still possible, whereas in the pinned threading model it is eliminated. This may lead to requirements to lock data structures in async apps.
@@ -1811,26 +1886,161 @@ scheduler functions also support the randomization parameters described
 above, but they cannot be used in conjunction with the ``offset``
 parameter.
 
-Calling Services
-----------------
+Services
+--------
 
-About Services
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Services within AppDaemon are called to make something happen. For instance, instructing Home Assitant to turn a
+light on, or instructing AppDaemon itself to reload an App. They're a way for apps to interact with plugins and other
+apps without any direct coupling to either.
 
-Services within AD are used by apps to send commands, either to other apps within AD,
-or to external systems which it has been plugged using plugins. Via this services,
-apps can instruct AD to make changes to an external system's connected devices. For example
-services can be used to turn lights on and off, set thermostats and a whole number of other things.
-In some systems likes Home Assistant, it supplies a single interface to all these disparate
-services that take arbitrary parameters. AppDaemon provides the ``call_service()`` function to call
-into Home Assistant and run a service. In addition, it also provides
-convenience functions for some of the more common services making
-calling them a little easier.
+Services are pre-registered functions that can be called by using their domain and service names with
+:py:meth:`call_service <appdaemon.adapi.ADAPI.call_service>` method of one of the API classes. Any app can call any
+service with this single method, and the services can each accept and return arbitary parameters. Calling services is
+the foundation of many of the methods in the API classes.
 
-Other plugins may or may not support the notion of services. It should also be noted that in AD, services
-do not by default return results when used.
+Services each have a name and are hierarchically organized by namespace and domain, so they are uniquely identified by
+``namespace/domain/service_name``. In most cases the namespace is ``default``, so the services are referred to by just
+``domain/service_name``.
+
+Changes to Service Calls
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+As of AppDaemon v4.5.0, how services are called internally has changed. Previously services were "fire and forget". The
+service call was sent to the AppDaemon internals and control was returned immediately to the app, which meant that there
+was no way to know if the service call was actually successful or not.
+
+Now there is always some kind of result. Even if the service itself doesn't return anything, the result will still be a
+dict that has some status information from AppDaemon.
+
+Service Registration
+~~~~~~~~~~~~~~~~~~~~
+
+Services are generally registered by plugins, but user can also register custom services from apps that can then be
+called by themselves or other apps. This is useful for apps to interact with each other without any direct coupling.
+
+Registering a custom service is very simple. All that is required is a call to the
+:py:meth:`register_service <appdaemon.adapi.ADAPI.register_service>` method with a service name and a reference to the
+desired function (the callback), and it becomes immediately available for all the other apps to use.
+
+.. admonition:: Service Namespace
+  :class: note
+
+    Inter-app callbacks should be assigned to a `User Defined Namespace <APPGUIDE.html#user-defined-namespaces>`__ to
+    avoid collisions with services in other namespaces.
+
+Function Format
+^^^^^^^^^^^^^^^
+
+The function used for the service only has to have a compatible signature, and the value returned from the function will
+be returned from later calls to the :py:meth:`call_service <appdaemon.adapi.ADAPI.call_service>` method. For example:
+
+.. code-block:: python
+
+    def my_custom_service(self, namespace: str, domain: str, service: str, **kwargs: Any) -> None:
+        self.log(f"Called my custom service: {domain}/{service}")
+
+The service callbacks get called with some positional arguments as well as keyword arguments provided with the service
+call. The first 3 arguments are the `namespace`, `domain`, and `service name` of the service being called, which can be
+collected by usings ``*args`` like this:
+
+.. code-block:: python
+
+    def my_custom_service(self, *args: str, **kwargs: Any) -> None:
+        self.log(f'Called my custom service: {"/".join(args)}')
+
+Service callbacks can also accept their own keyword arguments, which can be passed to it when the service is called.
+This example expects an `int` as an additional argument called ``my_arg``:
+
+.. code-block:: python
+
+    def my_custom_service(self, *args: str, my_arg: int, **kwargs: Any) -> None:
+        self.log(f'Called my custom service: {"/".join(args)} with my_arg={my_arg}')
+
+Values can be returned from services the same way as any other Python function.
+
+.. code-block:: python
+
+    def my_custom_service(self, *args: str, **kwargs: Any) -> float:
+        self.log(f'Called my custom service: {"/".join(args)}')
+        return 42.0  # This value will be returned from the service call
+
+Full Example
+^^^^^^^^^^^^
+
+We can define the service as a custom method of ``App1``, and call it later from ``App2``. To make ensure that the apps
+get initialized in the correct order, we also specify a dependency in the ``apps.yaml`` file.
+
+.. code-block:: python
+
+    # conf/apps/my_apps.py
+    from appdaemon.adapi import ADAPI
 
 
+    class App1(ADAPI):
+        def initialize(self):
+            self.register_service("my_domain/my_exciting_service", self.my_exciting_cb)
+
+        def my_exciting_cb(self, *args: str, my_arg: int, **kwargs: Any) -> Any:
+            # this will be "default/my_domain/my_exciting_service"
+            unique_service_name = "/".join(args)
+            self.log(f"{unique_service_name} called with {kwargs}")
+
+            return 63 + my_arg
+
+
+    class App2(ADAPI):
+        def initialize(self):
+            return_value = self.call_service("my_domain/my_exciting_service", my_arg=37)
+            self.log(f"Service returned: {return_value}")
+
+
+.. code-block:: yaml
+
+    # conf/apps/apps.yaml
+    apps:
+      App1:
+        module: my_apps
+        class: App1
+      App2:
+        module: my_apps
+        class: App2
+        dependencies:
+          - App1 # Ensures App2 is initialized after App1
+
+Here, ``return_value`` in ``App2`` will be set to ``100``, the return value from the callback in ``App1``. The values
+for `domain` and `service name`, which are ``my_domain`` and ``my_exciting_service`` respectively, are arbitrary, and
+can be changed to anything.
+
+One trick is to use the name of an app if you have multiple apps using the same class. This enables you to register services distinct to each instance of the app And call
+their services separately. For instance:
+
+.. code:: python
+
+    name = self.name.replace(" ", "_").lower()
+    self.register_service(
+        f"occupancy/set_occupancy_{name}",
+        self.occupancy_service,
+        namespace="sanctuary",
+    )
+
+Returning Results
+~~~~~~~~~~~~~~~~~
+
+Values can be returned from service calls the same way as any other Python function. However, for potentially
+long-running service calls, AppDaemon also supports returning values with a callback. This is useful because it avoids
+hitting the AppDaemon ``internal_function_timeout``.
+
+Specifying a callback when calling a service will cause it to run in the background and return control to the app
+immediately. Whenever the service finishes, the callback function will be called with the result of the service call.
+
+.. code:: python
+
+    self.call_service("my_domain/my_exciting_service", callback=self.my_cool_callback)
+
+    ...
+
+    def my_cool_callback(self, result: Any) -> None:
+        self.log(f"Callback result: {result}")
 
 Getting Information in Apps and Sharing information between Apps
 ----------------------------------------------------------------
@@ -2086,7 +2296,7 @@ Here is an example of an App using the API:
 
 .. code:: python
 
-    from appdaemon.plugins.hass.hassapi import Hass
+    from appdaemon.plugins.hass import Hass
 
 
     class API(Hass):
@@ -2226,12 +2436,12 @@ want to configure.
 
 .. code:: python
 
-    import hassapi as hass
+    from appdaemon.plugins.hass import Hass
+
     import random
     import globals
 
-    class Alexa(hass.Hass):
-
+    class Alexa(Hass):
         def initialize(self):
             pass
 
@@ -2334,7 +2544,8 @@ Similarly, Dialogflow API for Google home is supported - here is the Google vers
 
 .. code:: python
 
-    import hassapi as hass
+    from appdaemon.plugins.hass import Hass
+
     import random
     import globals
 
@@ -2590,10 +2801,9 @@ As an example, this App is built using ADBase, and uses ``get_plugin_api()`` to 
 
 .. code:: python
 
-    import adbase as ad
+    from appdaemon import adbase as ad
 
     class GetAPI(ad.ADBase):
-
       def initialize(self):
 
         # Grab an object for the HASS API
@@ -2919,261 +3129,21 @@ After this step, your IDE will have access to the code for AppDaemon's APIs and 
 Import Statements
 ~~~~~~~~~~~~~~~~~
 
-With AppDameon installed, if we want to use the IDE's error checking for import statements, we need to follow a couple of simple rules to keep things working.
-In particular, rather than using AppDaemon's shortcuts for module imports we need to use their full paths. For instance:
+For your IDE to be able to link things appropriately, it needs to be pointed at the interpreter you are using, with
+AppDaemon installed in it. This is usually done by setting the interpreter in the IDE's settings, and pointing it at the
+virtual environment you are using.
+
+The AppDaemon API classes can be imported as in the below example, or any other standard way you prefer.
 
 .. code:: python
 
-    import import hassapi as hass
-
-becomes:
-
-.. code:: python
-
-    import appdaemon.plugins.hass.hassapi as hass
-
-Similarly, for the adbase, adapi and mqtt plugins we would use:
-
-.. code:: python
-
-    import appdaemon.adapi
-    import appdaemon.adbase
-    import appdaemon.plugins.mqtt.mqttapi
-
-Finally, if you are using subdirectories for your apps and perhaps importing global modules, although it is not necessary to specify the full path
-relative to the app as far as AppDaemon is concerned as it automatically adds all directories in ``appdir`` to the import path, the IDE does
-not know this, so always specify the full path to your global modules relative to ``appdir``.
-
-With these preparations in place your IDE should give you correct error reporting and completion of API functions along with type hints and help text.
-
-Some Notes on Service Calls
----------------------------
-
-Service calls within AppDaemon are used to make something happen. For instance, instructing Home Assitant to turn a light on, or instructing AppDaemon itself
-to reload an App. The Home Assistant plugin provides AppDaemon apps with a number of services that can be called, dependent upon what devices are configured,
-and what integrations have been added. While entities and state tell you what the current situation is, service calls will usually make some sort of change
-to the current situation, and the results will often be propagated back to the app via a state change callback, for instance, a light's state changing from
-``off`` to ``on``.
-
-Most service calls to date have been "fire and forget" - the service call is made and control is returned to the App immediately. This has the benefit of keeping
-things moving along which AppDaemon likes, but the downside of this is that you have to hope that the service call went through OK, and your app won't
-be given information on any errors that may have occured. Also, sometimes we may want to get specific information back from a service call, as the use
-of AppDaemon internal service calls is a powerful way of modularizing and communicating between apps.
-
-With the above in mind, service calls have recently had a few enhancements to improve this aspect of operation.
-
-Returning Results from App Provided Service Calls
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Setting your app up as a service that other apps can call is very simple. All that is required is the `Register Service <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.register_service>`__
-API call to register your service, and it then becomes visible to all of your other apps. This works very much like a subroutine call, it's just between different Apps,
-and the communication is handled by AppDaemon, not Python itself.
-
-The register service call takes a name for the service and a callback, and the callback itself is what is executed when a second app makes a service call of that name.
-All that is necessary for the callback is that it has the correct function signature. Inter-app callbacks should be assigned to a `User Defined Namespace <APPGUIDE.html#user-defined-namespaces>`__ to avoid collisions
-with services in other namespaces. The return value from the callback will be the result of the ``call_service()`` API call in the second app. For example:
-
-We define the service in App 1
-
-App 1:
-
-.. code:: python
-
-    class RegisterService(hass.Hass):
-
-        def initialize(self):
-
-            self.register_service("my_domain/my_exciting_service", self.my_exciting_cb, namespace="my_custom_namespace")
-
-        def my_exciting_cb(self, namespace, domain, service, kwargs):
-            self.log(f"Service called! {namespace=} {domain=} {service=} {kwargs=}")
-            return 999
-
-
-We can then call it from App 2. Note that we must set ``return_result`` to actually get the response or it will just be silently discarded.
-
-.. code:: python
-
-    return_value = self.call_service("my_domain/my_exciting_service", return_result=True)
-
-
-Here, ``return_value`` will be set to ``999``, the return value from the callback in App 1.
-
-``my_domain`` can be anything - you can use it to separate callbacks from different apps for instance. Also, ``my_exciting_service`` can be whatever you want it to be.
-One trick is to use the name of an app if you have multiple apps using the same class. This enables you to register services distinct to each instance of the app And call
-their services separately. For instance:
-
-.. code:: python
-
-    name = self.name.replace(" ", "_").lower()
-    self.register_service(
-            f"occupancy/set_occupancy_{name}",
-            self.occupancy_service,
-            namespace="sanctuary",
-        )
-
-Returning Results via Callbacks
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-In order to optimize thread usage in callbacks, a second option is also available for service calls that return data - that of a callback.
-With this model, the calling ap (App 2 in the example above) makes the call in a fire and forget mode, but provides a callback that will be
-called when the service call returns with data:
-
-.. code:: python
-
-        return_value = self.call_service("my_domain/my_exciting_service", callback=self.my_cool_callback)
-
-    ...
-
-    def my_cool_callback((self, **kwargs)
-        self.log(kwargs["result"])
-
-The return value of the service will be in the ``result`` entry of the kwargs dictionary.
-
-Note that you may use the ``return_result`` or the ``calback`` option in a single call, but not both.
-
-Returning Results from Home Assistant
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Home Assistant recently added the ability to return data from specific service calls. Not very many calls support this yet, but as of release 4.5 AppDaemon is now able
-to propagate return values from Home Assitant service calls to the App. As a result of this support, it is also now possible to wait for return statuses for Home Assistant
-service calls even if no return data is requested, this is beneficial as it is now possible to detect errors that were previously unreported. In addition, waiting for the
-response also allows the app and AppDaemon to identify poorly performing Home Assistant services (such as ZWave communication slowdowns) that previously would have gone unnoticed.
-
-To tell AppDaemon that you are expecting Home Assistant to return a value, set the ``return_result`` parameter to True. In addition, you should also set either the ``callback`` or ``return_result``
-flags depending on how you want to recieve the result - both methods are supported. This will force the call to be synchronous for a Home Assistant service that does not return a value, and will also
-return any results from HomeAssistant if the underlying service call supports it.
-
-Specifically for Home Assistant service calls there is also an optional ``hass_timeout`` value that specifies how long to wait for the response from Home Assistant before returning to the
-app with an error. There are a couple of other timers already in AppDaemon that are related and will give information on slow service.
-
-* The callback tracking timer will issue warnings if a callback takes longer than 10 seconds to return
-* The internal function timer will cancel any task that takes longer than 60 seconds.
-
-With the above in mind, the default timeout for the Home Assitant service call has been set to 30 seconds to fall in between these 2 values so that in most cases for a slow service call
-you will get warnings from the callback tracking, but the call will cleanly timeout before AppDaemon is forced to cancel it for it's own internal housekeeping. If you set the timeout value higher,
-the internal function timer is the upper limit (this can be changed as part of the appdamon config if required).
-
-Here are a couple of examples of getting results from HomeAssistant services:
-
-.. code:: python
-
-    ret_value = self.call_service(
-                "calendar/get_events",
-                entity_id="calendar.home",
-                start_date_time="2024-08-25 00:00:00",
-                end_date_time="2024-08-27 00:00:00",
-                return_result=True,
-                hass_timeout=10,
-            )
-
-    self.call_service(
-            "calendar/get_events",
-            entity_id="calendar.home",
-            start_date_time="2024-08-25 00:00:00",
-            end_date_time="2024-08-27 00:00:00",
-            hass_timeout=10,
-            return_result=True,
-            callback=self.calendar_cb,
-        )
-
-Here is how you would force a synchronous call, that will return error information if the call fails, or force a timeout if the call takes longer than expected:
-
-.. code:: python
-
-    self.call_service(
-               "light/turn_off",
-               entity_id="light.office_lamp",
-               return_result=True,
-           )
-
-It is also possible to force all calls to be synchronous by setting the ``return_result`` parameter in the plugin configuration.
-
-Home Assistant Return Data Format
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Return Data from internal AppDaemon service calls is arbitary and returned as is from the return statement of the called service. and can be of any time just as you would expect with a regular Python ```return`` statement.
-
-The return format from Home Assistant service calls is more complex and includes additional data as well as the requested data.
-The return data wil be a dictionary, and AppDaemon starts with the data returned directly
-from HomeAssistant and adds a couple of additional fields that can be used to check status and gather information. The AppDaemon specific fields are guaranteed to exist and are:
-
-* ``ad_status`` - the status of the call from AppDaemon's perspective. Possible values are:
-
-    * ``OK`` - everything went as planned from AppDaemon's perspective, a call was made to Home Assistant and a Response was obtained, and the response from Home Assistant is also contained within the results dictionary. This does not mean Home Assistant didn't produce an error, just that AppDaemon succesfully obtained a response from Home Assistant
-    * ``TIMEOUT`` - the call to Home Assistant did not return a value before a timeout occured (either the default 30 second timeout, or a per call timeout specified by the user)
-    * ``TERMINATING`` - the service call was terminated as AppDaemon is shutting down
-
-* ``ad_duration`` - the amount of time in seconds the round trip took from AppDaemon to Home Assistant and back, useful for timing service calls.
-
-The rest of the items in the results dictionary are as returned by Home Assistant, and are described in their `documentation <https://developers.home-assistant.io/docs/api/websocket#calling-a-service-action>`__.
-It is worth calling out a few of these specific fields as they are generally what App writers will care about:
-
-* ``success`` - set to ``True`` if the call was successful from Home Assistant's perspective. If this field is set to ``False``, Home Assistant will populate the ``error`` field
-* ``error`` - present if ``success`` is set to false. Contains 2 subfields, ``code`` and ``message`` which may provide information as to why the call failed.
-* ``result`` - present if ``success`` is set to true and if the service returns a response. Contains the response from the service, and subfield ``response`` will contain any data returned by the service but will not be present if the service does not return data.
-
-This example shows how to use the return data with full error handling:
-
-.. code:: python
-
-        result = self.call_service(
-            "calendar/get_events",
-            entity_id="calendar.home",
-            start_date_time="2024-08-25 00:00:00",
-            end_date_time="2024-08-27 00:00:00",
-            return_result=True,
-            hass_timeout=10,
-        )
-
-        if result["ad_status"] == "TIMEOUT":
-            self.log(
-                f"service call to calendar/get_events timed out, elapsed time={result['ad_duration']}"
-            )
-        elif result["ad_status"] == "TERMINATING":
-            self.log(
-                f"service call to calendar/get_events ended due to AppDaemon shutdown, elapsed time={result['ad_duration']}"
-            )
-        elif result["ad_status"] == "OK":
-            if result["success"] is True:
-                self.log(
-                    f"service call to calendar/get_events succeeded, elapsed time={result['ad_duration']}"
-                )
-                if "response" in result["result"]:
-                    self.log(f"Returned data: {result['result']['response']}")
-                else:
-                    self.log("No data was returned")
-            else:
-                self.log(
-                    f"service call to calendar/get_events succeeded with errors, elapsed time={result['ad_duration']}"
-                )
-                self.log(
-                    f"code={result['error']['code']}, message={result['error']['message']}"
-                )
-        else:
-            self.log(
-                f"service call to calendar/get_events returned unexpected status,  elapsed time={result['ad_duration']}"
-            )
-
-Sample output:
-
-.. code:: none
-
-    app1: service call to calendar/get_events succeeded, elapsed time=0.0014650821685791016
-    app1: Returned data: {'calendar.home': {'events': [{'start': '2024-08-25T18:00:00-04:00', 'end': '2024-08-25T19:00:00-04:00', 'summary': 'Test', 'description': ''}]}}
-
-.. code:: none
-
-    app1: service call to calendar/get_events timed out, elapsed time=0.0035288333892822266
-
-.. code:: none
-
-    app1: service call to calendar/get_events succeeded with errors, elapsed time=0.0038149356842041016
-    app1: code=home_assistant_error, message=Service call requested response data but did not match any entities
-
-Service Call Logging With Home Assistant
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-By default, AppDaemon will log errors when any service call to HomeAssistant either times out, or returns
-a service error. If you prefer to do error checking yourself on a per-call basis you can use the ``suppress_log_messages``
-flag in the servicer call and set it to ``True``, or you can suppress log messages globally by setting ``suppress_log_messages`` to true in the plugin configuration.
+    from appdaemon import adbase as ad      # Minimalist app base
+    from appdaemon.adapi import ADAPI       # Basic API
+    from appdaemon.plugins.hass import Hass # Home Assistant-specific API
+    from appdaemon.plugins.mqtt import Mqtt # MQTT-specific API
+
+Imports of other python modules/packages from your apps can be done in the standard python ways. See the
+`section on the app directory <#appdir-structure>`__ for more information.
+
+With these preparations in place your IDE should give you correct error reporting and completion of API functions along
+with type hints and help text.

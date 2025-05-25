@@ -4,23 +4,28 @@
 
 **Features**
 
+- Project updates
+    - Remove support for Python 3.8 and 3.9
+    - Added support for Python 3.12
+    - Update docker image to Alpine 3.21/Python 3.12
+- App Management rewrite - contributed by [John Lancaster](https://github.com/jsl12)
+    - AppDaemon automatically detects dependencies between app files by parsing them with the ``ast`` module.
+    - Makes all the global module stuff obsolete.
+- HASS Plugin rewrite - contributed by [John Lancaster](https://github.com/jsl12)
+    - Upgraded HASS plugin to use the aiohttp websocket client
+    - Upgraded HASS plugin to use the Websocket API where possible
+    - Implemented value return for HASS Service Calls
+    - Added additional functions based on rendering templates for Areas, Devices, and Labels
+- Configuration validation - Added pydantic validation to most user input
 - Added Pirateweather widget - contributed by [Dave Dixon](https://github.com/DaveDixon)
 - Added ability to know the topic associated with an MQTT message decode error
 - Added `import_path` directive to enable python imports from arbitary paths
 - Added access to the request object for both async and non-async http callbacks - contributed by [Eric Severance](https://github.com/esev)
 - Added option for N deg rising|setting to Scheduler._parse_time
 - Added `silent` parameter to `cancel_listen_state()` - contributed by [Daniel Rocha](https://github.com/danroc)
-- Remove support for python 3.8 and 3.9
-- Added support for python 3.12
-- Update docker image to Alpine 3.21/Python 3.12
-- Upgraded HASS plugin to use the aiohttp websocket client
-- Upgraded HASS plugin to use the Websocket API where possible
-- Implemented value return for HASS Service Calls
 - added the ``--write_toml`` as an AppDaemon startup parameter to force AD to use the ``TOML`` format when creating new apps using the
 - Upgraded Material Design icons to 7.4.47 - - contributed by [Daniel Rocha](https://github.com/danroc)
 - Rewrote app dependency tracking and added automatic tracking of global modules, deprecated associated global directoves in apps.yaml
-- Added pydantic validation to most user input
-- Added additionsl support for template fiunctions - Areas, Devices, Labels
 
 **Fixes**
 
@@ -40,8 +45,6 @@
 - The timer for internal function timeouts has been increased from 10 seconds to 60 to allow for the fact that service calls to hass can now be synchronous and may take longer
 - AppDaemon will now discard any events that it attempts to process for an App that is initializing. This is intended to prevent race conditions during App Initialization
 - The ``--toml`` flag has been deprecated. AppDaemon will now work transparently with either yaml or toml files, allowing the user to mix and match and convert from one format to another over time. In the event of a conflict, the yaml file will take precedence.
-
-
 
 ## 4.4.2 (2023-04-16)
 

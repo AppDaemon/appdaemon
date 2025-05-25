@@ -1053,19 +1053,6 @@ class Hass(ADBase, ADAPI):
 
     @utils.sync_decorator
     async def persistent_notification(self, message: str, title=None, id=None) -> None:
-        """
-
-        Args:
-            message:
-            title:
-            id:
-
-        Returns:
-
-        Todo:
-            * Finish
-
-        """
         kwargs = {"message": message}
         if title is not None:
             kwargs["title"] = title
@@ -1370,13 +1357,13 @@ class Hass(ADBase, ADAPI):
 
         Examples:
             >>> self.render_template("{{ states('sun.sun') }}")
-            Returns (str) above_horizon
+            above_horizon
 
             >>> self.render_template("{{ is_state('sun.sun', 'above_horizon') }}")
-            Returns (bool) True
+            True
 
             >>> self.render_template("{{ states('sensor.outside_temp') }}")
-            Returns (float) 97.2
+            97.2
 
         """
         plugin: "HassPlugin" = self.AD.plugins.get_plugin_object(
