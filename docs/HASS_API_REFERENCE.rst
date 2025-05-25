@@ -432,10 +432,16 @@ by service calls. For example, this service call will fail because it has ``bogu
     WARNING HASS: Error with websocket result: invalid_format: extra keys not allowed @ data['bogus_arg']
     INFO simple_app: Service call failed on the Home Assistant side, and took 8.583ms
 
+By default, AppDaemon will log warnings for any service call that fails. If you prefer to do error checking yourself on
+a per-call basis you can use the ``suppress_log_messages`` flag in the servicer call and set it to ``True``, or you can
+suppress log messages globally by setting ``suppress_log_messages`` to true in the plugin configuration.
+
 Rendering Templates
 ~~~~~~~~~~~~~~~~~~~
 
-Home Assistant has a powerful templating engine that can be used to render templates in your apps.
+Home Assistant has a powerful `templating <https://www.home-assistant.io/docs/configuration/templating/>`_ engine that
+can be used to render templates in your apps. The `Hass` API provides access to this with the
+:py:meth:`render_template <appdaemon.plugins.hass.hassapi.Hass.render_template>` method.
 
 API Reference
 -------------
