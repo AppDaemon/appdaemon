@@ -4,7 +4,7 @@
 
 **Features**
 
-None
+- Added support for codespell for doc spelling - contributed by [Dr.Yarik](https://github.com/yarikoptic)
 
 **Fixes**
 

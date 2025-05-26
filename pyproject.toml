@@ -170,3 +170,10 @@ dev-dependencies = [
     "rich>=13.8.0",
     "notebook>=7.3.2",
 ]
+
+[tool.codespell]
+# Ref: https://github.com/codespell-project/codespell#using-a-config-file
+skip = '.git*,*.svg,*.css,*.min.*,*.map,assets'
+check-hidden = true
+# ignore-regex = ''
+ignore-words-list = 'hass,noone,dependee,dependees,whet'
