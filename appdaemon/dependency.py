@@ -90,8 +90,10 @@ def get_file_deps(file_path: str | Path) -> set[str]:
     def gen_modules() -> Generator[str, None, None]:
         try:
             mod: ast.Module = ast.parse(file_content, filename=file_path)
-        except Exception as e:
-            logger.warning(f"Error parsing python module with AST: {e}")
+        except Exception:
+            # logger.warning(f"Error parsing python module with AST: {e}")
+            # It's not really necessary to log anything here, as the file will get marked as bad later
+            return
         else:
             for node in get_imports(mod):
                 match node:
