@@ -384,7 +384,7 @@ class Hass(ADBase, ADAPI):
             case Iterable():
                 constraints = value if isinstance(value, list) else list(value)
 
-        assert isinstance(value, list) and all(isinstance(v, str) for v in value)
+        assert isinstance(constraints, list) and all(isinstance(v, str) for v in constraints)
 
         for constraint in constraints:
             parts = re.split(r',\s*', constraint)
