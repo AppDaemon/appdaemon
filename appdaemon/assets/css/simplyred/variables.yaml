@@ -22,7 +22,7 @@
 # gray and getting progressively darker towards night.  Be aware that if you remove
 # it, you will end up with a white background so plan accordingly if this is a problem.
 #
-# The meta tag jsut above this refreshes your dash once an hour so you can see the
+# The meta tag just above this refreshes your dash once an hour so you can see the
 # effect of the script without manually reloading the dashboard.  The content value
 # is in seconds so if you want it shorter or longer you can adjust that value
 #
