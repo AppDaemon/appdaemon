@@ -4,7 +4,7 @@
 
 **Features**
 
-- Added support for codespell for doc spell checkin - contributed by [Dr.Yarik](https://github.com/yarikoptic)
+- Added support for codespell for doc spell checking - contributed by [Dr.Yarik](https://github.com/yarikoptic)
 
 **Fixes**
 
