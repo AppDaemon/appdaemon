@@ -8,7 +8,7 @@ None
 
 **Fixes**
 
-None
+- Revert unintentional sync vs async changes
 
 **Breaking Changes**
 
