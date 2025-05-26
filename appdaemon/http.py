@@ -117,13 +117,14 @@ class HTTP:
     AD: "AppDaemon"
     """Reference to the AppDaemon container object
     """
+    name: str = "_http"
 
     stopping: bool
     executor: concurrent.futures.ThreadPoolExecutor
 
     def __init__(self, ad: "AppDaemon", dashboard, old_admin, admin, api, http):
         self.AD = ad
-        self.logger = self.logging.get_child("_http")
+        self.logger = self.logging.get_child(self.name)
         self.access = self.logging.get_access()
 
         self.dashboard = dashboard
