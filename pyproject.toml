@@ -174,7 +174,7 @@ dev-dependencies = [
 
 [tool.codespell]
 # Ref: https://github.com/codespell-project/codespell#using-a-config-file
-skip = '.git*,*.svg,*.css,*.min.*,*.map,assets,.venv*,.docs_build,./appdaemon/assets/javascript,./appdaemon/assets/aui'
+skip = '.git*,*.svg,*.css,*.min.*,*.map,assets,.venv*,.docs_build,*.js'
 check-hidden = true
 # ignore-regex = ''
 ignore-words-list = 'hass,noone,dependee,dependees,whet,controle'
