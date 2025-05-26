@@ -4,7 +4,7 @@
 
 **Features**
 
-- Added support for codespell for doc spelling - contributed by [Dr.Yarik](https://github.com/yarikoptic)
+- Added support for codespell for doc spell checkin - contributed by [Dr.Yarik](https://github.com/yarikoptic)
 
 **Fixes**
 
@@ -13,6 +13,7 @@
 - Fixed an issue with log()'s ascii_encode not being honored
 - Fixed an issue with assertions when checking input_boolean constraints
 - sadasdasd
+
 **Breaking Changes**
 
 None
