@@ -255,8 +255,11 @@ class ADAPI:
         # Its a user defined log
         logger = self.logger if log is None else self.get_user_log(log)
 
+        if ascii_encode is None:
+            ascii_encode = self.AD.config.ascii_encode
+        
         kwargs = dict(
-            ascii_encode=ascii_encode or self.AD.config.ascii_encode,
+            ascii_encode=ascii_encode,
             stack_info=stack_info,
             stacklevel=stacklevel,
             extra=extra,
