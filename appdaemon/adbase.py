@@ -5,8 +5,9 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from appdaemon import adapi
+from appdaemon import utils
 from appdaemon.models.config.app import AppConfig
-from appdaemon.utils import StateAttrs
+
 
 # Check if the module is being imported using the legacy method
 if __name__ == Path(__file__).name:
@@ -31,7 +32,7 @@ class Entities:  # @todo
         pass
 
     def __get__(self, instance, owner):
-        stateattrs = StateAttrs(instance.get_state())
+        stateattrs = utils.StateAttrs(instance.get_state())
         return stateattrs
 
 
@@ -165,7 +166,8 @@ class ADBase:
     def get_ad_api(self) -> adapi.ADAPI:
         return adapi.ADAPI(self.AD, self.config_model)
 
-    def get_plugin_api(self, plugin_name: str):
+    @utils.sync_decorator
+    async def get_plugin_api(self, plugin_name: str):
         """Get the plugin API for a specific plugin."""
         if isinstance(cfg := self.app_config.root.get(self.name), AppConfig):
             return self.AD.plugins.get_plugin_api(plugin_name, cfg)
