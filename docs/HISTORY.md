@@ -9,6 +9,8 @@ None
 **Fixes**
 
 - Fixed an issue with dashboards not loading
+- Fixed an issue with entity get_state()
+- Fixed an issue with log()'s ascii_encode not being honored
 
 **Breaking Changes**
 
