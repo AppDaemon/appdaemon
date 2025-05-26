@@ -229,23 +229,17 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
         result = self.call_service(service, **kwargs)
         return result
 
-    def _run_service_call(self, task: str, topic: Union[str, list], **kwargs: Optional[Any]) -> None:
+    def _run_service_call(self, task: str, topic: str | list[str], **kwargs: Optional[Any]) -> None:
         """Used to process the subscribe/unsubscribe service calls"""
 
         # first we validate the topic
         if not isinstance(topic, (str, list)):
             raise ValueError(f"The given topic {topic} is not supported. Please only strs and lists are supported")
 
-        if isinstance(topic, str):
-            kwargs["topic"] = topic
-            service = f"mqtt/{task}"
-            self.call_service(service, **kwargs)
+        kwargs["topic"] = topic
+        service = f"mqtt/{task}"
+        return self.call_service(service, **kwargs)
 
-        else:  # its a list
-            for t in topic:
-                kwargs["topic"] = t
-                service = f"mqtt/{task}"
-                self.call_service(service, **kwargs)
 
     def mqtt_subscribe(self, topic: Union[str, list], **kwargs: Optional[Any]) -> None:
         """Subscribes to a MQTT topic.
@@ -284,7 +278,7 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
 
         """
 
-        self._run_service_call("subscribe", topic, **kwargs)
+        return self._run_service_call("subscribe", topic, **kwargs)
 
     def mqtt_unsubscribe(self, topic: Union[str, list], **kwargs: Optional[Any]) -> None:
         """Unsubscribes from a MQTT topic.
@@ -323,7 +317,7 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
 
         """
 
-        self._run_service_call("unsubscribe", topic, **kwargs)
+        return self._run_service_call("unsubscribe", topic, **kwargs)
 
     @utils.sync_decorator
     async def is_client_connected(self, **kwargs: Optional[Any]) -> bool:
