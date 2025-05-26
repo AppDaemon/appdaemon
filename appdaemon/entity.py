@@ -550,7 +550,6 @@ class Entity:
 
     @property
     def _simple_state(self) -> dict[str, Any]:
-        return self.adapi.get_state()
         return self.AD.state.get_state_simple(self.namespace, self.entity_id)
 
     @property
