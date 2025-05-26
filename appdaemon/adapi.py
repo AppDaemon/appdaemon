@@ -3642,7 +3642,8 @@ class ADAPI:
         self.AD.futures.add_future(self.name, future)
         return future
 
-    def create_task(
+    @utils.sync_decorator
+    async def create_task(
         self,
         coro: Coroutine[Any, Any, T],
         callback: Callable | None = None,
