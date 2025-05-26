@@ -257,7 +257,7 @@ class ADAPI:
 
         if ascii_encode is None:
             ascii_encode = self.AD.config.ascii_encode
-        
+
         kwargs = dict(
             ascii_encode=ascii_encode,
             stack_info=stack_info,
