@@ -550,7 +550,6 @@ class Entity:
 
     @property
     def _simple_state(self) -> dict[str, Any]:
-        return self.adapi.get_state()
         return self.AD.state.get_state_simple(self.namespace, self.entity_id)
 
     @property
@@ -603,7 +602,7 @@ class Entity:
     def last_changed_delta(self) -> timedelta | None:
         """A timedelta object representing the time since the entity was last changed"""
         if time_str := self.last_changed:
-            compare = self.adapi.parse_time(time_str, aware=True)
+            compare = self.adapi.parse_datetime(time_str, aware=True)
             now = self.AD.sched.get_now_sync()
             return (now - compare)
 
