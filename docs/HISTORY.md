@@ -8,7 +8,7 @@ None
 
 **Fixes**
 
-None
+- Fixed an issue with dashboards not loading
 
 **Breaking Changes**
 
