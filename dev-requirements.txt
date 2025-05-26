@@ -39,6 +39,8 @@ click==8.2.1
     # via
     #   black
     #   pip-tools
+codespell==2.4.1
+    # via appdaemon (pyproject.toml)
 deepdiff==8.2.0
     # via appdaemon (pyproject.toml)
 distlib==0.3.9

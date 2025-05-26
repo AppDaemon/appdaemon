@@ -12,8 +12,7 @@
 - Fixed an issue with entity get_state()
 - Fixed an issue with log()'s ascii_encode not being honored
 - Fixed an issue with assertions when checking input_boolean constraints
-
-
+- deliberate typeeekjhsdkfjh
 **Breaking Changes**
 
 None

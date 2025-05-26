@@ -58,7 +58,8 @@ dev = [
     "black >= 23.1,< 25.2",
     'pre-commit >= 3.1.1,< 3.9.0; python_version>"3.7"',  # pre-commit does not support Python < 3.8
     "pytest >= 7.2.1,< 8.4.0",
-    "ruff>= 0.0.261,< 0.7.0"
+    "ruff >= 0.0.261,< 0.7.0",
+    "codespell >= 2.4.1"
 ]
 
 # Dependencies required to build the documentation using sphinx
@@ -173,7 +174,7 @@ dev-dependencies = [
 
 [tool.codespell]
 # Ref: https://github.com/codespell-project/codespell#using-a-config-file
-skip = '.git*,*.svg,*.css,*.min.*,*.map,assets'
+skip = '.git*,*.svg,*.css,*.min.*,*.map,assets,.venv*'
 check-hidden = true
 # ignore-regex = ''
 ignore-words-list = 'hass,noone,dependee,dependees,whet'
