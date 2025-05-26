@@ -475,7 +475,7 @@ class Hass(ADBase, ADAPI):
                 ``timeout``. If ``timeout`` is shorter than this one, it will trigger before this one does.
             suppress_log_messages (bool, optional): Only applicable to the Hass plugin. If this is set to ``True``,
                 Appdaemon will suppress logging of warnings for service calls to Home Assistant, specifically timeouts
-                and non OK statuses. Use this flag and set it to ``True`` to supress these log messages if you are
+                and non OK statuses. Use this flag and set it to ``True`` to suppress these log messages if you are
                 performing your own error checking as described `here <APPGUIDE.html#some-notes-on-service-calls>`__
             service_data (dict, optional): Used as an additional dictionary to pass arguments into the ``service_data``
                 field of the JSON that goes to Home Assistant. This is useful if you have a dictionary that you want to

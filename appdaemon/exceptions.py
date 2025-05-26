@@ -318,7 +318,7 @@ class HTTPHostError(AppDaemonException):
 
     def __str__(self):
         res = "Invalid host specified in URL for HTTP component\n"
-        res += "As of AppDaemon 4.5 the host name specificed in the URL must resolve to a known host\n"
+        res += "As of AppDaemon 4.5 the host name specified in the URL must resolve to a known host\n"
         res += "You can restore previous behavior by using `0.0.0.0` as the host portion of the URL\n"
         res += f"For instance: `http://0.0.0.0:{self.port}`\n"
         return res

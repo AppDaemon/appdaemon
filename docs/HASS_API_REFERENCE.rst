@@ -279,7 +279,7 @@ services can do many other things as well.
 .. admonition:: Service Name Delimiter
   :class: note
 
-    AppDaemon uses the ``/`` delimter to separate the domain and service name, instead of the ``.`` used by Home
+    AppDaemon uses the ``/`` delimiter to separate the domain and service name, instead of the ``.`` used by Home
     Assistant, so ``light.turn_on`` in Home Assistant becomes ``light/turn_on`` in AppDaemon.
 
 Returning values
@@ -323,7 +323,7 @@ insert ``"return_response": true`` into the message it sends to Home Assistant i
    * - **Status**
      - **Value**
    * - ``OK``
-     - Inidcates that the process of calling the service didn't fail on the AppDaemon side. It could still have failed
+     - Indicates that the process of calling the service didn't fail on the AppDaemon side. It could still have failed
        on the Home Assistant side.
    * - ``TIMEOUT``
      - The service call timed out while waiting for a response from Home Assistant. This can happen if the

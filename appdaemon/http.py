@@ -894,7 +894,7 @@ class HTTP:
             return self.get_response(request, code, "App Not Found")
 
         elif code == 500:
-            return self.get_response(request, code, "An Error occured while processing request")
+            return self.get_response(request, code, "An Error occurred while processing request")
 
         response = "OK"
         self.access.info("API Call to %s: status: %s %s", endpoint, code, response)

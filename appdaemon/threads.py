@@ -108,10 +108,7 @@ class Threading:
         - ``sensor.callbacks_average_executed``
         """
         now = datetime.datetime.now()
-        self.callback_list.append(
-            {"fired": self.current_callbacks_fired,
-                "executed": self.current_callbacks_executed, "ts": now}
-        )
+        self.callback_list.append({"fired": self.current_callbacks_fired, "executed": self.current_callbacks_executed, "ts": now})
 
         if len(self.callback_list) > 10:
             self.callback_list.pop(0)
@@ -122,10 +119,7 @@ class Threading:
             fired_sum += item["fired"]
             executed_sum += item["executed"]
 
-        total_duration = (
-            self.callback_list[len(self.callback_list) -
-                               1]["ts"] - self.callback_list[0]["ts"]
-        ).total_seconds()
+        total_duration = (self.callback_list[len(self.callback_list) - 1]["ts"] - self.callback_list[0]["ts"]).total_seconds()
 
         if total_duration == 0:
             fired_avg = 0
@@ -174,7 +168,7 @@ class Threading:
             self.AD.app_management.logger.debug("Reading app config files to determine how many threads to make")
             cfg_paths = await self.AD.app_management.get_app_config_files()
             if not cfg_paths:
-                self.logger.warning(f'No apps found in {self.AD.app_dir}. This is probably a mistake')
+                self.logger.warning(f"No apps found in {self.AD.app_dir}. This is probably a mistake")
                 self.total_threads = 10
             else:
                 full_cfg: "AllAppConfig" = await self.AD.app_management.read_all(cfg_paths)
@@ -352,10 +346,7 @@ class Threading:
                         )
                     )
                     dur = (await self.AD.sched.get_now() - start).total_seconds()
-                    if (
-                        dur >= self.AD.thread_duration_warning_threshold
-                        and dur % self.AD.thread_duration_warning_threshold == 0
-                    ):
+                    if dur >= self.AD.thread_duration_warning_threshold and dur % self.AD.thread_duration_warning_threshold == 0:
                         self.logger.warning(
                             "Excessive time spent in callback: %s - %s",
                             await self.get_state(
@@ -373,9 +364,7 @@ class Threading:
             totalqsize += self.threads[thread]["queue"].qsize()
 
         if totalqsize > self.AD.qsize_warning_threshold:
-            if (
-                warning_step == 0 and warning_iterations >= self.AD.qsize_warning_iterations
-            ) or warning_iterations == self.AD.qsize_warning_iterations:
+            if (warning_step == 0 and warning_iterations >= self.AD.qsize_warning_iterations) or warning_iterations == self.AD.qsize_warning_iterations:
                 for thread in self.threads:
                     qsize = self.threads[thread]["queue"].qsize()
                     if qsize > 0:
@@ -415,8 +404,7 @@ class Threading:
             if callback == "idle":
                 self.diag.info("%s done", thread_id)
             else:
-                self.diag.info("%s calling %s callback %s",
-                               thread_id, type, callback)
+                self.diag.info("%s calling %s callback %s", thread_id, type, callback)
 
         appinfo = self.AD.app_management.get_app_info(app)
 
@@ -493,8 +481,7 @@ class Threading:
                 "thread.{}".format(thread_id),
                 q=0,
                 state=callback,
-                time_called=utils.dt_to_str(
-                    now.replace(microsecond=0), self.AD.tz),
+                time_called=utils.dt_to_str(now.replace(microsecond=0), self.AD.tz),
                 is_alive=True,
                 pinned_apps=[],
             )
@@ -505,8 +492,7 @@ class Threading:
                 "thread.{}".format(thread_id),
                 q=self.threads[thread_id]["queue"].qsize(),
                 state=callback,
-                time_called=utils.dt_to_str(
-                    now.replace(microsecond=0), self.AD.tz),
+                time_called=utils.dt_to_str(now.replace(microsecond=0), self.AD.tz),
                 is_alive=self.threads[thread_id]["thread"].is_alive(),
                 pinned_apps=self.get_pinned_apps(thread_id),
             )
@@ -536,8 +522,7 @@ class Threading:
                 "admin",
                 "thread.{}".format(t.name),
                 "idle",
-                {"q": 0, "is_alive": True, "time_called": utils.dt_to_str(
-                    datetime.datetime(1970, 1, 1, 0, 0, 0, 0))},
+                {"q": 0, "is_alive": True, "time_called": utils.dt_to_str(datetime.datetime(1970, 1, 1, 0, 0, 0, 0))},
             )
             self.threads[t.name] = {}
             self.threads[t.name]["queue"] = Queue(maxsize=0)
@@ -566,9 +551,7 @@ class Threading:
             # Looking for apps that already have a thread pin value
             if obj.pin_app and (thread := obj.pin_thread) != -1:
                 if thread >= self.thread_count:
-                    raise ValueError(
-                        "Pinned thread out of range - check apps.yaml for 'pin_thread' or app code for 'set_pin_thread()'"
-                    )
+                    raise ValueError("Pinned thread out of range - check apps.yaml for 'pin_thread' or app code for 'set_pin_thread()'")
                 # Ignore anything outside the pin range as it will have been set by the user
                 if thread < self.pin_threads:
                     thread_pins[thread] += 1
@@ -615,11 +598,7 @@ class Threading:
     def get_pinned_apps(self, thread: str):
         """Gets the names of apps that are pinned to a particular thread"""
         id = int(thread.split("-")[1])
-        return [
-            app_name
-            for app_name, obj in self.AD.app_management.objects.items()
-            if obj.pin_thread == id
-        ]
+        return [app_name for app_name, obj in self.AD.app_management.objects.items() if obj.pin_thread == id]
 
     def determine_thread(self, name: str, pin: bool | None, pin_thread: int | None) -> tuple[bool, int | None]:
         """Determine whether the app should be pinned to a thread and which one.
@@ -640,7 +619,6 @@ class Threading:
 
         self.validate_pin(name, pin_thread)
         return pin, pin_thread
-
 
     #
     # Constraints
@@ -695,8 +673,7 @@ class Threading:
 
         unconstrained = True
         if "constrain_state" in args:
-            unconstrained = utils.check_state(
-                self.logger, new_state, args["constrain_state"], name)
+            unconstrained = utils.check_state(self.logger, new_state, args["constrain_state"], name)
 
         return unconstrained
 
@@ -789,10 +766,7 @@ class Threading:
                 #
                 # Check if we care about the change
                 #
-                if (cold is None or cold == old or (callable(cold) and cold(old) is True)) and (
-                    cnew is None or cnew == new or (
-                        callable(cnew) and cnew(new) is True)
-                ):
+                if (cold is None or cold == old or (callable(cold) and cold(old) is True)) and (cnew is None or cnew == new or (callable(cnew) and cnew(new) is True)):
                     #
                     # We do!
                     #
@@ -995,7 +969,7 @@ class Threading:
                     else:
                         funcref = functools.partial(funcref, *pos_args, kwargs)
 
-                callback = f'{funcref.func.__name__}() in {name}'
+                callback = f"{funcref.func.__name__}() in {name}"
                 await self.update_thread_info("async", callback, name, _type, _id, silent)
 
                 @ade.wrap_async(error_logger, self.AD.app_dir, callback)
@@ -1008,23 +982,23 @@ class Threading:
                     except Exception as exc:
                         # positional arguments common to all the AppCallbackFail exceptions
                         pos_args = (name, funcref)
-                        match args['type']:
+                        match args["type"]:
                             case "event":
                                 raise ade.EventCallbackFail(*pos_args, args["event"]) from exc
-                            case 'scheduler':
+                            case "scheduler":
                                 raise ade.SchedulerCallbackFail(*pos_args) from exc
-                            case 'state':
+                            case "state":
                                 raise ade.StateCallbackFail(*pos_args, args["entity"]) from exc
                             case _:
                                 raise ade.AppCallbackFail(*pos_args) from exc
+
                 await safe_callback()
 
             finally:
                 await self.update_thread_info("async", "idle", name, _type, _id, silent)
         else:
             if not self.AD.stopping:
-                self.logger.warning(
-                    "Found stale callback for %s - discarding", name)
+                self.logger.warning("Found stale callback for %s - discarding", name)
 
     # noinspection PyBroadException
     def worker(self):  # noqa: C901
@@ -1088,7 +1062,7 @@ class Threading:
                         else:
                             funcref = functools.partial(funcref, *pos_args, kwargs)
 
-                    callback = f'{funcref.func.__qualname__} for {name}'
+                    callback = f"{funcref.func.__qualname__} for {name}"
                     update_coro = self.update_thread_info(thread_id, callback, name, _type, _id, silent)
                     utils.run_coroutine_threadsafe(self, update_coro)
 
@@ -1102,21 +1076,22 @@ class Threading:
                         except Exception as exc:
                             # positional arguments common to all the AppCallbackFail exceptions
                             exc_args = (name, funcref)
-                            match args['type']:
+                            match args["type"]:
                                 case "event":
                                     raise ade.EventCallbackFail(*exc_args, args["event"]) from exc
-                                case 'scheduler':
+                                case "scheduler":
                                     raise ade.SchedulerCallbackFail(*exc_args) from exc
-                                case 'state':
+                                case "state":
                                     raise ade.StateCallbackFail(*exc_args, args["entity"]) from exc
                                 case _:
                                     raise ade.AppCallbackFail(*exc_args) from exc
+
                     safe_callback()
 
                 finally:
                     update_coro = self.update_thread_info(thread_id, "idle", name, _type, _id, silent)
                     utils.run_coroutine_threadsafe(self, update_coro)
-                    q.task_done() # Have this in multiple places to ensure it gets called even if an exception is raised
+                    q.task_done()  # Have this in multiple places to ensure it gets called even if an exception is raised
             else:
                 if not self.AD.stopping:
                     self.logger.warning(f"Found stale callback for {name} - discarding")
@@ -1168,27 +1143,23 @@ class Threading:
                 with self.log_lock:
                     error_logger = logging.getLogger("Error.{}".format(name))
                     error_logger.warning("-" * 60)
-                    error_logger.warning(
-                        "Unexpected error in worker for App %s:", name)
-                    error_logger.warning("Worker Ags: %s", args)
+                    error_logger.warning("Unexpected error in worker for App %s:", name)
+                    error_logger.warning("Worker Args: %s", args)
                     error_logger.warning("-" * 60)
                     error_logger.warning(traceback.format_exc())
                     error_logger.warning("-" * 60)
                 if self.AD.logging.separate_error_log() is True:
-                    self.logger.warning(
-                        "Logged an error to %s", self.AD.logging.get_filename("error_log"))
+                    self.logger.warning("Logged an error to %s", self.AD.logging.get_filename("error_log"))
 
             else:
                 self.logger.error("Unknown callback type: %s", type)
 
         except ValueError:
-            self.logger.error(
-                "Error in callback signature in %s, for App=%s", funcref, name)
+            self.logger.error("Error in callback signature in %s, for App=%s", funcref, name)
         except BaseException:
             with self.log_lock:
                 error_logger.warning("-" * 60)
-                error_logger.warning(
-                    "Unexpected error validating callback format in %s, for App=%s", funcref, name)
+                error_logger.warning("Unexpected error validating callback format in %s, for App=%s", funcref, name)
                 error_logger.warning("-" * 60)
                 error_logger.warning(traceback.format_exc())
                 error_logger.warning("-" * 60)

@@ -1681,7 +1681,7 @@ class ADAPI:
                 `namespace documentation <APPGUIDE.html#namespaces>`__ for more information.
             copy (bool, optional): Whether to return a copy of the internal data. This is ``True`` by default in order
                 to protect the user from accidentally modifying AppDaemon's internal data structures, which is dangerous
-                and can cause undefined behvaior. Only set this to ``False`` for read-only operations.
+                and can cause undefined behavior. Only set this to ``False`` for read-only operations.
 
         Returns:
             The state or attribute of the entity ID provided or a dict of that maps entity IDs to their respective
@@ -1812,7 +1812,7 @@ class ADAPI:
         accept arbitrary keyword arguments.
 
         Registering services in namespaces that already have plugins is not recommended, as it can lead to some
-        unpredictable behavior. Intead, it's recommended to use a user-defined namespace or one that is not tied to
+        unpredictable behavior. Instead, it's recommended to use a user-defined namespace or one that is not tied to
         plugin.
 
         Args:

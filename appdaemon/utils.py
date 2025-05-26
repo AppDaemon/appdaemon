@@ -53,19 +53,19 @@ class Formatter(object):
         self.htchar = "\t"
         self.lfchar = "\n"
         self.indent = 0
-        self.set_formater(object, self.__class__.format_object)
-        self.set_formater(dict, self.__class__.format_dict)
-        self.set_formater(list, self.__class__.format_list)
-        self.set_formater(tuple, self.__class__.format_tuple)
+        self.set_formatter(object, self.__class__.format_object)
+        self.set_formatter(dict, self.__class__.format_dict)
+        self.set_formatter(list, self.__class__.format_list)
+        self.set_formatter(tuple, self.__class__.format_tuple)
 
-    def set_formater(self, obj, callback):
+    def set_formatter(self, obj, callback):
         self.types[obj] = callback
 
     def __call__(self, value, **args):
         for key in args:
             setattr(self, key, args[key])
-        formater = self.types[type(value) if type(value) in self.types else object]
-        return formater(self, value, self.indent)
+        formatter = self.types[type(value) if type(value) in self.types else object]
+        return formatter(self, value, self.indent)
 
     @staticmethod
     def format_object(value, indent):
@@ -222,6 +222,7 @@ def sync_decorator(coro_func: Callable[P, Awaitable[R]]) -> Callable[P, R]:
     `scheduling from other threads <https://docs.python.org/3/library/asyncio-task.html#scheduling-from-other-threads>`__
     for more details.
     """
+
     @wraps(coro_func)
     def wrapper(self, *args, timeout: str | int | float | timedelta | None = None, **kwargs) -> R:
         ad: "AppDaemon" = self.AD
@@ -230,8 +231,8 @@ def sync_decorator(coro_func: Callable[P, Awaitable[R]]) -> Callable[P, R]:
         in_main_thread = ad.main_thread_id == threading.current_thread().ident
 
         # pass through the timeout argument if the function accepts it
-        if 'timeout' in inspect.signature(coro_func).parameters:
-            kwargs['timeout'] = timeout
+        if "timeout" in inspect.signature(coro_func).parameters:
+            kwargs["timeout"] = timeout
 
         coro = coro_func(self, *args, **kwargs)
         if in_main_thread:
@@ -368,7 +369,7 @@ def format_timedelta(td: str | int | float | timedelta | None) -> str:
     """
     match td:
         case None:
-            return 'never'
+            return "never"
         case _:
             td = parse_timedelta(td)
             seconds = td.total_seconds()
@@ -381,11 +382,11 @@ def format_timedelta(td: str | int | float | timedelta | None) -> str:
             elif seconds < 25:
                 return f"{seconds:.1f}s"
             else:
-                td = timedelta(seconds=round(seconds, 0)) # Round off the seconds for longer durations
+                td = timedelta(seconds=round(seconds, 0))  # Round off the seconds for longer durations
                 res = str(td)
                 hours = int(seconds / 3600)
-                if hours == 0: # Remove the hours portion if it's 0
-                    res = res.split(':', 1)[1]
+                if hours == 0:  # Remove the hours portion if it's 0
+                    res = res.split(":", 1)[1]
                 return res
 
 
@@ -513,6 +514,7 @@ def warning_decorator(
 
 class Subsystem(Protocol):
     """AppDaemon internal subsystem protocol."""
+
     AD: "AppDaemon"
     """Reference to the top-level AppDaemon object"""
     logger: Logger
@@ -552,11 +554,7 @@ async def run_in_executor(self: Subsystem, fn: Callable[..., R], *args, **kwargs
     return await future
 
 
-def run_coroutine_threadsafe(
-    self: "ADBase",
-    coro: Coroutine[Any, Any, R],
-    timeout: str | int | float | timedelta | None = None
-) -> R:
+def run_coroutine_threadsafe(self: "ADBase", coro: Coroutine[Any, Any, R], timeout: str | int | float | timedelta | None = None) -> R:
     """Run an instantiated coroutine (async) from sync code.
 
     This wraps the native python function ``asyncio.run_coroutine_threadsafe`` with logic to add a timeout. See
@@ -950,7 +948,7 @@ def _secret_yaml(loader, node):
 def _env_var_yaml(loader, node):
     env_var = node.value
     if env_var not in os.environ:
-        raise ValueError("{} not found in as environment varibale".format(env_var))
+        raise ValueError("{} not found in as environment variable".format(env_var))
 
     return os.environ[env_var]
 
@@ -1041,6 +1039,7 @@ def time_str(start: float, now: float | None = None) -> str:
 
 def clean_kwargs(**kwargs):
     """Converts everything to strings and removes null values"""
+
     def clean_value(val: Any) -> str:
         match val:
             case int() | float() | str():
@@ -1058,7 +1057,7 @@ def clean_kwargs(**kwargs):
         k: clean_value(v)
         for k, v in kwargs.items()
         if v is not None
-    } # fmt: skip
+    }  # fmt: skip
     return kwargs
 
 

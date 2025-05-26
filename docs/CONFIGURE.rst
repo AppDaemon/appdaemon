@@ -177,7 +177,7 @@ The following options are available under the ``appdaemon`` section:
     - No
 
   * - thread_duration_warning_threshold
-    - AppDaemon monitors the time that each tread spends in an App.
+    - AppDaemon monitors the time that each thread spends in an App.
       If a thread is taking too long to finish a callback, it may impact other apps.
       AppDaemon will log a warning if any thread is over the duration specified in seconds. The default is ``10`` seconds, setting this value to ``00`` will disable this check.
     - No
@@ -188,7 +188,7 @@ The following options are available under the ``appdaemon`` section:
     - No
 
   * - import_paths
-    - Use this directive to add additional arbitary directories to the python interpreter's search path. Directories must be fully qualified.
+    - Use this directive to add additional arbitrary directories to the python interpreter's search path. Directories must be fully qualified.
     - No
 
 
@@ -495,7 +495,7 @@ Plugins also support some optional parameters:
 
 - ``refresh_delay`` - How often the complete state of the plugin is refreshed, in seconds. Default is 600 seconds.
 - ``refresh_timeout`` - How long to wait for the state refresh before cancelling it, in seconds. Default is 30 seconds.
-- ``persist_entities`` - If `True` all entities created within the plugin's namespace will be persitent within AD. So in the event of a restart, the entities will be recreated in the same namespace
+- ``persist_entities`` - If `True` all entities created within the plugin's namespace will be persistent within AD. So in the event of a restart, the entities will be recreated in the same namespace
 
 The rest will vary depending upon which plugin type is in use.
 

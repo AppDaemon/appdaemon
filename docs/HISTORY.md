@@ -12,7 +12,6 @@
 - Fixed an issue with entity get_state()
 - Fixed an issue with log()'s ascii_encode not being honored
 - Fixed an issue with assertions when checking input_boolean constraints
-- sadasdasddf
 
 **Breaking Changes**
 
@@ -41,13 +40,13 @@ None
 - Configuration validation - Added pydantic validation to most user input
 - Added Pirateweather widget - contributed by [Dave Dixon](https://github.com/DaveDixon)
 - Added ability to know the topic associated with an MQTT message decode error
-- Added `import_path` directive to enable python imports from arbitary paths
+- Added `import_path` directive to enable python imports from arbitrary paths
 - Added access to the request object for both async and non-async http callbacks - contributed by [Eric Severance](https://github.com/esev)
 - Added option for N deg rising|setting to Scheduler._parse_time
 - Added `silent` parameter to `cancel_listen_state()` - contributed by [Daniel Rocha](https://github.com/danroc)
 - added the ``--write_toml`` as an AppDaemon startup parameter to force AD to use the ``TOML`` format when creating new apps using the
 - Upgraded Material Design icons to 7.4.47 - - contributed by [Daniel Rocha](https://github.com/danroc)
-- Rewrote app dependency tracking and added automatic tracking of global modules, deprecated associated global directoves in apps.yaml
+- Rewrote app dependency tracking and added automatic tracking of global modules, deprecated associated global directives in apps.yaml
 
 **Fixes**
 
@@ -82,7 +81,7 @@ Areas that have been affected include:
     - For a standard venv install this could be on the terminal
     - For docker, you will need to look at docker logs
     - For the HomeAssistant addon, you should check the addon logs.
-- The Home Assistant plugin has been rewritten to enable return information from HomeAssistamt service calls. This required some large changes under the hood but should be seamless. As a result of this it is  now possible to configure AppDaemon to obtain return information from all service calls whether they return data or not. Although this is not the defualt behavior, if enabled this may reveal issues with slow to complete service calls to for instance ZWave items that were not apparent before.
+- The Home Assistant plugin has been rewritten to enable return information from HomeAssistamt service calls. This required some large changes under the hood but should be seamless. As a result of this it is  now possible to configure AppDaemon to obtain return information from all service calls whether they return data or not. Although this is not the default behavior, if enabled this may reveal issues with slow to complete service calls to for instance ZWave items that were not apparent before.
 
 If you find any issues, please  log them at AppDaemon's [Github](https://github.com/AppDaemon/appdaemon/issues):
 
@@ -178,12 +177,12 @@ None
     Moreno](https://github.com/xaviml)
 - Added the ability to reset a running timer via api
 - Removed a warning from info_timer() for stale handles
-- Added the ability to supress invalid timer handle warnings in
+- Added the ability to suppress invalid timer handle warnings in
     cancel_timer()
 - All scheduler calls and helper functions now support fractional
     timestamps. including parse_time() and now_is_between()
 - sunrise(), sunset(), parse_time() and parse_datetime() now allow you
-    to select today\'s sunrise/sunset, rather than the next occuring,
+    to select today\'s sunrise/sunset, rather than the next occurring,
     and specify a number of offset days
 - now_is_between() now supports specification of a timethat can be
     used for testing rather than using the current time
@@ -204,7 +203,7 @@ None
 - Fixed issue with the inability to know which app\'s callback failed
     [constrain_state]{.title-ref} check
 - Fixed issue with AD giving messed up error messages
-- Fixed an issue with scheduler.now_is_between() where it wasn\'t
+- Fixed an issue with scheduler.now_is_between() where it wasn't
     zeroing out microseconds leading to race conditions
 - Fixed another issue with now_is_between() relating to sunrise &
     sunset periods spanning midnight
@@ -496,7 +495,7 @@ None
     example if wanting to persist entities within MQTT namespace
 - Moved the `appdaemon` reladed services to the `admin` namespace. So
     no more `appdaemon` namespace
-- Added services for creating, editting, removing, enabling, disabling
+- Added services for creating, editing, removing, enabling, disabling
     apps
 - Added ability to receive binary payload from MQTT broker
 - Added [cchardet](https://pypi.org/project/cchardet) and
@@ -528,7 +527,7 @@ None
     [event/state/log/timer]{.title-ref}, it gives no warning its invalid
 - Fixed an issue with stream api using [get_state]{.title-ref} api
     call
-- Fixed Azure packages by droping deprecated packages - contributed by
+- Fixed Azure packages by dropping deprecated packages - contributed by
     [freezeboy](https://github.com/freezeboy)
 - Prevent the ability for apps to register services in non-existent
     namespaces
@@ -611,7 +610,7 @@ None
 - If using user defined namespace, there is need to delete the present
     ones in the `namespaces` directory.
 - Due to the removal of the [appdaemon]{.title-ref} namespace, if
-    anyone was manaully making a service call using it, will need to be
+    anyone was manually making a service call using it, will need to be
     updated
 - `binary` is now a reserved keyword argument used when listening to
     MQTT events
@@ -865,7 +864,7 @@ None
 - Added callback locking decorators
 - Rearchitected the work Q to allow App pinning and avoid re-entrant
     and concurrent code if desired
-- Implemented multiple worker Ques to avoid Head of Line blocking
+- Implemented multiple worker Quest to avoid Head of Line blocking
 - API Calls to control app pinning
 - Added the `run_in_thread()` api call - with assistance from
     [Odianosen Ejale](https://github.com/Odianosen25)

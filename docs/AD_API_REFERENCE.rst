@@ -28,7 +28,7 @@ is required for all apps and is called when the app is started.
             # handle = self.run_every(...)
 
 Alternatively, the ``ADBase`` class can be used, which can provide some advantages, such as being able to access APIs
-for plugins in mulitple namespaces.
+for plugins in multiple namespaces.
 
 .. code:: python
 
@@ -92,7 +92,7 @@ Services
 --------
 
 AppDaemon provides some services from some built-in namespaces. These services can be called from any app, provided they
-use the correct namepsace. These services are listed below
+use the correct namespace. These services are listed below
 
 Note: A service call always uses the app's default namespace. See the section on
 `namespaces <APPGUIDE.html#namespaces>`__ for more information.

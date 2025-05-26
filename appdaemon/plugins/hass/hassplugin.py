@@ -1,5 +1,5 @@
 """
-Interface with Home Assistant, send and recieve evets, state etc.
+Interface with Home Assistant, send and receive evets, state etc.
 """
 
 import asyncio
@@ -661,7 +661,7 @@ class HassPlugin(PluginBase):
                 shorter than this one, it will trigger before this one does.
             suppress_log_messages (bool, optional): If this is set to ``True``, Appdaemon will suppress logging of
                 warnings for service calls to Home Assistant, specifically timeouts and non OK statuses. Use this flag
-                and set it to ``True`` to supress these log messages if you are performing your own error checking as
+                and set it to ``True`` to suppress these log messages if you are performing your own error checking as
                 described `here <APPGUIDE.html#some-notes-on-service-calls>`__
             service_data (dict, optional): Used as an additional dictionary to pass arguments into the ``service_data``
                 field of the JSON that goes to Home Assistant. This is useful if you have a dictionary that you want to

@@ -151,7 +151,7 @@ class Entity:
             default (any, optional): The value to return when the entity or the attribute doesn't exist.
             copy (bool, optional): Whether to return a copy of the internal data. This is ``True`` by default in order
                 to protect the user from accidentally modifying AppDaemon's internal data structures, which is dangerous
-                and can cause undefined behvaior. Only set this to ``False`` for read-only operations.
+                and can cause undefined behavior. Only set this to ``False`` for read-only operations.
 
         Returns:
             The entire state of the entity at that given time, if  if ``get_state()``

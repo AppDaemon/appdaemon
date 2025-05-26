@@ -5,7 +5,7 @@ readme = "README.md"
 authors = [
     {name = "Andrew I Cockburn", email = "appdaemon@acockburn.com"},
 ]
-dynamic = ["version"] # The verison is computed dynamically. See `tool.setuptools.dynamic` section below.
+dynamic = ["version"] # The version is computed dynamically. See `tool.setuptools.dynamic` section below.
 license= { file = "LICENSE.md" }
 requires-python = ">=3.10,<3.13"
 keywords=[ "appdaemon", "home", "automation" ]
@@ -174,7 +174,7 @@ dev-dependencies = [
 
 [tool.codespell]
 # Ref: https://github.com/codespell-project/codespell#using-a-config-file
-skip = '.git*,*.svg,*.css,*.min.*,*.map,assets,.venv*'
+skip = '.git*,*.svg,*.css,*.min.*,*.map,assets,.venv*,.docs_build'
 check-hidden = true
 # ignore-regex = ''
-ignore-words-list = 'hass,noone,dependee,dependees,whet'
+ignore-words-list = 'hass,noone,dependee,dependees,whet,controle'

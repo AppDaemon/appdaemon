@@ -174,7 +174,7 @@ To configure a new App you need a minimum of two directives:
 -  ``class`` - the name of the class as defined within the module for
    the App's code
 
-Although the section/App name must be unique, it is possible to re-use a
+Although the section/App name must be unique, it is possible to reuse a
 class as many times as you want, and conversely to put as many classes
 in a module as you want. A sample definition for a new App might look as
 follows in YAML:
@@ -185,7 +185,7 @@ follows in YAML:
       module: new
       class: NewApp
 
-The TOML equivqlent would look like this:
+The TOML equivalent would look like this:
 
 .. code:: toml
 
@@ -466,7 +466,7 @@ In the App, the app_users can be accessed like every other argument the App can 
 App Dependencies
 ----------------
 
-It is possible for apps to be dependant upon other apps. Some
+It is possible for apps to be dependent upon other apps. Some
 examples where this might be the case are:
 
 -  A global App that defines constants for use in other apps
@@ -611,7 +611,7 @@ In this example, AppDaemon will find all the apps defined in `app1.yaml`, `app2.
 being deep in a subdirectory. Each of those files would define apps using ``module: app1`` or ``module: app2`` etc. to
 refer to their respective python modules.
 
-Addtionally, apps in `app1.py`, `app2.py`, and `app3.py` can import things directly from `my_globals.py` and `utils.py`
+Additionally, apps in `app1.py`, `app2.py`, and `app3.py` can import things directly from `my_globals.py` and `utils.py`
 like this:
 
 .. code:: python
@@ -688,7 +688,7 @@ Plugin Reloads
 --------------
 
 When a plugin reloads e.g., due to the underlying system restarting, or a network issue,
-AppDaemon's default assumption is that all apps could potentially be dependant on that system,
+AppDaemon's default assumption is that all apps could potentially be dependent on that system,
 and it will force a restart of every App. It is possible to modify this behavior at the
 individual App level, using the ``plugin`` parameter in apps.yaml.
 Specifying a specific plugin or list of plugins will force the App to reload after the named plugin restarts.
@@ -771,7 +771,7 @@ Constraints can be applied to callbacks in various ways:
 App Level Constraints
 ^^^^^^^^^^^^^^^^^^^^^
 
-Users can define constraints at the app level in the configuration file. Theese constraints
+Users can define constraints at the app level in the configuration file. These constraints
 apply to every callback registered by that app.
 
 An App can have as many or as few constraints as are required. When more than one
@@ -900,7 +900,7 @@ The HASS plugin supplies several types of constraints:
       - ``<entity_id>, <value>``
       - Constrain based on the value of an `input boolean <https://www.home-assistant.io/integrations/input_boolean/>`__
     * - ``constrain_input_select``
-      - ``<entity_id>,<vallue>``
+      - ``<entity_id>,<value>``
       - Constrain based on the value of an `input select <https://www.home-assistant.io/integrations/input_select/>`__
     * - ``constrain_presence``
       - ``everyone``, ``anyone``, or ``noone``
@@ -1452,7 +1452,7 @@ Event Callbacks
 
 `More information <#events>`__ on events in AppDaemon.
 
-Users can regsiter event callbacks with calls to :meth:`self.listen_event(...) <appdaemon.adapi.ADAPI.listen_event>`.
+Users can register event callbacks with calls to :meth:`self.listen_event(...) <appdaemon.adapi.ADAPI.listen_event>`.
 AppDaemon will handle executing the callback when the event is fired.
 
 For example, this registers a callback for an event ``some_event``:
@@ -1728,7 +1728,7 @@ AppDaemon uses 2 separate logs - the general log and the error log. An
 App can write to either of these using the supplied
 convenience methods ``log()`` and ``error()``, which are provided as
 part of parent ``AppDaemon`` class, and the call will automatically
-pre-pend the name of the App making the call.
+prepend the name of the App making the call.
 
 The functions are based on the Python ``logging`` module and are able to pass through parameters for interpolation, and additional parameters such as ``exc_info`` just as with the usual style of invocation. Use of loggers interpolation method over the use of ``format()`` is recommended for performance reasons, as logger will only interpolate of the line is actually written whereas ``format()`` will always do the substitution.
 
@@ -1889,13 +1889,13 @@ parameter.
 Services
 --------
 
-Services within AppDaemon are called to make something happen. For instance, instructing Home Assitant to turn a
+Services within AppDaemon are called to make something happen. For instance, instructing Home Assistant to turn a
 light on, or instructing AppDaemon itself to reload an App. They're a way for apps to interact with plugins and other
 apps without any direct coupling to either.
 
 Services are pre-registered functions that can be called by using their domain and service names with
 :py:meth:`call_service <appdaemon.adapi.ADAPI.call_service>` method of one of the API classes. Any app can call any
-service with this single method, and the services can each accept and return arbitary parameters. Calling services is
+service with this single method, and the services can each accept and return arbitrary parameters. Calling services is
 the foundation of many of the methods in the API classes.
 
 Services each have a name and are hierarchically organized by namespace and domain, so they are uniquely identified by
@@ -2889,7 +2889,7 @@ You can use this with 2 separate constraints like so:
 Sequences
 ---------
 
-AppDaemon supports `sequences` as a simple way of re-using predefined steps of commands. The initial usecase for sequences
+AppDaemon supports `sequences` as a simple way of reusing predefined steps of commands. The initial usecase for sequences
 is to allow users to create scenes within AppDaemon, however they are useful for many other things. Sequences
 are fairly simple and allow the user to define 3 types of activities:
 
@@ -3009,7 +3009,7 @@ Defining a Sequence Call Namespace
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 By default, a sequence will run on entities in the current namespace, however , the namespace can be specified on a per call
-basis if required. Also it can be specifed at the top tier level, allowing for all service calls in the sequence to use the same namespace
+basis if required. Also it can be specified at the top tier level, allowing for all service calls in the sequence to use the same namespace
 
 .. code:: yaml
 
@@ -3104,7 +3104,7 @@ Keeping Your IDE Happy
 Although it is possible to develop AppDaemon apps using a straight forward text editor, most users prefer to use some flavor of IDE.
 In order to simplify App development however, AppDaemon hides some of the complexity of import paths which makes for simpler coding
 but does have the side effect of confusing modern IDEs that are much stricter with import paths, and will show errors for modules
-that don't conform to these rules, and will not unserstand enough about the import paths to supply helpful information about AppDaemon's
+that don't conform to these rules, and will not understand enough about the import paths to supply helpful information about AppDaemon's
 API. Fortunately however, with a few simple steps, the IDE can be persuaded to work as desired. In addition, AppDaemon's APIs now
 have full type hints to make use of a modern IDE a lot easier and more helpful. This capability has been tested in Microsoft's VS Code but these
 steps should apply equally to other IDEs such as PyCharm.

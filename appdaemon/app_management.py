@@ -569,7 +569,7 @@ class AppManagement:
                 yield new_cfg
 
         def update(d1: dict, d2: dict) -> dict:
-            """Internal funciton to log warnings if an app's name gets repeated."""
+            """Internal function to log warnings if an app's name gets repeated."""
             if overlap := set(k.lower() for k in d2 if k in d1):
                 # There's a special case for the sequences in order to merge them if they're defined in multiple files
                 if "sequence" in overlap:
@@ -846,7 +846,7 @@ class AppManagement:
                 for path in import_dirs:
                     self.add_to_import_path(path)
 
-                # Add any aditional import paths
+                # Add any additional import paths
                 for path in map(Path, self.AD.import_paths):
                     if not path.exists():
                         self.logger.warning(
