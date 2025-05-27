@@ -9,6 +9,13 @@ None
 **Fixes**
 
 - Revert unintentional sync vs async changes
+- Respecting the `disable` key in app configurations when
+    - processing module import order
+    - processing app start order
+- Fixed a bug where a failed app could get re-introduced to the start order only to fail again
+- Fixed a bug where changing files at exactly right time would throw an error
+- Files with syntax errors get added to `bad_files` list, even if they aren't used for apps
+- Improved error text for `ImportErrors` and `SyntaxErrors` in user apps
 
 **Breaking Changes**
 
