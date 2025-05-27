@@ -6,7 +6,7 @@ authors = [
     {name = "Andrew I Cockburn", email = "appdaemon@acockburn.com"},
 ]
 dynamic = ["version"] # The version is computed dynamically. See `tool.setuptools.dynamic` section below.
-license= { file = "LICENSE.md" }
+license-files = [ "LICENSE.md" ]
 requires-python = ">=3.10,<3.13"
 keywords=[ "appdaemon", "home", "automation" ]
 dependencies = [
@@ -35,7 +35,6 @@ dependencies = [
 classifiers= [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: Apache Software License",
     "Natural Language :: English",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
