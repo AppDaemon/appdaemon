@@ -16,6 +16,7 @@ None
 - Fixed a bug where changing files at exactly right time would throw an error
 - Files with syntax errors get added to `bad_files` list, even if they aren't used for apps
 - Improved error text for `ImportErrors` and `SyntaxErrors` in user apps
+- Add a fix to the http component to handle URLs with no port, and URLs with port 80
 
 **Breaking Changes**
 
