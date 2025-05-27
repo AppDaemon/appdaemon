@@ -66,7 +66,12 @@ class PythonDeps(Dependencies):
         if self.bad_files:
             bad_files, _ = zip(*self.bad_files)
             bad_files = set(bad_files)
-        self.dep_graph = get_dependency_graph(self.files, exclude=bad_files)
+
+        self.dep_graph, failed = get_dependency_graph(self.files, exclude=bad_files)
+
+        for file in failed:
+            self.bad_files.add((file, self.files.mtimes.get(file, 0)))
+
         self.rev_graph = reverse_graph(self.dep_graph)
 
     def modules_to_import(self) -> set[str]:

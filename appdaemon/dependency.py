@@ -90,10 +90,9 @@ def get_file_deps(file_path: str | Path) -> set[str]:
     def gen_modules() -> Generator[str, None, None]:
         try:
             mod: ast.Module = ast.parse(file_content, filename=file_path)
-        except Exception:
-            # logger.warning(f"Error parsing python module with AST: {e}")
-            # It's not really necessary to log anything here, as the file will get marked as bad later
-            return
+        except Exception as e:
+            logger.warning(f"Error parsing python module with AST: {e}")
+            raise e
         else:
             for node in get_imports(mod):
                 match node:
@@ -109,18 +108,32 @@ def get_file_deps(file_path: str | Path) -> set[str]:
     return set(gen_modules())
 
 
-def get_dependency_graph(files: Iterable[Path], exclude: set[Path] | None = None):
-    graph = {
-        get_full_module_name(f): get_file_deps(f)
-        for f in files
-        if exclude is None or f not in exclude
-    }
+def get_dependency_graph(
+    files: Iterable[Path],
+    exclude: set[Path] | None = None
+) -> tuple[dict[str, set[str]], set[Path]]:
+    """Gets the dependency graph for some Python files.
+
+    Returns:
+        A tuple containing:
+        - A dictionary where keys are module names and values are sets of module names that the key module depends on.
+        - A set of paths that failed to parse or resolve dependencies.
+    """
+    graph = {}
+    failed = set()
+    for f in files:
+        if exclude is None or f not in exclude:
+            try:
+                graph[get_full_module_name(f)] = get_file_deps(f)
+            except Exception:
+                failed.add(f)
+                continue
 
     for mod, deps in graph.items():
         if mod in deps:
             deps.remove(mod)
 
-    return graph
+    return graph, failed
 
 
 def get_all_nodes(deps: dict[str, set[str]]) -> set[str]:
