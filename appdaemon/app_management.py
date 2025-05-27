@@ -685,8 +685,14 @@ class AppManagement:
                 if not module_name.startswith("appdaemon"):
                     self.logger.debug("Importing '%s'", module_name)
                     importlib.import_module(module_name)
-        except SyntaxError as exc:
-            path = Path(exc.filename)
+        except Exception as exc:
+            match exc:
+                case SyntaxError():
+                    path = Path(exc.filename)
+                case NameError():
+                    path = Path(traceback.extract_tb(exc.__traceback__)[-1].filename)
+                case _:
+                    raise exc
             mtime = self.dependency_manager.python_deps.files.mtimes.get(path)
             self.dependency_manager.python_deps.bad_files.add((path, mtime))
             raise exc
