@@ -96,9 +96,7 @@ def route_secure(myfunc):
             return await myfunc(*args)
 
         elif "adcreds" in request.cookies:
-            match = await utils.run_in_executor(
-                self, bcrypt.checkpw, str.encode(self.password), str.encode(request.cookies["adcreds"])
-            )
+            match = await utils.run_in_executor(self, bcrypt.checkpw, str.encode(self.password), str.encode(request.cookies["adcreds"]))
             if match:
                 return await myfunc(*args)
 
@@ -176,12 +174,19 @@ class HTTP:
 
         try:
             url = urlparse(self.url)
-
             self.host = url.hostname
-            try:
+            self.scheme = url.scheme
+
+            if url.port is None:
+                match url.scheme:
+                    case "http":
+                        self.port = 80
+                    case "https":
+                        self.port = 443
+                    case _:
+                        self.port = None  # let the validation catch it
+            else:
                 self.port = url.port
-            except IndexError:
-                self.port = 80
 
             if self.host == "":
                 raise ValueError("Invalid host for 'url'")
@@ -373,9 +378,7 @@ class HTTP:
 
         self._process_arg("url", http)
         if not self.url:
-            self.logger.warning(
-                "'{arg}' is '{value}'. Please configure appdaemon.yaml".format(arg="url", value=self.url)
-            )
+            self.logger.warning("'{arg}' is '{value}'. Please configure appdaemon.yaml".format(arg="url", value=self.url))
             exit(0)
 
         self._process_arg("transport", http)

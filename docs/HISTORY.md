@@ -9,6 +9,7 @@ None
 **Fixes**
 
 - Revert unintentional sync vs async changes
+- Add a fix to the http component to handle URLs with no port, and URLs with port 80
 
 **Breaking Changes**
 
