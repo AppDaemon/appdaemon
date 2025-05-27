@@ -71,7 +71,7 @@ class LoadingActions:
         Uses a dependency graph to sort the internal ``init`` and ``reload`` sets together
         """
         items = copy(self.init_set)
-        items |= find_all_dependents(items, dm.app_deps.rev_graph)
+        items |= find_all_dependents(items, dm.app_deps.dep_graph)
         priorities = {
             app_name: dm.app_deps.app_config.root[app_name].priority
             for app_name in items
