@@ -615,7 +615,7 @@ class AppManagement:
                     self._compare_sequences(update_actions, cfg, files_to_read)
                     continue
 
-                if name in self.non_apps:
+                if name in self.non_apps or cfg.disable:
                     continue
 
                 # New config found
@@ -685,8 +685,14 @@ class AppManagement:
                 if not module_name.startswith("appdaemon"):
                     self.logger.debug("Importing '%s'", module_name)
                     importlib.import_module(module_name)
-        except SyntaxError as exc:
-            path = Path(exc.filename)
+        except Exception as exc:
+            match exc:
+                case SyntaxError():
+                    path = Path(exc.filename)
+                case NameError():
+                    path = Path(traceback.extract_tb(exc.__traceback__)[-1].filename)
+                case _:
+                    raise exc
             mtime = self.dependency_manager.python_deps.files.mtimes.get(path)
             self.dependency_manager.python_deps.bad_files.add((path, mtime))
             raise exc
@@ -989,13 +995,16 @@ class AppManagement:
             update_actions.apps.reload -= failed_to_stop
 
     async def _start_apps(self, update_actions: UpdateActions):
+        if failed := update_actions.apps.failed:
+            self.logger.warning('Failed to start apps: %s', failed)
+
         start_order = update_actions.apps.start_sort(self.dependency_manager)
         if start_order:
             self.logger.info("Starting apps: %s", update_actions.apps.init_set)
             self.logger.debug("App start order: %s", start_order)
 
             for app_name in start_order:
-                if isinstance((cfg := self.app_config.root[app_name]), AppConfig):
+                if isinstance((cfg := self.app_config.root[app_name]), AppConfig) and not cfg.disable:
                     @ade.wrap_async(self.error, self.AD.app_dir, f"'{app_name}' instantiation")
                     async def safe_create(self: "AppManagement"):
                         try:

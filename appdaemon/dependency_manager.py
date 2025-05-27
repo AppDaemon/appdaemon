@@ -1,4 +1,5 @@
 from abc import ABC
+from copy import deepcopy
 from dataclasses import InitVar, dataclass, field
 from pathlib import Path
 from typing import Iterable
@@ -16,14 +17,14 @@ class Dependencies(ABC):
     ext: str = field(init=False)  # this has to be defined by the children classes
     dep_graph: dict[str, set[str]] = field(init=False)
     rev_graph: dict[str, set[str]] = field(init=False)
-    bad_files: set[Path] = field(default_factory=set, init=False)
+    bad_files: set[tuple[Path, float]] = field(default_factory=set, init=False)
 
     def __post_init__(self):
         self.refresh_dep_graph()
 
     def update(self, new_files: Iterable[Path]):
         self.files.update(new_files)
-        for bf, mtime in self.bad_files:
+        for bf, mtime in deepcopy(self.bad_files):
             new_mtime = self.files.mtimes.get(bf)
             if new_mtime != mtime:
                 assert new_mtime > mtime, f"File {bf} was modified in the future"
@@ -65,7 +66,12 @@ class PythonDeps(Dependencies):
         if self.bad_files:
             bad_files, _ = zip(*self.bad_files)
             bad_files = set(bad_files)
-        self.dep_graph = get_dependency_graph(self.files, exclude=bad_files)
+
+        self.dep_graph, failed = get_dependency_graph(self.files, exclude=bad_files)
+
+        for file in failed:
+            self.bad_files.add((file, self.files.mtimes.get(file, 0)))
+
         self.rev_graph = reverse_graph(self.dep_graph)
 
     def modules_to_import(self) -> set[str]:

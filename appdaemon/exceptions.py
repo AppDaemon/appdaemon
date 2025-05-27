@@ -54,9 +54,10 @@ def user_exception_block(logger: Logger, exception: AppDaemonException, app_dir:
     """Function to generate a user-friendly block of text for an exception. Gets the whole chain of exception causes to decide what to do.
     """
     width = 75
+    spacing = 4
     inset = 5
     if header is not None:
-        header = f'{"=" * inset}  {header}  {"=" * (width - inset - len(header))}'
+        header = f'{"=" * inset}  {header}  {"=" * (width - spacing - inset - len(header))}'
     else:
         header = '=' * width
     logger.error(header)
@@ -86,10 +87,12 @@ def user_exception_block(logger: Logger, exception: AppDaemonException, app_dir:
                         logger.error(f'{indent}{filename} line {line} in {func_name}')
             case OSError() if str(exc).endswith('address already in use'):
                 logger.error(f'{indent}{exc.__class__.__name__}: {exc}')
-            case NameError():
+            case NameError() | ImportError():
                 logger.error(f'{indent}{exc.__class__.__name__}: {exc}')
                 if tb := traceback.extract_tb(exc.__traceback__):
                     frame = tb[-1]
+                    file = Path(frame.filename).relative_to(app_dir.parent)
+                    logger.error(f'{indent}  line {frame.lineno} in {file.name}')
                     logger.error(f'{indent}  {frame._line.rstrip()}')
                     error_len = frame.end_colno - frame.colno
                     logger.error(f'{indent}  {" " * (frame.colno - 1)}{"^" * error_len}')
@@ -112,7 +115,7 @@ def user_exception_block(logger: Logger, exception: AppDaemonException, app_dir:
                     for line in lines:
                         logger.error(f'{indent}{line}')
 
-    logger.error('=' * 75)
+    logger.error('=' * width)
 
 
 def unexpected_block(logger: Logger, exception: Exception):
