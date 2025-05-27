@@ -989,6 +989,9 @@ class AppManagement:
             update_actions.apps.reload -= failed_to_stop
 
     async def _start_apps(self, update_actions: UpdateActions):
+        if failed := update_actions.apps.failed:
+            self.logger.warning('Failed to start apps: %s', failed)
+
         start_order = update_actions.apps.start_sort(self.dependency_manager)
         if start_order:
             self.logger.info("Starting apps: %s", update_actions.apps.init_set)
