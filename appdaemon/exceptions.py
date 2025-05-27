@@ -54,9 +54,10 @@ def user_exception_block(logger: Logger, exception: AppDaemonException, app_dir:
     """Function to generate a user-friendly block of text for an exception. Gets the whole chain of exception causes to decide what to do.
     """
     width = 75
+    spacing = 4
     inset = 5
     if header is not None:
-        header = f'{"=" * inset}  {header}  {"=" * (width - inset - len(header))}'
+        header = f'{"=" * inset}  {header}  {"=" * (width - spacing - inset - len(header))}'
     else:
         header = '=' * width
     logger.error(header)
@@ -112,7 +113,7 @@ def user_exception_block(logger: Logger, exception: AppDaemonException, app_dir:
                     for line in lines:
                         logger.error(f'{indent}{line}')
 
-    logger.error('=' * 75)
+    logger.error('=' * width)
 
 
 def unexpected_block(logger: Logger, exception: Exception):
