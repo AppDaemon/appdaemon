@@ -91,6 +91,8 @@ def user_exception_block(logger: Logger, exception: AppDaemonException, app_dir:
                 logger.error(f'{indent}{exc.__class__.__name__}: {exc}')
                 if tb := traceback.extract_tb(exc.__traceback__):
                     frame = tb[-1]
+                    file = Path(frame.filename).relative_to(app_dir.parent)
+                    logger.error(f'{indent}  line {frame.lineno} in {file.name}')
                     logger.error(f'{indent}  {frame._line.rstrip()}')
                     error_len = frame.end_colno - frame.colno
                     logger.error(f'{indent}  {" " * (frame.colno - 1)}{"^" * error_len}')
