@@ -615,7 +615,7 @@ class AppManagement:
                     self._compare_sequences(update_actions, cfg, files_to_read)
                     continue
 
-                if name in self.non_apps:
+                if name in self.non_apps or cfg.disable:
                     continue
 
                 # New config found
@@ -998,7 +998,7 @@ class AppManagement:
             self.logger.debug("App start order: %s", start_order)
 
             for app_name in start_order:
-                if isinstance((cfg := self.app_config.root[app_name]), AppConfig):
+                if isinstance((cfg := self.app_config.root[app_name]), AppConfig) and not cfg.disable:
                     @ade.wrap_async(self.error, self.AD.app_dir, f"'{app_name}' instantiation")
                     async def safe_create(self: "AppManagement"):
                         try:
