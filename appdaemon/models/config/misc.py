@@ -31,7 +31,7 @@ class FilterConfig(BaseModel):
 
 
 class NamespaceConfig(BaseModel):
-    writeback: Literal["safe", "hybrid"] | None = None
+    writeback: Literal["safe", "hybrid", "performance"] | None = None
     persist: bool = Field(default=False, alias="persistent")
 
     @model_validator(mode="before")
