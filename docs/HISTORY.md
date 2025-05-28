@@ -19,6 +19,7 @@
     - `anyone_home`
     - `everyone_home`
     - `noone_home`
+- Fixed a fictitious reference to `performance` writeback mode
 
 **Breaking Changes**
 

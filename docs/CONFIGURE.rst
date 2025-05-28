@@ -329,10 +329,8 @@ The following settings provide a high level of control over AppDaemon's internal
         namespaces:
           andrew:
             # writeback is one of
-            # `safe`, `performance` or `hybrid`
+            # `safe` or `hybrid`
             writeback: safe
-          jim:
-            writeback: performance
           fred:
             writeback: hybrid
 
@@ -440,10 +438,8 @@ AppDaemon's default time format is ``%Y-%m-%d %H:%M:%S.%f%z``.
 
     namespaces:
         andrew:
-          # writeback is safe, performance or hybrid
+          # writeback is safe or hybrid
           writeback: safe
-        jim:
-          writeback: performance
         fred:
           writeback: hybrid
 

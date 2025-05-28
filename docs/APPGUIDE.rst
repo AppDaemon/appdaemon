@@ -2775,17 +2775,14 @@ They are configured in the ``appdaemon.yaml`` file as follows:
 
     namespaces:
         my_namespace:
-          # writeback is safe, performance or hybrid
+          # writeback is safe or hybrid
           writeback: safe
         my_namespace2:
-          writeback: performance
-        my_namespace3:
           writeback: hybrid
 
 Here we are defining 3 new namespaces - you can have as many as you want. Their names are ``my_namespace1``, ``my_namespace2`` and ``my_namespace3``. UDMs are written to disk so that they survive restarts, and this can be done in 3 different ways, set by the writeback parameter for each UDM. They are:
 
 - ``safe`` - the namespace is written to disk every time a change is made so will be up to date even if a crash happens. The downside is that there is a possible performance impact for systems with slower disks, or that set state on many UDMs at a time.
-- ``performance`` - the namespace is written when AD exits, meaning that all processing is in memory for the best performance. Although this style of UDM will survive a restart, data may be lost if AppDaemon or the host crashes.
 - ``hybrid`` - a compromise setting in which the namespaces are saved periodically (once each time around the utility loop, usually once every second- with this setting a maximum of 1 second of data will be lost if AppDaemon crashes.
 
 Using Multiple APIs From One App
