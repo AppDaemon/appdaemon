@@ -6,7 +6,7 @@
 
 None
 
-**Fixes**
+- Fixed a cosmetic error on admin stream disconnect
 
 None
 

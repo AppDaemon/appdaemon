@@ -1,15 +1,16 @@
-import traceback
-import bcrypt
-import uuid
-import threading
 import asyncio
+import threading
+import traceback
+import uuid
 
-from appdaemon.appdaemon import AppDaemon
+import bcrypt
+
 import appdaemon.utils as utils
-from appdaemon.stream.socketio_handler import SocketIOHandler
-from appdaemon.stream.ws_handler import WSHandler
-from appdaemon.stream.sockjs_handler import SockJSHandler
+from appdaemon.appdaemon import AppDaemon
 from appdaemon.exceptions import RequestHandlerException
+from appdaemon.stream.socketio_handler import SocketIOHandler
+from appdaemon.stream.sockjs_handler import SockJSHandler
+from appdaemon.stream.ws_handler import WSHandler
 
 
 class ADStream:
@@ -51,7 +52,7 @@ class ADStream:
         rh = RequestHandler(self.AD, self, handle, request)
         with self.handlers_lock:
             self.handlers[handle] = rh
-        await rh.stream.run()
+        return await rh.stream.run()
 
     async def on_disconnect(self, handle):
         with self.handlers_lock:
@@ -98,9 +99,7 @@ class RequestHandler:
 
         # Create a stream
         #
-        self.stream = self.adstream.stream_handler.makeStream(
-            self.AD, request, on_message=self._on_message, on_disconnect=self._on_disconnect
-        )
+        self.stream = self.adstream.stream_handler.makeStream(self.AD, request, on_message=self._on_message, on_disconnect=self._on_disconnect)
         #
 
     async def _on_message(self, data):

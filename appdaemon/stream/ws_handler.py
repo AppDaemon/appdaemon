@@ -1,9 +1,9 @@
-import traceback
+import asyncio
 import json
+import traceback
 
 import aiohttp
 from aiohttp import web
-import asyncio
 
 from appdaemon import utils as utils
 
@@ -24,7 +24,7 @@ class WSHandler:
         # We have a connection
         #
         # Add handler
-        await self.ADStream.on_connect(request)
+        return await self.ADStream.on_connect(request)
 
     def makeStream(self, ad, request, **kwargs):
         return WSStream(ad, request, **kwargs)
@@ -76,6 +76,7 @@ class WSStream:
             self.logger.debug("Closing websocket ...")
             await self.ws.close()
             self.logger.debug("Done")
+        return self.ws
 
     async def sendclient(self, data):
         try:
