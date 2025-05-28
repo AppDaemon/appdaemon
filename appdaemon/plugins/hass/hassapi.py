@@ -1378,7 +1378,7 @@ class Hass(ADBase, ADAPI):
         except (SyntaxError, ValueError):
             return result
 
-    def _template_command(self, command: str, *args: tuple[str, ...]) -> str | list[str]:
+    def _template_command(self, command: str, *args: str) -> str | list[str]:
         """Internal AppDaemon function to format calling a single template command correctly."""
         if len(args) == 0:
             return self.render_template(f'{{{{ {command}() }}}}')
@@ -1481,6 +1481,10 @@ class Hass(ADBase, ADAPI):
         <https://www.home-assistant.io/docs/configuration/templating/#entities-for-an-integration>`_ for more
         information.
         """
+        entities = self._template_command('integration_entities', integration)
+        assert isinstance(entities, list) and all(isinstance(e, str) for e in entities), \
+            'Invalid return type from integration_entities'
+        return entities
 
     # Labels
     # https://www.home-assistant.io/docs/configuration/templating/#labels
