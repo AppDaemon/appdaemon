@@ -260,7 +260,8 @@ class Hass(ADBase, ADAPI):
         """
         return self.get_state(*args, **kwargs)
 
-    def anyone_home(self, person: bool = True, namespace: str | None = None) -> bool:
+    @utils.sync_decorator
+    async def anyone_home(self, person: bool = True, namespace: str | None = None) -> bool:
         """Determines if the house/apartment is occupied.
 
         A convenience function to determine if one or more person is home. Use
@@ -285,10 +286,11 @@ class Hass(ADBase, ADAPI):
             >>>     do something
 
         """
-        details = self.get_tracker_details(person, namespace, copy=False)
+        details = await self.get_tracker_details(person, namespace, copy=False)
         return any(state['state'] == 'home' for state in details.values())
 
-    def everyone_home(self, person: bool = True, namespace: str | None = None) -> bool:
+    @utils.sync_decorator
+    async def everyone_home(self, person: bool = True, namespace: str | None = None) -> bool:
         """Determine if all family's members at home.
 
         A convenience function to determine if everyone is home. Use this in
@@ -312,10 +314,11 @@ class Hass(ADBase, ADAPI):
             >>>    do something
 
         """
-        details = self.get_tracker_details(person, namespace, copy=False)
+        details = await self.get_tracker_details(person, namespace, copy=False)
         return all(state['state'] == 'home' for state in details.values())
 
-    def noone_home(self, person: bool = True, namespace: str | None = None) -> bool:
+    @utils.sync_decorator
+    async def noone_home(self, person: bool = True, namespace: str | None = None) -> bool:
         """Determines if the house/apartment is empty.
 
         A convenience function to determine if no people are at home. Use this
@@ -340,7 +343,7 @@ class Hass(ADBase, ADAPI):
             >>>     do something
 
         """
-        return not self.anyone_home(person, namespace)
+        return not await self.anyone_home(person, namespace)
 
     #
     # Built-in constraints

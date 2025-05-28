@@ -489,7 +489,8 @@ class ADAPI:
     # Threading
     #
 
-    def set_app_pin(self, pin: bool) -> None:
+    @utils.sync_decorator
+    async def set_app_pin(self, pin: bool) -> None:
         """Sets an App to be pinned or unpinned.
 
         Args:
@@ -506,7 +507,8 @@ class ADAPI:
         """
         self.AD.app_management.set_app_pin(self.name, pin)
 
-    def get_app_pin(self) -> bool:
+    @utils.sync_decorator
+    async def get_app_pin(self) -> bool:
         """Finds out if the current App is currently pinned or not.
 
         Returns:
@@ -519,7 +521,8 @@ class ADAPI:
         """
         return self.AD.app_management.get_app_pin(self.name)
 
-    def set_pin_thread(self, thread: int) -> None:
+    @utils.sync_decorator
+    async def set_pin_thread(self, thread: int) -> None:
         """Sets the thread that the App will be pinned to.
 
         Args:
@@ -537,7 +540,8 @@ class ADAPI:
         """
         self.AD.app_management.set_pin_thread(self.name, thread)
 
-    def get_pin_thread(self) -> int:
+    @utils.sync_decorator
+    async def get_pin_thread(self) -> int:
         """Finds out which thread the App is pinned to.
 
         Returns:
@@ -590,7 +594,8 @@ class ADAPI:
         # Keeping namespace get/set functions for legacy compatibility
         return self.namespace
 
-    def namespace_exists(self, namespace: str) -> bool:
+    @utils.sync_decorator
+    async def namespace_exists(self, namespace: str) -> bool:
         """Check the existence of a namespace in AppDaemon.
 
         See the `namespace documentation <APPGUIDE.html#namespaces>`__ for more information.
@@ -668,7 +673,8 @@ class ADAPI:
 
         return await self.AD.state.remove_namespace(namespace)
 
-    def list_namespaces(self) -> list[str]:
+    @utils.sync_decorator
+    async def list_namespaces(self) -> list[str]:
         """Get a list of all the namespaces in AppDaemon.
 
         Examples:
@@ -909,7 +915,8 @@ class ADAPI:
         """
         return devices.split(",")
 
-    def get_plugin_config(self, namespace: str | None = None) -> Any:
+    @utils.sync_decorator
+    async def get_plugin_config(self, namespace: str | None = None) -> Any:
         """Gets any useful metadata that the plugin may have available.
 
         For instance, for the HASS plugin, this will return Home Assistant configuration
@@ -931,7 +938,8 @@ class ADAPI:
         namespace = namespace or self.namespace
         return self.AD.plugins.get_plugin_meta(namespace)
 
-    def friendly_name(self, entity_id: str, namespace: str | None = None) -> str:
+    @utils.sync_decorator
+    async def friendly_name(self, entity_id: str, namespace: str | None = None) -> str:
         """Gets the Friendly Name of an entity.
 
         Args:
@@ -1380,7 +1388,7 @@ class ADAPI:
     # State
     #
 
-    @overload
+    @overload # single entity
     @utils.sync_decorator
     async def listen_state(
         self,
@@ -1399,7 +1407,7 @@ class ADAPI:
         **kwargs: Any
     ) -> str: ...
 
-    @overload
+    @overload # multiple entities
     @utils.sync_decorator
     async def listen_state(
         self,

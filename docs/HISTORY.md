@@ -8,7 +8,17 @@ None
 
 **Fixes**
 
-None
+- Reverted async methods
+    - `set_app_pin`
+    - `get_app_pin`
+    - `set_pin_thread`
+    - `get_pin_thread`
+    - `get_plugin_config`
+    - `namespace_exists`
+    - `get_plugin_config`
+    - `anyone_home`
+    - `everyone_home`
+    - `noone_home`
 
 **Breaking Changes**
 
