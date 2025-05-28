@@ -1,6 +1,24 @@
 # Change Log
 
-## 4.5.3
+## 4.5.4
+
+**Features**
+
+None
+
+**Fixes**
+
+None
+
+**Breaking Changes**
+
+None
+
+**Changes in Behavior**
+
+None
+
+## 4.5.3 (2025-05-28)
 
 **Features**
 
