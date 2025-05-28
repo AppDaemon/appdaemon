@@ -4,7 +4,7 @@
 
 **Features**
 
-None
+- Filled in `integration_entities` stub
 
 **Fixes**
 
