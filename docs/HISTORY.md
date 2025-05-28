@@ -6,6 +6,7 @@
 
 - Filled in `integration_entities` stub
 
+
 **Fixes**
 
 - Reverted async methods
@@ -19,6 +20,7 @@
     - `anyone_home`
     - `everyone_home`
     - `noone_home`
+- Re-added `performance` as a writeback option
 
 **Breaking Changes**
 
