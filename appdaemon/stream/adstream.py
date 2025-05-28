@@ -330,6 +330,9 @@ class RequestHandler:
 
             service_data = data["data"]
 
+            if "__name" in service_data:
+                del service_data["__name"]
+
         return await self.AD.services.call_service(
             namespace=data["namespace"],
             domain=domain,

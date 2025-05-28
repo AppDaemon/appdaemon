@@ -6,9 +6,10 @@
 
 None
 
-- Fixed a cosmetic error on admin stream disconnect
+**Fixes**
 
-None
+- Fixed a cosmetic error on admin stream disconnect
+- Fixed spurious entry in service dictionary causing dashboard `__name`` errors
 
 **Breaking Changes**
 
