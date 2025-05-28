@@ -355,8 +355,6 @@ class Entity:
 
         Args:
             service (str): The service name, without the domain (e.g "toggle")
-            return_result(bool, option): If `return_result` is provided and set to `True` AD will attempt
-                to wait for the result, and return it after execution
             callback: The non-async callback to be executed when complete.
             **kwargs: Each service has different parameter requirements. This argument
                 allows you to specify a comma-separated list of keyword value pairs, e.g.,

@@ -100,7 +100,6 @@ class HASSConfig(PluginConfig):
         BeforeValidator(utils.parse_timedelta)
     ] = Field(default_factory=lambda: timedelta(seconds=10))
     """Default timeout for waiting for responses from the websocket connection"""
-    # return_result: bool | None = None
     suppress_log_messages: bool = False
     retry_secs: int = 5
     services_sleep_time: int = 60
