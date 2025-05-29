@@ -888,7 +888,7 @@ class HassPlugin(PluginBase):
         return result
 
     @utils.warning_decorator(error_text='Unexpected error rendering template')
-    async def render_template(self, namespace: str, template: str):
+    async def render_template(self, namespace: str, template: str, **kwargs):
         self.logger.debug(
             "render_template() namespace=%s data=%s",
             namespace,
@@ -897,4 +897,4 @@ class HassPlugin(PluginBase):
 
         # if we get a request for not our namespace something has gone very wrong
         assert namespace == self.namespace
-        return await self.http_method("post", "/api/template", template=template)
+        return await self.http_method("post", "/api/template", template=template, **kwargs)

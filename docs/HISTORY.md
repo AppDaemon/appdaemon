@@ -11,6 +11,7 @@ None
 - Fixed a cosmetic error on admin stream disconnect
 - Fixed spurious entry in service dictionary causing dashboard `__name`` errors
 - Added setter for setter for `pin_apps`
+- Passing through keyword arguments to `render_template`
 
 **Breaking Changes**
 
