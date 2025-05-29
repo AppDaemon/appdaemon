@@ -411,7 +411,7 @@ class Hass(ADBase, ADAPI):
             case str():
                 constraints = [value]
 
-        assert isinstance(value, list) and all(isinstance(v, str) for v in value)
+        assert isinstance(constraints, list) and all(isinstance(v, str) for v in constraints)
 
         for constraint in constraints:
             # using re.split allows for an arbitrary amount of whitespace after the comma
