@@ -12,6 +12,7 @@ None
 - Fixed spurious entry in service dictionary causing dashboard `__name`` errors
 - Added setter for setter for `pin_apps`
 - Passing through keyword arguments to `render_template`
+- Fixed a bug in the error text for apps in a custom app_dir
 
 **Breaking Changes**
 
