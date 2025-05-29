@@ -126,8 +126,14 @@ class PluginBase(abc.ABC):
         pass
 
     # @abc.abstractmethod
-    async def set_plugin_state(self):
-        raise NotImplementedError
+    # async def set_plugin_state(
+    #     self,
+    #     namespace: str,
+    #     entity_id: str,
+    #     state: Any | None = None,
+    #     attributes: Any | None = None,
+    # ) -> dict[str, Any] | None:
+    #     pass
 
     # @abc.abstractmethod
     async def fire_plugin_event(self):
