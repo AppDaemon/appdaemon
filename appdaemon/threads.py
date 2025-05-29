@@ -78,9 +78,14 @@ class Threading:
         self.callback_list = []
 
     @property
-    def pin_apps(self):
+    def pin_apps(self) -> bool:
         "Whether each app should be pinned to a thread"
         return self.AD.config.pin_apps
+
+    @pin_apps.setter
+    def pin_apps(self, new: bool) -> None:
+        """Set whether each app should be pinned to a thread"""
+        self.AD.config.pin_apps = new
 
     @property
     def total_threads(self) -> int:
