@@ -134,6 +134,7 @@ None
 **Breaking Changes**
 
 - AppDaemon no longer supports versions of Python prior to 3.10. This is in line with other packages, and allows us to keep the code base up to date and current with the latest developments
+- Services with the Alexa integration have a naming conflict with its `target` argument and the `target` expected by the websocket API. Service calls may have to be adjusted. See [advanced service calls](https://appdaemon.readthedocs.io/en/latest/HASS_API_REFERENCE.html#advanced-service-calls) for more information.
 
 **Changes in Behavior**
 
