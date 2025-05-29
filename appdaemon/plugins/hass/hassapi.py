@@ -1343,7 +1343,7 @@ class Hass(ADBase, ADAPI):
     # Functions that use self.render_template
 
     @utils.sync_decorator
-    async def render_template(self, template: str, namespace: str | None = None) -> Any:
+    async def render_template(self, template: str, namespace: str | None = None, **kwargs) -> Any:
         """Renders a Home Assistant Template.
 
         See the documentation for the `Template Integration <https://www.home-assistant.io/integrations/template>`__ and
@@ -1351,9 +1351,9 @@ class Hass(ADBase, ADAPI):
 
         Args:
             template (str): The Home Assistant template to be rendered.
-            namespace (str, optional): Namespace to use for the call. See the section on
-                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
-                In most cases it is safe to ignore this parameter.
+            namespace (str, optional): Optional namespace to use. Defaults to using the app's current namespace. See the
+                `namespace documentation <APPGUIDE.html#namespaces>`__ for more information.
+            **kwargs (optional): Zero or more keyword arguments that get passed to the template rendering.
 
         Returns:
             The rendered template in a native Python type.
@@ -1368,11 +1368,14 @@ class Hass(ADBase, ADAPI):
             >>> self.render_template("{{ states('sensor.outside_temp') }}")
             97.2
 
+            >>> self.render_template("hello {{ name }}", variables={"name": "bob"})
+            hello bob
+
         """
         plugin: "HassPlugin" = self.AD.plugins.get_plugin_object(
             namespace or self.namespace
         )
-        result = await plugin.render_template(self.namespace, template)
+        result = await plugin.render_template(self.namespace, template, **kwargs)
         try:
             return literal_eval(result)
         except (SyntaxError, ValueError):
