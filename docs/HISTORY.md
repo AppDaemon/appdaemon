@@ -13,6 +13,8 @@ None
 - Added setter for setter for `pin_apps`
 - Passing through keyword arguments to `render_template`
 - Fixed a bug in the error text for apps in a custom app_dir
+- Fix for wait_state - contributed by [Kostas Chatzikokolakis](https://github.com/chatziko)
+- fix constrain_input_select when not a list - contributed by [Xavi Moreno](https://github.com/xaviml)
 
 **Breaking Changes**
 
