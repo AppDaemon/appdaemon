@@ -435,7 +435,7 @@ class Entity:
             self.logger.warning(f"State Wait for {self.entity_id} Timed Out")
             raise TimeOutException("The entity timed out") from e
         finally:
-            self._async_events.pop(wait_id)
+            self._async_events.pop(wait_id, None)  # Ignore if already removed
 
     async def entity_state_changed(self, *args, wait_id: str, **kwargs) -> None:
         """The entity state changed"""
