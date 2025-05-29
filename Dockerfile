@@ -53,6 +53,9 @@ COPY --from=builder /usr/local/lib/python${PYTHON_RELEASE}/site-packages /usr/lo
 
 WORKDIR /usr/src/app
 
+# Upgrade the pip version to the latest one. The version provided by Alpine is often slightly outdated which causes a warning
+RUN pip install --upgrade pip
+
 # Install Appdaemon from the Python package built in the project `dist/` folder
 RUN --mount=type=cache,id=pip-${TARGETARCH}-${TARGETVARIANT},sharing=locked,target=/root/.cache/pip,from=builder \
     # Mount the project directory containing the built Python package, so it is available for pip install inside the container
