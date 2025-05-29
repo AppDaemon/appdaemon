@@ -191,10 +191,11 @@ class AppManagement:
     def app_rel_path(self, app_name: str) -> Path:
         return self.app_config.root[app_name].config_path.relative_to(self.AD.app_dir.parent)
 
-    def mod_rel_path(self, app_obj: object) -> Path:
+    def err_app_path(self, app_obj: object) -> Path:
         module_path = Path(sys.modules[app_obj.__module__].__file__)
-        rel_path = module_path.relative_to(self.AD.app_dir.parent)
-        return rel_path
+        if module_path.is_relative_to(self.AD.app_dir.parent):
+            return module_path.relative_to(self.AD.app_dir.parent)
+        return module_path
 
     async def init_admin_stats(self):
         # create sensors
@@ -266,16 +267,18 @@ class AppManagement:
     async def initialize_app(self, app_name: str):
         assert app_name in self.objects, 'Something is very wrong'
         app_obj = self.objects[app_name].object
-        rel_path = self.mod_rel_path(app_obj)
+
+        # Get the path that will be used for the exception
+        err_path = self.err_app_path(app_obj)
 
         try:
             init_func = app_obj.initialize
         except AttributeError:
-            raise ade.NoInitializeMethod(app_obj.__class__, rel_path)
+            raise ade.NoInitializeMethod(app_obj.__class__, err_path)
 
         signature = inspect.signature(init_func)
         if len(signature.parameters) != 0:
-            raise ade.BadInitializeMethod(app_obj.__class__, rel_path, signature)
+            raise ade.BadInitializeMethod(app_obj.__class__, err_path, signature)
 
         # Call its initialize function
         await self.set_state(app_name, state="initializing")
