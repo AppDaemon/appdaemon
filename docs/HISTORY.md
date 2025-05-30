@@ -9,6 +9,7 @@ None
 **Fixes**
 
 - Fixed an error with `RequestHandlerException` in the HTTP subsystem
+- Fixed uptime sensor returning negative days in AUI
 
 **Breaking Changes**
 
