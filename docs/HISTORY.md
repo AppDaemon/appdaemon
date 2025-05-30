@@ -8,7 +8,7 @@ None
 
 **Fixes**
 
-None
+- Fixed an async issue with `firendly_name()`
 
 **Breaking Changes**
 
