@@ -102,6 +102,11 @@ class RequestHandler:
         self.stream = self.adstream.stream_handler.makeStream(self.AD, request, on_message=self._on_message, on_disconnect=self._on_disconnect)
         #
 
+    @property
+    def name(self):
+        """Return client_name as name for compatibility"""
+        return self.client_name
+
     async def _on_message(self, data):
         await self._request(data)
 
