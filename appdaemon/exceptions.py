@@ -179,8 +179,13 @@ def wrap_sync(logger: Logger, app_dir: Path, header: str | None = None):
 
 
 # Used in the adstream module
+@dataclass
 class RequestHandlerException(AppDaemonException):
-    pass
+    msg: str
+
+    def __str__(self):
+        return f"Error handling HTTP request: {self.msg}"
+
 
 @dataclass
 class PersistentNamespaceFailed(AppDaemonException):

@@ -8,7 +8,7 @@ None
 
 **Fixes**
 
-None
+- Fixed an error with `RequestHandlerException` in the HTTP subsystem
 
 **Breaking Changes**
 
