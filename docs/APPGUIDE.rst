@@ -466,23 +466,36 @@ In the App, the app_users can be accessed like every other argument the App can 
 App Dependencies
 ----------------
 
-It is possible for apps to be dependent upon other apps. Some
-examples where this might be the case are:
+AppDaemon is designed for low coupling between apps, which means that apps can interact without any explicit references
+to each other. For example, an app can register a service which can be called by another app. The calling app only needs
+to know the service name ``<domain>/<service>`` to be able to use :py:meth:`~appdaemon.adapi.ADAPI.call_service` to
+call the service. It doesn't need to reference or know anything about the app that provides the service. See
+`service registration <#service-registration>`__ for more details on how to register services.
 
--  A global App that defines constants for use in other apps
--  An App that provides a service for other modules, e.g., a TTS App
+Low coupling is generally desirable, but sometimes in development it's useful to intentionally create a dependency so
+that apps get reloaded together as files change. This can be done with the ``dependencies`` direction in the app
+configuration.
 
-In these cases, when changes are made to one of these apps, we also
-want the apps that depend upon them to be reloaded. Furthermore, we
-also want to guarantee that they are loaded in order so that the apps
-depended upon by other modules are loaded first.
+.. code-block:: yaml
+  :emphasize-lines: 9
 
-AppDaemon fully supports this through the use of the dependency
-directive in the App configuration. Using this directive, each App
-identifies other apps that it depends upon. The dependency directive
-will identify the name of the App it cares about, and AppDaemon
-will see to it that the dependency is loaded before the App depending
-on it, and that the dependent App will be reloaded if it changes.
+    # conf/apps/apps.yaml
+    Provider:
+      module: provider
+      class: Provider
+
+    Consumer:
+      module: consumer
+      class: Consumer
+      dependencies:
+        - Provider
+
+In this example, both apps would get reloaded if anything in ``provider.py`` changes, and the ``Consumer`` app is
+guaranteed to be loaded after the ``Provider`` app. This guarantees that the services registered by the ``Provider`` app
+will be available by the time the ``Consumer`` app tries to use them.
+
+As of AppDaemon v4.5, apps that import other modules or packages from somewhere in the ``conf/apps`` directory will have
+dependencies created for them automatically.
 
 For example, an App ``Consumer``, uses another App ``Sound`` to play
 sound files. ``Sound`` in turn uses ``Global`` to store some global
@@ -494,7 +507,7 @@ values. We can represent these dependencies as follows:
       module: global
       class: Global
 
-    Sound
+    Sound:
       module: sound
       class: Sound
       dependencies: Global
@@ -504,36 +517,126 @@ values. We can represent these dependencies as follows:
       class: Sound
       dependencies: Sound
 
-It is also possible to have multiple dependencies, added as a yaml list
-
-.. code:: yaml
-
-    Consumer:
-      module: sound
-      class: Sound
-      dependencies:
-        - Sound
-        - Global
-
-In TOML this would be:
-
-.. code:: toml
-
-    [Consumer]
-    module = "sound"
-    class = "Sound"
-    dependencies = [ "Sound", "Global" ]
-
-
 AppDaemon will write errors to the log if a dependency is missing and it
 will also detect circular dependencies.
 
 Dependencies can also be set using the ``register_dependency()`` api call.
 
-App Loading Priority
---------------------
+Globals
+~~~~~~~
 
-It is possible to influence the loading order of Apps using the dependency system. To add a loading priority to an App, simply add a ``priority`` entry to its parameters. e.g.:
+.. admonition:: Global Modules
+  :class: warning
+
+    Global modules are deprecated and will be removed in a future release. AppDaemon now automatically tracks and
+    resolves dependencies by parsing files using the :py:mod:`ast <ast>` package from the standard library.
+
+Apps in AppDaemon can import from other python files in the apps directory, and it's a common pattern to have a single
+file containing global data that gets imported by multiple other apps.
+
+.. code-block:: text
+  :caption: Example App Directory Structure with Globals
+
+    conf/apps
+    ├── apps.yaml
+    ├── globals.py
+    ├── hello.py
+    └── my_apps
+        ├── app_a.py
+        └── app_b.py
+
+.. code-block:: yaml
+  :caption: Example App Configuration File
+
+    # conf/apps/apps.yaml
+    AppA:
+      module: app_a
+      class: AppA
+      dependencies:
+        - AppB # This is only set to demonstrate forcing it to load after AppB
+
+    AppB:
+      module: app_b
+      class: AppB
+
+.. code-block:: python
+  :caption: Example Global File
+
+    # conf/apps/globals.py
+    from enum import Enum
+
+
+    GLOBAL_VAR = "Hello, World!"
+
+
+    class ModeSelect(Enum):
+        MODE_A = 'mode_a'
+        MODE_B = 'mode_b'
+        MODE_C = 'mode_c'
+
+    GLOBAL_MODE = ModeSelect.MODE_B
+
+.. code-block:: python
+
+    # conf/apps/app_a.py
+    from appdaemon.adapi import ADAPI
+
+    from globals import GLOBAL_MODE, GLOBAL_VAR
+
+
+    class AppA(ADAPI):
+        def initialize(self) -> None:
+            self.log(GLOBAL_VAR)
+            self.log(f'Global mode is set to: {GLOBAL_MODE.value}')
+
+.. code-block:: python
+
+    # conf/apps/app_b.py
+    from appdaemon.adapi import ADAPI
+
+    from globals import GLOBAL_MODE, GLOBAL_VAR
+
+
+    class AppB(ADAPI):
+        def initialize(self) -> None:
+            self.log(GLOBAL_VAR)
+            self.log(f'Global mode is set to: {GLOBAL_MODE.value}')
+
+In this example, AppDaemon understands that both `app_a.py` and `app_b.py` depend on `globals.py`, so any changes to
+`globals.py` will effectively trigger a reload of both ``AppA`` and ``AppB``. Just for the example, ``AppA`` was given
+a dependency on ``AppB``, which will cause it to always stopped before ``AppB`` and always started after ``AppB``.
+
+.. code-block:: log
+
+    INFO AppDaemon: Calling initialize() for AppB
+    INFO AppB: Hello, World!
+    INFO AppB: Global mode is set to: mode_b
+    INFO AppDaemon: Calling initialize() for AppA
+    INFO AppA: Hello, World!
+    INFO AppA: Global mode is set to: mode_b
+    ...
+    INFO AppDaemon: Calling terminate() for 'AppA'
+    INFO AppDaemon: Calling terminate() for 'AppB'
+    INFO AppDaemon: Calling initialize() for AppB
+    INFO AppB: AppB Initialized
+    INFO AppB: Hello, World!
+    INFO AppB: Global mode is set to: mode_c
+    INFO AppDaemon: Calling initialize() for AppA
+    INFO AppA: AppA Initialized
+    INFO AppA: Hello, World!
+    INFO AppA: Global mode is set to: mode_c
+
+App Priorities
+~~~~~~~~~~~~~~
+
+The priority system is complementary to the dependency system, but they are trying to solve different problems.
+Dependencies should be used when an App literally depends upon another, for instance, it is using variables stored in it
+with the ``get_app()`` call. Priorities should be used when an App does some setup for other apps but doesn't provide
+variables or code for the dependent App. An example of this might be an App that sets up some sensors in Home Assistant,
+or sets some switch or input_slider to a specific value. It may be necessary for that setup to be performed before other
+apps are started, but there is no requirement to reload those apps if the first App changes.
+
+To add a priority to an app, simply add a ``priority`` entry to its configuration. e.g.:
 
 .. code:: yaml
 
@@ -544,16 +647,10 @@ It is possible to influence the loading order of Apps using the dependency syste
       light: light.downstairs_hall
       priority: 10
 
-
-Priorities can be any number you like, and can be float values if required, the lower the number, the higher the priority. AppDaemon will load any modules with a priority in the order specified.
-
-For modules with no priority specified, the priority is assumed to be ``50``. It is, therefore, possible to cause modules to be loaded before and after modules with no priority.
-
-The priority system is complementary to the dependency system, although they are trying to solve different problems. Dependencies should be used when an App literally depends upon another, for instance, it is using variables stored in it with the ``get_app()`` call. Priorities should be used when an App does some setup for other apps but doesn't provide variables or code for the dependent App. An example of this might be an App that sets up some sensors in Home Assistant, or sets some switch or input_slider to a specific value. It may be necessary for that setup to be performed before other apps are started, but there is no requirement to reload those apps if the first App changes.
-
-To accommodate both systems, dependency trees are assigned priorities in the range 50 - 51, again allowing apps to set priorities such that they will be loaded before or after specific sets of dependent apps.
-
-Note that apps that are dependent upon other apps, and apps that are depended upon by other apps will ignore any priority setting in their configuration.
+Priorities can be any floating point number, and the lower the value, the higher the priority. All apps are guaranteed
+to load and start before apps that have a higher priority number. However, explicitly declared dependencies will always
+take precedence over priorities. By default all apps have a priority of ``50``. It's therefore possible to cause modules
+to be loaded before or after modules without a priority explicitly set.
 
 App Log
 -------
@@ -571,15 +668,6 @@ Starting from AD 4.0, it is now possible to determine which log as declared by t
 
 
 By declaring the above, each time the function ``self.log()`` is used within the App, the log entry is sent to the user defined ``lights_log``. It is also possible to write to another log, within the same App if need be. This is done using the function ``self.log(text, log='main_log')``. Without using any of the aforementioned log capabilities, all logs from apps by default will be sent to the ``main_log``.
-
-Global Module Dependencies
---------------------------
-
-.. admonition:: Deprecation warning
-  :class: warning
-
-    Global modules are deprecated and will be removed in a future release. AppDaemon now automatically tracks and
-    resolves dependencies using the :py:mod:`ast <ast>` package from the standard library.
 
 AppDir Structure
 ----------------
