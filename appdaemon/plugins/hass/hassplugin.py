@@ -93,6 +93,7 @@ class HassPlugin(PluginBase):
         # Internal state flags
         self.stopping = False
 
+        self.service_logger = self.diag.getChild("services")
         self.logger.info("HASS Plugin initialization complete")
 
     def stop(self):
@@ -644,7 +645,7 @@ class HassPlugin(PluginBase):
     def _dump_services(self, typ: Literal["ha", "ad"]) -> None:
         services = self._compare_services(typ)
         service_str = json.dumps(services, indent=4, sort_keys=True, default=str)
-        self.diag.debug(f"Services ({typ}):\n{service_str}")
+        self.service_logger.debug(f"Services ({typ}):\n{service_str}")
 
     def time_str(self, now: float | None = None) -> str:
         return utils.time_str(self.start, now)
