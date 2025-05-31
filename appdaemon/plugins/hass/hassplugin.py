@@ -613,6 +613,7 @@ class HassPlugin(PluginBase):
                 await self.check_register_service(s["domain"], s["services"], silent=True)
             else:
                 self.logger.debug("Updated internal service registry")
+                self._dump_services("ha")
 
             self.services = services
             return services
@@ -620,6 +621,30 @@ class HassPlugin(PluginBase):
         except Exception:
             self.logger.warning("Error getting services - retrying")
             raise
+
+    def _compare_services(self, typ: Literal["ha", "ad"]) -> dict[str, set[str]]:
+        match typ:
+            case "ha":
+                # This gets the names of all the services as they come back from the get_hass_services method that gets
+                # called when the plugin starts and at the interval defined by services_sleep_time in the plugin config.
+                services = {
+                    info["domain"]: set(info["services"].keys())
+                    for info in self.services
+                }
+            case "ad":
+                # This gets the names of all the services as they're stored in the services subsystem
+                services = {
+                    domain: set(services.keys())
+                    for domain, services in self.AD.services.services[self.namespace].items()
+                }
+            case _:
+                services = {}
+        return services
+
+    def _dump_services(self, typ: Literal["ha", "ad"]) -> None:
+        services = self._compare_services(typ)
+        service_str = json.dumps(services, indent=4, sort_keys=True, default=str)
+        self.diag.debug(f"Services ({typ}):\n{service_str}")
 
     def time_str(self, now: float | None = None) -> str:
         return utils.time_str(self.start, now)
