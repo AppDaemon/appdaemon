@@ -95,6 +95,12 @@ class AppNameFormatter(logging.Formatter):
     def __init__(self, fmt=None, datefmt=None, style=None):
         super().__init__(fmt, datefmt, style)
 
+    def usesTime(self) -> bool:
+        """
+        Override to ensure asctime is always available, as LogSubscriptionHandler depends on it being available.
+        """
+        return True
+
     def format(self, record):
         #
         # Figure out the name of the app and add it to the LogRecord
