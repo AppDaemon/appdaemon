@@ -56,10 +56,13 @@ class ADAPI:
     """Pydantic model of the app configuration
     """
     config: dict[str, Any]
-    """Dictionary of the AppDaemon configuration
+    """Dict of the AppDaemon configuration. This meant to be read-only, and modifying it won't affect any behavior.
+    """
+    app_config: dict[str, dict[str, Any]]
+    """Dict of the full config for all apps. This meant to be read-only, and modifying it won't affect any behavior.
     """
     args: dict[str, Any]
-    """Dictionary of this app's configuration
+    """Dict of this app's configuration. This meant to be read-only, and modifying it won't affect any behavior.
     """
     logger: Logger
     err: Logger
@@ -75,6 +78,7 @@ class ADAPI:
         self.config_model = config_model
 
         self.config = self.AD.config.model_dump(by_alias=True, exclude_unset=True)
+        self.app_config = self.AD.app_management.app_config.model_dump(by_alias=True, exclude_unset=True)
         self.args = config_model.model_dump(by_alias=True, exclude_unset=True)
 
         self.dashboard_dir = None
@@ -123,10 +127,6 @@ class ADAPI:
     #
     # Properties
     #
-    @property
-    def app_config(self) -> dict[str, dict[str, Any]]:
-        """Dict of the full dump of all the config for all apps"""
-        return self.AD.app_management.app_config.model_dump(by_alias=True, exclude_unset=True)
 
     @property
     def app_dir(self) -> Path:
@@ -144,8 +144,14 @@ class ADAPI:
         return self.AD.config_dir
 
     @property
-    def global_vars(self) -> dict:
-        return self.AD.global_vars
+    def global_vars(self) -> Any:
+        with self.AD.global_lock:
+            return self.AD.global_vars
+
+    @global_vars.setter
+    def global_vars(self, value: Any) -> None:
+        with self.AD.global_lock:
+            self.AD.global_vars = Any
 
     @property
     def _logging(self) -> Logging:
