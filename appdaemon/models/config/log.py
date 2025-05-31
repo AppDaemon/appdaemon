@@ -9,12 +9,12 @@ SYSTEM_LOG_NAME_MAP = {
     "main_log": 'AppDaemon',
     "error_log": 'Error',
     "access_log": 'Access',
-    "diag_log": 'Diagnostic',
+    "diag_log": 'Diag',
 }
 
 
 class AppDaemonLogConfig(BaseModel):
-    filename: CoercedPath | None = None
+    filename: CoercedPath = "STDOUT"
     name: str | None = None
     level: LogLevel = 'INFO'
     log_generations: int = 3

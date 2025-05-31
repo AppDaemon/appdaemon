@@ -28,6 +28,7 @@ class PluginBase(abc.ABC):
     name: str
     config: PluginConfig
     logger: Logger
+    diag: Logger
     plugin_meta: Dict[str, Dict]
     plugins: Dict[str, Dict]
 
@@ -58,6 +59,7 @@ class PluginBase(abc.ABC):
         self.name = name
         self.config = config
         self.logger = self.AD.logging.get_child(name)
+        self.diag = self.AD.logging.get_diag()
         self.error = self.logger
         self.connect_event = asyncio.Event()
         self.ready_event = asyncio.Event()

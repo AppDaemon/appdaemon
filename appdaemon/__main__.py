@@ -335,7 +335,8 @@ class ADMain:
             print(e)
             sys.exit(1)
 
-        self.logging = Logging(model.model_dump(mode='python')['logs'], args.debug)
+        log_cfg = model.model_dump(mode='python', by_alias=True)['logs']
+        self.logging = Logging(log_cfg, args.debug)
         self.logger = self.logging.get_logger()
 
         if "time_zone" in config["appdaemon"]:
