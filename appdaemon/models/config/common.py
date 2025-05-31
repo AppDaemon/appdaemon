@@ -7,7 +7,20 @@ from pydantic import BeforeValidator, PlainSerializer, ValidationError
 LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
 
-CoercedPath = Annotated[Path, BeforeValidator(lambda v: Path(v).resolve())]
+def coerce_path(v: Any) -> Path | Literal["STDOUT", "STDERR"]:
+    """Coerce a string or Path to a resolved Path."""
+    match v:
+        case Path():
+            pass
+        case "STDOUT" | "STDERR":
+            return v
+        case str():
+            v = Path(v)
+        case _:
+            raise ValidationError(f"Invalid type for path: {v}")
+
+
+CoercedPath = Annotated[Path | Literal["STDOUT", "STDERR"], BeforeValidator(coerce_path)]
 
 
 def validate_timedelta(v: Any):
