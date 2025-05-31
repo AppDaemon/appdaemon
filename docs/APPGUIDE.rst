@@ -466,73 +466,39 @@ In the App, the app_users can be accessed like every other argument the App can 
 App Dependencies
 ----------------
 
-AppDaemon is designed for low coupling between apps, which means that apps can interact without any explicit references
-to each other. For example, an app can register a service which can be called by another app. The calling app only needs
-to know the service name ``<domain>/<service>`` to be able to use :py:meth:`~appdaemon.adapi.ADAPI.call_service` to
-call the service. It doesn't need to reference or know anything about the app that provides the service. See
+Apps can interact without any explicit references to each other by using because the calling app only needs
+to know the service name ``<domain>/<service>`` to be able to use :py:meth:`~appdaemon.adapi.ADAPI.call_service`. It
+doesn't need to reference or know anything about the app that provides the service. See
 `service registration <#service-registration>`__ for more details on how to register services.
 
-Low coupling is generally desirable, but sometimes in development it's useful to intentionally create a dependency so
-that apps get reloaded together as files change. This can be done with the ``dependencies`` direction in the app
-configuration.
+Sometimes in development it's useful to intentionally create a dependency so that apps get reloaded together as files
+change. This can be done with the ``dependencies`` direction in the app configuration.
 
 .. code-block:: yaml
   :emphasize-lines: 9
 
     # conf/apps/apps.yaml
-    Provider:
+    my_provider:
       module: provider
       class: Provider
 
-    Consumer:
+    my_consumer:
       module: consumer
       class: Consumer
       dependencies:
-        - Provider
+        - my_provider
 
-In this example, both apps would get reloaded if anything in ``provider.py`` changes, and the ``Consumer`` app is
-guaranteed to be loaded after the ``Provider`` app. This guarantees that the services registered by the ``Provider`` app
-will be available by the time the ``Consumer`` app tries to use them.
+In this example, both apps would get reloaded if anything in `provider.py` changes, and the ``my_provider`` app is
+guaranteed to be loaded after the ``my_provider`` app.
 
-As of AppDaemon v4.5, apps that import other modules or packages from somewhere in the ``conf/apps`` directory will have
-dependencies created for them automatically.
-
-For example, an App ``Consumer``, uses another App ``Sound`` to play
-sound files. ``Sound`` in turn uses ``Global`` to store some global
-values. We can represent these dependencies as follows:
-
-.. code:: yaml
-
-    Global:
-      module: global
-      class: Global
-
-    Sound:
-      module: sound
-      class: Sound
-      dependencies: Global
-
-    Consumer:
-      module: sound
-      class: Sound
-      dependencies: Sound
-
-AppDaemon will write errors to the log if a dependency is missing and it
-will also detect circular dependencies.
-
-Dependencies can also be set using the ``register_dependency()`` api call.
-
-Globals
+Imports
 ~~~~~~~
-
-.. admonition:: Global Modules
-  :class: warning
-
-    Global modules are deprecated and will be removed in a future release. AppDaemon now automatically tracks and
-    resolves dependencies by parsing files using the :py:mod:`ast <ast>` package from the standard library.
 
 Apps in AppDaemon can import from other python files in the apps directory, and it's a common pattern to have a single
 file containing global data that gets imported by multiple other apps.
+
+This shows a complete example of defining some things in a single file `globals.py` that are used by both apps defined
+in `app_a.py` and `app_b.py`.
 
 .. code-block:: text
   :caption: Example App Directory Structure with Globals
@@ -540,7 +506,6 @@ file containing global data that gets imported by multiple other apps.
     conf/apps
     ├── apps.yaml
     ├── globals.py
-    ├── hello.py
     └── my_apps
         ├── app_a.py
         └── app_b.py
@@ -580,7 +545,6 @@ file containing global data that gets imported by multiple other apps.
 
     # conf/apps/app_a.py
     from appdaemon.adapi import ADAPI
-
     from globals import GLOBAL_MODE, GLOBAL_VAR
 
 
@@ -589,11 +553,12 @@ file containing global data that gets imported by multiple other apps.
             self.log(GLOBAL_VAR)
             self.log(f'Global mode is set to: {GLOBAL_MODE.value}')
 
+        def terminate(self) -> None: ...
+
 .. code-block:: python
 
     # conf/apps/app_b.py
     from appdaemon.adapi import ADAPI
-
     from globals import GLOBAL_MODE, GLOBAL_VAR
 
 
@@ -602,9 +567,14 @@ file containing global data that gets imported by multiple other apps.
             self.log(GLOBAL_VAR)
             self.log(f'Global mode is set to: {GLOBAL_MODE.value}')
 
-In this example, AppDaemon understands that both `app_a.py` and `app_b.py` depend on `globals.py`, so any changes to
-`globals.py` will effectively trigger a reload of both ``AppA`` and ``AppB``. Just for the example, ``AppA`` was given
-a dependency on ``AppB``, which will cause it to always stopped before ``AppB`` and always started after ``AppB``.
+        def terminate(self) -> None: ...
+
+AppDaemon understands that both `app_a.py` and `app_b.py` depend on `globals.py` because of the import statement, so any
+changes to `globals.py` will effectively trigger a reload of both ``AppA`` and ``AppB``. Just for the example, ``AppA``
+was given a dependency on ``AppB``, which will cause it to always stopped before ``AppB`` and always started after
+``AppB``.
+
+For example, if ``GLOBAL_MODE`` is set to ``ModeSelect.MODE_C`` in `globals.py`, the log output would look like this:
 
 .. code-block:: log
 
@@ -626,15 +596,46 @@ a dependency on ``AppB``, which will cause it to always stopped before ``AppB`` 
     INFO AppA: Hello, World!
     INFO AppA: Global mode is set to: mode_c
 
+Globals
+~~~~~~~
+
+.. admonition:: Global Modules
+  :class: warning
+
+    Global modules are deprecated and will be removed in a future release. AppDaemon now automatically tracks and
+    resolves dependencies by parsing files using the :py:mod:`ast <ast>` package from the standard library.
+
+This is a legacy feature, but apps still have the ability to access a variable that's shared globally across all apps in
+their ``self.global_vars`` attribute. Accessing this variable is wrapped with a the global lock, so it is safe to read
+and write between threads, although it's advised to lock entire methods with the ``global_lock`` decorator.
+
+In this example, the ``global_vars`` would remain locked throughout the duration of the ``do_something`` method.
+
+.. code-block:: python
+
+    # conf/apps/simple.py
+    from appdaemon import adbase as ad
+    from appdaemon.adapi import ADAPI
+
+    class SimpleApp(ADAPI):
+        def initialize(self) -> None:
+            self.do_something()
+
+        @ad.global_lock
+        def do_something(self):
+            vars = self.global_vars
+            ... # do some operations
+            self.global_vars = vars
+
 App Priorities
 ~~~~~~~~~~~~~~
 
 The priority system is complementary to the dependency system, but they are trying to solve different problems.
-Dependencies should be used when an App literally depends upon another, for instance, it is using variables stored in it
-with the ``get_app()`` call. Priorities should be used when an App does some setup for other apps but doesn't provide
-variables or code for the dependent App. An example of this might be an App that sets up some sensors in Home Assistant,
+Dependencies should be used when an app literally depends upon another, for instance, it is using variables stored in it
+with the ``get_app()`` call. Priorities should be used when an app does some setup for other apps but doesn't provide
+variables or code for the dependent app. An example of this might be an app that sets up some sensors in Home Assistant,
 or sets some switch or input_slider to a specific value. It may be necessary for that setup to be performed before other
-apps are started, but there is no requirement to reload those apps if the first App changes.
+apps are started, but there is no requirement to reload those apps if the first app changes.
 
 To add a priority to an app, simply add a ``priority`` entry to its configuration. e.g.:
 
