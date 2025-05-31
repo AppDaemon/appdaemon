@@ -377,6 +377,10 @@ class Logging(metaclass=utils.Singleton):
         """Adds a reference to the top-level ``AppDaemon`` object. This is necessary because the Logging object gets created first."""
         self.AD = ad
 
+        # set module debug levels
+        for name, level in self.AD.module_debug.root.items():
+            logging.getLogger(name).setLevel(level)
+
         # Log Subscriptions
 
         for log in self.config:

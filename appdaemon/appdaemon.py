@@ -119,11 +119,11 @@ class AppDaemon(metaclass=Singleton):
 
     def __init__(self, logging: "Logging", loop: BaseEventLoop, ad_config_model: AppDaemonConfig):
         self.logging = logging
-        self.logging.register_ad(self)
-        self.logger = logging.get_logger()
         self.loop = loop
         self.config = ad_config_model
         self.booted = "booting"
+        self.logger = logging.get_logger()
+        self.logging.register_ad(self) # needs to go last to reference the config object
 
         self.global_vars = {}
         self.main_thread_id = threading.current_thread().ident
