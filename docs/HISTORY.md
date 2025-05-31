@@ -9,6 +9,7 @@ None
 **Fixes**
 
 - Fixed an async issue with `firendly_name()`
+- Added missing setter for global_vars
 
 **Breaking Changes**
 
