@@ -18,6 +18,7 @@ def coerce_path(v: Any) -> Path | Literal["STDOUT", "STDERR"]:
             v = Path(v)
         case _:
             raise ValidationError(f"Invalid type for path: {v}")
+    return v.resolve() if not v.is_absolute() else v
 
 
 CoercedPath = Annotated[Path | Literal["STDOUT", "STDERR"], BeforeValidator(coerce_path)]
