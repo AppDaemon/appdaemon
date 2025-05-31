@@ -576,7 +576,7 @@ was given a dependency on ``AppB``, which will cause it to always stopped before
 
 For example, if ``GLOBAL_MODE`` is set to ``ModeSelect.MODE_C`` in `globals.py`, the log output would look like this:
 
-.. code-block:: log
+.. code-block:: text
 
     INFO AppDaemon: Calling initialize() for AppB
     INFO AppB: Hello, World!
