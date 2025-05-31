@@ -58,6 +58,8 @@ class ADAPI:
     config: dict[str, Any]
     """Dictionary of the AppDaemon configuration
     """
+    app_config: dict[str, dict[str, Any]]
+    """Dict of the full dump of all the config for all apps"""
     args: dict[str, Any]
     """Dictionary of this app's configuration
     """
@@ -75,6 +77,7 @@ class ADAPI:
         self.config_model = config_model
 
         self.config = self.AD.config.model_dump(by_alias=True, exclude_unset=True)
+        self.app_config = self.AD.app_management.app_config.model_dump(by_alias=True, exclude_unset=True)
         self.args = config_model.model_dump(by_alias=True, exclude_unset=True)
 
         self.dashboard_dir = None
@@ -123,10 +126,6 @@ class ADAPI:
     #
     # Properties
     #
-    @property
-    def app_config(self) -> dict[str, dict[str, Any]]:
-        """Dict of the full dump of all the config for all apps"""
-        return self.AD.app_management.app_config.model_dump(by_alias=True, exclude_unset=True)
 
     @property
     def app_dir(self) -> Path:
