@@ -144,8 +144,14 @@ class ADAPI:
         return self.AD.config_dir
 
     @property
-    def global_vars(self) -> dict:
-        return self.AD.global_vars
+    def global_vars(self) -> Any:
+        with self.AD.global_lock:
+            return self.AD.global_vars
+
+    @global_vars.setter
+    def global_vars(self, value: Any) -> None:
+        with self.AD.global_lock:
+            self.AD.global_vars = Any
 
     @property
     def _logging(self) -> Logging:
