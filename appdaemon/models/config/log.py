@@ -14,7 +14,7 @@ SYSTEM_LOG_NAME_MAP = {
 
 
 class AppDaemonLogConfig(BaseModel):
-    filename: CoercedPath | None = "STDOUT"
+    filename: CoercedPath = "STDOUT"
     name: str | None = None
     level: LogLevel = 'INFO'
     log_generations: int = 3
