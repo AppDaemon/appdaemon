@@ -56,12 +56,13 @@ class ADAPI:
     """Pydantic model of the app configuration
     """
     config: dict[str, Any]
-    """Dictionary of the AppDaemon configuration
+    """Dict of the AppDaemon configuration. This meant to be read-only, and modifying it won't affect any behavior.
     """
     app_config: dict[str, dict[str, Any]]
-    """Dict of the full dump of all the config for all apps"""
+    """Dict of the full config for all apps. This meant to be read-only, and modifying it won't affect any behavior.
+    """
     args: dict[str, Any]
-    """Dictionary of this app's configuration
+    """Dict of this app's configuration. This meant to be read-only, and modifying it won't affect any behavior.
     """
     logger: Logger
     err: Logger
