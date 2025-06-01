@@ -6,7 +6,6 @@ from pathlib import Path
 from threading import RLock
 from typing import TYPE_CHECKING, Optional
 
-from pydantic import Field
 
 from appdaemon.admin_loop import AdminLoop
 from appdaemon.app_management import AppManagement
@@ -112,7 +111,7 @@ class AppDaemon(metaclass=Singleton):
 
     admin_loop: AdminLoop | None = None
     http: Optional["HTTP"] = None
-    global_lock: RLock = Field(default_factory=RLock)
+    global_lock: RLock = RLock()
 
     # shut down flag
     stopping: bool = False
