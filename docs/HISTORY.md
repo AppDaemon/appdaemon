@@ -8,7 +8,7 @@ None
 
 **Fixes**
 
-None
+- Fix for time & day constraints
 
 **Breaking Changes**
 
