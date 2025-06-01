@@ -8,7 +8,7 @@ None
 
 **Fixes**
 
-None
+- Fixed issue with getter that prevented app initialization
 
 **Breaking Changes**
 
