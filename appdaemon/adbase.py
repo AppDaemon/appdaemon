@@ -2,11 +2,11 @@ import threading
 from functools import wraps
 from logging import Logger
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from appdaemon import adapi
 from appdaemon import utils
-from appdaemon.models.config.app import AppConfig
+from appdaemon.models.config.app import AppConfig, AllAppConfig
 
 
 # Check if the module is being imported using the legacy method
@@ -73,8 +73,6 @@ def global_lock(f):
 
 class ADBase:
     AD: "AppDaemon"
-    config_model: "AppConfig"
-
     config: dict
     """Dictionary of the AppDaemon configuration
     """
@@ -96,10 +94,7 @@ class ADBase:
     def __init__(self, ad: "AppDaemon", config_model: "AppConfig"):
         self.AD = ad
         self.config_model = config_model
-
         self.config = self.AD.config.model_dump(by_alias=True, exclude_unset=True)
-        self.args = self.config_model.model_dump(by_alias=True, exclude_unset=True)
-
         self.namespace = "default"
         self.dashboard_dir = None
 
@@ -136,8 +131,27 @@ class ADBase:
         # Sometimes this will be None. Namespaces are not guaranteed to be associated with a plugin
 
     @property
-    def app_config(self):
+    def app_config(self) -> AllAppConfig:
+        """The full app configuration model for all the apps."""
         return self.AD.app_management.app_config
+
+    @app_config.setter
+    def app_config(self, new_config: AppConfig) -> None:
+        self.logger.warning("The full app configuration model is read-only")
+
+    @property
+    def config_model(self) -> AppConfig:
+        """The AppConfig model only for this app."""
+        return self._config_model
+
+    @config_model.setter
+    def config_model(self, new_config: Any) -> None:
+        match new_config:
+            case AppConfig():
+                self._config_model = new_config
+            case _:
+                self._config_model = AppConfig.model_validate(new_config)
+        self.args = self._config_model.model_dump(by_alias=True, exclude_unset=True)
 
     @property
     def app_dir(self) -> Path:
