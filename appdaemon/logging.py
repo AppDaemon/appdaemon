@@ -95,6 +95,12 @@ class AppNameFormatter(logging.Formatter):
     def __init__(self, fmt=None, datefmt=None, style=None):
         super().__init__(fmt, datefmt, style)
 
+    def usesTime(self) -> bool:
+        """
+        Override to ensure asctime is always available, as LogSubscriptionHandler depends on it being available.
+        """
+        return True
+
     def format(self, record):
         #
         # Figure out the name of the app and add it to the LogRecord
@@ -296,7 +302,7 @@ class Logging(metaclass=utils.Singleton):
                     )
                 )
                 args["logger"] = logger
-                logger.setLevel(log_level)
+                logger.setLevel(args.get("level", "INFO"))
                 logger.propagate = False
                 if args["filename"] == "STDOUT":
                     handler = logging.StreamHandler(stream=sys.stdout)
@@ -376,6 +382,10 @@ class Logging(metaclass=utils.Singleton):
     def register_ad(self, ad: "AppDaemon"):
         """Adds a reference to the top-level ``AppDaemon`` object. This is necessary because the Logging object gets created first."""
         self.AD = ad
+
+        # set module debug levels
+        for name, level in self.AD.module_debug.root.items():
+            logging.getLogger(name).setLevel(level)
 
         # Log Subscriptions
 
