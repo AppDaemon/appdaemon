@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Any, Literal, TypeVar, overload
 from appdaemon import dependency, utils
 from appdaemon import exceptions as ade
 from appdaemon.appdaemon import AppDaemon
+from appdaemon.models.config.app import AppConfig
 from appdaemon.entity import Entity
 from appdaemon.events import EventCallback
 from appdaemon.logging import Logging
@@ -76,11 +77,6 @@ class ADAPI:
     def __init__(self, ad: AppDaemon, config_model: "AppConfig"):
         self.AD = ad
         self.config_model = config_model
-
-        self.config = self.AD.config.model_dump(by_alias=True, exclude_unset=True)
-        self.app_config = self.AD.app_management.app_config.model_dump(by_alias=True, exclude_unset=True)
-        self.args = config_model.model_dump(by_alias=True, exclude_unset=True)
-
         self.dashboard_dir = None
 
         if self.AD.http is not None:
@@ -134,17 +130,44 @@ class ADAPI:
         directory, but can be overridden in ``appdaemon.app_dir`` in the ``appdaemon.yaml`` file."""
         return self.AD.app_dir
 
+    @app_dir.setter
+    def app_dir(self, value: Path) -> None:
+        self.logger.warning('app_dir is read-only and needs to be set before AppDaemon starts')
+
     @property
     def callback_counter(self) -> int:
         return self.AD.app_management.objects[self.name].callback_counter
+
+    @callback_counter.setter
+    def callback_counter(self, value: Path) -> None:
+        self.logger.warning('callback_counter is read-only and is set internally by AppDaemon')
 
     @property
     def config_dir(self) -> Path:
         """Directory that contains the ``appdaemon.yaml`` file."""
         return self.AD.config_dir
 
+    @config_dir.setter
+    def config_dir(self, value: Path) -> None:
+        self.logger.warning('config_dir is read-only and needs to be set before AppDaemon starts')
+
+    @property
+    def config_model(self) -> AppConfig:
+        """The AppConfig model only for this app."""
+        return self._config_model
+
+    @config_model.setter
+    def config_model(self, new_config: Any) -> None:
+        match new_config:
+            case AppConfig():
+                self._config_model = new_config
+            case _:
+                self._config_model = AppConfig.model_validate(new_config)
+        self.args = self._config_model.model_dump(by_alias=True, exclude_unset=True)
+
     @property
     def global_vars(self) -> Any:
+        """Globally locked attribute that can be used to share data between apps."""
         with self.AD.global_lock:
             return self.AD.global_vars
 
@@ -158,15 +181,27 @@ class ADAPI:
         """Reference to the AppDaemon Logging subsystem object."""
         return self.AD.logging
 
+    @_logging.setter
+    def _logging(self, value: Logging) -> None:
+        self.logger.warning('The _logging property is read-only')
+
     @property
     def name(self) -> str:
         """The name for the app, as defined by it's key in the corresponding YAML file."""
         return self.config_model.name
 
+    @name.setter
+    def name(self, value: str) -> None:
+        self.logger.warning("The name property is read-only and is defined by the app's key in the YAML file")
+
     @property
     def plugin_config(self) -> dict:
         self.get_plugin_config()
         return self.AD.plugins.config
+
+    @plugin_config.setter
+    def plugin_config(self, value: dict) -> None:
+        self.logger.warning("The plugin_config property is read-only and is set by the plugin itself")
 
     #
     # Logging
