@@ -1,11 +1,11 @@
-name: Bug Report
+name: Issue Report
 description: Report an issue with AppDaemon.
-labels: ["bug"]
+labels: ["issue"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to fill out this bug report!
+        Thanks for taking the time to fill out this issue report!
   - type: textarea
     id: what-happened
     attributes:
