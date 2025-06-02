@@ -544,14 +544,13 @@ class Hass(ADBase, ADAPI):
             Information about the service in a dict with the following keys: ``name``, ``description``, ``target``, and
             ``fields``.
         """
-        if (plugin := self._plugin) is not None:
-            domain, service_name = service.split("/", 2)
-            for service_def in plugin.services:
-                if service_def.get("domain") == domain:
-                    if (services := service_def.get("services")) is not None:
-                        return deepcopy(services.get(service_name))
-            else:
-                self.logger.warning("Service info not found for domain '%s", domain)
+        match self._plugin:
+            case HassPlugin() as plugin:
+                domain, service_name = service.split("/", 2)
+                if info := plugin.services.get(domain, {}).get(service_name):
+                    # Return a copy of the info dict to prevent accidental modification
+                    return deepcopy(info)
+        self.logger.warning("Service info not found for domain '%s", domain)
 
     # Methods that use self.call_service
 
