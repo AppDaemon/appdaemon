@@ -9,6 +9,7 @@ None
 **Fixes**
 
 - Fix for time & day constraints
+- Additional error checking around websocket aceesses for HASS
 
 **Breaking Changes**
 
