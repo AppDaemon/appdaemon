@@ -92,7 +92,7 @@ class HASSConfig(PluginConfig):
     enable_started_event: bool = True
     """If true, the plugin will wait for the 'homeassistant_started' event before starting the plugin."""
     cert_path: CoercedPath | None = None
-    cert_verify: bool | None = None
+    cert_verify: bool = True
     commtype: str = "WS"
     q_timeout: int = 30
     ws_timeout: Annotated[

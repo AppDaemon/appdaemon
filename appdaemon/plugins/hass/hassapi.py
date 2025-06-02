@@ -58,10 +58,14 @@ class Hass(ADBase, ADAPI):
         self.register_constraint("constrain_input_select")
 
     @utils.sync_decorator
-    async def ping(self) -> float:
+    async def ping(self) -> float | None:
         """Gets the number of seconds """
         if (plugin := self._plugin) is not None:
-            return (await plugin.ping())['ad_duration']
+            match await plugin.ping():
+                case {"ad_status": "OK", "ad_duration": ad_duration}:
+                    return ad_duration
+                case _:
+                    return None
 
     @utils.sync_decorator
     async def check_for_entity(self, entity_id: str, namespace: str | None = None) -> bool:
@@ -539,7 +543,6 @@ class Hass(ADBase, ADAPI):
         Returns:
             Information about the service in a dict with the following keys: ``name``, ``description``, ``target``, and
             ``fields``.
-
         """
         if (plugin := self._plugin) is not None:
             domain, service_name = service.split("/", 2)
@@ -680,7 +683,7 @@ class Hass(ADBase, ADAPI):
         significant_changes_only: bool | None = None,
         callback: Callable | None = None,
         namespace: str | None = None,
-    ) -> list[list[dict[str, Any]]]:
+    ) -> list[list[dict[str, Any]]] | None:
         """Gets access to the HA Database.
         This is a convenience function that allows accessing the HA Database, so the
         history state of a device can be retrieved. It allows for a level of flexibility
@@ -755,31 +758,27 @@ class Hass(ADBase, ADAPI):
             end_time = end_time or await self.get_now()
             start_time = end_time - timedelta(days=days)
 
+        plugin = self.AD.plugins.get_plugin_object(namespace or self.namespace)
+        match plugin:
+            case HassPlugin():
+                coro = plugin.get_history(
+                    filter_entity_id=entity_id,
+                    timestamp=start_time,
+                    end_time=end_time,
+                    minimal_response=minimal_response,
+                    no_attributes=no_attributes,
+                    significant_changes_only=significant_changes_only,
+                )
 
-        plugin: "HassPlugin" = self.AD.plugins.get_plugin_object(
-            namespace or self.namespace
-        )
-
-        if plugin is not None:
-            coro = plugin.get_history(
-                filter_entity_id=entity_id,
-                timestamp=start_time,
-                end_time=end_time,
-                minimal_response=minimal_response,
-                no_attributes=no_attributes,
-                significant_changes_only=significant_changes_only,
-            )
-
-            if callback is not None and callable(callback):
-                self.create_task(coro, callback)
-            else:
-                return await coro
-
-        else:
-            self.logger.warning(
-                "Wrong Namespace selected, as %s has no database plugin attached to it",
-                namespace,
-            )
+                if callback is not None and callable(callback):
+                    self.create_task(coro, callback)
+                else:
+                    return await coro
+            case _:
+                self.logger.warning(
+                    "Wrong Namespace selected, as %s has no database plugin attached to it",
+                    namespace,
+                )
 
     @utils.sync_decorator
     async def get_logbook(
