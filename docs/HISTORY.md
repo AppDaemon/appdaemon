@@ -10,6 +10,8 @@ None
 
 - Fix for time & day constraints
 - Additional error checking around websocket aceesses for HASS
+- restored metadata to service callbacks
+- refactor of services dictionary access
 
 **Breaking Changes**
 
