@@ -19,7 +19,7 @@ function setCookie(cname, cvalue) {
 }
 
 function getQueryStringParams() {
-    var query = location.search.substring(1); 
+    var query = location.search.substring(1);
     // Parse existing query string if it exists
     var query_params = [];
     if (query) {
@@ -29,14 +29,14 @@ function getQueryStringParams() {
 }
 
 function setQueryStringParam(query_params, param_name, new_value) {
-    // Remove existing skin parameter if present
+    // Remove existing parameter if present
     for (var i = 0; i < query_params.length; i++) {
         if (query_params[i].startsWith(param_name + "=")) {
             query_params.splice(i, 1);
             break;
         }
     }
-    // Add new skin parameter
+    // Add new parameter
     var param = param_name + "=" + encodeURIComponent(new_value);
     query_params.push(param);
     return query_params;
@@ -128,7 +128,7 @@ var DashStream = function(transport, protocol, domain, port, title, widgets)
             if (data.data.command === "navigate")
             {
                 var query_params = getQueryStringParams();
-                if ("skin" in data.data) 
+                if ("skin" in data.data)
                 {
                     query_params = setQueryStringParam(query_params, "skin", data.data.skin)
                 }
