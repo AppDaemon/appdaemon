@@ -130,6 +130,6 @@ The dashboard URL supports a couple of extra parameters:
 For example, the following url will load a dashboard called main with the
 obsidian skin:
 
-::
+.. code-block:: text
 
     http://<ip address>:<port>/Main?skin=obsidian

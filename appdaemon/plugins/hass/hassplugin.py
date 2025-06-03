@@ -266,7 +266,7 @@ class HassPlugin(PluginBase):
         self.logger.debug(f"Received event type: {event['event_type']}")
 
         meta_attrs = {"origin", "time_fired", "context"}
-        event["metadata"] = {a: val for a in meta_attrs if (val := event.pop(a, None)) is not None}
+        event["data"]["metadata"] = {a: val for a in meta_attrs if (val := event.pop(a, None)) is not None}
 
         await self.AD.events.process_event(self.namespace, event)
 

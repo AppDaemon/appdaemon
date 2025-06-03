@@ -1437,8 +1437,8 @@ Async Pitfalls
 ~~~~~~~~~~~~~~
 
 A major complication of using async callbacks is that because they are run in the main thread, many methods for the API
-classes return async :py:class:`Task <asyncio.Task>` objects instead of the result of the method. In the example above,
-`self.run_in` returns a :py:class:`Task <asyncio.Task>` object instead of a `str` handle like it normally would. To get
+classes return async :py:class:`~asyncio.Task` objects instead of the result of the method. In the example above,
+`self.run_in` returns a :py:class:`~asyncio.Task` object instead of a `str` handle like it normally would. To get
 the normal result of the method, the task needs to be `awaited`.
 
 This will not give the expected result - the handle will be a `Task` object, not a `str`:
@@ -1461,7 +1461,7 @@ Async Advantages
 - Async programming can sometimes provide performance benefits in situations where there are many simulatneous I/O bound tasks happening at once.
 - Some external libraries are designed with an async interface, and intended to be used that way.
 - Scheduling heavily concurrent tasks is very easy using async
-- Using :py:meth:`sleep <appdaemon.adapi.ADAPI.sleep>` in async apps is not harmful to the overall performance of AppDaemon as it is in regular sync apps
+- Using :py:meth:`~appdaemon.adapi.ADAPI.sleep` in async apps is not harmful to the overall performance of AppDaemon as it is in regular sync apps
 
 Async Tools
 ~~~~~~~~~~~
@@ -1471,19 +1471,19 @@ AppDaemon supplies a number of helper functions to make things a little easier:
 Creating Tasks
 ^^^^^^^^^^^^^^
 
-Although it's possible to use the :py:func:`asyncio.create_task <asyncio.create_task>` function from inside async
+Although it's possible to use the :py:func:`asyncio.create_task` function from inside async
 callbacks, it's not recommended because if any tasks created this way are not done when the app is reloaded or
 terminated, they won't be cleaned up. This can lead to unexpected behavior, as the tasks will continue to run in the
 background and might get recreated when the app starts again. Instead, it's recommended to use a helper method called
-:py:meth:`create_task() <appdaemon.adapi.ADAPI.create_task>` method that wraps
-:py:func:`asyncio.create_task <asyncio.create_task>` with logic to clean up the task when the app is reloaded or
+:py:meth:`~appdaemon.adapi.ADAPI.create_task` method that wraps
+:py:func:`asyncio.create_task` with logic to clean up the task when the app is reloaded or
 terminated.
 
 Using the Thread Pool
 ^^^^^^^^^^^^^^^^^^^^^
 
-The `ADAPI` class provides a method called :py:meth:`run_in_executor() <appdaemon.adapi.ADAPI.run_in_executor>` that
-allows the user to run a function in the internal :py:class:`ThreadPoolExecutor <concurrent.futures.ThreadPoolExecutor>`.
+The `ADAPI` class provides a method called :py:meth:`~appdaemon.adapi.ADAPI.run_in_executor` that
+allows the user to run a function in the internal :py:class:`~concurrent.futures.ThreadPoolExecutor`.
 This effectively allows the user to run blocking, sync code in a separate thread as if it was async, which prevents
 blocking any of the worker threads or the main thread. Otherwise, a long-running callback would block whatever thread
 it's in, which can cause problems. A standard pattern is to use other threads for I/O bound tasks, such as file or
@@ -1493,7 +1493,7 @@ Sleeping
 ^^^^^^^^
 
 Sleeping in Apps is perfectly fine using the async model. For this purpose, AppDaemon provides the
-:py:meth:`sleep <appdaemon.adapi.ADAPI.sleep>` method. If this function is used in a non-async callback, it will raise
+:py:meth:`~appdaemon.adapi.ADAPI.sleep` method. If this function is used in a non-async callback, it will raise
 an exception.
 
 Async Threading Considerations
@@ -1515,7 +1515,7 @@ for these events, and AppDaemon will handle calling them as necessary.
 Apps in AppDaemon are merely groups of these callbacks, so when the callbacks
 are not being executed, apps consume very little resources.
 
-There are 4 kinds of callback in AppDaemon, each with their own methods in ``ADAPI``.
+There are 4 kinds of callback in AppDaemon, each with their own methods in :class:`~appdaemon.adapi.ADAPI`.
 
 .. list-table:: AppDaemon Callbacks
     :header-rows: 1
@@ -1524,16 +1524,16 @@ There are 4 kinds of callback in AppDaemon, each with their own methods in ``ADA
       - API Method
       - Description
     * - Event
-      - :meth:`listen_event() <appdaemon.adapi.ADAPI.listen_event>`
+      - :meth:`~appdaemon.adapi.ADAPI.listen_event`
       - react to a specific event being fired
     * - Scheduler
-      - ``run_once()``, ``run_in()``, ``run_at()``, etc.
+      - :meth:`~appdaemon.adapi.ADAPI.run_once`, :meth:`~appdaemon.adapi.ADAPI.run_in`, :meth:`~appdaemon.adapi.ADAPI.run_at`, etc.
       - react to a specific time or interval
     * - State
-      - :meth:`listen_state() <appdaemon.adapi.ADAPI.listen_state>`
+      - :meth:`~appdaemon.adapi.ADAPI.listen_state`
       - react to a change in state
     * - Log
-      - :meth:`listen_log() <appdaemon.adapi.ADAPI.listen_log>`
+      - :meth:`~appdaemon.adapi.ADAPI.listen_log`
       - called whenever a log entry is made
 
 Event Callbacks
@@ -1541,8 +1541,8 @@ Event Callbacks
 
 `More information <#events>`__ on events in AppDaemon.
 
-Users can register event callbacks with calls to :meth:`self.listen_event(...) <appdaemon.adapi.ADAPI.listen_event>`.
-AppDaemon will handle executing the callback when the event is fired.
+Users can register event callbacks with calls to :meth:`~appdaemon.adapi.ADAPI.listen_event`. AppDaemon will handle
+executing the callback when the event is fired.
 
 For example, this registers a callback for an event ``some_event``:
 
@@ -1550,44 +1550,98 @@ For example, this registers a callback for an event ``some_event``:
 
     self.listen_event(self.my_callback, "some_event")
 
-Event callbacks are expected to have a specific signature, which looks like this:
+Event callbacks are expected to have a specific signature. For legacy compatibility, callbacks without the ``**kwargs``
+expansion will still work. AppDaemon will automatically determine the correct way to call the function when it's
+executed.
 
 .. code:: python
 
-    def my_callback(self, event_name, data, **kwargs):
+    def my_callback(self, event_type: str, data: dict[str, Any], **kwargs: Any) -> None:
         ... # do some useful work here
 
-For legacy compatibility, callbacks without the keyword argument expansion will still work.
-AppDaemon will automatically determine the correct way to call the function when it executes it.
-
-.. code:: python
-
-    def my_callback(self, event_name, data, kwargs):
+    def my_legacy_callback(self, event_type, data, kwargs) -> None:
         ... # do some useful work here
 
-Additional keyword arguments can be passed to the callback when it is registered. These
-will be passed to the callback when it is called. For example:
+The ``data`` argument is a dict containing data sent with the event when it's fired, which varies depending on the
+event, and ``kwargs`` is a dict of data that comes from the call to :meth:`~appdaemon.adapi.ADAPI.listen_event`.
 
 .. code:: python
 
     self.listen_event(self.my_callback, "some_event", my_kwarg=123)
 
+These callbacks are equivalent:
+
 .. code:: python
 
-    def my_callback(self, event_name, data, **kwargs):
-        self.log(f'My kwarg: {kwargs["my_kwarg"]}')
+    def my_callback(self, event_type, data, **kwargs):
+        my_kwarg = kwargs["my_kwarg"]
+        self.log(f'My kwarg: {my_kwarg}')
+
+    def my_callback(self, *_, my_kwarg: int, **kwargs):
+        self.log(f'My kwarg: {my_kwarg}')
+
+Filtering Events
+^^^^^^^^^^^^^^^^
+
+Arguments that were used to register the event callback will be used to filter the events, but only if the events have
+keys that match the arguments. For example, registering a callback like this will cause it to only be called when the
+event has a matching ``entity_id`` key in its data:
+
+.. code-block:: python
+  :emphasize-lines: 13
+
+    from datetime import datetime
+
+    from appdaemon.adapi import ADAPI
+
+
+    class ButtonHandler(ADAPI):
+        def initialize(self):
+            # Listen for a button press event with a specific entity_id
+            self.listen_event(
+                self.minimal_callback,
+                'call_service',
+                service='press',
+                entity_id='input_button.test_button,
+            )
+
+        def minimal_callback(self, event_type: str, data: dict[str, Any], **kwargs: Any) -> None:
+            self.log(f'Button pressed')
+
+        # Another example callback
+        def alternate_callback(self, event_type: str, data: dict[str, Any], **kwargs: Any) -> None:
+            match data:
+                case {
+                    "service_data": {"entity_id": eid},
+                    "metadata": {"time_fired": time_fired}
+                }:
+                    friendly_name = self.get_state(eid, attribute='friendly_name')
+                    time_fired = datetime.fromisoformat(time_fired).astimezone(self.AD.tz)
+                    fmt = "%I:%M:%S %p"
+                    self.log(f'{friendly_name} was pressed at {time_fired.strftime(fmt)}')
+                    self.log(f'Kwargs: {kwargs}')
+                case _:
+                    self.log(f'Unhandled button press: {data}', level='WARNING')
+
 
 More examples:
 
 .. code:: python
 
     self.listen_event(self.mode_event, "MODE_CHANGE")
+
     # Listen for a minimote event activating scene 3:
-    self.listen_event(self.generic_event, "zwave_js_value_notification", value = 3)
+    self.listen_event(self.generic_event, "zwave_js_value_notification", value=3)
+
     # Listen for a minimote event activating scene 3 from a specific minimote:
-    self.listen_event(self.generic_event, "zwave_js_value_notification", node_id = "11", value = 3)
+    self.listen_event(self.generic_event, "zwave_js_value_notification", node_id="11", value=3)
+
     # Listen for a minimote event activating scene 3 from one of several minimotes:
-    self.listen_event(self.generic_event, "zwave_js_value_notification", node_id = lambda x: x in ["11", "14", "22"], value = 3)
+    self.listen_event(
+        self.generic_event, "zwave_js_value_notification",
+        node_id=lambda x: x in ["11", "14", "22"],
+        value=3
+    )
 
 Scheduler Callbacks
 ~~~~~~~~~~~~~~~~~~~
@@ -1714,15 +1768,40 @@ In addition to the HASS and MQTT supplied events, AppDaemon adds 3 more
 events. These are internal to AppDaemon and are not visible on the Home
 Assistant bus:
 
--  ``appd_started`` - fired once when AppDaemon is first started and after Apps are initialized. It is fired within the `global` namespace
-- ``app_initialized`` - fired when an App is initialized. It is fired within the `admin` namespace
-- ``app_terminated`` - fired when an App is terminated. It is fired within the `admin` namespace
--  ``plugin_started`` - fired when a plugin is initialized and properly setup e.g. connection to Home Assistant. It is fired within the plugin's namespace
--  ``plugin_stopped`` - fired when a plugin terminates, or becomes internally unstable like a disconnection from an external system like an MQTT broker. It is fired within the plugin's namespace
--  ``service_registered`` - fired when a service is registered in AD. It is fired within the namespace it was registered
--  ``service_deregistered`` - fired when a service is deregistered in AD. It is fired within the namespace it was deregistered
-- ``stream_connected`` - fired when a stream client connects like the Admin User Interface. It is fired within the `admin` namespace
-- ``stream_disconnected`` - fired when a stream client disconnects like the Admin User Interface. It is fired within the `admin` namespace
+.. list-table:: AppDaemon Internal Events
+   :header-rows: 1
+   :widths: 20 6 80
+
+   * - **Event Type**
+     - **Namespace**
+     - **Description**
+   * - ``appd_started``
+     - ``global``
+     - Fired once when AppDaemon is first started and after Apps are initialized.
+   * - ``app_initialized``
+     - ``admin``
+     - Fired when each app is started with :code:`{"app": <app_name>}` for its data.
+   * - ``app_terminated``
+     - ``admin``
+     - Fired when each app is terminated with :code:`{"app": <app_name>}` for its data after all its callbacks have been removed.
+   * - ``plugin_started``
+     - ``<plugin>``
+     - Fired when a plugin notifies AppDaemon that is has started with :code:`{"name": <plugin_name>}`. Called in the namespace of the plugin.
+   * - ``plugin_stopped``
+     - ``<plugin>``
+     - Fired when a plugin notifies AppDaemon that is has stopped with :code:`{"name": <plugin_name>}`. Called in the namespace of the plugin.
+   * - ``service_registered``
+     - ``<service>``
+     - Fired when AppDaemon registers a service with :code:`{"namespace": <namespace>, "domain": <domain>, "service": <service>}`. Called in the namespace of the service.
+   * - ``service_deregistered``
+     - ``<service>``
+     - Fired when AppDaemon deregisters a service with :code:`{"namespace": <namespace>, "domain": <domain>, "service": <service>}`. Called in the namespace of the service.
+   * - ``stream_connected``
+     - ``admin``
+     - Fired when the AD stream connects
+   * - ``stream_disconnected``
+     - ``admin``
+     - Fired when the AD stream disconnects
 
 Home Assistant Events
 ~~~~~~~~~~~~~~~~~~~~~
@@ -2481,7 +2560,7 @@ points to the correct endpoint for the App you are using for Alexa.
 In addition, if you are using API security keys (recommended) you will
 need to append it to the end of the URL as follows:
 
-::
+.. code-block:: text
 
     http://<some.host.com>/api/appdaemon/alexa?api_password=<password>
 
@@ -2497,14 +2576,14 @@ you will not be able to use Home Assistant remotely over SSL. The way
 around this is to use NGINX to remap the specific AppDamon API URL to a
 different port, by adding something like this to the config:
 
-::
+.. code-block:: text
 
-            location /api/appdaemon/ {
-            allow all;
-            proxy_pass http://localhost:5000;
-            proxy_set_header Host $host;
-            proxy_redirect http:// http://;
-          }
+    location /api/appdaemon/ {
+        allow all;
+        proxy_pass http://localhost:5000;
+        proxy_set_header Host $host;
+        proxy_redirect http:// http://;
+    }
 
 Here we see the default port being remapped to port 5000 which is where
 AppDamon is listening in my setup.
@@ -2523,7 +2602,7 @@ card for Alexa.
 Here is a sample of an Alexa App that can be extended for whatever intents you
 want to configure.
 
-.. code:: python
+.. code-block:: python
 
     from appdaemon.plugins.hass import Hass
 
@@ -3205,9 +3284,9 @@ necessary for developing apps. The way to do this is to simply use `pip` to inst
 How this works varies between IDEs, but once you have worked out which virtual environment to target, simply activate it then use `pip`` to install
 AppDaemon:
 
-.. code::
+.. code-block:: shell
 
-    $ source <path to virtual environment>/bin/activate
+    $ source /path/to/venv/bin/activate
     $ pip install appdaemon
 
 After this step, your IDE will have access to the code for AppDaemon's APIs and will understand how to assist with error checking and completions etc.

@@ -298,7 +298,7 @@ are set according to your setup.
 - CONFIG_DIR
    - Location of Home Assistant config.
 
-::
+.. code-block:: shell
 
     #!/bin/sh
     ### BEGIN INIT INFO
