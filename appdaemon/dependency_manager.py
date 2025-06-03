@@ -173,8 +173,9 @@ class DependencyManager:
         return self.python_deps.get_dependents(modules)
 
     def modules_from_apps(self, apps: str | Iterable[str], dependents: bool = True) -> set[str]:
-        """Find the importable names of all the python modules that depend on the given apps. Includes
-        the transitive closure by default.
+        """Find the importable names of all the python modules that the given apps depend on.
+
+        This includes the transitive closure by default.
 
         Args:
             apps (str | Iterable[str]):

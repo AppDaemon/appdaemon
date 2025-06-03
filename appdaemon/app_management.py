@@ -788,7 +788,10 @@ class AppManagement:
                     await self._process_import_paths()
                     await self._init_dep_manager()
                 case UpdateMode.RELOAD_APPS:
-                    update_actions.apps.reload |= self.get_managed_app_names(include_globals=False)
+                    all_apps = self.get_managed_app_names(include_globals=False)
+                    modules = self.dependency_manager.modules_from_apps(all_apps)
+                    update_actions.apps.reload |= all_apps
+                    update_actions.modules.reload |= modules
 
             await self.check_app_config_files(update_actions)
 

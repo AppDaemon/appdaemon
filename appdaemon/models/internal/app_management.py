@@ -24,6 +24,7 @@ class UpdateMode(Enum):
 
     INIT = auto()
     NORMAL = auto()
+    RELOAD_APPS = auto()
     PLUGIN_FAILED = auto()
     PLUGIN_RESTART = auto()
     TERMINATE = auto()
