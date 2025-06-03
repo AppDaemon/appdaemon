@@ -15,7 +15,7 @@ from copy import copy
 from functools import partial, reduce, wraps
 from logging import Logger
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal, TypeVar
+from typing import TYPE_CHECKING, Any, Literal, TypeVar
 
 from pydantic import ValidationError
 
@@ -432,7 +432,7 @@ class AppManagement:
         else:
             return True
 
-    async def restart_app(self, app):
+    async def restart_app(self, app: str) -> None:
         await self.stop_app(app, delete=False)
         try:
             await self.start_app(app)
@@ -513,8 +513,11 @@ class AppManagement:
     def get_managed_app_names(self, include_globals: bool = False) -> set[str]:
         apps = set(name for name, o in self.objects.items() if o.type == "app")
         if include_globals:
-            apps |= set(name for name, cfg in self.app_config.root.items()
-                        if isinstance(cfg, GlobalModule))
+            globals = set(
+                name for name, cfg in self.app_config.root.items()
+                if isinstance(cfg, GlobalModule)
+            )
+            apps |= globals
         return apps
 
     def add_plugin_object(self, name: str, object: "PluginBase", use_dictionary_unpacking: bool = False) -> None:
@@ -763,7 +766,7 @@ class AppManagement:
         return wrapper
 
     # @utils.timeit
-    async def check_app_updates(self, plugin_ns: str = None, mode: UpdateMode = UpdateMode.NORMAL):
+    async def check_app_updates(self, plugin_ns: str | None = None, mode: UpdateMode = UpdateMode.NORMAL):
         """Checks the states of the Python files that define the apps, reloading when necessary.
 
         Called as part of :meth:`.utility_loop.Utility.loop`
@@ -778,11 +781,17 @@ class AppManagement:
         async with self.check_updates_lock:
             await self._process_filters()
 
-            if mode == UpdateMode.INIT:
-                await self._process_import_paths()
-                await self._init_dep_manager()
-
             update_actions = UpdateActions()
+
+            match mode:
+                case UpdateMode.INIT:
+                    await self._process_import_paths()
+                    await self._init_dep_manager()
+                case UpdateMode.RELOAD_APPS:
+                    all_apps = self.get_managed_app_names(include_globals=False)
+                    modules = self.dependency_manager.modules_from_apps(all_apps)
+                    update_actions.apps.reload |= all_apps
+                    update_actions.modules.reload |= modules
 
             await self.check_app_config_files(update_actions)
 
@@ -1285,40 +1294,39 @@ class AppManagement:
             self.get_state(app, attribute="config_path")
         )
 
-    async def manage_services(self,
-                              namespace: str,
-                              domain: str,
-                              service: str,
-                              app: str | None = None,
-                              __name: str | None = None,
-                              **kwargs):
+    async def manage_services(
+        self,
+        namespace: str,
+        domain: str,
+        service: Literal["start", "stop", "restart", "reload", "enable", "disable", "create", "edit", "remove"],
+        app: str | None = None,
+        __name: str | None = None,
+        **kwargs
+    ) -> None | bool | Any:
         assert namespace == 'admin' and domain == 'app'
-
-        if app is None and service != "reload":
-            self.logger.warning(
-                "App not specified when calling '%s' service from %s. Specify App", service, __name)
-            return
-
         match service:
             case "reload" | "create":
                 pass
             case _:
-                if app not in self.app_config:
+                if app not in self.get_managed_app_names(include_globals=False):
                     self.logger.warning(
-                        "Specified App '%s' is not a valid App from %s", app, __name)
+                        "Specified app '%s' for service '%s' is not valid from %s",
+                        app,
+                        service,
+                        __name
+                    )
                     return
 
-        match service:
-            case "start":
-                asyncio.ensure_future(self.start_app(app))
-            case "stop":
-                asyncio.ensure_future(self.stop_app(app, delete=False))
-            case "restart":
-                asyncio.ensure_future(self.restart_app(app))
-            case "reload":
-                asyncio.ensure_future(
-                    self.check_app_updates(mode=UpdateMode.INIT))
-            case _:
+        match (service, app):
+            case ("start", str()):
+                asyncio.create_task(self.start_app(app))
+            case ("stop", str()):
+                asyncio.create_task(self.stop_app(app, delete=False))
+            case ("restart", str()):
+                asyncio.create_task(self.restart_app(app))
+            case ("reload", _):
+                asyncio.create_task(self.check_app_updates(mode=UpdateMode.RELOAD_APPS))
+            case (_, str()):
                 # first the check app updates needs to be stopped if on
                 mode = copy.deepcopy(self.AD.production_mode)
 
@@ -1343,3 +1351,10 @@ class AppManagement:
                     self.AD.production_mode = mode
 
                 return result
+            case _:
+                self.logger.warning(
+                    "Invalid app service call '%s' with app '%s' from  app %s.",
+                    service,
+                    app,
+                    __name
+                )
