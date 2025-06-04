@@ -1,6 +1,24 @@
 # Change Log
 
-## 4.5.8
+## 4.5.9
+
+**Features**
+
+None
+
+**Fixes**
+
+- Upgrading pip version to latest in Dockerfile
+
+**Breaking Changes**
+
+None
+
+**Changes in Behavior**
+
+None
+
+## 4.5.8 (2025-06-03)
 
 **Features**
 
