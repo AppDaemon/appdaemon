@@ -38,7 +38,7 @@ COPY ./requirements.txt /usr/src/app/
 # Save the pip cache with docker mount: https://docs.docker.com/build/cache/#keep-layers-small
 # (specify the architecture in the cache id, otherwise the pip cache of different architectures will conflict)
 RUN --mount=type=cache,id=pip-${TARGETARCH}-${TARGETVARIANT},sharing=locked,target=/root/.cache/pip \
-    pip install -r /usr/src/app/requirements.txt
+    pip install --disable-pip-version-check -r /usr/src/app/requirements.txt
 
 ###################################
 # Runtime image
@@ -53,15 +53,12 @@ COPY --from=builder /usr/local/lib/python${PYTHON_RELEASE}/site-packages /usr/lo
 
 WORKDIR /usr/src/app
 
-# Upgrade the pip version to the latest one. The version provided by Alpine is often slightly outdated which causes a warning
-RUN pip install --upgrade pip
-
 # Install Appdaemon from the Python package built in the project `dist/` folder
 RUN --mount=type=cache,id=pip-${TARGETARCH}-${TARGETVARIANT},sharing=locked,target=/root/.cache/pip,from=builder \
     # Mount the project directory containing the built Python package, so it is available for pip install inside the container
     --mount=type=bind,source=./dist/,target=/usr/src/app/ \
     # Install the package
-    pip install *.whl
+    pip --disable-pip-version-check install *.whl
 
 # Copy sample configuration directory and entrypoint script
 COPY ./conf ./conf
