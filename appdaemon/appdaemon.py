@@ -6,7 +6,6 @@ from pathlib import Path
 from threading import RLock
 from typing import TYPE_CHECKING, Optional
 
-from pydantic import Field
 
 from appdaemon.admin_loop import AdminLoop
 from appdaemon.app_management import AppManagement
@@ -112,18 +111,18 @@ class AppDaemon(metaclass=Singleton):
 
     admin_loop: AdminLoop | None = None
     http: Optional["HTTP"] = None
-    global_lock: RLock = Field(default_factory=RLock)
+    global_lock: RLock = RLock()
 
     # shut down flag
     stopping: bool = False
 
     def __init__(self, logging: "Logging", loop: BaseEventLoop, ad_config_model: AppDaemonConfig):
         self.logging = logging
-        self.logging.register_ad(self)
-        self.logger = logging.get_logger()
         self.loop = loop
         self.config = ad_config_model
         self.booted = "booting"
+        self.logger = logging.get_logger()
+        self.logging.register_ad(self) # needs to go last to reference the config object
 
         self.global_vars = {}
         self.main_thread_id = threading.current_thread().ident

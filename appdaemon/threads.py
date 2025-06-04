@@ -857,9 +857,9 @@ class Threading:
                 )
                 if not constrained:
                     unconstrained = False
-            if not await self.check_time_constraint(self.AD.app_management.app_config[name], name):
+            if not await self.check_time_constraint(self.AD.app_management.app_config[name].args, name):
                 unconstrained = False
-            elif not await self.check_days_constraint(self.AD.app_management.app_config[name], name):
+            elif not await self.check_days_constraint(self.AD.app_management.app_config[name].args, name):
                 unconstrained = False
 
         #

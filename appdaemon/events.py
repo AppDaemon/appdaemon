@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 
 class EventCallback(Protocol):
-    def __call__(self, event_name: str, data: dict[str, Any], **kwargs: Any) -> None: ...
+    def __call__(self, event_type: str, data: dict[str, Any], **kwargs: Any) -> None: ...
 
 
 class Events:
@@ -214,8 +214,8 @@ class Events:
             # if data["event_type"] == "__AD_ENTITY_REMOVED":
             #    print("process event")
 
-            self.logger.debug("Event type:%s:", data["event_type"])
-            self.logger.debug(data["data"])
+            self.logger.debug("Event type: %s:", data["event_type"])
+            # self.logger.debug(data["data"])
 
             # Kick the scheduler so it updates it's clock
             if self.AD.sched is not None and self.AD.sched.realtime is False and namespace != "admin":

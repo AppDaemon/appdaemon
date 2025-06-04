@@ -466,74 +466,178 @@ In the App, the app_users can be accessed like every other argument the App can 
 App Dependencies
 ----------------
 
-It is possible for apps to be dependent upon other apps. Some
-examples where this might be the case are:
+Apps can interact without any explicit references to each other by using because the calling app only needs
+to know the service name ``<domain>/<service>`` to be able to use :py:meth:`~appdaemon.adapi.ADAPI.call_service`. It
+doesn't need to reference or know anything about the app that provides the service. See
+`service registration <#service-registration>`__ for more details on how to register services.
 
--  A global App that defines constants for use in other apps
--  An App that provides a service for other modules, e.g., a TTS App
+Sometimes in development it's useful to intentionally create a dependency so that apps get reloaded together as files
+change. This can be done with the ``dependencies`` direction in the app configuration.
 
-In these cases, when changes are made to one of these apps, we also
-want the apps that depend upon them to be reloaded. Furthermore, we
-also want to guarantee that they are loaded in order so that the apps
-depended upon by other modules are loaded first.
+.. code-block:: yaml
+  :emphasize-lines: 9
 
-AppDaemon fully supports this through the use of the dependency
-directive in the App configuration. Using this directive, each App
-identifies other apps that it depends upon. The dependency directive
-will identify the name of the App it cares about, and AppDaemon
-will see to it that the dependency is loaded before the App depending
-on it, and that the dependent App will be reloaded if it changes.
+    # conf/apps/apps.yaml
+    my_provider:
+      module: provider
+      class: Provider
 
-For example, an App ``Consumer``, uses another App ``Sound`` to play
-sound files. ``Sound`` in turn uses ``Global`` to store some global
-values. We can represent these dependencies as follows:
-
-.. code:: yaml
-
-    Global:
-      module: global
-      class: Global
-
-    Sound
-      module: sound
-      class: Sound
-      dependencies: Global
-
-    Consumer:
-      module: sound
-      class: Sound
-      dependencies: Sound
-
-It is also possible to have multiple dependencies, added as a yaml list
-
-.. code:: yaml
-
-    Consumer:
-      module: sound
-      class: Sound
+    my_consumer:
+      module: consumer
+      class: Consumer
       dependencies:
-        - Sound
-        - Global
+        - my_provider
 
-In TOML this would be:
+In this example, both apps would get reloaded if anything in `provider.py` changes, and the ``my_provider`` app is
+guaranteed to be loaded after the ``my_provider`` app.
 
-.. code:: toml
+Imports
+~~~~~~~
 
-    [Consumer]
-    module = "sound"
-    class = "Sound"
-    dependencies = [ "Sound", "Global" ]
+Apps in AppDaemon can import from other python files in the apps directory, and it's a common pattern to have a single
+file containing global data that gets imported by multiple other apps.
+
+This shows a complete example of defining some things in a single file `globals.py` that are used by both apps defined
+in `app_a.py` and `app_b.py`.
+
+.. code-block:: text
+  :caption: Example App Directory Structure with Globals
+
+    conf/apps
+    ├── apps.yaml
+    ├── globals.py
+    └── my_apps
+        ├── app_a.py
+        └── app_b.py
+
+.. code-block:: yaml
+  :caption: Example App Configuration File
+
+    # conf/apps/apps.yaml
+    AppA:
+      module: app_a
+      class: AppA
+      dependencies:
+        - AppB # This is only set to demonstrate forcing it to load after AppB
+
+    AppB:
+      module: app_b
+      class: AppB
+
+.. code-block:: python
+  :caption: Example Global File
+
+    # conf/apps/globals.py
+    from enum import Enum
 
 
-AppDaemon will write errors to the log if a dependency is missing and it
-will also detect circular dependencies.
+    GLOBAL_VAR = "Hello, World!"
 
-Dependencies can also be set using the ``register_dependency()`` api call.
 
-App Loading Priority
---------------------
+    class ModeSelect(Enum):
+        MODE_A = 'mode_a'
+        MODE_B = 'mode_b'
+        MODE_C = 'mode_c'
 
-It is possible to influence the loading order of Apps using the dependency system. To add a loading priority to an App, simply add a ``priority`` entry to its parameters. e.g.:
+    GLOBAL_MODE = ModeSelect.MODE_B
+
+.. code-block:: python
+
+    # conf/apps/app_a.py
+    from appdaemon.adapi import ADAPI
+    from globals import GLOBAL_MODE, GLOBAL_VAR
+
+
+    class AppA(ADAPI):
+        def initialize(self) -> None:
+            self.log(GLOBAL_VAR)
+            self.log(f'Global mode is set to: {GLOBAL_MODE.value}')
+
+        def terminate(self) -> None: ...
+
+.. code-block:: python
+
+    # conf/apps/app_b.py
+    from appdaemon.adapi import ADAPI
+    from globals import GLOBAL_MODE, GLOBAL_VAR
+
+
+    class AppB(ADAPI):
+        def initialize(self) -> None:
+            self.log(GLOBAL_VAR)
+            self.log(f'Global mode is set to: {GLOBAL_MODE.value}')
+
+        def terminate(self) -> None: ...
+
+AppDaemon understands that both `app_a.py` and `app_b.py` depend on `globals.py` because of the import statement, so any
+changes to `globals.py` will effectively trigger a reload of both ``AppA`` and ``AppB``. Just for the example, ``AppA``
+was given a dependency on ``AppB``, which will cause it to always stopped before ``AppB`` and always started after
+``AppB``.
+
+For example, if ``GLOBAL_MODE`` is set to ``ModeSelect.MODE_C`` in `globals.py`, the log output would look like this:
+
+.. code-block:: text
+
+    INFO AppDaemon: Calling initialize() for AppB
+    INFO AppB: Hello, World!
+    INFO AppB: Global mode is set to: mode_b
+    INFO AppDaemon: Calling initialize() for AppA
+    INFO AppA: Hello, World!
+    INFO AppA: Global mode is set to: mode_b
+    ...
+    INFO AppDaemon: Calling terminate() for 'AppA'
+    INFO AppDaemon: Calling terminate() for 'AppB'
+    INFO AppDaemon: Calling initialize() for AppB
+    INFO AppB: AppB Initialized
+    INFO AppB: Hello, World!
+    INFO AppB: Global mode is set to: mode_c
+    INFO AppDaemon: Calling initialize() for AppA
+    INFO AppA: AppA Initialized
+    INFO AppA: Hello, World!
+    INFO AppA: Global mode is set to: mode_c
+
+Globals
+~~~~~~~
+
+.. admonition:: Global Modules
+  :class: warning
+
+    Global modules are deprecated and will be removed in a future release. AppDaemon now automatically tracks and
+    resolves dependencies by parsing files using the :py:mod:`ast <ast>` package from the standard library.
+
+This is a legacy feature, but apps still have the ability to access a variable that's shared globally across all apps in
+their ``self.global_vars`` attribute. Accessing this variable is wrapped with a the global lock, so it is safe to read
+and write between threads, although it's advised to lock entire methods with the ``global_lock`` decorator.
+
+In this example, the ``global_vars`` would remain locked throughout the duration of the ``do_something`` method.
+
+.. code-block:: python
+
+    # conf/apps/simple.py
+    from appdaemon import adbase as ad
+    from appdaemon.adapi import ADAPI
+
+    class SimpleApp(ADAPI):
+        def initialize(self) -> None:
+            self.do_something()
+
+        @ad.global_lock
+        def do_something(self):
+            vars = self.global_vars
+            ... # do some operations
+            self.global_vars = vars
+
+App Priorities
+~~~~~~~~~~~~~~
+
+The priority system is complementary to the dependency system, but they are trying to solve different problems.
+Dependencies should be used when an app literally depends upon another, for instance, it is using variables stored in it
+with the ``get_app()`` call. Priorities should be used when an app does some setup for other apps but doesn't provide
+variables or code for the dependent app. An example of this might be an app that sets up some sensors in Home Assistant,
+or sets some switch or input_slider to a specific value. It may be necessary for that setup to be performed before other
+apps are started, but there is no requirement to reload those apps if the first app changes.
+
+To add a priority to an app, simply add a ``priority`` entry to its configuration. e.g.:
 
 .. code:: yaml
 
@@ -544,16 +648,10 @@ It is possible to influence the loading order of Apps using the dependency syste
       light: light.downstairs_hall
       priority: 10
 
-
-Priorities can be any number you like, and can be float values if required, the lower the number, the higher the priority. AppDaemon will load any modules with a priority in the order specified.
-
-For modules with no priority specified, the priority is assumed to be ``50``. It is, therefore, possible to cause modules to be loaded before and after modules with no priority.
-
-The priority system is complementary to the dependency system, although they are trying to solve different problems. Dependencies should be used when an App literally depends upon another, for instance, it is using variables stored in it with the ``get_app()`` call. Priorities should be used when an App does some setup for other apps but doesn't provide variables or code for the dependent App. An example of this might be an App that sets up some sensors in Home Assistant, or sets some switch or input_slider to a specific value. It may be necessary for that setup to be performed before other apps are started, but there is no requirement to reload those apps if the first App changes.
-
-To accommodate both systems, dependency trees are assigned priorities in the range 50 - 51, again allowing apps to set priorities such that they will be loaded before or after specific sets of dependent apps.
-
-Note that apps that are dependent upon other apps, and apps that are depended upon by other apps will ignore any priority setting in their configuration.
+Priorities can be any floating point number, and the lower the value, the higher the priority. All apps are guaranteed
+to load and start before apps that have a higher priority number. However, explicitly declared dependencies will always
+take precedence over priorities. By default all apps have a priority of ``50``. It's therefore possible to cause modules
+to be loaded before or after modules without a priority explicitly set.
 
 App Log
 -------
@@ -571,15 +669,6 @@ Starting from AD 4.0, it is now possible to determine which log as declared by t
 
 
 By declaring the above, each time the function ``self.log()`` is used within the App, the log entry is sent to the user defined ``lights_log``. It is also possible to write to another log, within the same App if need be. This is done using the function ``self.log(text, log='main_log')``. Without using any of the aforementioned log capabilities, all logs from apps by default will be sent to the ``main_log``.
-
-Global Module Dependencies
---------------------------
-
-.. admonition:: Deprecation warning
-  :class: warning
-
-    Global modules are deprecated and will be removed in a future release. AppDaemon now automatically tracks and
-    resolves dependencies using the :py:mod:`ast <ast>` package from the standard library.
 
 AppDir Structure
 ----------------
@@ -1348,8 +1437,8 @@ Async Pitfalls
 ~~~~~~~~~~~~~~
 
 A major complication of using async callbacks is that because they are run in the main thread, many methods for the API
-classes return async :py:class:`Task <asyncio.Task>` objects instead of the result of the method. In the example above,
-`self.run_in` returns a :py:class:`Task <asyncio.Task>` object instead of a `str` handle like it normally would. To get
+classes return async :py:class:`~asyncio.Task` objects instead of the result of the method. In the example above,
+`self.run_in` returns a :py:class:`~asyncio.Task` object instead of a `str` handle like it normally would. To get
 the normal result of the method, the task needs to be `awaited`.
 
 This will not give the expected result - the handle will be a `Task` object, not a `str`:
@@ -1372,7 +1461,7 @@ Async Advantages
 - Async programming can sometimes provide performance benefits in situations where there are many simulatneous I/O bound tasks happening at once.
 - Some external libraries are designed with an async interface, and intended to be used that way.
 - Scheduling heavily concurrent tasks is very easy using async
-- Using :py:meth:`sleep <appdaemon.adapi.ADAPI.sleep>` in async apps is not harmful to the overall performance of AppDaemon as it is in regular sync apps
+- Using :py:meth:`~appdaemon.adapi.ADAPI.sleep` in async apps is not harmful to the overall performance of AppDaemon as it is in regular sync apps
 
 Async Tools
 ~~~~~~~~~~~
@@ -1382,19 +1471,19 @@ AppDaemon supplies a number of helper functions to make things a little easier:
 Creating Tasks
 ^^^^^^^^^^^^^^
 
-Although it's possible to use the :py:func:`asyncio.create_task <asyncio.create_task>` function from inside async
+Although it's possible to use the :py:func:`asyncio.create_task` function from inside async
 callbacks, it's not recommended because if any tasks created this way are not done when the app is reloaded or
 terminated, they won't be cleaned up. This can lead to unexpected behavior, as the tasks will continue to run in the
 background and might get recreated when the app starts again. Instead, it's recommended to use a helper method called
-:py:meth:`create_task() <appdaemon.adapi.ADAPI.create_task>` method that wraps
-:py:func:`asyncio.create_task <asyncio.create_task>` with logic to clean up the task when the app is reloaded or
+:py:meth:`~appdaemon.adapi.ADAPI.create_task` method that wraps
+:py:func:`asyncio.create_task` with logic to clean up the task when the app is reloaded or
 terminated.
 
 Using the Thread Pool
 ^^^^^^^^^^^^^^^^^^^^^
 
-The `ADAPI` class provides a method called :py:meth:`run_in_executor() <appdaemon.adapi.ADAPI.run_in_executor>` that
-allows the user to run a function in the internal :py:class:`ThreadPoolExecutor <concurrent.futures.ThreadPoolExecutor>`.
+The `ADAPI` class provides a method called :py:meth:`~appdaemon.adapi.ADAPI.run_in_executor` that
+allows the user to run a function in the internal :py:class:`~concurrent.futures.ThreadPoolExecutor`.
 This effectively allows the user to run blocking, sync code in a separate thread as if it was async, which prevents
 blocking any of the worker threads or the main thread. Otherwise, a long-running callback would block whatever thread
 it's in, which can cause problems. A standard pattern is to use other threads for I/O bound tasks, such as file or
@@ -1404,7 +1493,7 @@ Sleeping
 ^^^^^^^^
 
 Sleeping in Apps is perfectly fine using the async model. For this purpose, AppDaemon provides the
-:py:meth:`sleep <appdaemon.adapi.ADAPI.sleep>` method. If this function is used in a non-async callback, it will raise
+:py:meth:`~appdaemon.adapi.ADAPI.sleep` method. If this function is used in a non-async callback, it will raise
 an exception.
 
 Async Threading Considerations
@@ -1426,7 +1515,7 @@ for these events, and AppDaemon will handle calling them as necessary.
 Apps in AppDaemon are merely groups of these callbacks, so when the callbacks
 are not being executed, apps consume very little resources.
 
-There are 4 kinds of callback in AppDaemon, each with their own methods in ``ADAPI``.
+There are 4 kinds of callback in AppDaemon, each with their own methods in :class:`~appdaemon.adapi.ADAPI`.
 
 .. list-table:: AppDaemon Callbacks
     :header-rows: 1
@@ -1435,16 +1524,16 @@ There are 4 kinds of callback in AppDaemon, each with their own methods in ``ADA
       - API Method
       - Description
     * - Event
-      - :meth:`listen_event() <appdaemon.adapi.ADAPI.listen_event>`
+      - :meth:`~appdaemon.adapi.ADAPI.listen_event`
       - react to a specific event being fired
     * - Scheduler
-      - ``run_once()``, ``run_in()``, ``run_at()``, etc.
+      - :meth:`~appdaemon.adapi.ADAPI.run_once`, :meth:`~appdaemon.adapi.ADAPI.run_in`, :meth:`~appdaemon.adapi.ADAPI.run_at`, etc.
       - react to a specific time or interval
     * - State
-      - :meth:`listen_state() <appdaemon.adapi.ADAPI.listen_state>`
+      - :meth:`~appdaemon.adapi.ADAPI.listen_state`
       - react to a change in state
     * - Log
-      - :meth:`listen_log() <appdaemon.adapi.ADAPI.listen_log>`
+      - :meth:`~appdaemon.adapi.ADAPI.listen_log`
       - called whenever a log entry is made
 
 Event Callbacks
@@ -1452,8 +1541,8 @@ Event Callbacks
 
 `More information <#events>`__ on events in AppDaemon.
 
-Users can register event callbacks with calls to :meth:`self.listen_event(...) <appdaemon.adapi.ADAPI.listen_event>`.
-AppDaemon will handle executing the callback when the event is fired.
+Users can register event callbacks with calls to :meth:`~appdaemon.adapi.ADAPI.listen_event`. AppDaemon will handle
+executing the callback when the event is fired.
 
 For example, this registers a callback for an event ``some_event``:
 
@@ -1461,44 +1550,98 @@ For example, this registers a callback for an event ``some_event``:
 
     self.listen_event(self.my_callback, "some_event")
 
-Event callbacks are expected to have a specific signature, which looks like this:
+Event callbacks are expected to have a specific signature. For legacy compatibility, callbacks without the ``**kwargs``
+expansion will still work. AppDaemon will automatically determine the correct way to call the function when it's
+executed.
 
 .. code:: python
 
-    def my_callback(self, event_name, data, **kwargs):
+    def my_callback(self, event_type: str, data: dict[str, Any], **kwargs: Any) -> None:
         ... # do some useful work here
 
-For legacy compatibility, callbacks without the keyword argument expansion will still work.
-AppDaemon will automatically determine the correct way to call the function when it executes it.
-
-.. code:: python
-
-    def my_callback(self, event_name, data, kwargs):
+    def my_legacy_callback(self, event_type, data, kwargs) -> None:
         ... # do some useful work here
 
-Additional keyword arguments can be passed to the callback when it is registered. These
-will be passed to the callback when it is called. For example:
+The ``data`` argument is a dict containing data sent with the event when it's fired, which varies depending on the
+event, and ``kwargs`` is a dict of data that comes from the call to :meth:`~appdaemon.adapi.ADAPI.listen_event`.
 
 .. code:: python
 
     self.listen_event(self.my_callback, "some_event", my_kwarg=123)
 
+These callbacks are equivalent:
+
 .. code:: python
 
-    def my_callback(self, event_name, data, **kwargs):
-        self.log(f'My kwarg: {kwargs["my_kwarg"]}')
+    def my_callback(self, event_type, data, **kwargs):
+        my_kwarg = kwargs["my_kwarg"]
+        self.log(f'My kwarg: {my_kwarg}')
+
+    def my_callback(self, *_, my_kwarg: int, **kwargs):
+        self.log(f'My kwarg: {my_kwarg}')
+
+Filtering Events
+^^^^^^^^^^^^^^^^
+
+Arguments that were used to register the event callback will be used to filter the events, but only if the events have
+keys that match the arguments. For example, registering a callback like this will cause it to only be called when the
+event has a matching ``entity_id`` key in its data:
+
+.. code-block:: python
+  :emphasize-lines: 13
+
+    from datetime import datetime
+
+    from appdaemon.adapi import ADAPI
+
+
+    class ButtonHandler(ADAPI):
+        def initialize(self):
+            # Listen for a button press event with a specific entity_id
+            self.listen_event(
+                self.minimal_callback,
+                'call_service',
+                service='press',
+                entity_id='input_button.test_button,
+            )
+
+        def minimal_callback(self, event_type: str, data: dict[str, Any], **kwargs: Any) -> None:
+            self.log(f'Button pressed')
+
+        # Another example callback
+        def alternate_callback(self, event_type: str, data: dict[str, Any], **kwargs: Any) -> None:
+            match data:
+                case {
+                    "service_data": {"entity_id": eid},
+                    "metadata": {"time_fired": time_fired}
+                }:
+                    friendly_name = self.get_state(eid, attribute='friendly_name')
+                    time_fired = datetime.fromisoformat(time_fired).astimezone(self.AD.tz)
+                    fmt = "%I:%M:%S %p"
+                    self.log(f'{friendly_name} was pressed at {time_fired.strftime(fmt)}')
+                    self.log(f'Kwargs: {kwargs}')
+                case _:
+                    self.log(f'Unhandled button press: {data}', level='WARNING')
+
 
 More examples:
 
 .. code:: python
 
     self.listen_event(self.mode_event, "MODE_CHANGE")
+
     # Listen for a minimote event activating scene 3:
-    self.listen_event(self.generic_event, "zwave_js_value_notification", value = 3)
+    self.listen_event(self.generic_event, "zwave_js_value_notification", value=3)
+
     # Listen for a minimote event activating scene 3 from a specific minimote:
-    self.listen_event(self.generic_event, "zwave_js_value_notification", node_id = "11", value = 3)
+    self.listen_event(self.generic_event, "zwave_js_value_notification", node_id="11", value=3)
+
     # Listen for a minimote event activating scene 3 from one of several minimotes:
-    self.listen_event(self.generic_event, "zwave_js_value_notification", node_id = lambda x: x in ["11", "14", "22"], value = 3)
+    self.listen_event(
+        self.generic_event, "zwave_js_value_notification",
+        node_id=lambda x: x in ["11", "14", "22"],
+        value=3
+    )
 
 Scheduler Callbacks
 ~~~~~~~~~~~~~~~~~~~
@@ -1625,15 +1768,40 @@ In addition to the HASS and MQTT supplied events, AppDaemon adds 3 more
 events. These are internal to AppDaemon and are not visible on the Home
 Assistant bus:
 
--  ``appd_started`` - fired once when AppDaemon is first started and after Apps are initialized. It is fired within the `global` namespace
-- ``app_initialized`` - fired when an App is initialized. It is fired within the `admin` namespace
-- ``app_terminated`` - fired when an App is terminated. It is fired within the `admin` namespace
--  ``plugin_started`` - fired when a plugin is initialized and properly setup e.g. connection to Home Assistant. It is fired within the plugin's namespace
--  ``plugin_stopped`` - fired when a plugin terminates, or becomes internally unstable like a disconnection from an external system like an MQTT broker. It is fired within the plugin's namespace
--  ``service_registered`` - fired when a service is registered in AD. It is fired within the namespace it was registered
--  ``service_deregistered`` - fired when a service is deregistered in AD. It is fired within the namespace it was deregistered
-- ``stream_connected`` - fired when a stream client connects like the Admin User Interface. It is fired within the `admin` namespace
-- ``stream_disconnected`` - fired when a stream client disconnects like the Admin User Interface. It is fired within the `admin` namespace
+.. list-table:: AppDaemon Internal Events
+   :header-rows: 1
+   :widths: 20 6 80
+
+   * - **Event Type**
+     - **Namespace**
+     - **Description**
+   * - ``appd_started``
+     - ``global``
+     - Fired once when AppDaemon is first started and after Apps are initialized.
+   * - ``app_initialized``
+     - ``admin``
+     - Fired when each app is started with :code:`{"app": <app_name>}` for its data.
+   * - ``app_terminated``
+     - ``admin``
+     - Fired when each app is terminated with :code:`{"app": <app_name>}` for its data after all its callbacks have been removed.
+   * - ``plugin_started``
+     - ``<plugin>``
+     - Fired when a plugin notifies AppDaemon that is has started with :code:`{"name": <plugin_name>}`. Called in the namespace of the plugin.
+   * - ``plugin_stopped``
+     - ``<plugin>``
+     - Fired when a plugin notifies AppDaemon that is has stopped with :code:`{"name": <plugin_name>}`. Called in the namespace of the plugin.
+   * - ``service_registered``
+     - ``<service>``
+     - Fired when AppDaemon registers a service with :code:`{"namespace": <namespace>, "domain": <domain>, "service": <service>}`. Called in the namespace of the service.
+   * - ``service_deregistered``
+     - ``<service>``
+     - Fired when AppDaemon deregisters a service with :code:`{"namespace": <namespace>, "domain": <domain>, "service": <service>}`. Called in the namespace of the service.
+   * - ``stream_connected``
+     - ``admin``
+     - Fired when the AD stream connects
+   * - ``stream_disconnected``
+     - ``admin``
+     - Fired when the AD stream disconnects
 
 Home Assistant Events
 ~~~~~~~~~~~~~~~~~~~~~
@@ -2392,7 +2560,7 @@ points to the correct endpoint for the App you are using for Alexa.
 In addition, if you are using API security keys (recommended) you will
 need to append it to the end of the URL as follows:
 
-::
+.. code-block:: text
 
     http://<some.host.com>/api/appdaemon/alexa?api_password=<password>
 
@@ -2408,14 +2576,14 @@ you will not be able to use Home Assistant remotely over SSL. The way
 around this is to use NGINX to remap the specific AppDamon API URL to a
 different port, by adding something like this to the config:
 
-::
+.. code-block:: text
 
-            location /api/appdaemon/ {
-            allow all;
-            proxy_pass http://localhost:5000;
-            proxy_set_header Host $host;
-            proxy_redirect http:// http://;
-          }
+    location /api/appdaemon/ {
+        allow all;
+        proxy_pass http://localhost:5000;
+        proxy_set_header Host $host;
+        proxy_redirect http:// http://;
+    }
 
 Here we see the default port being remapped to port 5000 which is where
 AppDamon is listening in my setup.
@@ -2434,7 +2602,7 @@ card for Alexa.
 Here is a sample of an Alexa App that can be extended for whatever intents you
 want to configure.
 
-.. code:: python
+.. code-block:: python
 
     from appdaemon.plugins.hass import Hass
 
@@ -3116,9 +3284,9 @@ necessary for developing apps. The way to do this is to simply use `pip` to inst
 How this works varies between IDEs, but once you have worked out which virtual environment to target, simply activate it then use `pip`` to install
 AppDaemon:
 
-.. code::
+.. code-block:: shell
 
-    $ source <path to virtual environment>/bin/activate
+    $ source /path/to/venv/bin/activate
     $ pip install appdaemon
 
 After this step, your IDE will have access to the code for AppDaemon's APIs and will understand how to assist with error checking and completions etc.

@@ -60,7 +60,7 @@ class Utility:
             datetime.timedelta: The uptime of AppDaemon
 
         """
-        uptime = self.booted - await self.AD.sched.get_now()
+        uptime = await self.AD.sched.get_now() - self.booted
         rounded_uptime = timedelta(seconds=round(uptime.total_seconds()))
         return rounded_uptime
 

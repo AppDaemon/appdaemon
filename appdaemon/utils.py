@@ -334,6 +334,11 @@ def parse_timedelta(s: str | int | float | timedelta | None) -> timedelta:
                 case 4:
                     day, hour, min, sec = parts
                     return timedelta(days=day, hours=hour, minutes=min, seconds=sec)
+                case _:
+                    raise ValueError(
+                        f"Invalid string format for timedelta: {s}."
+                        "Must be in the format 'HH:MM:SS', 'MM:SS', or 'SS'."
+                    )
         case None:
             return timedelta()
         case _:

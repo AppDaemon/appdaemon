@@ -1,6 +1,83 @@
 # Change Log
 
-## 4.5.4
+## 4.5.8
+
+**Features**
+
+None
+
+**Fixes**
+
+- Fix for time & day constraints
+- Additional error checking around websocket aceesses for HASS
+- restored metadata to service callbacks
+- refactor of services dictionary access
+
+**Breaking Changes**
+
+None
+
+**Changes in Behavior**
+
+None
+
+## 4.5.7 (2025-06-01)
+
+**Features**
+
+None
+
+**Fixes**
+
+- Fixed issue with getter that prevented app initialization
+
+**Breaking Changes**
+
+None
+
+**Changes in Behavior**
+
+None
+
+## 4.5.6 (2025-06-01)
+
+**Features**
+
+None
+
+**Fixes**
+
+- Fixed an async issue with `firendly_name()`
+- Added missing setter for global_vars
+
+**Breaking Changes**
+
+None
+
+**Changes in Behavior**
+
+None
+
+## 4.5.5 (2025-05-30)
+
+**Features**
+
+None
+
+**Fixes**
+
+- Fixed an error with `RequestHandlerException` in the HTTP subsystem
+- Fixed uptime sensor returning negative days in AUI
+
+**Breaking Changes**
+
+None
+
+**Changes in Behavior**
+
+None
+
+## 4.5.4 (2025-05-29)
 
 **Features**
 
@@ -11,7 +88,10 @@ None
 - Fixed a cosmetic error on admin stream disconnect
 - Fixed spurious entry in service dictionary causing dashboard `__name`` errors
 - Added setter for setter for `pin_apps`
-- Upgrading pip version to latest in Dockerfile
+- Passing through keyword arguments to `render_template`
+- Fixed a bug in the error text for apps in a custom app_dir
+- Fix for wait_state - contributed by [Kostas Chatzikokolakis](https://github.com/chatziko)
+- fix constrain_input_select when not a list - contributed by [Xavi Moreno](https://github.com/xaviml)
 
 **Breaking Changes**
 
@@ -135,6 +215,7 @@ None
 **Breaking Changes**
 
 - AppDaemon no longer supports versions of Python prior to 3.10. This is in line with other packages, and allows us to keep the code base up to date and current with the latest developments
+- Services with the Alexa integration have a naming conflict with its `target` argument and the `target` expected by the websocket API. Service calls may have to be adjusted. See [advanced service calls](https://appdaemon.readthedocs.io/en/latest/HASS_API_REFERENCE.html#advanced-service-calls) for more information.
 
 **Changes in Behavior**
 
