@@ -8,7 +8,7 @@ None
 
 **Fixes**
 
-None
+- Upgrading pip version to latest in Dockerfile
 
 **Breaking Changes**
 
