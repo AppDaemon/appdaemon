@@ -114,7 +114,7 @@ class AppDaemon(metaclass=Singleton):
         self.main_thread_id = threading.current_thread().ident
 
         if not self.apps:
-            self.logger.info("Apps are disabled")
+            self.logging.log("INFO", "Apps are disabled")
 
         # Initialize subsystems
         self.callbacks = Callbacks(self)
