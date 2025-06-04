@@ -321,7 +321,7 @@ def parse_timedelta(s: str | int | float | timedelta | None) -> timedelta:
         case int() | float():
             return timedelta(seconds=s)
         case str():
-            parts = tuple(float(p.strip()) for p in re.split(r"[^\d]+", s))
+            parts = tuple(float(p.strip()) for p in re.split(r"[^\d\.]+", s))
             match len(parts):
                 case 1:
                     return timedelta(seconds=parts[0])

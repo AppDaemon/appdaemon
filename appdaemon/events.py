@@ -1,14 +1,15 @@
-from collections.abc import Iterable
 import datetime
 import json
 import traceback
 import uuid
+from collections.abc import Callable, Iterable
 from copy import deepcopy
 from logging import Logger
 from typing import TYPE_CHECKING, Any, Protocol
-from collections.abc import Callable
 
 import appdaemon.utils as utils
+
+from .plugin_management import PluginBase
 
 if TYPE_CHECKING:
     from appdaemon.appdaemon import AppDaemon
@@ -190,13 +191,14 @@ class Events:
 
         self.logger.debug("fire_plugin_event() %s %s %s", namespace, event, kwargs)
         plugin = self.AD.plugins.get_plugin_object(namespace)
-
-        if hasattr(plugin, "fire_plugin_event"):
-            # We assume that the event will come back to us via the plugin
-            return await plugin.fire_plugin_event(event, namespace, **kwargs)
-        else:
-            # Just fire the event locally
-            await self.AD.events.process_event(namespace, {"event_type": event, "data": kwargs})
+        match plugin:
+            case PluginBase() as plugin:
+                if hasattr(plugin, "fire_plugin_event"):
+                    # We assume that the event will come back to us via the plugin
+                    return await plugin.fire_plugin_event(event, namespace, **kwargs)
+                else:
+                    # Just fire the event locally
+                    await self.AD.events.process_event(namespace, {"event_type": event, "data": kwargs})
 
     async def process_event(self, namespace: str, data: dict[str, Any]):
         """Processes an event that has been received either locally or from a plugin.

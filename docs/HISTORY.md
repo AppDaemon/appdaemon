@@ -1,6 +1,26 @@
 # Change Log
 
-## 4.5.8
+## 4.5.9
+
+**Features**
+
+None
+
+**Fixes**
+
+- Passing through `timeout` kwarg in `dash_navigate` and `fire_event`
+- Fixed a bug with `parse_timedelta` in cases like `"00:2.5"`
+- Minor type fixes
+
+**Breaking Changes**
+
+None
+
+**Changes in Behavior**
+
+None
+
+## 4.5.8 (2025-06-03)
 
 **Features**
 
