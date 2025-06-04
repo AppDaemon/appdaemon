@@ -5,7 +5,7 @@ from copy import copy, deepcopy
 from datetime import timedelta
 from logging import Logger
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Protocol, Set, Union, overload
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Protocol, Set, overload
 
 from . import exceptions as ade
 from . import utils
