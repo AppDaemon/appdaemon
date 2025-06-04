@@ -768,7 +768,13 @@ class HassPlugin(PluginBase):
     #
 
     @hass_check
-    async def fire_plugin_event(self, event, namespace, timeout: float | None = None, **kwargs) -> dict | None:
+    async def fire_plugin_event(
+        self,
+        event: str,
+        namespace: str,
+        timeout: str | int | float | datetime.timedelta | None = None,
+        **kwargs: Any,
+    ) -> dict[str, Any] | None:  # fmt: skip
         # if we get a request for not our namespace something has gone very wrong
         assert namespace == self.namespace
 

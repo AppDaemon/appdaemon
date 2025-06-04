@@ -4,7 +4,7 @@ import datetime
 import importlib
 import sys
 import traceback
-from collections.abc import Generator, Iterable
+from collections.abc import Generator, Iterable, Mapping
 from logging import Logger
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, Type
@@ -138,7 +138,13 @@ class PluginBase(abc.ABC):
     #     pass
 
     # @abc.abstractmethod
-    async def fire_plugin_event(self):
+    async def fire_plugin_event(
+        self,
+        event: str,
+        namespace: str,
+        timeout: str | int | float | datetime.timedelta | None = None,
+        **kwargs: Any,
+    ) -> dict[str, Any] | None:  # fmt: skip
         raise NotImplementedError
 
     @utils.warning_decorator(error_text="Unexpected error during notify_plugin_started()")
@@ -233,7 +239,7 @@ class PluginManagement:
     """Flag for if PluginManagement should be shutting down
     """
 
-    def __init__(self, ad: "AppDaemon", config: dict[str, PluginConfig]):
+    def __init__(self, ad: "AppDaemon", config: Mapping[str, PluginConfig]):
         self.AD = ad
         self.config = config
         self.stopping = False

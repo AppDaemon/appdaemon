@@ -1,8 +1,8 @@
-from datetime import timedelta
 import threading
 import traceback
 import uuid
 from copy import copy, deepcopy
+from datetime import timedelta
 from logging import Logger
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Protocol, Set, Union, overload
@@ -74,8 +74,8 @@ class State:
         namespace: str,
         writeback: str,
         persist: bool,
-        name: str = None
-    ) -> Union[bool, Path]:
+        name: str | None = None,
+    ) -> Path | bool | None:  # fmt: skip
         """Used to Add Namespaces from Apps"""
 
         if self.namespace_exists(namespace):
@@ -533,11 +533,12 @@ class State:
         self,
         namespace: str,
         entity: str,
-        state: str | dict,
+        state: str | dict[str, Any],
         attributes: Optional[dict] = None
-    ):
+    ) -> None:
         """Adds an entity to the internal state registry and fires the ``__AD_ENTITY_ADDED`` event"""
         if self.entity_exists(namespace, entity):
+            self.logger.warning("%s already exists, will not be adding it", entity)
             return
 
         state = {
