@@ -11,6 +11,8 @@ if TYPE_CHECKING:
 
 
 class Admin:
+    name: str = "_admin"
+
     def __init__(self, config_dir, logger, ad: "AppDaemon", **kwargs):
         #
         # Set Defaults

@@ -14,6 +14,8 @@ from appdaemon.stream.ws_handler import WSHandler
 
 
 class ADStream:
+    name: str = "_adstream"
+
     def __init__(self, ad: AppDaemon, app, transport):
         self.AD = ad
         self.logger = ad.logging.get_child("_stream")
@@ -80,6 +82,8 @@ class ADStream:
 ## directly. Only Create public methods here if you wish to make them
 ## stream commands.
 class RequestHandler:
+    name: str = "_request_handler"
+
     def __init__(self, ad: AppDaemon, adstream, handle, request):
         self.AD = ad
         self.handle = handle

@@ -41,6 +41,7 @@ class Scheduler:
 
     schedule: dict[str, dict[str, Any]]
 
+    name: str = "_scheduler"
     active: bool = False
     realtime: bool = True
     stopping: bool = False

@@ -4,10 +4,8 @@ from logging import Logger
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from appdaemon import adapi
-from appdaemon import utils
-from appdaemon.models.config.app import AppConfig, AllAppConfig
-
+from appdaemon import adapi, utils
+from appdaemon.models.config.app import AllAppConfig, AppConfig
 
 # Check if the module is being imported using the legacy method
 if __name__ == Path(__file__).name:
@@ -79,7 +77,6 @@ class ADBase:
     args: dict
     """Dictionary of the app configuration
     """
-
     _namespace: str
 
     logger: Logger
