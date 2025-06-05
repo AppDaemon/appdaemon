@@ -74,10 +74,14 @@ class Utility:
         #
         # Setup
         #
-        # self.AD.threading = Threading(self)
+
         await self.AD.threading.init_admin_stats()
-        await self.AD.threading.create_initial_threads()
-        await self.AD.app_management.init_admin_stats()
+        if not self.AD.config.disable_apps:
+            await self.AD.threading.create_initial_threads()
+            await self.AD.app_management.init_admin_stats()
+        else:
+            await self.AD.threading.add_thread(silent=True)
+            self.total_threads = 1
 
         #
         # Start the web server
@@ -246,7 +250,8 @@ class Utility:
             #
             # Stop apps
             #
-            if self.AD.app_management is not None:
+            if not self.AD.config.disable_apps and \
+                self.AD.app_management is not None:  # fmt: skip
                 await self.AD.app_management.terminate()
 
             #
