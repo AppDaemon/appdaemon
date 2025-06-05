@@ -410,10 +410,10 @@ class Hass(ADBase, ADAPI):
     def constrain_input_select(self, value: str | Iterable[str]) -> bool:
         """Returns True if unconstrained - all inputs match a desired state."""
         match value:
-            case Iterable():
-                constraints = value if isinstance(value, list) else list(value)
             case str():
                 constraints = [value]
+            case Iterable():
+                constraints = value if isinstance(value, list) else list(value)
 
         assert isinstance(constraints, list) and all(isinstance(v, str) for v in constraints)
 
