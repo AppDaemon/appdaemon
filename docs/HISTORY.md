@@ -4,7 +4,7 @@
 
 **Features**
 
-None
+- Added "log_level" directive to `appdaemon'yaml` to allow global log level setting
 
 **Fixes**
 

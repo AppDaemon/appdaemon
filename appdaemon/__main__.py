@@ -227,7 +227,7 @@ class ADMain:
             "-D",
             "--debug",
             help="global debug level",
-            default="INFO",
+            # default="INFO",
             choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
         )
         parser.add_argument("-m", "--moduledebug", nargs=2, action="append")
@@ -283,7 +283,7 @@ class ADMain:
             config = {
                 k: v if v is not None else {}
                 for k, v in config.items()
-            } # fmt: skip
+            }  # fmt: skip
 
             ad_kwargs = config["appdaemon"]
 
@@ -299,7 +299,13 @@ class ADMain:
                 ad_kwargs["endtime"] = args.endtime
 
             ad_kwargs["stop_function"] = self.stop
-            ad_kwargs["loglevel"] = args.debug
+
+            if args.debug is not None:
+                ad_kwargs["loglevel"] = args.debug
+            elif "loglevel" in ad_kwargs:
+                pass
+            else:
+                ad_kwargs["loglevel"] = "INFO"
 
             if args.moduledebug is not None:
                 module_debug_cli = {arg[0]: arg[1] for arg in args.moduledebug}
@@ -319,9 +325,9 @@ class ADMain:
 
             model = MainConfig.model_validate(config)
 
-            if args.debug.upper() == "DEBUG":
+            if ad_kwargs["loglevel"] == "DEBUG":
                 # need to dump as python types or serializing the timezone object will fail
-                model_json = model.model_dump(mode='python', by_alias=True)
+                model_json = model.model_dump(mode="python", by_alias=True)
                 print(json.dumps(model_json, indent=4, default=str, sort_keys=True))
         except ValidationError as e:
             print(f"Configuration error in: {config_file}")
@@ -335,7 +341,7 @@ class ADMain:
             print(e)
             sys.exit(1)
 
-        log_cfg = model.model_dump(mode='python', by_alias=True)['logs']
+        log_cfg = model.model_dump(mode="python", by_alias=True)["logs"]
         self.logging = Logging(log_cfg, args.debug)
         self.logger = self.logging.get_logger()
 
@@ -365,7 +371,7 @@ class ADMain:
         self.logger.debug("AppDaemon Section: %s", config.get("appdaemon"))
         self.logger.debug("HADashboard Section: %s", config.get("hadashboard"))
 
-        dump_kwargs = dict(mode='json', by_alias=True, exclude_unset=True)
+        dump_kwargs = dict(mode="json", by_alias=True, exclude_unset=True)
 
         if (hadashboard := model.hadashboard) is not None:
             hadashboard = hadashboard.model_dump(**dump_kwargs)

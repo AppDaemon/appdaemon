@@ -272,6 +272,11 @@ The following settings provide a high level of control over AppDaemon's internal
       Setting this to a specific value will turn off automatic thread management.
     -
 
+  * - loglevel
+    - The global log level for AppDaemon's main log. This can be set to ``DEBUG``, ``INFO``, ``WARNING``, ``ERROR`` or ``CRITICAL``.
+      The default is ``INFO``. Note that this value will be overridden by the `-D` command line flag, if it is set.
+    - ``INFO``
+
   * - pin_apps
     - If ``true``, AppDaemon apps will be pinned to a particular thread.
       This should avoids complications around re-entrant code and locking of instance variables.
