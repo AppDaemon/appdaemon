@@ -24,6 +24,7 @@ class MqttPlugin(PluginBase):
     mqtt_wildcards: list[str]
     mqtt_binary_topics: list[str]
     mqtt_lock: Lock
+    name: str = "_mqtt"
 
     def __init__(self, ad: "AppDaemon", name: str, config: MQTTConfig):
         """Initialize MQTT Plugin."""

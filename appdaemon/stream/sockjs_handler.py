@@ -1,5 +1,6 @@
-import traceback
 import json
+import traceback
+
 import sockjs
 
 from appdaemon import utils as utils
@@ -49,6 +50,8 @@ class SockJSHandler:
 
 
 class SockJSStream:
+    name: str = "_sockjsstream"
+
     def __init__(self, ad, session, **kwargs):
         self.AD = ad
         self.session = session
