@@ -8,24 +8,6 @@ None
 
 **Fixes**
 
-None
-
-**Breaking Changes**
-
-None
-
-**Changes in Behavior**
-
-None
-
-## 4.5.9 (2025-06-05)
-
-**Features**
-
-None
-
-**Fixes**
-
 - Upgrading pip version to latest in Dockerfile
 - Passing through `timeout` kwarg in `dash_navigate` and `fire_event`
 - Fixed a bug with `parse_timedelta` in cases like `"00:2.5"`
@@ -72,23 +54,6 @@ None
 **Fixes**
 
 - Fixed issue with getter that prevented app initialization
-
-**Breaking Changes**
-
-None
-
-**Changes in Behavior**
-
-None
-
-## 4.5.6 (2025-06-01)
-
-**Features**
-
-None
-
-**Fixes**
-
 - Fixed an async issue with `firendly_name()`
 - Added missing setter for global_vars
 
