@@ -4,8 +4,7 @@ from asyncio import BaseEventLoop
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from threading import RLock
-from typing import TYPE_CHECKING, Optional
-
+from typing import TYPE_CHECKING, Any
 
 from appdaemon.admin_loop import AdminLoop
 from appdaemon.app_management import AppManagement
@@ -30,7 +29,8 @@ if TYPE_CHECKING:
 
 
 class AppDaemon(metaclass=Singleton):
-    """Top-level container for the subsystem objects. This gets passed to the subsystem objects and stored in them as the ``self.AD`` attribute.
+    """Top-level container for the subsystem objects. This gets passed to the subsystem objects and stored in them as
+    the ``self.AD`` attribute.
 
     Asyncio:
 
@@ -81,36 +81,22 @@ class AppDaemon(metaclass=Singleton):
     """
 
     # subsystems
-    app_management: AppManagement
-    callbacks: Callbacks = None
-    events: Events = None
-    futures: Futures
+    app_management: "AppManagement"
+    callbacks: "Callbacks"
+    events: "Events"
+    futures: "Futures"
     logging: "Logging"
-    plugins: PluginManagement
-    scheduler: Scheduler
-    services: Services
-    sequences: Sequences
-    state: State
-    threading: Threading
-    thread_async: ThreadAsync = None
-    utility: Utility
+    plugins: "PluginManagement"
+    scheduler: "Scheduler"
+    services: "Services"
+    sequences: "Sequences"
+    state: "State"
+    threading: "Threading"
+    thread_async: "ThreadAsync | None" = None
+    utility: "Utility"
 
-    # settings
-    app_dir: Path
-    """Defined in the main YAML config under ``appdaemon.app_dir``. Defaults to ``./apps``
-    """
-    config_dir: Path
-    """Path to the AppDaemon configuration files. Defaults to the first folder that has ``./apps``
-
-    - ``~/.homeassistant``
-    - ``/etc/appdaemon``
-    """
-    apps: bool
-    """Flag for whether ``disable_apps`` was set in the AppDaemon config
-    """
-
-    admin_loop: AdminLoop | None = None
-    http: Optional["HTTP"] = None
+    admin_loop: "AdminLoop | None" = None
+    http: "HTTP | None" = None
     global_lock: RLock = RLock()
 
     # shut down flag
@@ -122,9 +108,9 @@ class AppDaemon(metaclass=Singleton):
         self.config = ad_config_model
         self.booted = "booting"
         self.logger = logging.get_logger()
-        self.logging.register_ad(self) # needs to go last to reference the config object
+        self.logging.register_ad(self)  # needs to go last to reference the config object
 
-        self.global_vars = {}
+        self.global_vars: Any = {}
         self.main_thread_id = threading.current_thread().ident
 
         if not self.apps:
@@ -143,7 +129,8 @@ class AppDaemon(metaclass=Singleton):
             assert self.config_dir is not None, "Config_dir not set. This is a development problem"
             assert self.config_dir.exists(), f"{self.config_dir} does not exist"
             assert os.access(
-                self.config_dir, os.R_OK | os.X_OK
+                self.config_dir,
+                os.R_OK | os.X_OK,
             ), f"{self.config_dir} does not have the right permissions"
 
             # this will always be None because it never gets set in ad_kwargs in __main__.py
@@ -152,7 +139,8 @@ class AppDaemon(metaclass=Singleton):
                 if not self.app_dir.exists():
                     self.app_dir.mkdir()
                 assert os.access(
-                    self.app_dir, os.R_OK | os.W_OK | os.X_OK
+                    self.app_dir,
+                    os.R_OK | os.W_OK | os.X_OK,
                 ), f"{self.app_dir} does not have the right permissions"
 
             self.logger.info(f"Using {self.app_dir} as app_dir")
@@ -179,19 +167,25 @@ class AppDaemon(metaclass=Singleton):
     # Property definitions
     #
     @property
-    def admin_delay(self):
+    def admin_delay(self) -> int:
         return self.config.admin_delay
 
     @property
-    def api_port(self):
+    def api_port(self) -> int | None:
         return self.config.api_port
 
     @property
-    def app_dir(self):
+    def app_dir(self) -> Path:
+        """Defined in the main YAML config under ``appdaemon.app_dir``. Defaults to ``./apps``"""
         return self.config.app_dir
+
+    @app_dir.setter
+    def app_dir(self, path: os.PathLike) -> None:
+        self.config.app_dir = Path(path)
 
     @property
     def apps(self):
+        """Flag for whether ``disable_apps`` was set in the AppDaemon config"""
         return not self.config.disable_apps
 
     @property
@@ -204,7 +198,16 @@ class AppDaemon(metaclass=Singleton):
 
     @property
     def config_dir(self):
+        """Path to the AppDaemon configuration files. Defaults to the first folder that has ``./apps``
+
+        - ``~/.homeassistant``
+        - ``/etc/appdaemon``
+        """
         return self.config.config_dir
+
+    @config_dir.setter
+    def config_dir(self, path: os.PathLike) -> None:
+        self.config.config_dir = Path(path)
 
     @property
     def config_file(self):
@@ -366,7 +369,7 @@ class AppDaemon(metaclass=Singleton):
     def register_http(self, http: "HTTP"):
         """Sets the ``self.http`` attribute with a :class:`~.http.HTTP` object and starts the admin loop."""
 
-        self.http: "HTTP" = http
+        self.http = http
         # Create admin loop
 
         if http.old_admin is not None or http.admin is not None:

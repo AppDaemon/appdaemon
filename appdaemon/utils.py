@@ -91,7 +91,7 @@ class PersistentDict(shelve.DbfilenameShelf):
     Dict-like object that uses a Shelf to persist its contents.
     """
 
-    def __init__(self, filename: Path, safe: bool, *args, **kwargs):
+    def __init__(self, filename: str | Path, safe: bool, *args, **kwargs):
         filename = Path(filename).resolve().as_posix()
         # writeback=True allows for mutating objects in place, like with a dict.
         super().__init__(filename, writeback=True)
@@ -321,7 +321,7 @@ def parse_timedelta(s: str | int | float | timedelta | None) -> timedelta:
         case int() | float():
             return timedelta(seconds=s)
         case str():
-            parts = tuple(float(p.strip()) for p in re.split(r"[^\d]+", s))
+            parts = tuple(float(p.strip()) for p in re.split(r"[^\d\.]+", s))
             match len(parts):
                 case 1:
                     return timedelta(seconds=parts[0])
@@ -523,6 +523,8 @@ class Subsystem(Protocol):
     AD: "AppDaemon"
     """Reference to the top-level AppDaemon object"""
     logger: Logger
+    name: str
+    """Used for registering futures, and maybe other things?"""
 
 
 def executor_decorator(func: Callable[..., R]) -> Callable[..., Coroutine[Any, Any, R]]:

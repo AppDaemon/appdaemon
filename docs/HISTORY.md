@@ -1,6 +1,28 @@
 # Change Log
 
-## 4.5.8
+## 4.5.9
+
+**Features**
+
+None
+
+**Fixes**
+
+- Upgrading pip version to latest in Dockerfile
+- Passing through `timeout` kwarg in `dash_navigate` and `fire_event`
+- Fixed a bug with `parse_timedelta` in cases like `"00:2.5"`
+- Minor type fixes
+- Added missing `name` attributes to some classes that use `run_in_executor`
+
+**Breaking Changes**
+
+None
+
+**Changes in Behavior**
+
+None
+
+## 4.5.8 (2025-06-03)
 
 **Features**
 
