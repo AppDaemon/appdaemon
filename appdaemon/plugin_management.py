@@ -302,7 +302,12 @@ class PluginManagement:
                     #
                     # Create app entry for the plugin so we can listen_state/event
                     #
-                    self.AD.app_management.add_plugin_object(name, plugin, self.config[name].use_dictionary_unpacking)
+                    if not self.AD.config.disable_apps:
+                        self.AD.app_management.add_plugin_object(
+                            name,
+                            plugin,
+                            self.config[name].use_dictionary_unpacking
+                        )
 
                     self.AD.loop.create_task(plugin.get_updates())
                 except Exception:

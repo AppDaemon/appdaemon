@@ -5,7 +5,7 @@ import sys
 import traceback
 import uuid
 from collections import OrderedDict
-from logging import Logger, StreamHandler
+from logging import LogRecord, Logger, StreamHandler
 from logging.handlers import RotatingFileHandler
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 
@@ -40,7 +40,7 @@ class DuplicateFilter(logging.Filter):
         self.timeout = timeout
         self.last_log_time = None
 
-    def filter(self, record: logging.LogRecord) -> bool:
+    def filter(self, record: logging.LogRecord) -> bool | LogRecord:
         if record.msg == "Previous message repeated %s times":
             return True
         if self.threshold == 0:
@@ -48,15 +48,14 @@ class DuplicateFilter(logging.Filter):
         current_log = (record.module, record.levelno, record.msg, record.args)
         if current_log != self.last_log:
             self.last_log = current_log
+            result = True
             if self.filtering is True:
-                self.logger.info(
-                    "Previous message repeated %s times",
-                    self.current_count - self.threshold + 1,
-                )
+                record.msg = "Previous message repeated %s times"
+                record.args = (self.current_count - self.threshold + 1,)
+                result = record
             self.current_count = 0
             self.filtering = False
             self.start_time = None
-            result = True
             self.first_time = True
             self.last_log_time = datetime.datetime.now()
         else:

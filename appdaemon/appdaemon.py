@@ -113,9 +113,6 @@ class AppDaemon(metaclass=Singleton):
         self.global_vars: Any = {}
         self.main_thread_id = threading.current_thread().ident
 
-        if not self.apps:
-            self.logging.log("INFO", "Apps are disabled")
-
         # Initialize subsystems
         self.callbacks = Callbacks(self)
         self.events = Events(self)
@@ -125,7 +122,9 @@ class AppDaemon(metaclass=Singleton):
         self.state = State(self)
         self.futures = Futures(self)
 
-        if self.apps is True:
+        if not self.apps:
+            self.logger.info("Apps are disabled, skipping app management initialization")
+        else:
             assert self.config_dir is not None, "Config_dir not set. This is a development problem"
             assert self.config_dir.exists(), f"{self.config_dir} does not exist"
             assert os.access(
@@ -146,12 +145,13 @@ class AppDaemon(metaclass=Singleton):
             self.logger.info(f"Using {self.app_dir} as app_dir")
 
             self.app_management = AppManagement(self)
-            self.threading = Threading(self)
 
-            # Create ThreadAsync loop
-            self.logger.debug("Starting thread_async loop")
-            self.thread_async = ThreadAsync(self)
-            loop.create_task(self.thread_async.loop())
+        self.threading = Threading(self)
+
+        # Create ThreadAsync loop
+        self.logger.debug("Starting thread_async loop")
+        self.thread_async = ThreadAsync(self)
+        loop.create_task(self.thread_async.loop())
 
         self.executor = ThreadPoolExecutor(max_workers=self.threadpool_workers)
 

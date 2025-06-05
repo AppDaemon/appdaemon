@@ -513,11 +513,10 @@ class AppManagement:
     def get_managed_app_names(self, include_globals: bool = False) -> set[str]:
         apps = set(name for name, o in self.objects.items() if o.type == "app")
         if include_globals:
-            globals = set(
+            apps |= set(
                 name for name, cfg in self.app_config.root.items()
                 if isinstance(cfg, GlobalModule)
-            )
-            apps |= globals
+            )  # fmt: skip
         return apps
 
     def add_plugin_object(self, name: str, object: "PluginBase", use_dictionary_unpacking: bool = False) -> None:
