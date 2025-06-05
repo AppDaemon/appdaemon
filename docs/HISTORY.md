@@ -13,6 +13,7 @@ None
 - Fixed a bug with `parse_timedelta` in cases like `"00:2.5"`
 - Minor type fixes
 - Added missing `name` attributes to some classes that use `run_in_executor`
+- Fixed `diable_apps`
 
 **Breaking Changes**
 
