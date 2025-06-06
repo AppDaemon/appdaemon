@@ -171,7 +171,7 @@ class Events:
             else:
                 raise ValueError(f"Invalid handle: {handle}")
 
-    async def fire_event(self, namespace: str, event: str, **kwargs):
+    async def fire_event(self, namespace: str, event: str, **kwargs: Any) -> dict[str, Any] | None:
         """Fires an event.
 
         If the namespace does not have a plugin associated with it, the event will be fired locally.
@@ -190,15 +190,18 @@ class Events:
         """
 
         self.logger.debug("fire_plugin_event() %s %s %s", namespace, event, kwargs)
-        plugin = self.AD.plugins.get_plugin_object(namespace)
-        match plugin:
-            case PluginBase() as plugin:
-                if hasattr(plugin, "fire_plugin_event"):
-                    # We assume that the event will come back to us via the plugin
-                    return await plugin.fire_plugin_event(event, namespace, **kwargs)
-                else:
-                    # Just fire the event locally
-                    await self.AD.events.process_event(namespace, {"event_type": event, "data": kwargs})
+        match self.AD.plugins.get_plugin_object(namespace):
+            case PluginBase() as plugin if hasattr(plugin, "fire_plugin_event"):
+                # In the case that the namespace has a PluginBase associated (both Hass and MQTT plugins do), we check
+                # that the plugin actually has a method called `fire_plugin_event`. If both of these conditions are met,
+                # we call that method to fire the event, and assume that the plugin when the plugin fires the event, it
+                # will make it back to AppDaemon via the normal plugin event processing mechanism.
+                return await plugin.fire_plugin_event(event, namespace, **kwargs)
+            case _:
+                # If anything else comes out of get_plugin_object, we assume that the namespace does not have a plugin
+                # associated with it, and we can fire the event locally.
+                # This is the case for the admin namespace, and any other namespaces that do not have a plugin.
+                return await self.AD.events.process_event(namespace, {"event_type": event, "data": kwargs})
 
     async def process_event(self, namespace: str, data: dict[str, Any]):
         """Processes an event that has been received either locally or from a plugin.
