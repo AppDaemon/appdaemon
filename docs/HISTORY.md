@@ -1,10 +1,10 @@
 # Change Log
 
-## 4.5.9
+## 4.5.10
 
 **Features**
 
-None
+- Added "log_level" directive to `appdaemon'yaml` to allow global log level setting
 
 **Fixes**
 
@@ -54,23 +54,6 @@ None
 **Fixes**
 
 - Fixed issue with getter that prevented app initialization
-
-**Breaking Changes**
-
-None
-
-**Changes in Behavior**
-
-None
-
-## 4.5.6 (2025-06-01)
-
-**Features**
-
-None
-
-**Fixes**
-
 - Fixed an async issue with `firendly_name()`
 - Added missing setter for global_vars
 

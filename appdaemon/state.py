@@ -538,7 +538,9 @@ class State:
     ) -> None:
         """Adds an entity to the internal state registry and fires the ``__AD_ENTITY_ADDED`` event"""
         if self.entity_exists(namespace, entity):
-            self.logger.warning("%s already exists, will not be adding it", entity)
+            # No warning is necessary because this method gets called twice for the app entities because of
+            # create_initial_threads and then again during start_app
+            # self.logger.warning("%s already exists, will not be adding it", entity)
             return
 
         state = {
