@@ -4,7 +4,7 @@
 
 **Features**
 
-None
+- Add skin parameter to dash_navigate function for dynamic theme switching - contributed by [Vitor](https://github.com/vitorrm)
 
 **Fixes**
 
@@ -32,7 +32,7 @@ None
 - Minor type fixes
 - Added missing `name` attributes to some classes that use `run_in_executor`
 - Fixed `diable_apps`
-- Fix for constrain_input_select when it is a string contributed by [Xavi Moreno](https://github.com/xaviml)
+- Fix for constrain_input_select when it is a string - contributed by [Xavi Moreno](https://github.com/xaviml)
 
 **Breaking Changes**
 
