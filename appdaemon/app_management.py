@@ -355,9 +355,17 @@ class AppManagement:
         Args:
             app (str): Name of the app to start
         """
-        if self.app_config[app_name].disable:
-            self.logger.debug(f"Skip starting disabled app: '{app_name}'")
-            return
+        match self.app_config.root.get(app_name):
+            case AppConfig() as app_cfg:
+                if app_cfg.disable:
+                    self.logger.debug(f"Skip starting disabled app: '{app_name}'")
+                    return
+            case GlobalModule():
+                self.logger.warning('Global modules cannot be started')
+                return
+            case None:
+                self.logger.error('App %s not found in app_config', app_name)
+                return
 
         # first we check if running already
         if self.is_app_running(app_name):
@@ -365,7 +373,7 @@ class AppManagement:
             return
 
         # assert dependencies
-        dependencies = self.app_config.root[app_name].dependencies
+        dependencies = app_cfg.dependencies
         for dep_name in dependencies:
             rel_path = self.app_rel_path(app_name)
             exc_args = (
@@ -374,19 +382,27 @@ class AppManagement:
                 dep_name,
                 dependencies
             )
-            if (dep_cfg := self.app_config.root.get(dep_name)):
-                match dep_cfg:
-                    case AppConfig():
-                        # There is a valid app configuration for this dependency
-                        if not (obj := self.objects.get(dep_name)) or not obj.running:
-                            # If the object isn't in the self.objects dict or it's there, but not running
+            match self.app_config.root.get(dep_name):
+                case AppConfig():
+                    # There is a valid app configuration for this dependency
+                    match self.objects.get(dep_name):
+                        case ManagedObject(type="app") as obj:
+                            # There is an app being managed that matches the dependency
+                            if not obj.running:
+                                # But it's not running, so raise an exception
+                                raise ade.DependencyNotRunning(*exc_args)
+                        case _:
+                            # TODO: make this a different exception
                             raise ade.DependencyNotRunning(*exc_args)
-                    case GlobalModule():
-                        module = dep_cfg.module_name
-                        if module not in sys.modules:
-                            raise ade.GlobalNotLoaded(*exc_args)
-            else:
-                raise ade.AppDependencyError(*exc_args)
+                case GlobalModule() as dep_cfg:
+                    # The dependency is a legacy global module
+                    module = dep_cfg.module_name
+                    if module not in sys.modules:
+                        # The module hasn't been loaded, so raise an exception
+                        raise ade.GlobalNotLoaded(*exc_args)
+                case _:
+                    # There was no valid configuration for the dependency
+                    raise ade.AppDependencyError(*exc_args)
 
         try:
             await self.initialize_app(app_name)
