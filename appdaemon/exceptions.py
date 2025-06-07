@@ -227,6 +227,14 @@ class ServiceException(AppDaemonException):
             f"Services that exist in {self.domain}: {', '.join(self.domain_services)}"
         )
 
+@dataclass
+class DomainNotSpecified(AppDaemonException):
+    namespace: str
+    service: str
+    
+    def __str__(self):
+        return f"domain not specified for service '{self.service}'"
+
 
 @dataclass
 class AppCallbackFail(AppDaemonException):
