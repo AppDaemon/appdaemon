@@ -16,6 +16,7 @@ from ...models.config.plugin import HASSConfig, MQTTConfig
 from ...version import __version__
 from .misc import FilterConfig, NamespaceConfig
 
+
 def plugin_discriminator(plugin):
     if isinstance(plugin, dict):
         return plugin["type"].lower()
@@ -42,7 +43,7 @@ class AppDaemonConfig(BaseModel, extra="allow"):
 
     config_dir: Path
     config_file: Path
-    app_dir: Path = "./apps"
+    app_dir: Path = Path("./apps")
 
     write_toml: bool = False
     ext: Literal[".yaml", ".toml"] = ".yaml"
@@ -55,7 +56,7 @@ class AppDaemonConfig(BaseModel, extra="allow"):
     max_clock_skew: int = 1
 
     loglevel: str = "INFO"
-    module_debug: ModuleLoggingLevels = Field(default_factory=dict)
+    module_debug: ModuleLoggingLevels = Field(default_factory=ModuleLoggingLevels)
 
     api_port: int | None = None
     api_key: SecretStr | None = None
@@ -104,9 +105,12 @@ class AppDaemonConfig(BaseModel, extra="allow"):
     threads: (
         Annotated[
             int | None,
-            deprecated("Threads directive is deprecated apps - will be pinned. Use total_threads if you want to unpin your apps"),
+            deprecated(
+                "Threads directive is deprecated apps - "
+                "will be pinned. Use total_threads if you want to unpin your apps"
+            ),
         ]
-    ) = None
+    ) = None  # fmt: skip
     total_threads: int | None = None
     """The number of dedicated worker threads to create for running the apps.
     Normally, AppDaemon will create enough threads to provide one per app, or
@@ -114,10 +118,12 @@ class AppDaemonConfig(BaseModel, extra="allow"):
     value will turn off automatic thread management."""
     pin_apps: bool = True
     """If ``True``, AppDaemon apps will be each pinned to a particular thread. This avoids complications around
-    re-entrant code and locking of instance variables."""
+    re-entrant code and locking of instance variables. Default is ``True``."""
     pin_threads: int | None = None
-    """Number of threads to use for pinned apps, allowing the user to section off a sub-pool just for pinned apps. By
-    default all threads are used for pinned apps."""
+    """Number of threads to use for pinned apps, allowing the user to section off a sub-pool just for pinned apps.
+
+    Defaults to `None` which means that all threads will be allocated to pinned apps, up to the total number of threads.
+    """
     thread_duration_warning_threshold: float = 10
     threadpool_workers: int = 10
     """Number of threads in AppDaemon's internal thread pool, which can be used to execute functions asynchronously in
@@ -138,19 +144,21 @@ class AppDaemonConfig(BaseModel, extra="allow"):
 
     @field_validator("exclude_dirs", mode="after")
     @classmethod
-    def add_default_exclusions(cls, v: list[Path]):
+    def add_default_exclusions(cls, v: list[str]) -> list[str]:
+        # Add these no matter what, instead of as default exclusions
         v.extend(["__pycache__", "build", ".venv"])
         return v
 
     @field_validator("loglevel", mode="before")
     @classmethod
-    def convert_loglevel(cls, v: str | int):
-        if isinstance(v, int):
-            return logging._levelToName[int]
-        elif isinstance(v, str):
-            v = v.upper()
-            assert v in logging._nameToLevel, f"Invalid log level: {v}"
-            return v
+    def convert_loglevel(cls, v: str | int) -> str:
+        match v:
+            case int():
+                return logging._levelToName[v]
+            case str():
+                v = v.upper()
+                assert v in logging._nameToLevel, f"Invalid log level: {v}"
+                return v
 
     @field_validator("plugins", mode="before")
     @classmethod

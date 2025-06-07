@@ -54,7 +54,8 @@ class AppManagement:
     """Dictionary of the modified times of the filter files and their paths.
     """
     objects: dict[str, ManagedObject]
-    """Dictionary of dictionaries with the instantiated apps, plugins, and sequences along with some metadata. Gets populated by
+    """Dictionary of dictionaries with the instantiated apps, plugins, and sequences along with some metadata. Gets
+    populated by
 
     - ``self.init_object``, which instantiates the app classes
     - ``self.init_plugin_object``
@@ -70,10 +71,6 @@ class AppManagement:
 
     reversed_graph: dict[str, set[str]] = {}
     """Dictionary that maps full module names to sets of those that depend on them
-    """
-
-    app_config: AllAppConfig
-    """Keeps track of which module and class each app comes from, along with any associated global modules. Gets set at the end of :meth:`~appdaemon.app_management.AppManagement.check_config`.
     """
 
     active_apps_sensor: str = "sensor.active_apps"
@@ -133,6 +130,9 @@ class AppManagement:
 
     @property
     def app_config(self) -> AllAppConfig:
+        """Keeps track of which module and class each app comes from, along with any associated global modules. Gets set
+        at the end of :meth:`~.AppManagement.check_config`.
+        """
         return self.dependency_manager.app_deps.app_config
 
     @property
@@ -251,13 +251,6 @@ class AppManagement:
     def get_app_pin(self, name: str) -> bool:
         return self.objects[name].pin_app
 
-    def set_app_pin(self, name: str, pin: bool):
-        self.objects[name].pin_app = pin
-        utils.run_coroutine_threadsafe(
-            self,
-            self.AD.threading.calculate_pin_threads(),
-        )
-
     def get_pin_thread(self, name: str) -> int:
         return self.objects[name].pin_thread
 
@@ -353,11 +346,19 @@ class AppManagement:
         This does not work on global module apps because they only exist as imported modules.
 
         Args:
-            app (str): Name of the app to start
+            app_name (str): Name of the app to start
         """
-        if self.app_config[app_name].disable:
-            self.logger.debug(f"Skip starting disabled app: '{app_name}'")
-            return
+        match app_cfg := self.app_config.root.get(app_name):
+            case AppConfig():
+                if app_cfg.disable:
+                    self.logger.debug(f"Skip starting disabled app: '{app_name}'")
+                    return
+            case GlobalModule():
+                self.logger.warning('Global modules cannot be started')
+                return
+            case None:
+                self.logger.error('App %s not found in app_config', app_name)
+                return
 
         # first we check if running already
         if self.is_app_running(app_name):

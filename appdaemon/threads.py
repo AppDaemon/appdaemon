@@ -166,9 +166,7 @@ class Threading:
         )
 
     async def create_initial_threads(self):
-        if self.total_threads:
-            self.pin_apps = False
-        else:
+        if not self.total_threads:
             # Force a config check here so we have an accurate activate app count
             self.AD.app_management.logger.debug("Reading app config files to determine how many threads to make")
             cfg_paths = await self.AD.app_management.get_app_config_files()
@@ -553,6 +551,9 @@ class Threading:
 
         thread_pins = [0] * self.pin_threads
         for name, obj in self.AD.app_management.objects.items():
+            if obj.type != "app":
+                continue
+
             # Looking for apps that already have a thread pin value
             if obj.pin_app and (thread := obj.pin_thread) != -1:
                 if thread >= self.thread_count:
@@ -615,15 +616,28 @@ class Threading:
             thread ID number
         """
 
-        if pin_thread is None:
-            pin = self.AD.app_management.objects[name].pin_app if pin is None else pin
-            pin_thread = self.AD.app_management.objects[name].pin_thread
-        else:
-            assert isinstance(pin_thread, int)
-            pin = True
+        # These values default to None if not set, so the first True or False value will be used
+        precedence = (
+            pin,                                            # Pin specified in callback
+            self.AD.app_management.objects[name].pin_app,   # Pin specified in app config
+            self.AD.config.pin_apps,                        # Pin specified in appdaemon.yaml
+        )  # fmt: skip
+        pin_app = next(
+            (setting for setting in precedence if setting is not None),
+            True # default to True if nothing above is set
+        )  # fmt: skip
+
+        precedence = (
+            pin_thread,                                         # Pin thread specified in callback
+            self.AD.app_management.objects[name].pin_thread,    # Pin thread specified in app config
+        )  # fmt: skip
+        pin_thread = next(
+            (setting for setting in precedence if setting is not None),
+            None # default to None if nothing above is set
+        )  # fmt: skip
 
         self.validate_pin(name, pin_thread)
-        return pin, pin_thread
+        return pin_app, pin_thread
 
     #
     # Constraints

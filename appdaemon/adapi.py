@@ -532,7 +532,8 @@ class ADAPI:
             >>> self.set_app_pin(True)
 
         """
-        self.AD.app_management.set_app_pin(self.name, pin)
+        self.AD.app_management.objects[self.name].pin_app = pin
+        await self.AD.threading.calculate_pin_threads()
 
     @utils.sync_decorator
     async def get_app_pin(self) -> bool:
@@ -546,7 +547,9 @@ class ADAPI:
             >>>     self.log("App pinned!")
 
         """
-        return self.AD.app_management.get_app_pin(self.name)
+        if (pin_app := self.AD.app_management.objects[self.name].pin_app) is not None:
+            return pin_app
+        return self.AD.config.pin_apps
 
     @utils.sync_decorator
     async def set_pin_thread(self, thread: int) -> None:
