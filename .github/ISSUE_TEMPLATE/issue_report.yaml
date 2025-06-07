@@ -30,6 +30,9 @@ body:
         - Home Assistant add-on
         - Python virtual environment
         - Docker container
+        - Native python (no virtual environment)
+        - Nix
+        - Other
     validations:
       required: true
   - type: textarea
