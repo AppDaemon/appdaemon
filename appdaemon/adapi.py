@@ -3475,7 +3475,7 @@ class ADAPI:
         sticky: int = 0,
         deviceid: str | None = None,
         dashid: str | None = None,
-    ) -> None:
+        skin: str | None = None) -> None:
         """Forces all connected Dashboards to navigate to a new URL.
 
         Args:
@@ -3496,6 +3496,7 @@ class ADAPI:
             dashid (str): If set, all devices currently on a dashboard which the title contains
                 the substring dashid will navigate. ex: if dashid is "kichen", it will match
                 devices which are on "kitchen lights", "kitchen sensors", "ipad - kitchen", etc.
+            skin (str): If set, the skin will change to the skin defined on the param.
 
         Returns:
             None.
@@ -3518,6 +3519,8 @@ class ADAPI:
             kwargs["deviceid"] = deviceid
         if dashid is not None:
             kwargs["dashid"] = dashid
+        if skin is not None:
+            kwargs["skin"] = skin
         self.fire_event("ad_dashboard", timeout=timeout, **kwargs)
 
     #
