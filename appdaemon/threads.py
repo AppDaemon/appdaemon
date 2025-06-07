@@ -52,9 +52,6 @@ class Threading:
     last_stats_time: ClassVar[datetime.datetime] = datetime.datetime.fromtimestamp(0)
     callback_list: list[dict]
 
-    pin_threads: int = 0
-    total_threads: int
-
     next_thread: int = 0
     current_callbacks_executed: int = 0
     current_callbacks_fired: int = 0
@@ -84,12 +81,23 @@ class Threading:
 
     @pin_apps.setter
     def pin_apps(self, new: bool) -> None:
-        """Set whether each app should be pinned to a thread"""
         self.AD.config.pin_apps = new
 
     @property
-    def total_threads(self) -> int:
-        """Number of threads created for apps.
+    def pin_threads(self) -> int | None:
+        "Number of threads allocated to pinned apps"
+        if self.AD.config.pin_threads is None:
+            # If pin_threads is None, it means that all threads are pinned to apps
+            return self.total_threads
+        return self.AD.config.pin_threads
+
+    @pin_threads.setter
+    def pin_threads(self, new: int) -> None:
+        self.AD.config.pin_threads = new
+
+    @property
+    def total_threads(self) -> int | None:
+        """Total number of threads created for apps
 
         By default this is automatically calculated, but can also be manually configured by the user in
         ``appdaemon.yaml``.
@@ -97,7 +105,7 @@ class Threading:
         return self.AD.config.total_threads
 
     @total_threads.setter
-    def total_threads(self, new: int):
+    def total_threads(self, new: int) -> None:
         self.AD.config.total_threads = new
 
     async def get_q_update(self):
