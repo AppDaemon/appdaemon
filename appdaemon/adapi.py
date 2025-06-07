@@ -1845,7 +1845,20 @@ class ADAPI:
         self.logger.debug("register_service: %s, %s", service, kwargs)
 
         namespace = namespace or self.namespace
-        self.AD.services.register_service(namespace, *service.split("/"), cb, __async="auto", name=self.name, **kwargs)
+        try:
+            domain, service = service.split("/", 2)
+        except ValueError as e:
+            raise ade.DomainNotSpecified(namespace, service) from e
+        else:
+            self.AD.services.register_service(
+                namespace,
+                domain=domain,
+                service=service,
+                callback=cb,
+                __async="auto",
+                name=self.name,
+                **kwargs
+            )  # fmt: skip
 
     def deregister_service(self, service: str, namespace: str | None = None) -> bool:
         """Deregister a service that had been previously registered.
