@@ -5,10 +5,11 @@
 **Features**
 
 - Add skin parameter to dash_navigate function for dynamic theme switching - contributed by [Vitor](https://github.com/vitorrm)
+- Improved error handling for service calls
 
 **Fixes**
 
-None
+- Parameter passing in notify()
 
 **Breaking Changes**
 
