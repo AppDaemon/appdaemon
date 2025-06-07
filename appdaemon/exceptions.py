@@ -231,7 +231,7 @@ class ServiceException(AppDaemonException):
 class DomainNotSpecified(AppDaemonException):
     namespace: str
     service: str
-    
+
     def __str__(self):
         return f"domain not specified for service '{self.service}'"
 
