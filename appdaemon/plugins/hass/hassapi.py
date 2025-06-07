@@ -1017,9 +1017,10 @@ class Hass(ADBase, ADAPI):
     async def notify(
         self,
         message: str,
-        title: str = None,
-        name: str = None,
+        title: str | None = None,
+        name: str | None = None,
         namespace: str | None = None,
+        **kwargs: Any,
     ) -> None:
         """Sends a notification.
 
@@ -1032,8 +1033,8 @@ class Hass(ADBase, ADAPI):
             title (str, optional): Title of the notification.
             name (str, optional): Name of the notification service.
             namespace (str, optional): Namespace to use for the call. See the section on
-                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
-                In most cases it is safe to ignore this parameter.
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description. In most cases it is safe to ignore
+                this parameter.
 
         Returns:
             Result of the `notify` function if any, see `service call notes
@@ -1045,11 +1046,13 @@ class Hass(ADBase, ADAPI):
                 # will send a message through notify.smtp instead of the default notify.notify
 
         """
+        service = f'notify/{name}' if name is not None else 'notify/notify'
         return await self.call_service(
-            service=f'notify/{name}' if name is not None else 'notify/notify',
-            namespace=namespace,
-            title=title,
+            service=service,
             message=message,
+            title=title,
+            namespace=namespace,
+            **kwargs,
         )
 
     @utils.sync_decorator
