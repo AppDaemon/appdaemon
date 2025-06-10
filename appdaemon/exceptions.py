@@ -386,6 +386,14 @@ class BadClassSignature(AppDaemonException):
 
 
 @dataclass
+class DependencyManagerError(AppDaemonException):
+    msg: str
+
+    def __str__(self) -> str:
+        return self.msg
+
+
+@dataclass
 class AppDependencyError(AppDaemonException):
     app_name: str
     rel_path: Path
