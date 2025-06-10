@@ -2971,7 +2971,10 @@ class ADAPI:
                 info = await self.AD.sched._parse_time(start, self.name)
                 start = info["datetime"]
             case dt.time():
-                start = dt.datetime.combine(await self.date(), start).astimezone(self.AD.tz)
+                if start.tzinfo is None:
+                    start = start.replace(tzinfo=self.AD.tz)
+                date = await self.date()
+                start = dt.datetime.combine(date, start)
             case dt.datetime():
                 ...
             case _:
@@ -3056,8 +3059,10 @@ class ADAPI:
                 info = await self.AD.sched._parse_time(start, self.name)
                 start, offset, sun = info["datetime"], info["offset"], info["sun"]
             case dt.time():
+                if start.tzinfo is None:
+                    start = start.replace(tzinfo=self.AD.tz)
                 date = await self.date()
-                start = dt.datetime.combine(date, start).astimezone(self.AD.tz)
+                start = dt.datetime.combine(date, start)
             case dt.datetime():
                 ...
             case _:
@@ -3301,8 +3306,10 @@ class ADAPI:
                     info = await self.AD.sched._parse_time(start, self.name)
                     start = info["datetime"]
             case dt.time():
+                if start.tzinfo is None:
+                    start = start.replace(tzinfo=self.AD.tz)
                 date = await self.date()
-                start = dt.datetime.combine(date, start).astimezone(self.AD.tz)
+                start = dt.datetime.combine(date, start)
             case dt.datetime():
                 ...
             case None:
