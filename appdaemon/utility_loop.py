@@ -262,7 +262,7 @@ class Utility:
                 await self.AD.http.stop_server()
 
     async def production_mode_service(self, ns, domain, service, kwargs):
-        if mode := kwargs.get("mode"):
+        if (mode := kwargs.get("mode")) is not None:
             if isinstance(mode, bool):
                 self.AD.production_mode = mode
             else:
