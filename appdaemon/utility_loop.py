@@ -267,4 +267,7 @@ class Utility:
                 self.AD.production_mode = mode
                 self.logger.info(f"Production mode set to {mode}")
             case _:
-                self.logger.warning(f"Invalid production mode: {kwargs.get('mode')}")
+                if "mode" in kwargs:
+                    self.logger.warning(f"Invalid production mode: {kwargs.get('mode')}")
+                else:
+                    self.logger.warning("No production mode specified, use True or False")
