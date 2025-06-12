@@ -3343,7 +3343,7 @@ class ADAPI:
         self,
         callback: Callable,
         *args,
-        repeat: bool = False,
+        repeat: bool = True,
         offset: int | None = None,
         random_start: int | None = None,
         random_end: int | None = None,
@@ -3357,6 +3357,7 @@ class ADAPI:
             callback: Function to be invoked at or around sunset. It must conform to the
                 standard Scheduler Callback format documented `here <APPGUIDE.html#about-schedule-callbacks>`__.
             *args: Arbitrary positional arguments to be provided to the callback function when it is triggered.
+            repeat (bool, option): Whether the callback should repeat every day. Defaults to ``True``
             offset (int, optional): The time in seconds that the callback should be delayed after
                 sunset. A negative value will result in the callback occurring before sunset.
                 This parameter cannot be combined with ``random_start`` or ``random_end``.
@@ -3415,7 +3416,7 @@ class ADAPI:
         self,
         callback: Callable,
         *args,
-        repeat: bool = False,
+        repeat: bool = True,
         offset: int | None = None,
         random_start: int | None = None,
         random_end: int | None = None,
@@ -3428,8 +3429,8 @@ class ADAPI:
         Args:
             callback: Function to be invoked at or around sunrise. It must conform to the
                 standard Scheduler Callback format documented `here <APPGUIDE.html#about-schedule-callbacks>`__.
-            *args: Arbitrary positional arguments to be provided to the callback function
-                when it is invoked.
+            *args: Arbitrary positional arguments to be provided to the callback function when it is invoked.
+            repeat (bool, option): Whether the callback should repeat every day. Defaults to ``True``
             offset (int, optional): The time in seconds that the callback should be delayed after
                 sunrise. A negative value will result in the callback occurring before sunrise.
                 This parameter cannot be combined with ``random_start`` or ``random_end``.
