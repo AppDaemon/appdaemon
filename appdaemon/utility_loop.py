@@ -262,10 +262,12 @@ class Utility:
                 await self.AD.http.stop_server()
 
     async def production_mode_service(self, ns, domain, service, kwargs):
-        if mode := kwargs.get("mode"):
-            if isinstance(mode, bool):
+        match kwargs:
+            case {"mode": bool(mode)}:
                 self.AD.production_mode = mode
-            else:
-                self.logger.warning("Invalid 'mode' specified in service call")
-        else:
-            self.logger.warning("'Mode' not specified in service call")
+                self.logger.info(f"Production mode set to {mode}")
+            case _:
+                if "mode" in kwargs:
+                    self.logger.warning(f"Invalid production mode: {kwargs.get('mode')}")
+                else:
+                    self.logger.warning("No production mode specified, use True or False")
