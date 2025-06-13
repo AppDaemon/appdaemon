@@ -171,7 +171,7 @@ class Threading:
         else:
             # Force a config check here so we have an accurate activate app count
             self.AD.app_management.logger.debug("Reading app config files to determine how many threads to make")
-            cfg_paths = await self.AD.app_management.get_app_config_files()
+            cfg_paths = await self.AD.app_management.get_app_config_files_async()
             if not cfg_paths:
                 self.logger.warning(f"No apps found in {self.AD.app_dir}. This is probably a mistake")
                 self.total_threads = 10
