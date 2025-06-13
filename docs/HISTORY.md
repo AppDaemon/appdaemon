@@ -10,6 +10,9 @@
 **Fixes**
 
 - Parameter passing in notify()
+- Fix for `run_at_sunset()` and `run_at_sunrise()` defaults
+- Fix for production mode service call
+- Additional Scheduler API fixes
 
 **Breaking Changes**
 
