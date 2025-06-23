@@ -18,6 +18,30 @@ function setCookie(cname, cvalue) {
     document.cookie = cname + "=" + cvalue + "; expires=Sat, 1 Jan 2050 12:00:00 UTC;";
 }
 
+function getQueryStringParams() {
+    var query = location.search.substring(1);
+    // Parse existing query string if it exists
+    var query_params = [];
+    if (query) {
+        query_params = query.split('&');
+    }
+    return query_params;
+}
+
+function setQueryStringParam(query_params, param_name, new_value) {
+    // Remove existing parameter if present
+    for (var i = 0; i < query_params.length; i++) {
+        if (query_params[i].startsWith(param_name + "=")) {
+            query_params.splice(i, 1);
+            break;
+        }
+    }
+    // Add new parameter
+    var param = param_name + "=" + encodeURIComponent(new_value);
+    query_params.push(param);
+    return query_params;
+}
+
 function get_monitored_entities(widgets)
 {
     index = 0;
@@ -103,38 +127,21 @@ var DashStream = function(transport, protocol, domain, port, title, widgets)
         {
             if (data.data.command === "navigate")
             {
-                var timeout_params = "";
+                var query_params = getQueryStringParams();
+                if ("skin" in data.data)
+                {
+                    query_params = setQueryStringParam(query_params, "skin", data.data.skin)
+                }
                 if ("timeout" in data.data)
                 {
-                    var timeout = data.data.timeout;
-                    if (location.search === "")
-                    {
-                        timeout_params = "?";
-                    }
-                    else
-                    {
-                        timeout_params = "&";
-                    }
-                    if ("return" in data.data)
-                    {
-                        ret = data.data.return
-                    }
-                    else
-                    {
-                        ret = location.pathname
-                    }
-                    if ("sticky")
-                    {
-                        sticky = data.data.sticky;
-                    }
-                    else
-                    {
-                        sticky = 0;
-                    }
-
-                    timeout_params += "timeout=" + timeout + "&return=" + ret + "&sticky=" + sticky;
+                    query_params.push("timeout=" + data.data.timeout)
+                    var ret = "return" in data.data ? data.data.return : location.pathname
+                    query_params.push("return=" + ret)
+                    query_params.push("sticky=" + data.data.sticky)
                 }
-                window.location.href = data.data.target + location.search + timeout_params;
+                // Rebuild query string with existing params
+                var new_query_params = query_params.length > 0 ? "?" + query_params.join("&") : "";
+                window.location.href = data.data.target + new_query_params;
             }
         }
         Object.keys(widgets).forEach(function (key) {

@@ -1,6 +1,28 @@
 # Change Log
 
-## 4.5.10
+## 4.5.11
+
+**Features**
+
+- Add skin parameter to dash_navigate function for dynamic theme switching - contributed by [Vitor](https://github.com/vitorrm)
+- Improved error handling for service calls
+
+**Fixes**
+
+- Parameter passing in notify()
+- Fix for `run_at_sunset()` and `run_at_sunrise()` defaults
+- Fix for production mode service call
+- Additional Scheduler API fixes
+
+**Breaking Changes**
+
+None
+
+**Changes in Behavior**
+
+None
+
+## 4.5.10 (2025-06-06)
 
 **Features**
 
@@ -14,7 +36,7 @@
 - Minor type fixes
 - Added missing `name` attributes to some classes that use `run_in_executor`
 - Fixed `diable_apps`
-- Fix for constrain_input_select when it is a string contributed by [Xavi Moreno](https://github.com/xaviml)
+- Fix for constrain_input_select when it is a string - contributed by [Xavi Moreno](https://github.com/xaviml)
 
 **Breaking Changes**
 

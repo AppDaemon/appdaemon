@@ -227,6 +227,14 @@ class ServiceException(AppDaemonException):
             f"Services that exist in {self.domain}: {', '.join(self.domain_services)}"
         )
 
+@dataclass
+class DomainNotSpecified(AppDaemonException):
+    namespace: str
+    service: str
+
+    def __str__(self):
+        return f"domain not specified for service '{self.service}'"
+
 
 @dataclass
 class AppCallbackFail(AppDaemonException):
@@ -375,6 +383,14 @@ class BadClassSignature(AppDaemonException):
 
     def __str__(self):
         return f"Class '{self.class_name}' takes the wrong number of arguments. Check the inheritance"
+
+
+@dataclass
+class DependencyManagerError(AppDaemonException):
+    msg: str
+
+    def __str__(self) -> str:
+        return self.msg
 
 
 @dataclass

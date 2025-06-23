@@ -8,6 +8,7 @@ import os
 import pstats
 import subprocess
 import sys
+import threading
 import traceback
 from collections import OrderedDict
 from collections.abc import AsyncGenerator, Iterable
@@ -355,9 +356,17 @@ class AppManagement:
         Args:
             app (str): Name of the app to start
         """
-        if self.app_config[app_name].disable:
-            self.logger.debug(f"Skip starting disabled app: '{app_name}'")
-            return
+        match self.app_config.root.get(app_name):
+            case AppConfig() as app_cfg:
+                if app_cfg.disable:
+                    self.logger.debug(f"Skip starting disabled app: '{app_name}'")
+                    return
+            case GlobalModule():
+                self.logger.warning('Global modules cannot be started')
+                return
+            case None:
+                self.logger.error('App %s not found in app_config', app_name)
+                return
 
         # first we check if running already
         if self.is_app_running(app_name):
@@ -365,7 +374,7 @@ class AppManagement:
             return
 
         # assert dependencies
-        dependencies = self.app_config.root[app_name].dependencies
+        dependencies = app_cfg.dependencies
         for dep_name in dependencies:
             rel_path = self.app_rel_path(app_name)
             exc_args = (
@@ -374,19 +383,27 @@ class AppManagement:
                 dep_name,
                 dependencies
             )
-            if (dep_cfg := self.app_config.root.get(dep_name)):
-                match dep_cfg:
-                    case AppConfig():
-                        # There is a valid app configuration for this dependency
-                        if not (obj := self.objects.get(dep_name)) or not obj.running:
-                            # If the object isn't in the self.objects dict or it's there, but not running
+            match self.app_config.root.get(dep_name):
+                case AppConfig():
+                    # There is a valid app configuration for this dependency
+                    match self.objects.get(dep_name):
+                        case ManagedObject(type="app") as obj:
+                            # There is an app being managed that matches the dependency
+                            if not obj.running:
+                                # But it's not running, so raise an exception
+                                raise ade.DependencyNotRunning(*exc_args)
+                        case _:
+                            # TODO: make this a different exception
                             raise ade.DependencyNotRunning(*exc_args)
-                    case GlobalModule():
-                        module = dep_cfg.module_name
-                        if module not in sys.modules:
-                            raise ade.GlobalNotLoaded(*exc_args)
-            else:
-                raise ade.AppDependencyError(*exc_args)
+                case GlobalModule() as dep_cfg:
+                    # The dependency is a legacy global module
+                    module = dep_cfg.module_name
+                    if module not in sys.modules:
+                        # The module hasn't been loaded, so raise an exception
+                        raise ade.GlobalNotLoaded(*exc_args)
+                case _:
+                    # There was no valid configuration for the dependency
+                    raise ade.AppDependencyError(*exc_args)
 
         try:
             await self.initialize_app(app_name)
@@ -542,10 +559,10 @@ class AppManagement:
 
         return True
 
-    async def read_all(self, config_files: Iterable[Path] = None) -> AllAppConfig:
+    async def read_all(self, config_files: Iterable[Path]) -> AllAppConfig:
         config_files = config_files or self.dependency_manager.config_files
 
-        async def config_model_factory() -> AsyncGenerator[AllAppConfig, None, None]:
+        async def config_model_factory() -> AsyncGenerator[AllAppConfig, None]:
             """Creates a generator that sets the config_path of app configs"""
             for path in config_files:
                 @ade.wrap_async(self.error, self.AD.app_dir, "Reading user apps")
@@ -592,7 +609,8 @@ class AppManagement:
 
     async def check_app_config_files(self, update_actions: UpdateActions):
         """Updates self.mtimes_config and self.app_config"""
-        files = await self.get_app_config_files()
+        # get_files_in_other_thread = utils.executor_decorator(self.get_app_config_files)
+        files = await self.get_app_config_files_async()
         self.dependency_manager.app_deps.update(files)
 
         # If there were config file changes
@@ -670,6 +688,7 @@ class AppManagement:
 
         This function is primarily used by the create/edit/remove app methods that write yaml files.
         """
+        assert threading.current_thread().name.startswith("ThreadPool")
         raw_cfg = utils.read_config_file(file, app_config=True)
         if not bool(raw_cfg):
             self.logger.warning(
@@ -833,7 +852,7 @@ class AppManagement:
             case 'default' | 'expert' | None:
                 # Get unique set of the absolute paths of all the subdirectories containing python files
                 python_file_parents = set(
-                    f.parent.resolve() for f in Path(self.AD.app_dir).rglob("*.py")
+                    f.parent.resolve() for f in self.get_python_files()
                 )
 
                 # Filter out any that have __init__.py files in them
@@ -891,43 +910,65 @@ class AppManagement:
         async def safe_dep_create(self: "AppManagement"):
             try:
                 self.dependency_manager = DependencyManager(
-                    python_files=await self.get_python_files(),
-                    config_files=await self.get_app_config_files()
+                    python_files=await self.get_python_files_async(),
+                    config_files=await self.get_app_config_files_async()
                 )
                 self.config_filecheck.mtimes = {}
                 self.python_filecheck.mtimes = {}
             except ValidationError as e:
-                raise ade.BadAppConfigFile("Error creating dependency manager") from e
+                raise ade.DependencyManagerError("Failed to create dependency manager") from e
             except ade.AppDaemonException as e:
                 raise e
 
         await safe_dep_create(self)
 
-    @utils.executor_decorator
-    def get_python_files(self) -> Iterable[Path]:
-        """Iterates through ``*.py`` in the app directory. Excludes directory names defined in exclude_dirs and with a "." character. Also excludes files that aren't readable."""
+    def get_python_files(self) -> set[Path]:
+        """Get a set of valid Python files in the app directory.
+
+        Valid files are ones that are readable, not inside an excluded directory, and not starting with a "." character.
+        """
+        assert threading.current_thread().name.startswith("ThreadPool")
         return set(
-            f
-            for f in self.AD.app_dir.resolve().rglob("*.py")
-            if f.parent.name not in self.AD.exclude_dirs  # apply exclude_dirs
-            and "." not in f.parent.name  # also excludes *.egg-info folders
-            and os.access(f, os.R_OK)  # skip unreadable files
+            utils.recursive_get_files(
+                base=self.AD.app_dir.resolve(),
+                suffix=".py",
+                exclude=set(self.AD.exclude_dirs),
+            )
         )
 
     @utils.executor_decorator
-    def get_app_config_files(self) -> Iterable[Path]:
-        """Iterates through config files in the config directory. Excludes directory names defined in exclude_dirs and files with a "." character. Also excludes files that aren't readable."""
+    def get_python_files_async(self) -> set[Path]:
+        """Get a set of valid app config files in the app directory.
+
+        Valid files are ones that are readable, not inside an excluded directory, and not starting with a "." character.
+        """
+        return self.get_python_files()
+
+    def get_app_config_files(self) -> set[Path]:
+        """Get a set of valid app fonfig files in the app directory.
+
+        Valid files are ones that are readable, not inside an excluded directory, and not starting with a "." character.
+        """
+        assert threading.current_thread().name.startswith("ThreadPool")
         return set(
-            f
-            for f in self.AD.app_dir.resolve().rglob(f"*{self.ext}")
-            if f.parent.name not in self.AD.exclude_dirs  # apply exclude_dirs
-            and "." not in f.stem
-            and os.access(f, os.R_OK)  # skip unreadable files
+            utils.recursive_get_files(
+                base=self.AD.app_dir.resolve(),
+                suffix=self.ext,
+                exclude=set(self.AD.exclude_dirs),
+            )
         )
+
+    @utils.executor_decorator
+    def get_app_config_files_async(self) -> set[Path]:
+        """Get a set of valid app config files in the app directory.
+
+        Valid files are ones that are readable, not inside an excluded directory, and not starting with a "." character.
+        """
+        return self.get_app_config_files()
 
     async def check_app_python_files(self, update_actions: UpdateActions):
         """Checks the python files in the app directory. Part of self.check_app_updates sequence"""
-        files = await self.get_python_files()
+        files = await self.get_python_files_async()
         self.dependency_manager.update_python_files(files)
 
         # We only need to init the modules necessary for the new apps, not reloaded ones

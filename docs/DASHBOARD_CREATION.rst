@@ -643,9 +643,9 @@ Arguments:
 
 ``target`` - Name of the new Dashboard to navigate to, e.g.
 ``SensorPanel`` - this is not a URL.
-``timeout`` - length of time to stay on the new dashboard before returning to
-the original. This argument is optional, and if not specified, the navigation
+``timeout`` - length of time to stay on the new dashboard before returning to the original. This argument is optional, and if not specified, the navigation
 will be permanent.
+``skin`` - the skin to use for the new dashboard. This is optional, and if not specified, the skin will be the same as the original dashboard.
 
 Note that if there is a click or touch on the new panel before the
 timeout expires, the timeout will be cancelled.

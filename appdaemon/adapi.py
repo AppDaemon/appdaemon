@@ -1845,7 +1845,20 @@ class ADAPI:
         self.logger.debug("register_service: %s, %s", service, kwargs)
 
         namespace = namespace or self.namespace
-        self.AD.services.register_service(namespace, *service.split("/"), cb, __async="auto", name=self.name, **kwargs)
+        try:
+            domain, service = service.split("/", 2)
+        except ValueError as e:
+            raise ade.DomainNotSpecified(namespace, service) from e
+        else:
+            self.AD.services.register_service(
+                namespace,
+                domain=domain,
+                service=service,
+                callback=cb,
+                __async="auto",
+                name=self.name,
+                **kwargs
+            )  # fmt: skip
 
     def deregister_service(self, service: str, namespace: str | None = None) -> bool:
         """Deregister a service that had been previously registered.
@@ -2958,7 +2971,10 @@ class ADAPI:
                 info = await self.AD.sched._parse_time(start, self.name)
                 start = info["datetime"]
             case dt.time():
-                start = dt.datetime.combine(await self.date(), start).astimezone(self.AD.tz)
+                if start.tzinfo is None:
+                    start = start.replace(tzinfo=self.AD.tz)
+                date = await self.date()
+                start = dt.datetime.combine(date, start)
             case dt.datetime():
                 ...
             case _:
@@ -3043,8 +3059,10 @@ class ADAPI:
                 info = await self.AD.sched._parse_time(start, self.name)
                 start, offset, sun = info["datetime"], info["offset"], info["sun"]
             case dt.time():
+                if start.tzinfo is None:
+                    start = start.replace(tzinfo=self.AD.tz)
                 date = await self.date()
-                start = dt.datetime.combine(date, start).astimezone(self.AD.tz)
+                start = dt.datetime.combine(date, start)
             case dt.datetime():
                 ...
             case _:
@@ -3288,8 +3306,10 @@ class ADAPI:
                     info = await self.AD.sched._parse_time(start, self.name)
                     start = info["datetime"]
             case dt.time():
+                if start.tzinfo is None:
+                    start = start.replace(tzinfo=self.AD.tz)
                 date = await self.date()
-                start = dt.datetime.combine(date, start).astimezone(self.AD.tz)
+                start = dt.datetime.combine(date, start)
             case dt.datetime():
                 ...
             case None:
@@ -3323,7 +3343,7 @@ class ADAPI:
         self,
         callback: Callable,
         *args,
-        repeat: bool = False,
+        repeat: bool = True,
         offset: int | None = None,
         random_start: int | None = None,
         random_end: int | None = None,
@@ -3337,6 +3357,7 @@ class ADAPI:
             callback: Function to be invoked at or around sunset. It must conform to the
                 standard Scheduler Callback format documented `here <APPGUIDE.html#about-schedule-callbacks>`__.
             *args: Arbitrary positional arguments to be provided to the callback function when it is triggered.
+            repeat (bool, option): Whether the callback should repeat every day. Defaults to ``True``
             offset (int, optional): The time in seconds that the callback should be delayed after
                 sunset. A negative value will result in the callback occurring before sunset.
                 This parameter cannot be combined with ``random_start`` or ``random_end``.
@@ -3395,7 +3416,7 @@ class ADAPI:
         self,
         callback: Callable,
         *args,
-        repeat: bool = False,
+        repeat: bool = True,
         offset: int | None = None,
         random_start: int | None = None,
         random_end: int | None = None,
@@ -3408,8 +3429,8 @@ class ADAPI:
         Args:
             callback: Function to be invoked at or around sunrise. It must conform to the
                 standard Scheduler Callback format documented `here <APPGUIDE.html#about-schedule-callbacks>`__.
-            *args: Arbitrary positional arguments to be provided to the callback function
-                when it is invoked.
+            *args: Arbitrary positional arguments to be provided to the callback function when it is invoked.
+            repeat (bool, option): Whether the callback should repeat every day. Defaults to ``True``
             offset (int, optional): The time in seconds that the callback should be delayed after
                 sunrise. A negative value will result in the callback occurring before sunrise.
                 This parameter cannot be combined with ``random_start`` or ``random_end``.
@@ -3475,7 +3496,7 @@ class ADAPI:
         sticky: int = 0,
         deviceid: str | None = None,
         dashid: str | None = None,
-    ) -> None:
+        skin: str | None = None) -> None:
         """Forces all connected Dashboards to navigate to a new URL.
 
         Args:
@@ -3496,6 +3517,7 @@ class ADAPI:
             dashid (str): If set, all devices currently on a dashboard which the title contains
                 the substring dashid will navigate. ex: if dashid is "kichen", it will match
                 devices which are on "kitchen lights", "kitchen sensors", "ipad - kitchen", etc.
+            skin (str): If set, the skin will change to the skin defined on the param.
 
         Returns:
             None.
@@ -3518,6 +3540,8 @@ class ADAPI:
             kwargs["deviceid"] = deviceid
         if dashid is not None:
             kwargs["dashid"] = dashid
+        if skin is not None:
+            kwargs["skin"] = skin
         self.fire_event("ad_dashboard", timeout=timeout, **kwargs)
 
     #

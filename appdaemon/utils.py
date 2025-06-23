@@ -16,7 +16,7 @@ import sys
 import threading
 import time
 import traceback
-from collections.abc import Awaitable, Iterable
+from collections.abc import Awaitable, Generator, Iterable
 from datetime import timedelta, tzinfo
 from functools import wraps
 from logging import Logger
@@ -1120,3 +1120,23 @@ def deprecation_warnings(model: BaseModel, logger: Logger):
                         deprecation_warnings(val, logger)
             case BaseModel():
                 deprecation_warnings(attr, logger)
+
+
+def recursive_get_files(base: Path, suffix: str, exclude: set[str] | None = None) -> Generator[Path, None, None]:
+    """Recursively generate file paths.
+
+    Args:
+        base (Path): The base directory to start searching from.
+        suffix (str): The file extension to filter by.
+        exclude (set[str]): A set of directory names to exclude from the search.
+
+    Yields:
+        Path objects to files that have the matching extension and are readable.
+    """
+    for item in base.iterdir():
+        if item.name.startswith(".") or (exclude is None or item.name in exclude):
+            continue
+        elif item.is_file() and item.suffix == suffix and os.access(item, os.R_OK):
+            yield item
+        elif item.is_dir() and os.access(item, os.R_OK):
+            yield from recursive_get_files(item, suffix, exclude)
