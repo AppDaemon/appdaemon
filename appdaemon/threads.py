@@ -652,7 +652,8 @@ class Threading:
                 end_time = "23:59:59"
             else:
                 end_time = args["constrain_end_time"]
-            if await self.AD.sched.now_is_between(start_time, end_time, name) is False:
+            in_between_window = await self.AD.sched.now_is_between(start_time=start_time, end_time=end_time)
+            if not in_between_window:
                 unconstrained = False
 
         return unconstrained

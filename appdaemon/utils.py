@@ -2,7 +2,6 @@ import asyncio
 import concurrent.futures
 import copy
 import cProfile
-import datetime
 import functools
 import inspect
 import io
@@ -10,24 +9,29 @@ import json
 import os
 import platform
 import pstats
+import random
 import re
 import shelve
 import sys
 import threading
-import time
 import traceback
 from collections.abc import Awaitable, Generator, Iterable
-from datetime import timedelta, tzinfo
+from datetime import datetime, time, timedelta, tzinfo
 from functools import wraps
 from logging import Logger
 from pathlib import Path
+from time import perf_counter
 from typing import TYPE_CHECKING, Any, Callable, Coroutine, Dict, Literal, ParamSpec, Protocol, TypeVar
 
 import dateutil.parser
+import pytz
 import tomli
 import tomli_w
 import yaml
+from astral import SunDirection
+from astral.location import Location
 from pydantic import BaseModel, ValidationError
+from pytz import BaseTzInfo
 
 from appdaemon.version import (
     __version__,  # noqa: F401
@@ -45,6 +49,22 @@ if platform.system() != "Windows":
     import pwd
 
 secrets = None
+
+ELEVATION_REGEX = re.compile(r"^(?P<N>\d+(?:\.\d+)?)\s+deg\s+(?P<dir>rising|setting)$", re.IGNORECASE)
+
+OFFSET_SPLIT_REGEX = re.compile(r"\s+[+-]\s+")
+
+
+def has_offset(time_str: str) -> bool:
+    """Check if a time string has an offset.
+
+    Args:
+        time_str (str): The time string to check.
+
+    Returns:
+        bool: True if the time string has an offset, False otherwise.
+    """
+    return bool(OFFSET_SPLIT_REGEX.search(time_str))
 
 
 class Formatter(object):
@@ -210,6 +230,26 @@ P = ParamSpec("P")
 R = TypeVar("R")
 
 
+def resolve_offset(
+    offset: str | int | float | timedelta | None,
+    random_start: int | float | None = None,
+    random_end: int | float | None = None,
+) -> timedelta:
+    """Resolves a given offset with some randomization into a timedelta object."""
+    offset = parse_timedelta(offset)
+    if random_start is not None or random_end is not None:
+        random_start = random_start if random_start is not None else 0
+        random_end = random_end if random_end is not None else 0
+
+        span = random_end - random_start
+        assert span >= 0, "Random end must be greater than or equal to random start"
+
+        random_secs = (span * random.random()) + random_start
+        random_offset = parse_timedelta(random_secs)
+        offset += random_offset
+    return offset
+
+
 def sync_decorator(coro_func: Callable[P, Awaitable[R]]) -> Callable[P, R]:
     """Wrap a coroutine function to ensure it gets run in the main thread.
 
@@ -248,13 +288,13 @@ def sync_decorator(coro_func: Callable[P, Awaitable[R]]) -> Callable[P, R]:
 def timeit(func):
     @wraps(func)
     async def wrapper(self, *args, **kwargs):
-        start_time = time.perf_counter()
+        start_time = perf_counter()
         try:
             return await func(self, *args, **kwargs)
         except Exception as e:
             self.logger.exception(e)
         finally:
-            elapsed_time = time.perf_counter() - start_time
+            elapsed_time = perf_counter() - start_time
             self.logger.debug(f"Finished [{func.__name__}] in {elapsed_time * 10**3:.0f} ms")
 
     return wrapper
@@ -284,7 +324,7 @@ def format_seconds(secs: str | int | float | timedelta) -> str:
     return str(parse_timedelta(secs))
 
 
-def parse_timedelta(s: str | int | float | timedelta | None) -> timedelta:
+def parse_timedelta(input_: str | int | float | timedelta | None) -> timedelta:
     """Convert disparate types into a timedelta object.
 
     Args:
@@ -315,13 +355,13 @@ def parse_timedelta(s: str | int | float | timedelta | None) -> timedelta:
         datetime.timedelta(0)
 
     """
-    match s:
+    match input_:
         case timedelta():
-            return s
+            return input_
         case int() | float():
-            return timedelta(seconds=s)
+            return timedelta(seconds=input_)
         case str():
-            parts = tuple(float(p.strip()) for p in re.split(r"[^\d\.]+", s))
+            parts = tuple(float(p.strip()) for p in re.split(r"\s*[^\d\.]+\s*", input_) if bool(p))
             match len(parts):
                 case 1:
                     return timedelta(seconds=parts[0])
@@ -336,13 +376,13 @@ def parse_timedelta(s: str | int | float | timedelta | None) -> timedelta:
                     return timedelta(days=day, hours=hour, minutes=min, seconds=sec)
                 case _:
                     raise ValueError(
-                        f"Invalid string format for timedelta: {s}."
+                        f"Invalid string format for timedelta: {input_}."
                         "Must be in the format 'HH:MM:SS', 'MM:SS', or 'SS'."
                     )
         case None:
             return timedelta()
         case _:
-            raise ValueError(f"Invalid type for timedelta: {type(s)}. Must be str, int, float, or timedelta")
+            raise ValueError(f"Invalid type for timedelta: {type(input_)}. Must be str, int, float, or timedelta")
 
 
 def format_timedelta(td: str | int | float | timedelta | None) -> str:
@@ -393,6 +433,252 @@ def format_timedelta(td: str | int | float | timedelta | None) -> str:
                 if hours == 0:  # Remove the hours portion if it's 0
                     res = res.split(":", 1)[1]
                 return res
+
+
+def parse_time_str(
+    time_str: str,
+    now: datetime,
+    location: Location | None = None,
+    days_offset: int = 0,
+    ) -> tuple[time | datetime, timedelta | None]:
+    """Parse a time string into a timezone-aware datetime object along with any time offset it may have.
+
+    Note:
+        This function is intended to break out the logic of parsing time strings from the rest of the codebase to make
+        it easier to test and maintain.
+
+    Args:
+        time_str (str): The time string to parse. Can be in various formats
+        now (datetime): The current datetime to use as a reference for parsing.
+        location (Location | None): Location used for sunrise/sunset parsing. Comes from the astral package
+        days_offset (int): Number of days to offset from the current date for sunrise/sunset parsing. Defaults to 0.
+
+    Returns:
+        tuple[time | datetime, timedelta | None]: A tuple containing the parsed time as a time or datetime object,
+            and a timedelta representing any offset applied to the time.
+    """
+    assert isinstance(time_str, str), "Input must be a string"
+    parts = OFFSET_SPLIT_REGEX.split(time_str)
+    match len(parts):
+        case 1: # No offset, just a time string
+            time_part, offset = parts[0], None
+        case 2: # Time string with offset
+            time_part, offset_str = parts
+            offset = parse_timedelta(offset_str)
+            offset_match = OFFSET_SPLIT_REGEX.search(time_str)
+            assert offset_match is not None, f"Invalid offset format in: {time_str}"
+            match offset_match.group().strip():
+                case '+':
+                    offset = offset
+                case '-':
+                    offset *= -1
+        case _:
+            raise ValueError(f"Invalid input format: {time_str}")
+
+    time_part = time_part.strip()
+
+    # Handle the special cases, starting with "now"
+    if time_part.startswith("now"):
+        result = now.time()
+
+    # Handle the special cases for sunrise/sunset
+    elif time_part.startswith("sun"):
+        assert location is not None, "Location must be provided for sunrise/sunset parsing"
+        match time_part:
+            case "sunrise":
+                func = location.sunrise
+            case "sunset":
+                func = location.sunset
+            case _:
+                raise ValueError(f"Invalid sun string format: {time_part}")
+        result = func(date=now.date()+timedelta(days=days_offset), local=True)
+
+    elif m := ELEVATION_REGEX.match(time_part):
+        assert location is not None, "Location must be provided for elevation parsing"
+        func = functools.partial(
+            location.time_at_elevation,
+            elevation=float(m.group("N")),
+            date=now.date() + timedelta(days=days_offset),
+            local=True,
+        )
+
+        match m.group("dir").lower():
+            case "rising":
+                result = func(direction=SunDirection.RISING)
+            case "setting":
+                result = func(direction=SunDirection.SETTING)
+            case _ as bad_str:
+                raise ValueError(f"Invalid sun direction: {bad_str} in {time_part}")
+
+    # Handle all the other cases
+    else:
+        try:
+            # Attempt an ISO format first
+            result = datetime.fromisoformat(time_part).time()
+        except ValueError:
+            # If that fails, split the time string by colons and convert the parts to ints
+            parts = tuple(int(p.strip()) for p in time_part.split(':'))
+            match len(parts):
+                case 1:
+                    hour = parts[0]
+                    result = time(hour, 0, 0)
+                case 2:
+                    hour, minute = parts
+                    result = time(hour, minute, 0)
+                case 3:
+                    hour, minute, second = parts
+                    result = time(hour, minute, second)
+                case _:
+                    raise ValueError(f"Invalid string format for time: {time_part}. ")
+
+    if result == now and "sun" in time_part:
+        # This only happens if it's a sun event being calculated exactly at the current time, which happens during
+        # time-travel tests. In this case, we want to force the result to be for the next day.
+        result, offset = parse_time_str(
+            time_str=time_str,
+            now=now,
+            location=location,
+            days_offset=days_offset + 1,
+        )
+
+    return result, offset
+
+
+def parse_datetime(
+    input_: str | time | datetime,
+    now: datetime,
+    location: Location | None = None,
+    timezone: BaseTzInfo | None = None,
+    today: bool | None = None,
+    offset: str | int | float | timedelta | None = None,
+    days_offset: int = 0,
+    aware: bool = True,
+    ) -> datetime:
+        """Parse a variety of inputs into a datetime object.
+
+        Args:
+            input_ (str | time | datetime): The input to parse. Can be a string, time, or datetime object.
+            now (datetime): The current datetime to use as a reference for parsing. This is intended to represent the
+                datetime that the call is being made, which affects how times are resolved.
+            location (Location, optional): Location used for sunrise/sunset parsing. This is needed in order to parse
+                sunset/sunrise times from the input.
+            timezone (BaseTzInfo, optional): The timezone to use for the resulting datetime object.
+            today (bool, optional): If `True`, forces the result to be today. If `False`, allows the result to be in the
+                past. This will be forced to `False` if the ``days_offset`` is negative.
+            offset (timedelta, optional): An optional offset to apply to the resulting datetime.
+            days_offset (int, optional): Number of days to offset from the current date for sunrise/sunset parsing.
+            aware (bool, optional): If `False`, the resulting datetime will be naive (without timezone). Defaults to
+                `True`.
+
+        Returns:
+            datetime: A datetime object representing the parsed time.
+
+        """
+        # The the days offset is negative, the result can't be forced to today, so set today to False
+        if days_offset < 0:
+            today = True # This allows the result to be in the past
+
+        # Ensure that the offset is a timedelta object, even a 0 duration one.
+        offset = parse_timedelta(offset)
+
+        match input_:
+            case time() | datetime():
+                result = input_
+            case str() as time_str:
+                # For the sunrise/sunset cases, default to getting the next occurrence if today is not specified
+                if input_.startswith("sun") and today is None:
+                    today = False # This forces the result to be in the future
+                result, str_offset = parse_time_str(
+                    time_str=time_str,
+                    now=now,
+                    location=location,
+                    days_offset=days_offset,
+                )
+                # Combine the kwarg offset with one from the parsed string, if there is one
+                if str_offset is not None:
+                    offset += str_offset
+            case _:
+                raise NotImplementedError(f"Unsupported input type: {type(input_)}")
+
+        match result:
+            case datetime():
+                pass
+            case time():
+                result = datetime.combine(now.date(), result)
+            case _:
+                raise TypeError(f"Unsupported result type: {result}")
+
+        result = ensure_timezone(result, timezone)
+
+        # Intentionally don't include the false-y case of None here
+        if result < now and today is False:
+            if isinstance(input_, str):
+                parts = re.split(r'\s+[+-]\s+', input_)
+                input_ = parts[0]  # This will strip the offset because it'll be applied later
+
+            result = parse_datetime(
+                input_,
+                now=now,
+                location=location,
+                timezone=timezone,
+                today=today,
+                days_offset=days_offset + 1,
+            )
+
+        if offset is not None:
+            result += offset
+
+        if not aware:
+            result = result.replace(tzinfo=None)
+
+        return result
+
+
+def now_is_between(
+    now: datetime,
+    start_time: str | time | datetime,
+    end_time: str | time | datetime,
+    tz: BaseTzInfo | None = None,
+    location: Location | None = None,
+) -> bool:
+    assert now.tzinfo is not None, "Now must be a timezone-aware datetime"
+    tz = pytz.timezone(str(now.tzinfo)) if tz is None else tz
+
+    parse = functools.partial(
+        parse_datetime,
+        now=now,
+        location=location,
+        timezone=tz,
+        today=True,
+    )
+
+    aware_start = parse(start_time)
+    aware_end = parse(end_time)
+
+    if (aware_start > aware_end and (now < aware_start or now < aware_end)):
+        aware_start = parse(start_time, days_offset=-1)
+        if aware_start > aware_end:
+            aware_start -= timedelta(days=1)
+
+    if aware_start > aware_end and now > aware_start and now > aware_end:
+        aware_end = parse(end_time, days_offset=1)
+        if aware_start > aware_end:
+            aware_end += timedelta(days=1)
+
+    return (aware_start <= now <= aware_end)
+
+
+def ensure_timezone(input_: datetime, timezone: BaseTzInfo | None) -> datetime:
+    if timezone is not None:
+        if input_.tzinfo is None:
+            result = timezone.localize(input_)
+        else:
+            result = input_.astimezone(timezone)
+    else:
+        result = input_
+
+    assert result.tzinfo is not None, "Resulting datetime must be timezone-aware"
+    return result
 
 
 def deep_compare(check: dict, data: dict) -> bool:
@@ -776,7 +1062,7 @@ def dt_to_str(dt: datetime, tz: tzinfo | None = None, *, round: bool = False) ->
     if round:
         dt = dt.replace(microsecond=0)
 
-    if dt == datetime.datetime(1970, 1, 1, 0, 0, 0, 0):
+    if dt == datetime(1970, 1, 1, 0, 0, 0, 0):
         return "never"
     else:
         if tz is not None:
@@ -1041,7 +1327,7 @@ class Singleton(type):
 
 
 def time_str(start: float, now: float | None = None) -> str:
-    return format_timedelta((now or time.perf_counter()) - start)
+    return format_timedelta((now or perf_counter()) - start)
 
 
 def clean_kwargs(**kwargs):
@@ -1051,7 +1337,7 @@ def clean_kwargs(**kwargs):
         match val:
             case int() | float() | str():
                 return val
-            case datetime.datetime():
+            case datetime():
                 return val.isoformat()
             case dict():
                 return clean_kwargs(**val)
