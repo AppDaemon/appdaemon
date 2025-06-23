@@ -1,5 +1,21 @@
 # Change Log
 
+## 4.5.12
+
+None
+
+**Fixes**
+
+None
+
+**Breaking Changes**
+
+None
+
+**Changes in Behavior**
+
+None
+
 ## 4.5.11
 
 **Features**
