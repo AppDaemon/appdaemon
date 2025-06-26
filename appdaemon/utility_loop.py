@@ -26,9 +26,10 @@ class Utility:
     """Reference to the AppDaemon container object
     """
 
-    stopping: bool
     logger: Logger
-    stopping: bool = False
+    loop_task: asyncio.Task
+    app_update_event: asyncio.Event
+    stop_event: asyncio.Event
 
     def __init__(self, ad: "AppDaemon"):
         """Constructor.
@@ -36,11 +37,15 @@ class Utility:
         Args:
             ad: Reference to the AppDaemon object
         """
-
         self.AD = ad
         self.logger = ad.logging.get_child("_utility")
         self.booted = None
-        # self.AD.loop.create_task(self.loop())
+
+        self.app_update_event = asyncio.Event()
+        self.stop_event = asyncio.Event()
+
+    def start(self):
+        self.loop_task = self.AD.loop.create_task(self.loop(), name="utility_loop")
 
     def stop(self):
         """Called by the AppDaemon object to terminate the loop cleanly
@@ -52,6 +57,17 @@ class Utility:
 
         self.logger.debug("stop() called for utility")
         self.stopping = True
+
+    @property
+    def stopping(self) -> bool:
+        return self.stop_event.is_set()
+
+    @stopping.setter
+    def stopping(self, value: bool) -> None:
+        if value:
+            self.stop_event.set()
+        else:
+            self.stop_event.clear()
 
     async def get_uptime(self) -> timedelta:
         """Utility function to return the uptime of AppDaemon
@@ -70,6 +86,8 @@ class Utility:
         Loops until stop() is called, checks for file changes, overdue threads, thread starvation,
         and schedules regular state refreshes.
         """
+
+        self.logger.debug("Starting utility loop")
 
         #
         # Setup
@@ -167,6 +185,7 @@ class Utility:
             # Start the loop proper
 
             while not self.stopping:
+                self.app_update_event.clear()
                 loop_start = perf_counter()
                 check_app_duration = timedelta()
                 try:
@@ -221,6 +240,7 @@ class Utility:
                     self.logger.warning(traceback.format_exc())
                     self.logger.warning("-" * 60)
                 finally:
+                    self.app_update_event.set()
                     loop_duration = timedelta(seconds=perf_counter() - loop_start)
                     other_duration = loop_duration - check_app_duration
 
@@ -241,7 +261,13 @@ class Utility:
                             self.logger.info("Profile information for Utility Loop")
                             self.logger.info(self.AD.app_management.check_app_updates_profile_stats)
                     else:
-                        await asyncio.sleep(self.AD.utility_delay)
+                        try:
+                            if not self.stopping:
+                                # Instead of sleeping, we wait for the stop event to get set with a timeout.
+                                await asyncio.wait_for(self.stop_event.wait(), self.AD.utility_delay)
+                        except TimeoutError:
+                            # We expect the timeout to occur unless the stop event gets set while we're waiting
+                            pass
 
             #
             # Shutting down now

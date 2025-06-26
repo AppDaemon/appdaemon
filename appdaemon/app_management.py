@@ -949,7 +949,6 @@ class AppManagement:
 
         Valid files are ones that are readable, not inside an excluded directory, and not starting with a "." character.
         """
-        assert threading.current_thread().name.startswith("ThreadPool")
         return set(
             utils.recursive_get_files(
                 base=self.AD.app_dir.resolve(),
@@ -964,6 +963,7 @@ class AppManagement:
 
         Valid files are ones that are readable, not inside an excluded directory, and not starting with a "." character.
         """
+        assert threading.current_thread().name.startswith("ThreadPool")
         return self.get_app_config_files()
 
     async def check_app_python_files(self, update_actions: UpdateActions):
@@ -1224,8 +1224,7 @@ class AppManagement:
                 "event_type": "app_created",
                 "data": {"app": app, **app_config[app]},
             }
-            self.AD.loop.create_task(
-                self.AD.events.process_event("admin", data))
+            self.AD.loop.create_task(self.AD.events.process_event("admin", data))
 
         except Exception:
             self.error.warning("-" * 60)

@@ -1,6 +1,6 @@
 import os
 import threading
-from asyncio import BaseEventLoop
+from asyncio import AbstractEventLoop
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from threading import RLock
@@ -73,7 +73,7 @@ class AppDaemon(metaclass=Singleton):
     """
 
     # asyncio
-    loop: BaseEventLoop
+    loop: AbstractEventLoop
     """Main asyncio event loop
     """
     executor: ThreadPoolExecutor
@@ -102,7 +102,7 @@ class AppDaemon(metaclass=Singleton):
     # shut down flag
     stopping: bool = False
 
-    def __init__(self, logging: "Logging", loop: BaseEventLoop, ad_config_model: AppDaemonConfig):
+    def __init__(self, logging: "Logging", loop: AbstractEventLoop, ad_config_model: AppDaemonConfig):
         self.logging = logging
         self.loop = loop
         self.config = ad_config_model
@@ -147,21 +147,11 @@ class AppDaemon(metaclass=Singleton):
             self.app_management = AppManagement(self)
 
         self.threading = Threading(self)
-
-        # Create ThreadAsync loop
-        self.logger.debug("Starting thread_async loop")
-        self.thread_async = ThreadAsync(self)
-        loop.create_task(self.thread_async.loop())
-
         self.executor = ThreadPoolExecutor(max_workers=self.threadpool_workers)
-
-        # Initialize Plugins
-        self.plugins = PluginManagement(self, self.config.plugins)
-
-        # Create utility loop
-        self.logger.debug("Starting utility loop")
+        self.thread_async = ThreadAsync(self)
+        # self.executor = ThreadPoolExecutor(max_workers=self.threadpool_workers)
         self.utility = Utility(self)
-        loop.create_task(self.utility.loop())
+        self.plugins = PluginManagement(self, self.config.plugins)
 
     #
     # Property definitions
@@ -296,6 +286,21 @@ class AppDaemon(metaclass=Singleton):
         return self.config.qsize_warning_threshold
 
     @property
+    def real_time(self) -> bool:
+        """Flag for whether the AppDaemon instance is running in real time or not."""
+        return self.config.timewarp == 1
+
+    @real_time.setter
+    def real_time(self, value: bool) -> None:
+        """Set the AppDaemon instance to run in real time or not."""
+        if value:
+            self.timewarp = 1.0
+        else:
+            raise NotImplementedError(
+                "Setting real_time to False is not supported. Set timewarp to a value other than 1.0 instead."
+            )
+
+    @property
     def starttime(self):
         return self.config.starttime
 
@@ -319,6 +324,14 @@ class AppDaemon(metaclass=Singleton):
     def timewarp(self):
         return self.config.timewarp
 
+    @timewarp.setter
+    def timewarp(self, value: float):
+        """Set the timewarp value for the AppDaemon instance."""
+        if not isinstance(value, (int, float)):
+            raise TypeError("Timewarp must be a number.")
+        self.config.timewarp = value
+        self.logger.info(f"Timewarp set to {value}")
+
     @property
     def tz(self):
         return self.config.time_zone
@@ -334,6 +347,11 @@ class AppDaemon(metaclass=Singleton):
     @property
     def utility_delay(self):
         return self.config.utility_delay
+
+    def start(self) -> None:
+        assert self.thread_async is not None, "ThreadAsync loop not initialized"
+        self.loop.create_task(self.thread_async.loop())
+        self.utility.start()
 
     def stop(self):
         """Called by the signal handler to shut AD down.

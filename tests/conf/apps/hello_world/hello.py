@@ -1,11 +1,5 @@
 from appdaemon.adapi import ADAPI
 
-#
-# Hello World App
-#
-# Args:
-#
-
 
 class HelloWorld(ADAPI):
     def initialize(self):

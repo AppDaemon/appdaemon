@@ -152,6 +152,7 @@ class ADMain:
                     self.logger.info("HTTP is disabled")
 
             self.logger.debug("Start Main Loop")
+            self.AD.start()
 
             pending = asyncio.all_tasks(loop)
             loop.run_until_complete(asyncio.gather(*pending))

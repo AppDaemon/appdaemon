@@ -13,15 +13,15 @@ class ThreadAsync:
     """
 
     AD: "AppDaemon"
-    stopping: bool
     logging: Logger
     appq: asyncio.Queue
+    stop_event: asyncio.Event
 
     def __init__(self, ad: "AppDaemon"):
         self.AD = ad
-        self.stopping = False
         self.logger = ad.logging.get_child("_thread_async")
         self.appq = asyncio.Queue(maxsize=0)
+        self.stop_event = asyncio.Event()
 
     def stop(self):
         self.logger.debug("stop() called for thread_async")
@@ -29,7 +29,19 @@ class ThreadAsync:
         # Queue a fake event to make the loop wake up and exit
         self.appq.put_nowait({"stop": True})
 
+    @property
+    def stopping(self) -> bool:
+        return self.stop_event.is_set()
+
+    @stopping.setter
+    def stopping(self, value: bool) -> None:
+        if value:
+            self.stop_event.set()
+        else:
+            self.stop_event.clear()
+
     async def loop(self):
+        self.logger.debug("Starting thread_async loop")
         while not self.stopping:
             args = None
             try:

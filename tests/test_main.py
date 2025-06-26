@@ -1,6 +1,5 @@
 from appdaemon.__main__ import ADMain
 
-
 # TODO: fake test to assert that pytest works correctly
 
 
