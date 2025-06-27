@@ -333,7 +333,7 @@ class Threading:
         q.put_nowait(args)
 
     async def check_overdue_and_dead_threads(self):
-        if self.AD.sched.realtime is True and self.AD.thread_duration_warning_threshold != 0:
+        if self.AD.real_time is True and self.AD.thread_duration_warning_threshold != 0:
             for thread_id in self.threads:
                 if self.threads[thread_id]["thread"].is_alive() is not True:
                     self.logger.critical("Thread %s has died", thread_id)
@@ -433,7 +433,7 @@ class Threading:
             else:
                 duration = (now - start).total_seconds()
 
-            if self.AD.sched.realtime is True and duration >= self.AD.thread_duration_warning_threshold:
+            if self.AD.real_time and duration >= self.AD.thread_duration_warning_threshold:
                 thread_name = f"thread.{thread_id}"
                 callback = await self.get_state("_threading", "admin", thread_name)
                 self.logger.warning(

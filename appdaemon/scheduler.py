@@ -42,7 +42,6 @@ class Scheduler:
 
     name: str = "_scheduler"
     active: bool = False
-    realtime: bool = True
     stopping: bool = False
 
     def __init__(self, ad: "AppDaemon"):
@@ -63,32 +62,26 @@ class Scheduler:
         #
         self.AD.logging.set_tz(self.AD.tz)
 
-        self.set_start_time()
-
-        if self.AD.endtime is not None:
-            unaware_end = self.AD.endtime
-            aware_end = self.AD.tz.localize(unaware_end)
-            self.endtime = aware_end.astimezone(pytz.utc)
-        else:
-            self.endtime = None
-
         # Setup sun
         self.init_sun()
 
-    def set_start_time(self):
-        tt = False
+    def start(self):
         if self.AD.starttime is not None:
-            tt = True
-            unaware_now = self.AD.starttime
-            aware_now = self.AD.tz.localize(unaware_now)
-            self.now = aware_now.astimezone(pytz.utc)
+            self.now = utils.ensure_timezone(self.AD.starttime, self.AD.tz)
         else:
-            self.now = datetime.now(pytz.utc)
+            self.now = datetime.now(self.AD.tz)
 
-        if self.AD.timewarp != 1:
-            tt = True
+        if self.AD.endtime is not None:
+            self.endtime = utils.ensure_timezone(self.AD.endtime, self.AD.tz)
+        else:
+            self.endtime = None
 
-        return tt
+        self.active = True
+
+    @property
+    def realtime(self) -> bool:
+        """Return whether the scheduler is running in real time."""
+        return self.AD.real_time
 
     def stop(self):
         self.logger.debug("stop() called for scheduler")
@@ -148,7 +141,7 @@ class Scheduler:
             "id": self.AD.app_management.objects[name].id,
             "callback": callback,
             "timestamp": timestamp,
-            "interval": utils.parse_timedelta(interval).total_seconds(), # guarantees that interval is a float
+            "interval": utils.parse_timedelta(interval).total_seconds(),  # guarantees that interval is a float
             "basetime": basetime,
             "repeat": repeat,
             "offset": offset.total_seconds(),
@@ -279,15 +272,15 @@ class Scheduler:
     def _log_exec_start(self, args: dict[str, Any]) -> None:
         logger = self.logger.getChild("_reset")
         if logger.getEffectiveLevel() > logging.DEBUG:
-            return # The logging below is relatively expensive, so skip it if not needed
+            return  # The logging below is relatively expensive, so skip it if not needed
 
         match args:
             case {
-                'repeat': True,
+                "repeat": True,
                 # "name": name_,
-                'callback': callback,
-                'timestamp': datetime() as timestamp,
-                'basetime': datetime() as basetime,
+                "callback": callback,
+                "timestamp": datetime() as timestamp,
+                "basetime": datetime() as basetime,
                 "interval": (int() | float()) as interval,
             }:
                 callback_name = utils.unwrapped(callback).__name__
@@ -431,8 +424,8 @@ class Scheduler:
                 await self.AD.state.remove_entity("admin", "scheduler_callback.{}".format(id))
             del self.schedule[name]
 
-    def is_realtime(self):
-        return self.realtime
+    def is_realtime(self) -> bool:
+        return self.AD.real_time
 
     #
     # Timer
@@ -488,20 +481,18 @@ class Scheduler:
         return limit
 
     async def loop(self):  # noqa: C901
-        self.active = True
+        self.start()
         self.logger.debug("Starting scheduler loop()")
         self.AD.booted = await self.get_now_naive()
 
-        tt = self.set_start_time()
         self.last_fired = datetime.now(pytz.utc)
-        if tt is True:
-            self.realtime = False
+        if not self.AD.real_time:
             self.logger.info("Starting time travel ...")
-            self.logger.info("Setting clocks to %s", await self.get_now_naive())
+            self.logger.info("Setting clocks to %s", await self.get_now())
             if self.AD.timewarp == 0:
                 self.logger.info("Time displacement factor infinite")
             else:
-                self.logger.info("Time displacement factor %s", self.AD.timewarp)
+                self.logger.info("Time displacement factor %d", self.AD.timewarp)
         else:
             self.logger.info("Scheduler running in realtime")
 
@@ -520,7 +511,7 @@ class Scheduler:
                         self.stop()
 
                 now = datetime.now(pytz.utc)
-                if self.realtime is True:
+                if self.realtime:
                     self.now = now
 
                 else:
@@ -726,7 +717,7 @@ class Scheduler:
             return dt.astimezone(self.AD.tz).dst() != timedelta(0)
 
     async def get_now(self) -> datetime:
-        if self.realtime is True:
+        if self.realtime:
             return datetime.now(self.AD.time_zone)
         else:
             return self.now
@@ -734,7 +725,7 @@ class Scheduler:
     # Non async version of get_now(), required for logging time formatter - no locking but only used during time travel
     # so should be OK ...
     def get_now_sync(self):
-        if self.realtime is True:
+        if self.realtime:
             return pytz.utc.localize(datetime.utcnow())
         else:
             return self.now
@@ -787,7 +778,7 @@ class Scheduler:
         aware: bool = False,
         today: bool | None = None,
         days_offset: int = 0
-    ) -> time:
+    ) -> time:  # fmt: skip
         dt = await self.parse_datetime(
             time_str,
             aware=aware,
@@ -803,7 +794,7 @@ class Scheduler:
         aware: bool = False,
         today: bool | None = None,
         days_offset: int = 0
-    ) -> datetime:
+    ) -> datetime:  # fmt: skip
         now = await self.get_now()
         # Need to force timezone during time-travel mode
         now = now.astimezone(self.AD.tz)

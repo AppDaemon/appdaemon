@@ -175,7 +175,7 @@ class PluginBase(abc.ABC):
                 namespace=ns,
                 state=state,
                 persist=self.config.persist_entities
-            )
+            )  # fmt: skip
 
             # This accounts for the case where there's not a plugin associated with the object
             if po := self.AD.plugins.plugin_objs.get(ns):
@@ -202,7 +202,7 @@ class PluginBase(abc.ABC):
                 self.AD.app_management.check_app_updates(
                     plugin_ns=self.namespace,
                     mode=UpdateMode.PLUGIN_RESTART
-            ))
+            ))  # fmt: skip
 
 
 class PluginManagement:

@@ -250,7 +250,7 @@ class Utility:
                         utils.format_timedelta(check_app_duration),
                         utils.format_timedelta(other_duration),
                     )
-                    if self.AD.sched.realtime and loop_duration > self.AD.max_utility_skew:
+                    if self.AD.real_time and loop_duration > self.AD.max_utility_skew:
                         self.logger.warning(
                             "Excessive time spent in utility loop: %s, %s in check_app_updates(), %s in other",
                             utils.format_timedelta(loop_duration),
