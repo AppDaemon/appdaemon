@@ -191,7 +191,7 @@ class State:
         immediate: bool = False,
         pin: bool | None = None,
         pin_thread: int | None = None,
-        kwargs: dict[str, Any] = None
+        kwargs: dict[str, Any] = None,
     ):  # noqa: C901
         """Add a state callback to AppDaemon's internal dicts.
 
@@ -214,7 +214,7 @@ class State:
             A string made from ``uuid4().hex`` that is used to identify the callback. This can be used to cancel the
             callback later.
         """
-        if oneshot: # this is still a little awkward, but it works until this can be refactored
+        if oneshot:  # this is still a little awkward, but it works until this can be refactored
             # This needs to be in the kwargs dict here that gets passed around later, so that the dispatcher knows to
             # cancel the callback after the first run.
             kwargs["oneshot"] = oneshot
@@ -275,7 +275,7 @@ class State:
                     elif (
                         __attribute is not None
                         and self.state[namespace][entity]["attributes"].get(__attribute) == kwargs["new"]
-                    ):
+                    ):  # fmt: skip
                         __new_state = kwargs["new"]
                     else:
                         run = False
@@ -343,7 +343,7 @@ class State:
         if not executed and not silent:
             self.logger.warning(
                 f"Invalid callback handle '{handle}' in cancel_state_callback() from app {name}"
-            )
+            )  # fmt: skip
 
         return executed
 
@@ -394,7 +394,7 @@ class State:
                         callback["namespace"] == namespace or
                         callback["namespace"] == "global" or
                         namespace == "global"
-                    ):
+                    ):  # fmt: skip
                         cdevice = None
                         centity = None
                         if callback["entity"] is not None:
@@ -535,7 +535,7 @@ class State:
         entity: str,
         state: str | dict[str, Any],
         attributes: Optional[dict] = None
-    ) -> None:
+    ) -> None:  # fmt: skip
         """Adds an entity to the internal state registry and fires the ``__AD_ENTITY_ADDED`` event"""
         if self.entity_exists(namespace, entity):
             # No warning is necessary because this method gets called twice for the app entities because of
@@ -607,7 +607,7 @@ class State:
             entity_id: maybe_copy(state)
             for entity_id, state in self.state[namespace].items()
             if entity_id.split(".", 1)[0] == domain
-        }
+        }  # fmt: skip
 
     def parse_state(
         self,
@@ -617,7 +617,7 @@ class State:
         attributes: dict | None = None,
         replace: bool = False,
         **kwargs
-    ):
+    ):  # fmt: skip
         self.logger.debug(f"parse_state: {entity}, {kwargs}")
 
         if entity in self.state[namespace]:
@@ -708,7 +708,8 @@ class State:
         attributes: dict | None = None,
         replace: bool = False,
         **kwargs
-    ) -> None: ...
+    ) -> None:  # fmt: skip
+        ...
 
     async def set_state(self, name: str, namespace: str, entity: str, _silent: bool = False, **kwargs):
         """Sets the internal state of an entity.
@@ -747,12 +748,12 @@ class State:
             # We assume that the state change will come back to us via the plugin
             self.logger.debug("sending event to plugin")
 
-            result = await set_plugin_state(
+            result = await set_plugin_state( # pyright: ignore[reportCallIssue]
                 namespace,
                 entity,
                 state=new_state["state"],
                 attributes=new_state["attributes"]
-            )
+            )  # fmt: skip
             if result is not None:
                 if "entity_id" in result:
                     result.pop("entity_id")
