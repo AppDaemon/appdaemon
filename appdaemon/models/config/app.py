@@ -164,6 +164,7 @@ class AllAppConfig(RootModel):
             app_name: cfg.dependencies
             for app_name, cfg in self.root.items()
             if isinstance(cfg, (AppConfig, GlobalModule))
+            and not cfg.disable
         } # fmt: skip
 
     def reversed_dependency_graph(self) -> dict[str, set[str]]:
