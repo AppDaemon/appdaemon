@@ -1,9 +1,18 @@
-from collections.abc import Generator, Iterable
+import asyncio
+from collections.abc import AsyncGenerator, Generator, Iterable
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from itertools import pairwise
 from logging import LogRecord
+import logging
 
 import pytest
+
+from appdaemon.app_management import UpdateActions, UpdateMode
+from appdaemon.appdaemon import AppDaemon
+from appdaemon import utils
+
+logger = logging.getLogger("AppDaemon._test")
 
 
 def filter_caplog(caplog: pytest.LogCaptureFixture, search_str: str) -> Generator[LogRecord]:
@@ -26,3 +35,26 @@ def assert_timedelta(
 ) -> None:
     """Assert that all time differences between consecutive log records match the expected timedelta."""
     assert all((diff - expected) <= buffer for diff in time_diffs(records))
+
+
+@asynccontextmanager
+async def run_app_temporarily(ad_obj: AppDaemon, app_name: str, duration: float) -> AsyncGenerator[AppDaemon]:
+    """Run a specific app temporarily for a given duration."""
+    try:
+        await ad_obj.app_management.check_app_updates(mode=UpdateMode.TESTING)
+        actions = UpdateActions()
+        actions.apps.init.add(app_name)
+        await ad_obj.app_management._start_apps(actions)
+        ad_obj.start()
+
+
+        duration_str = utils.format_timedelta(timedelta(seconds=duration))
+        logger.debug(f"Sleeping for {duration_str} to allow {app_name} to run")
+        await asyncio.sleep(duration)
+        logger.debug(f"Finished sleeping for {duration_str} for {app_name} complete")
+        yield ad_obj
+    finally:
+        logger.debug("Stopping AppDaemon")
+        if stopping_tasks := ad_obj.stop():
+            logger.debug("Waiting for stopping tasks to complete")
+            await stopping_tasks

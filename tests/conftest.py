@@ -85,9 +85,13 @@ async def ad_obj(logging_obj: Logging, running_loop, ad_cfg: AppDaemonConfig):
         logger.propagate = True
         logger.setLevel("DEBUG")
 
-    ad.start()
+    # This can't be done here because the test might set the app directory to a different location
+    # await ad.app_management.check_app_updates(mode=UpdateMode.TESTING)
+
+    # ad.start()
     yield ad
-    ad.stop()
+    logger.info('Back to fixture scope, stopping AppDaemon')
+    pass
 
 
 @pytest.fixture(scope="module")

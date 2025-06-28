@@ -30,6 +30,7 @@ class UpdateMode(Enum):
     PLUGIN_FAILED = auto()
     PLUGIN_RESTART = auto()
     TERMINATE = auto()
+    TESTING = auto()
 
 
 

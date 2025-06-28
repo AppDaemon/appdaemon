@@ -802,7 +802,7 @@ class AppManagement:
             update_actions = UpdateActions()
 
             match mode:
-                case UpdateMode.INIT:
+                case UpdateMode.INIT | UpdateMode.TESTING:
                     await self._process_import_paths()
                     if not hasattr(self, "dependency_manager"):
                         # The dependency manager could have already been initialized in a test environment
@@ -842,58 +842,74 @@ class AppManagement:
 
             await self._stop_apps(update_actions)
 
-            await self._start_apps(update_actions)
+            if mode == UpdateMode.TESTING and bool(update_actions.apps.init):
+                self.logger.debug("Skipping starting apps in testing mode")
+            else:
+                await self._start_apps(update_actions)
+
 
     @utils.executor_decorator
     def _process_import_paths(self):
         """Process one time static additions to sys.path"""
+
+        # pre_existing_paths = set(map(Path, sys.path))
+
+        pre_existing_paths = {
+            path for p in sys.path
+            if (path := Path(p)).is_relative_to(self.AD.config_dir)
+        }  # fmt: skip
+
         # Always start with the app_dir
-        self.add_to_import_path(self.AD.app_dir)
+        if self.AD.app_dir not in pre_existing_paths:
+            self.add_to_import_path(self.AD.app_dir)
+            pre_existing_paths.add(self.AD.app_dir)
 
         match self.AD.config.import_method:
             case 'default' | 'expert' | None:
                 # Get unique set of the absolute paths of all the subdirectories containing python files
                 python_file_parents = set(
-                    f.parent.resolve() for f in self.get_python_files()
-                )
+                    f.parent.resolve()
+                    for f in self.get_python_files()
+                )  # fmt: skip
 
                 # Filter out any that have __init__.py files in them
                 module_parents = set(
                     p for p in python_file_parents
                     if not (p / "__init__.py").exists()
-                )
+                )  # fmt: skip
 
                 #  unique set of the absolute paths of all subdirectories with a __init__.py in them
                 package_dirs = set(
                     p for p in python_file_parents
                     if (p / "__init__.py").exists()
-                )
+                )  # fmt: skip
 
                 # Filter by ones whose parent directory's don't also contain an __init__.py
                 top_packages_dirs = set(
                     p for p in package_dirs
                     if not (p.parent / "__init__.py").exists()
-                )
+                )  # fmt: skip
 
                 # Get the parent directories so the ones with __init__.py are importable
                 package_parents = set(p.parent for p in top_packages_dirs)
 
                 # Combine import directories. Having the list sorted will prioritize parent folders over children during import
-                import_dirs = sorted(module_parents | package_parents, reverse=True)
+                import_dirs = (module_parents | package_parents) - pre_existing_paths
 
-                for path in import_dirs:
+                for path in sorted(import_dirs, reverse=True):
                     self.add_to_import_path(path)
 
                 # Add any additional import paths
                 for path in map(Path, self.AD.import_paths):
+                    if path in import_dirs:
+                        continue  # Skip if already added
+
                     if not path.exists():
-                        self.logger.warning(
-                            f"import_path {path} does not exist - not adding to path")
+                        self.logger.warning(f"import_path {path} does not exist - not adding to path")
                         continue
 
                     if not path.is_dir():
-                        self.logger.warning(
-                            f"import_path {path} is not a directory - not adding to path")
+                        self.logger.warning(f"import_path {path} is not a directory - not adding to path")
                         continue
 
                     if not path.is_absolute():

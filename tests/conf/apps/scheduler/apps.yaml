@@ -1,3 +1,7 @@
 run_every:
   module: run_every
   class: RunEvery
+
+run_hourly:
+  module: run_every
+  class: RunHourly
