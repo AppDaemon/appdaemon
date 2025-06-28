@@ -1,3 +1,4 @@
+import asyncio
 import os
 import threading
 from asyncio import AbstractEventLoop
@@ -375,6 +376,12 @@ class AppDaemon(metaclass=Singleton):
             self.utility.stop()
         if self.plugins is not None:
             self.plugins.stop()
+
+        current_task = asyncio.current_task()
+        running_tasks = [task for task in asyncio.all_tasks() if task is not current_task]
+        if running_tasks:
+            self.logger.debug(f"Waiting for {len(running_tasks)} tasks to finish before shutting down")
+            return asyncio.gather(*running_tasks, return_exceptions=True)
 
     def terminate(self):
         if self.state is not None:

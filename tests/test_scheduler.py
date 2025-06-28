@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import pytest
 
@@ -24,7 +24,7 @@ def check_interval(
 
 
 @pytest.mark.asyncio(loop_scope="session")
-async def test_run_every(ad_obj: AppDaemon, caplog: pytest.LogCaptureFixture, default_now: datetime) -> None:
+async def test_run_every(ad_obj: AppDaemon, caplog: pytest.LogCaptureFixture) -> None:
     ad_obj.app_dir = ad_obj.config_dir / "apps/scheduler"
     assert ad_obj.app_dir.exists(), "App directory does not exist"
 
