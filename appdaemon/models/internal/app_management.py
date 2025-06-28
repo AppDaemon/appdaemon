@@ -7,6 +7,8 @@ from logging import Logger
 from pathlib import Path
 from typing import Any, Literal
 
+from appdaemon.models.config import AppConfig
+
 from ...dependency import find_all_dependents, topo_sort
 from ...dependency_manager import DependencyManager
 
@@ -74,8 +76,9 @@ class LoadingActions:
         items = copy(self.init_set)
         items |= find_all_dependents(items, dm.app_deps.dep_graph)
         priorities = {
-            app_name: dm.app_deps.app_config.root[app_name].priority
+            app_name: app_cfg.priority
             for app_name in items
+            if isinstance(app_cfg := dm.app_deps.app_config.root[app_name], AppConfig)
         }
         priority_deps = {
             app_name: set(
