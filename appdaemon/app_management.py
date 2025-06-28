@@ -804,7 +804,9 @@ class AppManagement:
             match mode:
                 case UpdateMode.INIT:
                     await self._process_import_paths()
-                    await self._init_dep_manager()
+                    if not hasattr(self, "dependency_manager"):
+                        # The dependency manager could have already been initialized in a test environment
+                        await self._init_dep_manager()
                 case UpdateMode.RELOAD_APPS:
                     all_apps = self.get_managed_app_names(include_globals=False)
                     modules = self.dependency_manager.modules_from_apps(all_apps)
