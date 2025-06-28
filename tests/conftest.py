@@ -2,6 +2,7 @@ import asyncio
 import logging
 from datetime import date, datetime, time
 from functools import partial
+from signal import Signals, raise_signal
 from typing import Callable
 
 import pytest
@@ -14,7 +15,7 @@ from appdaemon import AppDaemon, utils
 from appdaemon.logging import Logging
 from appdaemon.models.config.appdaemon import AppDaemonConfig
 
-logger = logging.getLogger('AppDaemon._test')
+logger = logging.getLogger("AppDaemon._test")
 
 
 @pytest.fixture(scope="session")
@@ -23,7 +24,6 @@ def event_loop():
     loop = asyncio.new_event_loop()
     yield loop
     loop.close()
-
 
 
 @pytest.fixture(scope="session")
@@ -63,14 +63,14 @@ def ad_cfg() -> AppDaemonConfig:
                 "_app_management": "DEBUG",
                 # "_events": "DEBUG",
                 # "_utility": "DEBUG",
-            }
+            },
         )
     )
 
 
 @pytest_asyncio.fixture(scope="module", loop_scope="session")
 async def ad_obj(logging_obj: Logging, running_loop, ad_cfg: AppDaemonConfig):
-    logger = logging.getLogger('AppDaemon._test')
+    logger = logging.getLogger("AppDaemon._test")
     logger.info(f"Passed loop: {hex(id(running_loop))}")
     assert running_loop == asyncio.get_running_loop(), "The running loop should match the one passed in"
 
@@ -88,6 +88,31 @@ async def ad_obj(logging_obj: Logging, running_loop, ad_cfg: AppDaemonConfig):
     ad.start()
     yield ad
     ad.stop()
+
+
+@pytest.fixture(scope="module")
+def ad_obj_fast(logging_obj: Logging, running_loop, ad_cfg: AppDaemonConfig):
+    logger = logging.getLogger("AppDaemon._test")
+    logger.info(f"Passed loop: {hex(id(running_loop))}")
+
+    ad_cfg.timewarp = 5000
+    ad_cfg.starttime = ad_cfg.time_zone.localize(datetime(2025, 6, 25, 0, 0, 0))
+
+    ad = AppDaemon(
+        logging=logging_obj,
+        loop=running_loop,
+        ad_config_model=ad_cfg,
+    )
+
+    for cfg in ad.logging.config.values():
+        logger = logging.getLogger(cfg["name"])
+        logger.propagate = True
+        logger.setLevel("DEBUG")
+
+    ad.start()
+    yield ad
+    raise_signal(Signals.SIGTERM)
+    # ad.stop()
 
 
 @pytest.fixture
