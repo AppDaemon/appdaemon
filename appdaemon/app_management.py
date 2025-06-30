@@ -527,8 +527,11 @@ class AppManagement:
         module_path = await utils.run_in_executor(self, os.path.abspath, mod_obj.__file__)
         await self.set_state(app_name, state="created", module_path=module_path)
 
-    def get_managed_app_names(self, include_globals: bool = False) -> set[str]:
-        apps = set(name for name, o in self.objects.items() if o.type == "app")
+    def get_managed_app_names(self, include_globals: bool = False, running: bool | None = None) -> set[str]:
+        apps = set(
+            name for name, o in self.objects.items()
+            if o.type == "app" and (running is None or o.running == running)
+        )  # fmt: skip
         if include_globals:
             apps |= set(
                 name for name, cfg in self.app_config.root.items()
@@ -808,7 +811,7 @@ class AppManagement:
                         # The dependency manager could have already been initialized in a test environment
                         await self._init_dep_manager()
                 case UpdateMode.RELOAD_APPS:
-                    all_apps = self.get_managed_app_names(include_globals=False)
+                    all_apps = self.get_managed_app_names(include_globals=False, running=True)
                     modules = self.dependency_manager.modules_from_apps(all_apps)
                     update_actions.apps.reload |= all_apps
                     update_actions.modules.reload |= modules
@@ -826,8 +829,8 @@ class AppManagement:
 
             if mode == UpdateMode.TERMINATE:
                 update_actions.modules = LoadingActions()
-                all_apps = self.get_managed_app_names()
-                update_actions.apps = LoadingActions(term=all_apps)
+                running_apps = self.get_managed_app_names(include_globals=False, running=True)
+                update_actions.apps = LoadingActions(term=running_apps)
             # else:
             # self._add_reload_apps(update_actions)
             # self._check_for_deleted_modules(update_actions)

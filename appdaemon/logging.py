@@ -9,7 +9,6 @@ from logging import LogRecord, Logger, StreamHandler
 from logging.handlers import RotatingFileHandler
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 
-import pytz
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -364,7 +363,7 @@ class Logging(metaclass=utils.Singleton):
             ts = logger.AD.sched.get_now_sync().astimezone(logger.tz)
         else:
             if logger.tz is not None:
-                ts = pytz.utc.localize(datetime.datetime.utcnow()).astimezone(logger.tz)
+                ts = datetime.datetime.now(datetime.UTC).astimezone(logger.tz)
             else:
                 ts = datetime.datetime.now()
         if format is not None:

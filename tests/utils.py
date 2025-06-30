@@ -8,8 +8,8 @@ import logging
 
 import pytest
 
-from appdaemon.app_management import UpdateActions, UpdateMode
 from appdaemon.appdaemon import AppDaemon
+from appdaemon.app_management import UpdateActions, UpdateMode
 from appdaemon import utils
 
 logger = logging.getLogger("AppDaemon._test")
@@ -34,6 +34,9 @@ def assert_timedelta(
     buffer: timedelta = timedelta(microseconds=10000),
 ) -> None:
     """Assert that all time differences between consecutive log records match the expected timedelta."""
+
+    # lines = ((r.msg, r.asctime) for r in records)
+    # times = list(zip(pairwise(lines), map(str, time_diffs(records))))
     assert all((diff - expected) <= buffer for diff in time_diffs(records))
 
 
@@ -42,11 +45,14 @@ async def run_app_temporarily(ad_obj: AppDaemon, app_name: str, duration: float)
     """Run a specific app temporarily for a given duration."""
     try:
         await ad_obj.app_management.check_app_updates(mode=UpdateMode.TESTING)
+
+        # Must set before the app is started
+        await ad_obj.sched.set_start_time()
+
         actions = UpdateActions()
         actions.apps.init.add(app_name)
         await ad_obj.app_management._start_apps(actions)
         ad_obj.start()
-
 
         duration_str = utils.format_timedelta(timedelta(seconds=duration))
         logger.debug(f"Sleeping for {duration_str} to allow {app_name} to run")
