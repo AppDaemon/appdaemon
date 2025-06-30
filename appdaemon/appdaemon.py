@@ -82,19 +82,19 @@ class AppDaemon(metaclass=Singleton):
     """
 
     # subsystems
-    app_management: "AppManagement"
-    callbacks: "Callbacks"
-    events: "Events"
-    futures: "Futures"
+    app_management: AppManagement
+    callbacks: Callbacks
+    events: Events
+    futures: Futures
     logging: "Logging"
-    plugins: "PluginManagement"
-    scheduler: "Scheduler"
-    services: "Services"
-    sequences: "Sequences"
-    state: "State"
-    threading: "Threading"
-    thread_async: "ThreadAsync | None" = None
-    utility: "Utility"
+    plugins: PluginManagement
+    scheduler: Scheduler
+    services: Services
+    sequences: Sequences
+    state: State
+    threading: Threading
+    thread_async: ThreadAsync
+    utility: Utility
 
     admin_loop: "AdminLoop | None" = None
     http: "HTTP | None" = None
@@ -150,7 +150,6 @@ class AppDaemon(metaclass=Singleton):
         self.threading = Threading(self)
         self.executor = ThreadPoolExecutor(max_workers=self.threadpool_workers)
         self.thread_async = ThreadAsync(self)
-        # self.executor = ThreadPoolExecutor(max_workers=self.threadpool_workers)
         self.utility = Utility(self)
         self.plugins = PluginManagement(self, self.config.plugins)
 
@@ -350,7 +349,6 @@ class AppDaemon(metaclass=Singleton):
         return self.config.utility_delay
 
     def start(self) -> None:
-        assert self.thread_async is not None, "ThreadAsync loop not initialized"
         self.thread_async.start()
         self.utility.start()
 
