@@ -121,6 +121,7 @@ class AppDaemon(metaclass=Singleton):
         self.sequences = Sequences(self)
         self.sched = Scheduler(self)
         self.state = State(self)
+        self.thread_async = ThreadAsync(self)
         self.futures = Futures(self)
 
         if not self.apps:
@@ -149,7 +150,6 @@ class AppDaemon(metaclass=Singleton):
 
         self.threading = Threading(self)
         self.executor = ThreadPoolExecutor(max_workers=self.threadpool_workers)
-        self.thread_async = ThreadAsync(self)
         self.utility = Utility(self)
         self.plugins = PluginManagement(self, self.config.plugins)
 
