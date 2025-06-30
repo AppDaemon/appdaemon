@@ -386,7 +386,8 @@ class HTTP:
 
         self._process_arg("static_dirs", http)
 
-    async def start_server(self):
+    async def start_server(self) -> None:
+        self.logger.debug("Starting webserver on %s:%s", self.host, self.port)
         self.runner = web.AppRunner(self.app)
         await self.runner.setup()
         site = web.TCPSite(self.runner, self.host, int(self.port), ssl_context=self.context)

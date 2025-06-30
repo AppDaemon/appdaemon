@@ -6,7 +6,7 @@ import traceback
 import uuid
 from collections import OrderedDict
 from copy import deepcopy
-from datetime import datetime, time, timedelta, timezone
+from datetime import UTC, datetime, time, timedelta, timezone
 from logging import Logger
 from typing import TYPE_CHECKING, Any, Callable
 
@@ -43,6 +43,7 @@ class Scheduler:
     name: str = "_scheduler"
     active: bool = False
     stopping: bool = False
+    loop_task: asyncio.Task[None]
 
     def __init__(self, ad: "AppDaemon"):
         self.AD = ad
@@ -66,17 +67,15 @@ class Scheduler:
         self.init_sun()
 
     def start(self):
-        if self.AD.starttime is not None:
-            self.now = utils.ensure_timezone(self.AD.starttime, self.AD.tz)
-        else:
-            self.now = datetime.now(self.AD.tz)
+        def _set_inactive(task: asyncio.Task[None]) -> None:
+            """
+            Callback to set the scheduler as inactive when the loop task is done.
+            """
+            self.active = False
+            self.logger.debug("Scheduler loop task completed, setting active to False")
 
-        if self.AD.endtime is not None:
-            self.endtime = utils.ensure_timezone(self.AD.endtime, self.AD.tz)
-        else:
-            self.endtime = None
-
-        self.active = True
+        self.loop_task = self.AD.loop.create_task(self.loop(), name="scheduler loop")
+        self.loop_task.add_done_callback(_set_inactive)
 
     @property
     def realtime(self) -> bool:
@@ -86,6 +85,18 @@ class Scheduler:
     def stop(self):
         self.logger.debug("stop() called for scheduler")
         self.stopping = True
+
+    async def set_start_time(self, starttime: datetime | None = None):
+        self.last_fired = datetime.now(UTC).astimezone(self.AD.tz)
+        if not self.AD.real_time:
+            self.logger.info("Starting time travel ...")
+            self.logger.info("Setting clocks to %s", await self.get_now())
+            if self.AD.timewarp == 0:
+                self.logger.info("Time displacement factor infinite")
+            else:
+                self.logger.info("Time displacement factor %d", self.AD.timewarp)
+        else:
+            self.logger.info("Scheduler running in realtime")
 
     async def insert_schedule(
         self,
@@ -481,20 +492,21 @@ class Scheduler:
         return limit
 
     async def loop(self):  # noqa: C901
-        self.start()
         self.logger.debug("Starting scheduler loop()")
+        self.active = True
+        if self.AD.starttime is not None:
+            self.now = utils.ensure_timezone(self.AD.starttime, self.AD.tz)
+        else:
+            self.now = datetime.now(self.AD.tz)
+
+        if self.AD.endtime is not None:
+            self.endtime = utils.ensure_timezone(self.AD.endtime, self.AD.tz)
+        else:
+            self.endtime = None
+
         self.AD.booted = await self.get_now_naive()
 
-        self.last_fired = datetime.now(pytz.utc)
-        if not self.AD.real_time:
-            self.logger.info("Starting time travel ...")
-            self.logger.info("Setting clocks to %s", await self.get_now())
-            if self.AD.timewarp == 0:
-                self.logger.info("Time displacement factor infinite")
-            else:
-                self.logger.info("Time displacement factor %d", self.AD.timewarp)
-        else:
-            self.logger.info("Scheduler running in realtime")
+        await self.set_start_time()
 
         next_entries = []
         result = False

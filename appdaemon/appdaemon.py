@@ -351,7 +351,7 @@ class AppDaemon(metaclass=Singleton):
 
     def start(self) -> None:
         assert self.thread_async is not None, "ThreadAsync loop not initialized"
-        self.loop.create_task(self.thread_async.loop())
+        self.thread_async.start()
         self.utility.start()
 
     def stop(self):

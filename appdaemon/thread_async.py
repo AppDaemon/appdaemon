@@ -23,6 +23,13 @@ class ThreadAsync:
         self.appq = asyncio.Queue(maxsize=0)
         self.stop_event = asyncio.Event()
 
+    def start(self) -> None:
+        """
+        Start the thread_async loop
+        """
+        self.logger.debug("Starting thread_async loop")
+        self.AD.loop.create_task(self.loop(), name="thread_async loop")
+
     def stop(self):
         self.logger.debug("stop() called for thread_async")
         self.stopping = True
