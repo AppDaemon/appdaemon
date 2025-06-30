@@ -46,6 +46,23 @@ class Utility:
 
     def start(self):
         self.loop_task = self.AD.loop.create_task(self.loop(), name="utility_loop")
+        self.loop_task.add_done_callback(self._loop_cleanup)
+
+    def _loop_cleanup(self, task: asyncio.Task) -> None:
+        if task.cancelled():
+            self.logger.debug("Utility loop was cancelled")
+        elif task.exception():
+            self.logger.error("Utility loop encountered an error", exc_info=task.exception())
+        else:
+            self.logger.debug("Utility loop completed successfully")
+
+        # Stop apps
+        if self.AD.apps:
+            self.AD.loop.create_task(self.AD.app_management.terminate(), name="app_management terminate")
+
+        # Shutdown webserver
+        if self.AD.http is not None and self.AD.http.has_been_started:
+            self.AD.loop.create_task(self.AD.http.stop_server(), name="http stop server")
 
     def stop(self):
         """Called by the AppDaemon object to terminate the loop cleanly
@@ -56,6 +73,7 @@ class Utility:
         """
 
         self.logger.debug("stop() called for utility")
+        # Setting this to True will cause the while loop in self.loop() to break
         self.stopping = True
 
     @property
@@ -149,7 +167,7 @@ class Utility:
         await self._init_stats()
 
         # Start the web server
-        if self.AD.http is not None and self.AD.http.runner is None:
+        if self.AD.http is not None and not self.AD.http.has_been_started:
             await self.AD.http.start_server()
 
         # Wait for all plugins to initialize
@@ -256,24 +274,6 @@ class Utility:
                     except TimeoutError:
                         # We expect the timeout to occur unless the stop event gets set while we're waiting
                         pass
-
-        #
-        # Shutting down now
-        #
-
-        #
-        # Stop apps
-        #
-        if not self.AD.config.disable_apps and \
-            self.AD.app_management is not None:  # fmt: skip
-            await self.AD.app_management.terminate()
-
-        #
-        # Shutdown webserver
-        #
-
-        if self.AD.http is not None:
-            await self.AD.http.stop_server()
 
     async def production_mode_service(self, ns, domain, service, kwargs):
         match kwargs:

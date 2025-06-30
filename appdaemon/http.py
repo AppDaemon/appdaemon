@@ -295,6 +295,10 @@ class HTTP:
     def loop(self):
         return self.AD.loop
 
+    @property
+    def has_been_started(self) -> bool:
+        return self.runner is not None
+
     def _process_dashboard(self, dashboard):
         self.logger.info("Starting Dashboards")
 
