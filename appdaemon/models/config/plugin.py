@@ -60,7 +60,7 @@ class PluginConfig(BaseModel, extra="allow"):
     @property
     def disabled(self) -> bool:
         return self.disable
-    
+
     def __getitem__(self, item: str) -> Any:
         """Allows accessing plugin config attributes as if it were a dict."""
         if item in self.model_fields_set:
