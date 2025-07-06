@@ -10,17 +10,23 @@ from pytz.tzinfo import BaseTzInfo
 from typing_extensions import deprecated
 
 from appdaemon import utils
-from appdaemon.models.config.http import CoercedPath
+from appdaemon.version import __version__
 
-from ...models.config.plugin import HASSConfig, MQTTConfig
-from ...version import __version__
+from .common import CoercedPath
 from .misc import FilterConfig, NamespaceConfig
+from .plugin import HASSConfig, MQTTConfig, PluginConfig
+
 
 def plugin_discriminator(plugin):
     if isinstance(plugin, dict):
-        return plugin["type"].lower()
+        type_ = plugin["type"].lower()
     else:
-        plugin.type
+        type_ = plugin.type
+
+    if type_ in ("hass", "mqtt"):
+        return type_
+    else:
+        return "generic"
 
 
 class ModuleLoggingLevels(RootModel):
@@ -35,7 +41,7 @@ class AppDaemonConfig(BaseModel, extra="allow"):
     plugins: dict[
         str,
         Annotated[
-            Annotated[HASSConfig, Tag("hass")] | Annotated[MQTTConfig, Tag("mqtt")],
+            Annotated[HASSConfig, Tag("hass")] | Annotated[MQTTConfig, Tag("mqtt")] | Annotated[PluginConfig, Tag("generic")],
             Discriminator(plugin_discriminator),
         ],
     ] = Field(default_factory=dict)
@@ -155,6 +161,7 @@ class AppDaemonConfig(BaseModel, extra="allow"):
     @field_validator("plugins", mode="before")
     @classmethod
     def validate_plugins(cls, v: Any):
+        # This is needed to set the name field in each plugin config to the name of the key used to define it.
         for n in set(v.keys()):
             v[n]["name"] = n
         return v

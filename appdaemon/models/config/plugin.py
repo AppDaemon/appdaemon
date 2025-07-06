@@ -8,9 +8,9 @@ from typing import Annotated, Any, Literal
 from pydantic import BaseModel, BeforeValidator, Field, SecretBytes, SecretStr, ValidationInfo, field_validator, model_validator
 from typing_extensions import deprecated
 
-from .common import CoercedPath
-
 from appdaemon import utils
+
+from .common import CoercedPath
 
 
 class PluginConfig(BaseModel, extra="allow"):
@@ -60,6 +60,12 @@ class PluginConfig(BaseModel, extra="allow"):
     @property
     def disabled(self) -> bool:
         return self.disable
+    
+    def __getitem__(self, item: str) -> Any:
+        """Allows accessing plugin config attributes as if it were a dict."""
+        if item in self.model_fields_set:
+            return getattr(self, item)
+        raise KeyError(f"'{item}' not found in plugin config '{self.type}'")
 
 
 class StartupState(BaseModel):
