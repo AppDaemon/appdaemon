@@ -363,7 +363,7 @@ class Logging(metaclass=utils.Singleton):
             ts = logger.AD.sched.get_now_sync().astimezone(logger.tz)
         else:
             if logger.tz is not None:
-                ts = datetime.datetime.now(datetime.UTC).astimezone(logger.tz)
+                ts = datetime.datetime.now(datetime.timezone.utc).astimezone(logger.tz)
             else:
                 ts = datetime.datetime.now()
         if format is not None:

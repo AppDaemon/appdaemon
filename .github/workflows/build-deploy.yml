@@ -6,7 +6,7 @@ name: Build and deploy
 
 on:
   push:
-    branches: ["**"]
+    branches: ["dev"]
     tags: ["*"]
   pull_request:
     branches: ["dev"]

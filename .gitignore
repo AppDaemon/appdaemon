@@ -65,6 +65,7 @@ target/
 venv
 .venv
 uv.lock
+*.ipynb
 
 # Mac stuff
 .DS_Store

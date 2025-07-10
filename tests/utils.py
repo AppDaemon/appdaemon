@@ -9,6 +9,7 @@ import logging
 import pytest
 
 from appdaemon.appdaemon import AppDaemon
+from appdaemon.models.config import AppConfig
 from appdaemon.app_management import UpdateActions, UpdateMode
 from appdaemon import utils
 
@@ -35,9 +36,18 @@ def assert_timedelta(
 ) -> None:
     """Assert that all time differences between consecutive log records match the expected timedelta."""
 
-    # lines = ((r.msg, r.asctime) for r in records)
-    # times = list(zip(pairwise(lines), map(str, time_diffs(records))))
-    assert all((diff - expected) <= buffer for diff in time_diffs(records))
+    lines = ((r.msg, r.asctime) for r in records)
+    zipped = zip(pairwise(records), time_diffs(records))
+    for lines, diff in zipped:
+        try:
+            assert (diff - expected) <= buffer, "Too much discrepancy in time difference"
+        except AssertionError:
+            logger.error(f'Wrong amount of time between log entries: {diff}')
+            logger.error(f"  {lines[0].msg} at {lines[0].asctime}")
+            logger.error(f"  {lines[1].msg} at {lines[1].asctime}")
+            raise
+
+    # assert all((diff - expected) <= buffer for diff in time_diffs(records))
 
 
 @asynccontextmanager
@@ -49,10 +59,15 @@ async def run_app_temporarily(ad_obj: AppDaemon, app_name: str, duration: float)
         # Must set before the app is started
         await ad_obj.sched.set_start_time()
 
+        match ad_obj.app_management.app_config.root[app_name]:
+            case AppConfig() as app_cfg:
+                app_cfg.disable = False
+                ad_obj.app_management.dependency_manager.app_deps.refresh_dep_graph()
+
         actions = UpdateActions()
         actions.apps.init.add(app_name)
         await ad_obj.app_management._start_apps(actions)
-        ad_obj.start()
+        # ad_obj.start()
 
         duration_str = utils.format_timedelta(timedelta(seconds=duration))
         logger.debug(f"Sleeping for {duration_str} to allow {app_name} to run")
@@ -60,7 +75,9 @@ async def run_app_temporarily(ad_obj: AppDaemon, app_name: str, duration: float)
         logger.debug(f"Finished sleeping for {duration_str} for {app_name} complete")
         yield ad_obj
     finally:
-        logger.debug("Stopping AppDaemon")
-        if stopping_tasks := ad_obj.stop():
-            logger.debug("Waiting for stopping tasks to complete")
-            await stopping_tasks
+        logger.debug('Finally block reached in run_app_temporarily')
+        await ad_obj.app_management.check_app_updates(mode=UpdateMode.TERMINATE)
+        match ad_obj.app_management.app_config.root[app_name]:
+            case AppConfig() as app_cfg:
+                app_cfg.disable = True
+                ad_obj.app_management.dependency_manager.app_deps.refresh_dep_graph()

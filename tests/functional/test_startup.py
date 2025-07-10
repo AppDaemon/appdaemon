@@ -7,6 +7,7 @@ from appdaemon.appdaemon import AppDaemon
 logger = logging.getLogger("AppDaemon._test")
 
 
+@pytest.mark.ci
 @pytest.mark.asyncio(loop_scope="session")
 async def test_startup(ad_obj: AppDaemon, caplog) -> None:
     ad_obj.app_dir = ad_obj.config_dir / "apps/hello_world"

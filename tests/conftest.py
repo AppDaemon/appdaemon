@@ -1,17 +1,13 @@
 import asyncio
 import logging
-from datetime import date, datetime, time
-from functools import partial
-from signal import Signals, raise_signal
-from typing import Callable
+from datetime import datetime
 
 import pytest
 import pytest_asyncio
 from astral import LocationInfo
 from astral.location import Location
-from pytz import BaseTzInfo, timezone
 
-from appdaemon import AppDaemon, utils
+from appdaemon import AppDaemon
 from appdaemon.logging import Logging
 from appdaemon.models.config.appdaemon import AppDaemonConfig
 
@@ -62,7 +58,7 @@ def ad_cfg() -> AppDaemonConfig:
             module_debug={
                 "_app_management": "DEBUG",
                 # "_events": "DEBUG",
-                # "_utility": "DEBUG",
+                "_utility": "DEBUG",
             },
         )
     )
@@ -88,18 +84,20 @@ async def ad_obj(logging_obj: Logging, running_loop, ad_cfg: AppDaemonConfig):
     # This can't be done here because the test might set the app directory to a different location
     # await ad.app_management.check_app_updates(mode=UpdateMode.TESTING)
 
-    # ad.start()
+    ad.start()
     yield ad
     logger.info('Back to fixture scope, stopping AppDaemon')
-    pass
+    if stopping_tasks := ad.stop():
+        logger.debug("Waiting for stopping tasks to complete")
+        await stopping_tasks
 
 
-@pytest.fixture(scope="module")
-def ad_obj_fast(logging_obj: Logging, running_loop, ad_cfg: AppDaemonConfig):
+@pytest_asyncio.fixture(scope="module")
+async def ad_obj_fast(logging_obj: Logging, running_loop, ad_cfg: AppDaemonConfig):
     logger = logging.getLogger("AppDaemon._test")
     logger.info(f"Passed loop: {hex(id(running_loop))}")
 
-    ad_cfg.timewarp = 5000
+    ad_cfg.timewarp = 2000
     ad_cfg.starttime = ad_cfg.time_zone.localize(datetime(2025, 6, 25, 0, 0, 0))
 
     ad = AppDaemon(
@@ -113,10 +111,11 @@ def ad_obj_fast(logging_obj: Logging, running_loop, ad_cfg: AppDaemonConfig):
         logger.propagate = True
         logger.setLevel("DEBUG")
 
-    ad.start()
+    # ad.start()
     yield ad
-    raise_signal(Signals.SIGTERM)
+    # raise_signal(Signals.SIGTERM)
     # ad.stop()
+    pass
 
 
 @pytest.fixture
@@ -130,63 +129,3 @@ def location() -> Location:
             longitude=-74.0060,
         )
     )
-
-
-@pytest.fixture
-def tz(location: Location) -> BaseTzInfo:
-    return timezone(location.timezone)
-
-
-@pytest.fixture
-def default_date() -> date:
-    return date(2025, 6, 20)
-
-
-@pytest.fixture
-def tomorrow_date(default_date: date) -> date:
-    return default_date.replace(day=default_date.day + 1)
-
-
-@pytest.fixture
-def now_creator(default_date: date, tz: BaseTzInfo):
-    def create_time(hour: int):
-        naive = datetime.combine(default_date, time(hour, 0, 0))
-        return tz.localize(naive)
-
-    return create_time
-
-
-@pytest.fixture
-def early_now(now_creator: Callable[..., datetime]) -> datetime:
-    now = now_creator(4)
-    assert now.isoformat() == "2025-06-20T04:00:00-04:00"
-    return now
-
-
-@pytest.fixture
-def default_now(now_creator: Callable[..., datetime]) -> datetime:
-    now = now_creator(12)
-    assert now.isoformat() == "2025-06-20T12:00:00-04:00"
-    return now
-
-
-@pytest.fixture
-def late_now(now_creator: Callable[..., datetime]) -> datetime:
-    now = now_creator(23)
-    assert now.isoformat() == "2025-06-20T23:00:00-04:00"
-    return now
-
-
-@pytest.fixture
-def parser(tz: BaseTzInfo, default_now: datetime) -> partial[datetime]:
-    return partial(utils.parse_datetime, now=default_now, timezone=tz)
-
-
-@pytest.fixture
-def parser_location(tz: BaseTzInfo, location: Location) -> partial[datetime]:
-    return partial(utils.parse_datetime, location=location, timezone=tz)
-
-
-@pytest.fixture
-def time_at_elevation(location: Location, default_now: datetime) -> Callable[..., datetime]:
-    return partial(location.time_at_elevation, date=default_now.date(), local=True)

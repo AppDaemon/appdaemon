@@ -1,7 +1,16 @@
 run_every:
   module: run_every
   class: RunEvery
+  disable: true
+
+run_every_now:
+  module: run_every
+  class: RunEveryNow
+  disable: true
+  interval: 0.75
+  msg: "run_every_now"
 
 run_hourly:
   module: run_every
   class: RunHourly
+  disable: true

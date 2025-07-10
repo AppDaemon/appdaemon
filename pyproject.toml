@@ -97,6 +97,9 @@ asyncio_default_fixture_loop_scope = "session"
 addopts = [
     "--import-mode=importlib",
 ]
+markers = [
+    "ci: mark test to run in CI environment",
+]
 
 # black configuration
 [tool.black]

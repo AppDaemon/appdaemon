@@ -6,7 +6,7 @@ import traceback
 import uuid
 from collections import OrderedDict
 from copy import deepcopy
-from datetime import UTC, datetime, time, timedelta, timezone
+from datetime import datetime, time, timedelta, timezone
 from logging import Logger
 from typing import TYPE_CHECKING, Any, Callable
 
@@ -87,7 +87,7 @@ class Scheduler:
         self.stopping = True
 
     async def set_start_time(self, starttime: datetime | None = None):
-        self.last_fired = datetime.now(UTC).astimezone(self.AD.tz)
+        self.last_fired = datetime.now(timezone.utc).astimezone(self.AD.tz)
         if not self.AD.real_time:
             self.logger.info("Starting time travel ...")
             self.logger.info("Setting clocks to %s", await self.get_now())
