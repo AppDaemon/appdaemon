@@ -1,17 +1,16 @@
 import asyncio
+import logging
 from collections.abc import AsyncGenerator, Generator, Iterable
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from itertools import pairwise
 from logging import LogRecord
-import logging
 
 import pytest
-
+from appdaemon import utils
+from appdaemon.app_management import UpdateActions, UpdateMode
 from appdaemon.appdaemon import AppDaemon
 from appdaemon.models.config import AppConfig
-from appdaemon.app_management import UpdateActions, UpdateMode
-from appdaemon import utils
 
 logger = logging.getLogger("AppDaemon._test")
 
@@ -42,7 +41,7 @@ def assert_timedelta(
         try:
             assert (diff - expected) <= buffer, "Too much discrepancy in time difference"
         except AssertionError:
-            logger.error(f'Wrong amount of time between log entries: {diff}')
+            logger.error(f"Wrong amount of time between log entries: {diff}")
             logger.error(f"  {lines[0].msg} at {lines[0].asctime}")
             logger.error(f"  {lines[1].msg} at {lines[1].asctime}")
             raise
@@ -51,7 +50,7 @@ def assert_timedelta(
 
 
 @asynccontextmanager
-async def run_app_temporarily(ad_obj: AppDaemon, app_name: str, duration: float) -> AsyncGenerator[AppDaemon]:
+async def pseudo_run(ad_obj: AppDaemon, app_name: str, duration: float) -> AsyncGenerator[AppDaemon]:
     """Run a specific app temporarily for a given duration."""
     try:
         await ad_obj.app_management.check_app_updates(mode=UpdateMode.TESTING)
@@ -75,7 +74,7 @@ async def run_app_temporarily(ad_obj: AppDaemon, app_name: str, duration: float)
         logger.debug(f"Finished sleeping for {duration_str} for {app_name} complete")
         yield ad_obj
     finally:
-        logger.debug('Finally block reached in run_app_temporarily')
+        logger.debug("Finally block reached in run_app_temporarily")
         await ad_obj.app_management.check_app_updates(mode=UpdateMode.TERMINATE)
         match ad_obj.app_management.app_config.root[app_name]:
             case AppConfig() as app_cfg:

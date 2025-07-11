@@ -792,6 +792,16 @@ class AppManagement:
 
         Called as part of :meth:`.utility_loop.Utility.loop`
 
+        Update Modes:
+        - NORMAL: Checks for changes and reloads apps as necessary.
+        - INIT: Used during startup trigger processing the import paths and initializing the dependency manager.
+        - TERMINATE: Adds all apps to the set to be terminated.
+        - RELOAD_APPS: Adds all apps and the modules they depend on to the respective reload sets. Used by the app
+            reload service.
+        - PLUGIN_FAILED: Stops all the apps of a plugin that failed.
+        - PLUGIN_RESTART: Restarts all the apps of a plugin that has started again.
+        - TESTING: Testing mode, used during testing to load apps without starting them.
+
         Args:
             plugin_ns (str, optional): Namespace of a plugin to restart, if necessary. Defaults to None.
             mode (UpdateMode, optional): Defaults to UpdateMode.NORMAL.
@@ -849,7 +859,6 @@ class AppManagement:
                 self.logger.debug("Skipping starting apps in testing mode")
             else:
                 await self._start_apps(update_actions)
-
 
     @utils.executor_decorator
     def _process_import_paths(self):
@@ -1303,6 +1312,13 @@ class AppManagement:
             executed = False
 
         return executed
+
+    def update_app(self, app: str, **kwargs):
+        match self.app_config.root.get(app):
+            case AppConfig() as app_cfg:
+                original = app_cfg.model_dump(mode='python', by_alias=True)
+                updated = original | kwargs
+                self.app_config.root[app] = AppConfig.model_validate(updated)
 
     @utils.executor_decorator
     def remove_app(self, app: str, **kwargs):

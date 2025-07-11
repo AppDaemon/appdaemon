@@ -1,7 +1,6 @@
 import logging
 
 import pytest
-
 from appdaemon.appdaemon import AppDaemon
 
 logger = logging.getLogger("AppDaemon._test")

@@ -1,11 +1,10 @@
 from datetime import date, datetime, timedelta
 from functools import partial
 
+from appdaemon import utils
 from astral import SunDirection
 from astral.location import Location
 from pytz import BaseTzInfo
-
-from appdaemon import utils
 
 
 def test_time_parse(default_now: datetime, parser: partial[datetime]) -> None:

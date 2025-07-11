@@ -1,9 +1,8 @@
 from datetime import datetime, time
 from functools import partial
 
-from astral.location import Location
-
 from appdaemon import utils
+from astral.location import Location
 
 
 def test_between_overnight(location: Location, early_now: datetime, default_now: datetime, late_now: datetime) -> None:

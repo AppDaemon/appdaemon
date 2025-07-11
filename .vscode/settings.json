@@ -1,5 +1,12 @@
 {
     "ruff.configuration": "pyproject.toml",
     "notebook.defaultFormatter": "charliermarsh.ruff",
-    "ruff.lineLength": 200
+    "ruff.lineLength": 200,
+    "python.analysis.typeCheckingMode": "basic",
+    "python.testing.pytestArgs": [
+        "-s",
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
+    "python.testing.autoTestDiscoverOnSavePattern": "tests/**/*.py"
 }

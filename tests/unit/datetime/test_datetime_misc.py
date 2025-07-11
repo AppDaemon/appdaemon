@@ -1,8 +1,7 @@
 from datetime import datetime, timedelta
 
-from pytz import BaseTzInfo
-
 from appdaemon import utils
+from pytz import BaseTzInfo
 
 
 def test_resolve_offset() -> None:

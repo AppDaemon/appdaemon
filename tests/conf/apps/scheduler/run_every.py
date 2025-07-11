@@ -1,6 +1,5 @@
 from datetime import timedelta
 
-from appdaemon import utils
 from appdaemon.adapi import ADAPI
 from appdaemon.adbase import ADBase
 
@@ -17,6 +16,10 @@ class RunEvery(ADAPI):
     def start_realtime(self) -> None:
         self.run_every(self.scheduled_callback, interval=timedelta(seconds=0.5), data="start default")
         self.run_every(self.scheduled_callback, start="now", interval=timedelta(seconds=1), data="start now")
+        self.register_service("test/service", self.mycallback, my_kwarg="abc123")
+
+    async def mycallback(self, namespace: str, domain: str, service: str, **kwargs):
+        self.log(f"Service called: {kwargs}", level="DEBUG")
 
     def start_timewarp(self) -> None:
         # self.run_every(self.scheduled_callback, start="now", interval="02:37:45.7", data="start now")
@@ -34,19 +37,16 @@ class RunEveryNow(ADBase):
     def initialize(self) -> None:
         self.adapi = self.get_ad_api()
         self.adapi.set_log_level("DEBUG")
-        self.adapi.run_every(
-            self.scheduled_callback,
-            start="now",
-            interval=self.interval,
-            data=self.args['msg']
-        )
+        start, interval, msg = self.args["start"], self.args["interval"], self.args["msg"]
+        self.adapi.log("-" * 20)
+        self.adapi.log(f"Starting RunEveryNow app at {interval}, starting at {start}")
+
+        start_time = self.adapi.parse_datetime(time_str=start).strftime("%I:%M:%S.%f %p")
+        self.adapi.log(f"Start time is {start_time}", level="DEBUG")
+        self.adapi.run_every(self.scheduled_callback, start=start, interval=interval, data=msg)
 
     def scheduled_callback(self, data: str, **kwargs) -> None:
         self.adapi.log(f"{data}", level="DEBUG")
-
-    @property
-    def interval(self) -> timedelta:
-        return utils.parse_timedelta(self.args["interval"])
 
 
 class RunHourly(RunEvery):

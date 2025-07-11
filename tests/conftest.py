@@ -4,12 +4,11 @@ from datetime import datetime
 
 import pytest
 import pytest_asyncio
-from astral import LocationInfo
-from astral.location import Location
-
 from appdaemon import AppDaemon
 from appdaemon.logging import Logging
 from appdaemon.models.config.appdaemon import AppDaemonConfig
+from astral import LocationInfo
+from astral.location import Location
 
 logger = logging.getLogger("AppDaemon._test")
 
@@ -24,6 +23,7 @@ def event_loop():
 
 @pytest.fixture(scope="session")
 def logging_obj():
+    logger.debug("Creating Logging object")
     return Logging(
         {
             "main_log": {"format": "{asctime} {levelname} {appname}: {message}"},
@@ -39,6 +39,7 @@ async def running_loop():
 
 @pytest.fixture(scope="session")
 def ad_cfg() -> AppDaemonConfig:
+    logger.debug("Creating AppDaemonConfig object")
     return AppDaemonConfig.model_validate(
         dict(
             latitude=40.7128,
@@ -86,7 +87,7 @@ async def ad_obj(logging_obj: Logging, running_loop, ad_cfg: AppDaemonConfig):
 
     ad.start()
     yield ad
-    logger.info('Back to fixture scope, stopping AppDaemon')
+    logger.info("Back to fixture scope, stopping AppDaemon")
     if stopping_tasks := ad.stop():
         logger.debug("Waiting for stopping tasks to complete")
         await stopping_tasks
