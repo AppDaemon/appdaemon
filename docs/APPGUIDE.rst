@@ -472,7 +472,7 @@ doesn't need to reference or know anything about the app that provides the servi
 `service registration <#service-registration>`__ for more details on how to register services.
 
 Sometimes in development it's useful to intentionally create a dependency so that apps get reloaded together as files
-change. This can be done with the ``dependencies`` direction in the app configuration.
+change. This can be done with the ``dependencies`` directive in the app configuration.
 
 .. code-block:: yaml
   :emphasize-lines: 9
@@ -488,7 +488,7 @@ change. This can be done with the ``dependencies`` direction in the app configur
       dependencies:
         - my_provider
 
-In this example, both apps would get reloaded if anything in `provider.py` changes, and the ``my_provider`` app is
+In this example, both apps would get reloaded if anything in `provider.py` changes, and the ``my_consumer`` app is
 guaranteed to be loaded after the ``my_provider`` app.
 
 Imports
