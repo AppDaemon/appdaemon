@@ -65,7 +65,6 @@ target/
 # Python
 venv
 .venv
-uv.lock
 *.ipynb
 
 # Mac stuff

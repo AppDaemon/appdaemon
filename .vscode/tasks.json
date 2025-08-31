@@ -116,79 +116,46 @@
                 },
         },
         {
-            "label": "Build Runtime Requirements",
-            "type": "shell",
-            "problemMatcher": [],
-            "command": "uv",
-            "args": ["pip", "compile", "--upgrade", "pyproject.toml"],
-            "presentation":
-                {
-                    "echo": true,
-                    "reveal": "always",
-                    "focus": false,
-                    "panel": "shared",
-                    "group": "requirements",
-                    "showReuseMessage": true,
-                    "clear": true
-                },
-        },
-        {
-            "label": "Build Dev Requirements",
-            "type": "shell",
-            "problemMatcher": [],
-            "command": "uv",
-            "args": [
-                "pip", "compile",
-                "--extra=dev",
-                "--output-file=dev-requirements.txt",
-                "--upgrade", "pyproject.toml"
-            ],
-            "presentation":
-                {
-                    "echo": true,
-                    "reveal": "always",
-                    "focus": false,
-                    "panel": "shared",
-                    "group": "requirements",
-                    "showReuseMessage": true,
-                    "clear": true
-                },
-        },
-        {
-            "label": "Build Doc Requirements",
-            "type": "shell",
-            "problemMatcher": [],
-            "command": "uv",
-            "args": [
-                "pip", "compile",
-                "--extra=doc",
-                "--output-file=doc-requirements.txt",
-                "--upgrade", "pyproject.toml"
-            ],
-            "presentation":
-                {
-                    "echo": true,
-                    "reveal": "always",
-                    "focus": false,
-                    "panel": "shared",
-                    "group": "requirements",
-                    "showReuseMessage": true,
-                    "clear": true
-                },
-        },
-        {
-            "label": "Build All Requirements Files",
-            "detail": "Resolves all the dependencies into requirements files.",
-            "dependsOn": ["Build Runtime Requirements", "Build Dev Requirements", "Build Doc Requirements"],
-            "problemMatcher": [],
-        },
-        {
             "label": "Install Dependencies",
             "detail": "Installs all the dependencies, including dev and doc extras",
             "type": "shell",
             "problemMatcher": [],
             "command": "uv",
             "args": ["sync", "--all-extras"],
+            "presentation":
+                {
+                    "echo": true,
+                    "reveal": "always",
+                    "focus": false,
+                    "panel": "shared",
+                    "showReuseMessage": true,
+                    "clear": true
+                },
+        },
+        {
+            "label": "Ruff Statistics",
+            "detail": "Displays the statistics of all the linting violations",
+            "type": "shell",
+            "problemMatcher": [],
+            "command": "uv",
+            "args": ["run", "ruff", "check", "--statistics"],
+            "presentation":
+                {
+                    "echo": true,
+                    "reveal": "always",
+                    "focus": false,
+                    "panel": "shared",
+                    "showReuseMessage": true,
+                    "clear": true
+                },
+        },
+        {
+            "label": "Ruff Lint Watch",
+            "detail": "Runs the auto linter when files change",
+            "type": "process",
+            "problemMatcher": [],
+            "command": "uv",
+            "args": ["run", "ruff", "check", "--watch"],
             "presentation":
                 {
                     "echo": true,
