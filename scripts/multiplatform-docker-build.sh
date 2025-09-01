@@ -117,7 +117,7 @@ docker buildx build \
     --platform "$PLATFORMS" \
     --tag "$IMAGE_TAG" \
     --output "type=oci,dest=${ARCHIVE_PATH}" \
-    -f Dockerfile \
+    -f Dockerfile.uv \
     ${REPO_DIR}
 
 print_success "Multi-platform images built and exported"

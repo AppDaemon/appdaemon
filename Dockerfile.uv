@@ -1,0 +1,99 @@
+# When changing this, make sure that the python major and minor version matches that provided by alpine's python3
+# package (see https://pkgs.alpinelinux.org/packages), otherwise alpine py3-* packages won't work
+# Due to incorrect PYTHONPATH
+# Test from docker shell:
+# $> apk add py3-scikit-learn
+# $> python3
+# >>> import sklearn
+# (No error and it worked!)
+ARG PYTHON_RELEASE=3.12 ALPINE_VERSION=3.21
+# ARG BASE_IMAGE=ghcr.io/astral-sh/uv:alpine${ALPINE_VERSION}
+ARG BASE_IMAGE=python:${PYTHON_RELEASE}-alpine${ALPINE_VERSION}
+# Image for building dependencies (on architectures that don't provide a ready-made Python wheel)
+FROM ${BASE_IMAGE} AS builder
+
+# Build arguments populated automatically by docker during build with the target architecture we are building for (eg: 'amd64')
+# Useful to differentiate the build process for each architecture
+# https://docs.docker.com/engine/reference/builder/#automatic-platform-args-in-the-global-scope
+ARG TARGETARCH
+ARG TARGETVARIANT
+ARG PYTHON_RELEASE
+
+ENV UV_COMPILE_BYTECODE=1
+ENV UV_LINK_MODE=copy
+ENV UV_INSTALL_DIR=/usr/local/bin
+ENV UV_TOOL_BIN_DIR=/usr/local/bin
+ENV UV_NO_MANAGED_PYTHON=true
+ENV PYTHONPATH="/usr/lib/python${PYTHON_RELEASE}/site-packages"
+
+RUN --mount=type=cache,id=apk-${TARGETARCH}-${TARGETVARIANT},sharing=locked,target=/var/cache/apk/ \
+    apk add curl && curl -LsSf https://astral.sh/uv/install.sh | ash
+
+# A workaround for compiling the `orsjson` package with rust: see https://github.com/rust-lang/cargo/issues/6513#issuecomment-1440029221
+ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
+
+# If on ARM architecture install system packages to build native dependencies:
+# - git and rust: build the `orsjson` package (required by `deepdiff`)
+# - cython and build-base: build the `uvloop` package (build-base contains the set of basic tools to compile with gcc)
+# Install system dependencies, saving the apk cache with docker mount: https://docs.docker.com/build/cache/#keep-layers-small
+# Specify the architecture in the cache id, otherwise the apk cache of different architectures will conflict
+RUN --mount=type=cache,id=apk-${TARGETARCH}-${TARGETVARIANT},sharing=locked,target=/var/cache/apk/ \
+    if [ "$TARGETARCH" = "arm" ]; then\
+        apk add git rust cargo &&\
+        apk add build-base cython;\
+    fi
+    
+WORKDIR /usr/src/app
+
+RUN uv venv --system-site-packages
+
+# Install the Python dependencies of AppDaemon
+# Save the pip cache with docker mount: https://docs.docker.com/build/cache/#keep-layers-small
+# (specify the architecture in the cache id, otherwise the pip cache of different architectures will conflict)
+RUN --mount=type=cache,id=uv-${TARGETARCH}-${TARGETVARIANT},sharing=locked,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --locked --inexact --no-install-project --no-dev
+
+RUN --mount=type=cache,id=uv-${TARGETARCH}-${TARGETVARIANT},sharing=locked,target=/root/.cache/uv \
+    --mount=type=bind,source=./dist,target=/dist \
+    uv pip install /dist/*.whl
+
+ENTRYPOINT [ "/bin/ash" ]
+
+###################################
+# Runtime image
+FROM ${BASE_IMAGE}
+
+ARG TARGETARCH
+ARG TARGETVARIANT
+ARG PYTHON_RELEASE
+
+ENV UV_COMPILE_BYTECODE=1
+ENV UV_LINK_MODE=copy
+ENV UV_INSTALL_DIR=/usr/local/bin
+ENV UV_TOOL_BIN_DIR=/usr/local/bin
+ENV UV_NO_MANAGED_PYTHON=true
+ENV PYTHONPATH=/usr/lib/python${PYTHON_RELEASE}:/usr/lib/python${PYTHON_RELEASE}/site-packages
+
+# Copy the python dependencies built and installed in the previous stage
+COPY --from=builder /usr/local/lib/python${PYTHON_RELEASE} /usr/local/lib/python${PYTHON_RELEASE}
+COPY --from=builder /usr/src/app /usr/src/app
+
+WORKDIR /usr/src/app
+
+# Copy sample configuration directory and entrypoint script
+COPY ./conf ./conf
+
+# API Port
+EXPOSE 5050
+
+# Mountpoints for configuration & certificates
+VOLUME /conf
+VOLUME /certs
+
+# Install curl to allow for healthchecks
+RUN apk --no-cache add curl
+
+COPY dockerStart.sh dockerStart.sh
+ENTRYPOINT [ "./dockerStart.sh" ]

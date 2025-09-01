@@ -17,4 +17,4 @@ else
     python -m build
 fi
 
-docker build --pull -t acockburn/appdaemon:${1:-"local-dev"} ${REPO_DIR}
+docker build --pull -f Dockerfile.uv -t acockburn/appdaemon:${1:-"local-dev"} ${REPO_DIR}

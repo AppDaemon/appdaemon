@@ -5,6 +5,10 @@ CONF=/conf
 # Directory containing sample config files to copy from
 CONF_SRC=/usr/src/app/conf
 
+BIN_DIR=/usr/src/app/.venv/bin
+
+source $BIN_DIR/activate
+
 # if configuration file doesn't exist, copy the default
 if [ ! -f $CONF/appdaemon.yaml -a ! -f $CONF/appdaemon.toml ]; then
   cp $CONF_SRC/appdaemon.yaml.example $CONF/appdaemon.yaml
@@ -89,7 +93,7 @@ fi
 find $CONF -name system_packages.txt -type f -not -empty -exec cat {} \; -exec echo -n " " \; | tr '\n' ' ' | xargs -t --no-run-if-empty apk add
 
 # Check recursively under $CONF directory for additional python dependencies defined by the end-user via requirements.txt
-find $CONF -name requirements.txt -type f -not -empty -exec pip3 install --upgrade -r {} \;
+find $CONF -name requirements.txt -type f -not -empty -exec pip3 install --disable-pip-version-check --root-user-action ignore --upgrade -r {} \;
 
 # Lets run it!
-exec python3 -m appdaemon -c $CONF "$@"
+exec appdaemon  -c $CONF "$@"

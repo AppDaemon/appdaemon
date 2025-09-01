@@ -6,7 +6,7 @@
             "label": "Run Dev",
             "command": "${command:python.interpreterPath}",
             "args": ["-m", "appdaemon", "-c", "/conf/ad_config/production"],
-            "type": "shell",
+            "type": "process",
             "presentation":
                 {
                     "echo": true,
@@ -24,6 +24,7 @@
             "problemMatcher": [],
             "command": "uv",
             "args": ["build", "--wheel"],
+            "group": "build",
             "presentation":
                 {
                     "reveal": "always",
@@ -38,18 +39,13 @@
             "dependsOn": "Build Package",
             "type": "shell",
             "problemMatcher": [],
-            "command": "docker",
-            "args": [
-                "build",
-                "-t", "acockburn/appdaemon:local-dev",
-                // "-f", "Dockerfile.uv",
-                "${workspaceFolder}"
-            ],
+            "command": "${workspaceFolder}/scripts/docker-build.sh",
+            "group": "build",
             "presentation":
                 {
                     "reveal": "always",
                     "clear": true,
-                    "focus": false,
+                    "focus": true,
                     "panel": "shared",
                 },
         },
