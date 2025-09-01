@@ -93,13 +93,16 @@
             "problemMatcher": [],
             "command": "uv",
             "args": [
-                "run", "--extra", "doc",
-                "sphinx-autobuild", "-T", "-E",
-                "${workspaceFolder}/docs",
-                "${workspaceFolder}/.docs_build",
+                "run",
+                "--extra", "doc",
+                "sphinx-autobuild",
+                "--show-traceback", "--fresh-env",
+                "--host", "0.0.0.0",
                 "--port", "9999",
                 "--watch", "${workspaceFolder}/appdaemon",
                 "--watch", "${workspaceFolder}/tests",
+                "${workspaceFolder}/docs",
+                "${workspaceFolder}/build/docs",
             ],
             "presentation":
                 {
