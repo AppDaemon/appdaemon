@@ -12,31 +12,32 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - name: Install uv and set the python version
-      id: setup-uv
-      uses: astral-sh/setup-uv@v6
-      with:
-        version: "0.8.15" # It is considered best practice to pin to a specific uv version
-        # https://github.com/astral-sh/setup-uv?tab=readme-ov-file#enable-caching
-        enable-cache: true
-        cache-dependency-glob: |
-          **/*requirements*.txt
-          **/pyproject.toml
-          **/uv.lock
-
-    - name: Do something if the cache was restored
-      if: steps.setup-uv.outputs.cache-hit == 'true'
-      run: echo "Cache was restored"
-
-    - name: Install the project
-      run: uv sync --all-extras --dev
-
-    - name: Run pre-commit hooks
-      run: >
-        uv run pre-commit
-        run --all-files
-        --show-diff-on-failure --color=always
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Install uv and set the python version
+        id: setup-uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          # https://docs.astral.sh/uv/guides/integration/github/#using-uv-in-github-actions
+          # It is considered best practice to pin to a specific uv version
+          version: "0.8.14"
+          # https://github.com/astral-sh/setup-uv?tab=readme-ov-file#enable-caching
+          enable-cache: true
+          cache-dependency-glob: |
+            **/*requirements*.txt
+            **/pyproject.toml
+            **/uv.lock
+      - name: Do something if the cache was restored
+        if: steps.setup-uv.outputs.cache-hit == 'true'
+        run: echo "Cache was restored"
+      - name: Install the project
+        run: uv sync --locked --all-extras --dev
+      - name: Run pre-commit hooks
+        run: >
+          uv run
+          pre-commit run
+          --all-files
+          --show-diff-on-failure --color=always
 
   test:
     needs: lint
@@ -54,7 +55,9 @@ jobs:
       with:
         # https://docs.astral.sh/uv/guides/integration/github/#multiple-python-versions
         python-version: ${{ matrix.python-version }}
-        version: "0.8.15" # It is considered best practice to pin to a specific uv version
+        # https://docs.astral.sh/uv/guides/integration/github/#using-uv-in-github-actions
+        # It is considered best practice to pin to a specific uv version
+        version: "0.8.14"
         # https://github.com/astral-sh/setup-uv?tab=readme-ov-file#enable-caching
         enable-cache: true
         cache-dependency-glob: |

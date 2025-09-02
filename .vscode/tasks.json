@@ -165,6 +165,29 @@
                     "clear": true
                 },
         },
+        {
+            "label": "Pre-commit Hooks",
+            "detail": "Runs the pre-commit hooks.",
+            "type": "process",
+            "problemMatcher": [],
+            "command": "uv",
+            "args": [
+                "run",
+                "pre-commit", "run",
+                "--all-files",
+                "--show-diff-on-failure",
+                "--color=always",
+            ],
+            "presentation":
+                {
+                    "echo": true,
+                    "reveal": "always",
+                    "focus": true,
+                    "panel": "shared",
+                    "showReuseMessage": true,
+                    "clear": true
+                },
+        },
     ],
     "inputs":
     [

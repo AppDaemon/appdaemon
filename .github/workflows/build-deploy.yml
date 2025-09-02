@@ -31,18 +31,19 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       # https://github.com/actions/setup-python
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Install uv and set the python version
+        id: setup-uv
+        uses: astral-sh/setup-uv@v6
         with:
-          python-version: "3.12"
-          cache: 'pip' # caching pip dependencies
-          # Manually set 'doc-requirements.txt' as the file to use for dependencies, since `requirements.txt` contains runtime dependencies.
-          cache-dependency-path: 'doc-requirements.txt'
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r doc-requirements.txt
-      # Invoke sphinx to build the documentation
+          # https://docs.astral.sh/uv/guides/integration/github/#using-uv-in-github-actions
+          # It is considered best practice to pin to a specific uv version
+          version: "0.8.14"
+          # https://github.com/astral-sh/setup-uv?tab=readme-ov-file#enable-caching
+          enable-cache: true
+          cache-dependency-glob: |
+            **/*requirements*.txt
+            **/pyproject.toml
+            **/uv.lock
       - name: Build documentation
         # Options:
         # -T Display the full traceback when an unhandled exception occurs
@@ -52,7 +53,15 @@ jobs:
         # -D Override a configuration value set in the conf.py file
         # -W Turn warnings into errors. This means that the build stops at the first warning and sphinx-build exits with exit status 1
         # --keep-going With -W option, keep going processing when getting warnings to the end of build, and sphinx-build exits with exit status 1.
-        run: python -m sphinx -T -E -b html -d _build/doctrees -D language=en -W --keep-going . _build/html
+        run: >
+          uv run --extra doc
+          python -m sphinx
+          -T -E
+          -b html
+          -d _build/doctrees
+          -D language=en
+          -W --keep-going
+          . _build/html
         working-directory: docs
       # Save the generated documentation as an artifact in Github
       - name: Upload documentation
@@ -72,20 +81,23 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      # https://github.com/actions/setup-python
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Install uv and set the python version
+        id: setup-uv
+        uses: astral-sh/setup-uv@v6
         with:
-          python-version: "3.12"
-          cache: 'pip' # caching pip dependencies
-          # Manually set 'dev-requirements.txt' as the file to use for dependencies, since `requirements.txt` contains runtime dependencies.
-          cache-dependency-path: 'dev-requirements.txt'
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r dev-requirements.txt
+          # https://docs.astral.sh/uv/guides/integration/github/#using-uv-in-github-actions
+          # It is considered best practice to pin to a specific uv version
+          version: "0.8.14"
+          # https://github.com/astral-sh/setup-uv?tab=readme-ov-file#enable-caching
+          enable-cache: true
+          cache-dependency-glob: |
+            **/*requirements*.txt
+            **/pyproject.toml
+            **/uv.lock
+      - name: Install the project
+        run: uv sync --locked --all-extras --dev
       - name: Build Python package
-        run: python -m build
+        run: uv build --wheel --refresh
       - name: Upload Python package
         uses: actions/upload-artifact@v4
         with:
@@ -154,6 +166,7 @@ jobs:
         uses: docker/build-push-action@v6.18.0
         with:
           context: .
+          file: Dockerfile.uv
           push: ${{github.event_name == 'push' && (startsWith(github.ref, 'refs/tags') || github.ref_name == 'dev') && github.repository == 'AppDaemon/appdaemon'}}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

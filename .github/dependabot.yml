@@ -1,22 +1,27 @@
 version: 2
 updates:
-# Enable version updates for pip
-- package-ecosystem: pip
-  directory: "/"
-  schedule:
-    interval: daily
-  open-pull-requests-limit: 10
+  # Enable version updates for pip
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
 
-# Maintain dependencies for GitHub Actions
-- package-ecosystem: "github-actions"
-  directory: "/"
-  schedule:
-    interval: "weekly"
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "weekly"
 
-# Enable version updates for Docker
-- package-ecosystem: "docker"
-  # Look for a `Dockerfile` in the `root` directory
-  directory: "/"
-  # Check for updates once a week
-  schedule:
-    interval: "weekly"
+  # Maintain dependencies for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  # Enable version updates for Docker
+  - package-ecosystem: "docker"
+    # Look for a `Dockerfile` in the `root` directory
+    directory: "/"
+    # Check for updates once a week
+    schedule:
+      interval: "weekly"

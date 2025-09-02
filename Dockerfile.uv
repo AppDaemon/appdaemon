@@ -42,7 +42,7 @@ RUN --mount=type=cache,id=apk-${TARGETARCH}-${TARGETVARIANT},sharing=locked,targ
         apk add git rust cargo &&\
         apk add build-base cython;\
     fi
-    
+
 WORKDIR /usr/src/app
 
 RUN uv venv --system-site-packages
