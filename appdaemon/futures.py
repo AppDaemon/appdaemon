@@ -1,7 +1,7 @@
 import asyncio
 from collections import defaultdict
-from typing import TYPE_CHECKING
 from concurrent.futures import Future
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from appdaemon.appdaemon import AppDaemon

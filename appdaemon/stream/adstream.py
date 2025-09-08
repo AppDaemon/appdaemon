@@ -11,6 +11,7 @@ from appdaemon.exceptions import RequestHandlerException
 from appdaemon.stream.socketio_handler import SocketIOHandler
 from appdaemon.stream.sockjs_handler import SockJSHandler
 from appdaemon.stream.ws_handler import WSHandler
+from appdaemon.version import __version__
 
 
 class ADStream:
@@ -252,7 +253,7 @@ class RequestHandler:
         self.stream.set_client_name(self.client_name)
 
         self.access.info("New client %s connected", data["client_name"])
-        response_data = {"version": utils.__version__}
+        response_data = {"version": __version__}
 
         event_data = {
             "event_type": "stream_connected",

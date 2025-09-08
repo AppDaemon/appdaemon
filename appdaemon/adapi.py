@@ -14,9 +14,8 @@ from logging import Logger
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, TypeVar, overload
 
-from appdaemon import dependency
+from appdaemon import dependency, utils
 from appdaemon import exceptions as ade
-from appdaemon import utils
 from appdaemon.appdaemon import AppDaemon
 from appdaemon.entity import Entity
 from appdaemon.events import EventCallback
@@ -24,6 +23,8 @@ from appdaemon.logging import Logging
 from appdaemon.models.config.app import AppConfig
 from appdaemon.parse import resolve_time_str
 from appdaemon.state import StateCallbackType
+
+from .version import __version__
 
 T = TypeVar("T")
 
@@ -777,18 +778,17 @@ class ADAPI:
             >>> version = self.get_ad_version()
 
         """
-        return utils.__version__
+        return __version__
 
     #
     # Entity
     #
 
-    @utils.sync_decorator
-    async def add_entity(
+    def add_entity(
         self,
         entity_id: str,
         state: Any,
-        attributes: dict | None = None,
+        attributes: dict[str, Any] | None = None,
         namespace: str | None = None,
     ) -> None:
         """Adds a non-existent entity, by creating it within a namespaces.
@@ -817,11 +817,10 @@ class ADAPI:
             >>> self.add_entity('mqtt.living_room_temperature', namespace='mqtt')
 
         """
-        namespace = namespace or self.namespace
-        return await self.AD.state.add_entity(namespace, entity_id, state, attributes)
+        namespace = namespace if namespace is not None else self.namespace
+        return self.AD.state.add_entity(namespace, entity_id, state, attributes)
 
-    @utils.sync_decorator
-    async def entity_exists(self, entity_id: str, namespace: str | None = None) -> bool:
+    def entity_exists(self, entity_id: str, namespace: str | None = None) -> bool:
         """Checks the existence of an entity in AD.
 
         When working with multiple AD namespaces, it is possible to specify the
@@ -850,7 +849,7 @@ class ADAPI:
             >>> if self.entity_exists("mqtt.security_settings", namespace = "mqtt"):
             >>>    #do something
         """
-        namespace = namespace or self.namespace
+        namespace = namespace if namespace is not None else self.namespace
         return self.AD.state.entity_exists(namespace, entity_id)
 
     @utils.sync_decorator
@@ -1724,7 +1723,7 @@ class ADAPI:
         if kwargs:
             self.logger.warning(f"Extra kwargs passed to get_state, will be ignored: {kwargs}")
 
-        return await self.AD.state.get_state(
+        return self.AD.state.get_state(
             name=self.name,
             namespace=namespace or self.namespace,
             entity_id=entity_id,
@@ -2364,14 +2363,14 @@ class ADAPI:
         """Determines if the sun is currently up.
 
         Returns:
-             bool: ``True`` if the sun is up, ``False`` otherwise.
+            bool: ``True`` if the sun is up, ``False`` otherwise.
 
         Examples:
             >>> if self.sun_up():
-            >>>    #do something
+            >>>    # do something
 
         """
-        return await self.AD.sched.sun_up()
+        return self.AD.sched.sun_up()
 
     @utils.sync_decorator
     async def sun_down(self) -> bool:
@@ -2382,10 +2381,10 @@ class ADAPI:
 
         Examples:
             >>> if self.sun_down():
-            >>>    #do something
+            >>>    # do something
 
         """
-        return await self.AD.sched.sun_down()
+        return self.AD.sched.sun_down()
 
     @utils.sync_decorator
     async def parse_time(
@@ -2442,7 +2441,7 @@ class ADAPI:
             05:33:17
 
         """
-        return await self.AD.sched.parse_time(
+        return self.AD.sched.parse_time(
             time_str=time_str,
             aware=aware,
             today=today,
@@ -2506,7 +2505,7 @@ class ADAPI:
             >>> self.parse_datetime("sunrise + 01:00:00")
             2019-08-16 06:33:17
         """
-        return await self.AD.sched.parse_datetime(
+        return self.AD.sched.parse_datetime(
             input_=time_str,
             aware=aware,
             today=today,
@@ -2522,8 +2521,7 @@ class ADAPI:
             2019-08-16 21:17:41.098813-04:00
 
         """
-        now = await self.AD.sched.get_now()
-        return now.astimezone(self.AD.tz) if aware else self.AD.sched.make_naive(now)
+        return self.AD.sched.get_now_sync(_tz=None if aware else False)
 
     @utils.sync_decorator
     async def get_now_ts(self, aware: bool = False) -> float:
@@ -2578,7 +2576,7 @@ class ADAPI:
             >>>     #do something
 
         """
-        return await self.AD.sched.now_is_between(start_time=start_time, end_time=end_time, now=now)
+        return self.AD.sched.now_is_between(start_time=start_time, end_time=end_time, now=now)
 
     @utils.sync_decorator
     async def sunrise(self, aware: bool = False, today: bool = False, days_offset: int = 0) -> dt.datetime:
@@ -2600,7 +2598,7 @@ class ADAPI:
             2023-02-01 07:12:20.272403
 
         """
-        return await self.AD.sched.sunrise(aware, today, days_offset)
+        return self.AD.sched.sunrise(aware, today, days_offset)
 
     @utils.sync_decorator
     async def sunset(self, aware: bool = False, today: bool = False, days_offset: int = 0) -> dt.datetime:
@@ -2622,7 +2620,7 @@ class ADAPI:
             2023-02-02 18:09:46.252314
 
         """
-        return await self.AD.sched.sunset(aware, today, days_offset)
+        return self.AD.sched.sunset(aware, today, days_offset)
 
     @utils.sync_decorator
     async def datetime(self, aware: bool = False) -> dt.datetime:
@@ -2639,7 +2637,7 @@ class ADAPI:
             2019-08-15 20:15:55.549379
 
         """
-        return await self.get_now(aware=aware)
+        return self.get_now(aware=aware)
 
     @utils.sync_decorator
     async def time(self) -> dt.time:
@@ -2653,7 +2651,7 @@ class ADAPI:
             20:15:31.295751
 
         """
-        return (await self.get_now(aware=True)).time()
+        return self.get_now(aware=True).time()
 
     @utils.sync_decorator
     async def date(self) -> dt.date:
@@ -2667,11 +2665,11 @@ class ADAPI:
             2019-08-15
 
         """
-        return (await self.get_now(aware=True)).date()
+        return self.get_now(aware=True).date()
 
-    def get_timezone(self) -> str:
+    def get_timezone(self) -> str | None:
         """Returns the current time zone."""
-        return self.AD.time_zone
+        return self.AD.time_zone.zone
 
     #
     # Scheduler
@@ -2967,7 +2965,7 @@ class ADAPI:
                 _, offset = resolve_time_str(start_str, now=now, location=self.AD.sched.location)
                 func = functools.partial(func, *args, repeat=True, offset=offset)
             case _:
-                start = await self.AD.sched.parse_datetime(start, aware=True)
+                start = self.AD.sched.parse_datetime(start, aware=True)
                 func = functools.partial(
                     self.AD.sched.insert_schedule,
                     name=self.name,
@@ -3371,7 +3369,7 @@ class ADAPI:
             >>> self.run_at_sunset(self.sun, random_start = -60*60, random_end = 30*60)
 
         """
-        sunset = await self.AD.sched.next_sunset()
+        sunset = self.AD.sched.next_sunset()
         td = utils.parse_timedelta(offset)
         self.logger.debug(f"Registering run_at_sunset at {sunset + td} with {args}, {kwargs}")
         return await self.AD.sched.insert_schedule(
@@ -3444,7 +3442,7 @@ class ADAPI:
             >>> self.run_at_sunrise(self.sun, random_start = -60*60, random_end = 30*60)
 
         """
-        sunrise = await self.AD.sched.next_sunrise()
+        sunrise = self.AD.sched.next_sunrise()
         td = utils.parse_timedelta(offset)
         self.logger.debug(f"Registering run_at_sunrise at {sunrise + td} with {args}, {kwargs}")
         return await self.AD.sched.insert_schedule(

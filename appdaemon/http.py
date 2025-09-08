@@ -6,10 +6,10 @@ import re
 import ssl
 import time
 import traceback
-from urllib.parse import urlparse
 import uuid
 from socket import gaierror
 from typing import TYPE_CHECKING, Callable, Optional
+from urllib.parse import urlparse
 
 import bcrypt
 import feedparser

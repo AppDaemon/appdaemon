@@ -5,16 +5,19 @@ from pathlib import Path
 from typing import Annotated, Any, Literal
 
 import pytz
-from pydantic import BaseModel, BeforeValidator, ConfigDict, Discriminator, Field, RootModel, SecretStr, Tag, field_validator, model_validator
+from pydantic import (BaseModel, BeforeValidator, ConfigDict, Discriminator,
+                      Field, RootModel, SecretStr, Tag, field_validator,
+                      model_validator)
 from pytz.tzinfo import BaseTzInfo
 from typing_extensions import deprecated
 
 from appdaemon import utils
 from appdaemon.models.config.http import CoercedPath
+from appdaemon.models.config.plugin import HASSConfig, MQTTConfig
+from appdaemon.version import __version__
 
-from ...models.config.plugin import HASSConfig, MQTTConfig
-from ...version import __version__
 from .misc import FilterConfig, NamespaceConfig
+
 
 def plugin_discriminator(plugin):
     if isinstance(plugin, dict):

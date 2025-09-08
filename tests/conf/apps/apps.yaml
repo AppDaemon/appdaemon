@@ -1,3 +1,8 @@
+diag_app:
+  module: diag
+  class: SchedulerDiag
+  dump_type: "sun"
+
 state_test_app:
   module: state_test_app
   class: StateTestApp
@@ -24,3 +29,7 @@ test_run_daily:
   module: scheduler_test_app
   class: TestSchedulerRunDaily
   time: "00:00:05"
+
+test_entity_api:
+  module: entity_api
+  class: EntityTestApp

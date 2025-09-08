@@ -1,14 +1,15 @@
 import copy
-import datetime
 import logging
 import sys
 import traceback
 import uuid
 from collections import OrderedDict
-from logging import LogRecord, Logger, StreamHandler
+from datetime import datetime, timedelta
+from logging import Logger, LogRecord, StreamHandler
 from logging.handlers import RotatingFileHandler
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 
+from pytz import BaseTzInfo
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
@@ -56,14 +57,14 @@ class DuplicateFilter(logging.Filter):
             self.filtering = False
             self.start_time = None
             self.first_time = True
-            self.last_log_time = datetime.datetime.now()
+            self.last_log_time = datetime.now()
         else:
-            now = datetime.datetime.now()
+            now = datetime.now()
             # Reset if we haven't exceeded the initial grace period
-            if self.filtering is False and now - self.last_log_time >= datetime.timedelta(seconds=self.timeout):
+            if self.filtering is False and now - self.last_log_time >= timedelta(seconds=self.timeout):
                 return True
 
-            if self.start_time is not None and now - self.start_time >= datetime.timedelta(seconds=self.delay):
+            if self.start_time is not None and now - self.start_time >= timedelta(seconds=self.delay):
                 self.start_time = now
                 if self.first_time is True:
                     count = self.current_count - self.threshold + 1
@@ -77,12 +78,12 @@ class DuplicateFilter(logging.Filter):
             else:
                 if self.filtering is False and self.current_count >= self.threshold - 1:
                     self.filtering = True
-                    self.start_time = datetime.datetime.now()
+                    self.start_time = datetime.now()
                 if self.filtering is True:
                     result = False
                 else:
                     result = True
-                    self.last_log_time = datetime.datetime.now()
+                    self.last_log_time = datetime.now()
                 self.current_count += 1
         return result
 
@@ -150,7 +151,7 @@ class LogSubscriptionHandler(StreamHandler):
                     logger.warning("Log formatting error - '%s'", e)
                     logger.warning("message: %s, args: %s", record.msg, record.args)
                     return
-                record.ts = datetime.datetime.fromtimestamp(record.created)
+                record.ts = datetime.fromtimestamp(record.created)
                 self.AD.thread_async.call_async_no_wait(
                     self.AD.events.process_event,
                     "admin",
@@ -183,6 +184,7 @@ class Logging(metaclass=utils.Singleton):
     """Reference to the top-level AppDaemon container object
     """
     name: str = "_logging"
+    tz: BaseTzInfo | None
 
     config: Dict[str, Dict[str, Any]]
 
@@ -358,14 +360,12 @@ class Logging(metaclass=utils.Singleton):
             self.logger.debug("  generations: %s", self.config[log]["log_generations"])
             self.logger.debug("  format:      %s", self.config[log]["format"])
 
-    def get_time(logger, record, format=None):
-        if logger.AD is not None and logger.AD.sched is not None and not logger.AD.sched.is_realtime():
-            ts = logger.AD.sched.get_now_sync().astimezone(logger.tz)
+    def get_time(self, record: LogRecord, format: str | None = None) -> str:
+        if self.AD is not None and not self.AD.real_time:
+            ts = self.AD.sched.get_now_sync(self.tz)
         else:
-            if logger.tz is not None:
-                ts = datetime.datetime.now(datetime.timezone.utc).astimezone(logger.tz)
-            else:
-                ts = datetime.datetime.now()
+            ts = datetime.now(self.tz)
+
         if format is not None:
             return ts.strftime(format)
         else:
@@ -558,7 +558,7 @@ class Logging(metaclass=utils.Singleton):
                     # If we have a timeout parameter, add a scheduler entry to delete the callback later
                     #
                     if "timeout" in cb_kwargs:
-                        exec_time = await self.AD.sched.get_now() + datetime.timedelta(seconds=int(kwargs["timeout"]))
+                        exec_time = await self.AD.sched.get_now() + timedelta(seconds=int(kwargs["timeout"]))
 
                         cb_kwargs["__timeout"] = await self.AD.sched.insert_schedule(
                             name=name,
@@ -569,7 +569,7 @@ class Logging(metaclass=utils.Singleton):
                             __log_handle=handle,
                         )
 
-                    await self.AD.state.add_entity(
+                    self.AD.state.add_entity(
                         "admin",
                         f"log_callback.{handle}",
                         "active",

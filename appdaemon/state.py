@@ -1,3 +1,4 @@
+import asyncio
 import threading
 import traceback
 import uuid
@@ -5,8 +6,7 @@ from copy import copy, deepcopy
 from datetime import timedelta
 from logging import Logger
 from pathlib import Path
-from typing import (TYPE_CHECKING, Any, Awaitable, List, Optional,
-                    Protocol, Set, Union, overload)
+from typing import TYPE_CHECKING, Any, Awaitable, List, Protocol, Set, Union, overload
 
 from . import exceptions as ade
 from . import utils
@@ -38,6 +38,7 @@ class State:
     logger: Logger
     name: str = "_state"
     state: dict[str, dict[str, Any] | utils.PersistentDict]
+    lock: threading.RLock
 
     app_added_namespaces: Set[str]
 
@@ -45,6 +46,8 @@ class State:
         self.AD = ad
 
         self.state = {"default": {}, "admin": {}, "rules": {}}
+        self.lock = threading.RLock()
+
         self.logger = ad.logging.get_child(self.name)
         self.error = ad.logging.get_error()
         self.app_added_namespaces = set()
@@ -322,7 +325,7 @@ class State:
                 if __duration.total_seconds() >= 1:  # it only stores it when needed
                     kwargs["__duration"] = __scheduler_handle
 
-        await self.AD.state.add_entity(
+        self.AD.state.add_entity(
             "admin",
             f"state_callback.{handle}",
             "active",
@@ -480,29 +483,34 @@ class State:
         for remove in removes:
             await self.cancel_state_callback(remove["uuid"], remove["name"])
 
-    def entity_exists(self, namespace: str, entity: str):
-        return namespace in self.state and entity in self.state[namespace]
+    def entity_exists(self, namespace: str, entity: str) -> bool:
+        with self.lock:
+            return namespace in self.state and entity in self.state[namespace]
 
-    def get_entity(self, namespace: Optional[str] = None, entity_id: Optional[str] = None, name: Optional[str] = None):
-        if namespace is None:
-            return deepcopy(self.state)
-
-        if entity_id is None:
-            if namespace in self.state:
-                return deepcopy(self.state[namespace])
-            else:
-                self.logger.warning("Unknown namespace: %s requested by %s", namespace, name)
-                return None
-
-        if namespace in self.state:
-            if entity_id in self.state[namespace]:
-                return deepcopy(self.state[namespace][entity_id])
-            else:
-                self.logger.warning("Unknown entity: %s requested by %s", entity_id, name)
-                return None
-        else:
-            self.logger.warning("Unknown namespace: %s requested by %s", namespace, name)
-            return None
+    def get_entity(
+        self,
+        namespace: str | None = None,
+        entity_id: str | None = None,
+        name: str | None = None,
+    ) -> dict[str, Any] | None:
+        with self.lock:
+            match namespace, entity_id:
+                case None, _:
+                    return deepcopy(self.state)
+                case str(), None:
+                    if namespace in self.state:
+                        return deepcopy(self.state[namespace])
+                    else:
+                        self.logger.warning("Unknown namespace: %s requested by %s", namespace, name)
+                case str(), str():
+                    if namespace in self.state:
+                        if entity_id in self.state[namespace]:
+                            return deepcopy(self.state[namespace][entity_id])
+                        else:
+                            self.logger.warning("Unknown entity: %s requested by %s", entity_id, name)
+                    else:
+                        self.logger.warning("Unknown namespace: %s requested by %s", namespace, name)
+        return None
 
     async def remove_entity(self, namespace: str, entity: str) -> None:
         """Removes an entity.
@@ -521,7 +529,7 @@ class State:
         # print("remove {}:{}".format(namespace, entity))
 
         self.logger.debug("remove_entity() %s %s", namespace, entity)
-        await self.remove_entity_simple(namespace, entity)
+        self.remove_entity_simple(namespace, entity)
 
         plugin = self.AD.plugins.get_plugin_object(namespace)
 
@@ -529,56 +537,57 @@ class State:
             # We assume that the event will come back to us via the plugin
             return await remove_method(namespace, entity)
 
-    async def remove_entity_simple(self, namespace: str, entity_id: str) -> None:
+    def remove_entity_simple(self, namespace: str, entity_id: str) -> None:
         """Used to remove an internal AD entity
 
         Fires the ``__AD_ENTITY_REMOVED`` event in a new task
         """
+        with self.lock:
+            old_state = self.state.get(namespace, {}).pop(entity_id, None)
+        if old_state is not None:
+            event_data = {"event_type": "__AD_ENTITY_REMOVED", "data": {"entity_id": entity_id}}
+            self.AD.loop.create_task(self.AD.events.process_event(namespace, event_data))
 
-        if self.state[namespace].pop(entity_id, False):
-            data = {"event_type": "__AD_ENTITY_REMOVED", "data": {"entity_id": entity_id}}
-            self.AD.loop.create_task(self.AD.events.process_event(namespace, data))
-
-    async def add_entity(
+    def add_entity(
         self,
         namespace: str,
         entity: str,
         state: Any,
-        attributes: Optional[dict] = None
+        attributes: dict[str, Any] | None = None,
     ) -> None:  # fmt: skip
         """Adds an entity to the internal state registry and fires the ``__AD_ENTITY_ADDED`` event"""
-        if self.entity_exists(namespace, entity):
-            # No warning is necessary because this method gets called twice for the app entities because of
-            # create_initial_threads and then again during start_app
-            # self.logger.warning("%s already exists, will not be adding it", entity)
-            return
+        with self.lock:
+            if self.entity_exists(namespace, entity):
+                # No warning is necessary because this method gets called twice for the app entities because of
+                # create_initial_threads and then again during start_app
+                # self.logger.warning("%s already exists, will not be adding it", entity)
+                return
 
-        state = {
-            "entity_id": entity,
-            "state": state,
-            "last_changed": "never",
-            "attributes": attributes or {},
-        }
+            state = {
+                "entity_id": entity,
+                "state": state,
+                "last_changed": "never",
+                "attributes": attributes if attributes is not None else {},
+            }
+            self.state[namespace][entity] = state
 
-        self.state[namespace][entity] = state
-
-        data = {
+        event_data = {
             "event_type": "__AD_ENTITY_ADDED",
             "data": {"entity_id": entity, "state": state},
         }
+        self.AD.loop.create_task(self.AD.events.process_event(namespace, event_data))
 
-        self.AD.loop.create_task(self.AD.events.process_event(namespace, data))
-
-    def get_state_simple(self, namespace, entity_id):
+    def get_state_simple(self, namespace: str, entity_id: str) -> dict[str, Any]:
         # Simple sync version of get_state() primarily for use in entity objects, returns whole state for the entity
-        if namespace not in self.state:
-            raise ValueError(f"Namespace {namespace} not found for entity.state")
-        if entity_id not in self.state[namespace]:
-            raise ValueError(f"Entity {entity_id} not found in namespace {namespace} for entity.state")
+        with self.lock:
+            if namespace not in self.state:
+                raise ValueError(f"Namespace {namespace} not found for entity.state")
+            if entity_id not in self.state[namespace]:
+                raise ValueError(f"Entity {entity_id} not found in namespace {namespace} for entity.state")
 
-        return self.state[namespace][entity_id]
+            return self.state[namespace][entity_id]
 
-    async def get_state(
+    def get_state(
         self,
         name: str,
         namespace: str,
@@ -589,49 +598,50 @@ class State:
     ):
         self.logger.debug("get_state: %s.%s %s %s", entity_id, attribute, default, copy)
 
-        def maybe_copy(data):
+        def maybe_copy(data: dict[str, Any]) -> dict[str, Any]:
             return deepcopy(data) if copy else data
 
-        if entity_id is not None and "." in entity_id:
-            if not self.entity_exists(namespace, entity_id):
+        with self.lock:
+            if entity_id is not None and "." in entity_id:
+                if not self.entity_exists(namespace, entity_id):
+                    return default
+                state = self.state[namespace][entity_id]
+                if attribute is None and "state" in state:
+                    return maybe_copy(state["state"])
+                if attribute == "all":
+                    return maybe_copy(state)
+                if attribute in state["attributes"]:
+                    return maybe_copy(state["attributes"][attribute])
+                if attribute in state:
+                    return maybe_copy(state[attribute])
                 return default
-            state = self.state[namespace][entity_id]
-            if attribute is None and "state" in state:
-                return maybe_copy(state["state"])
-            if attribute == "all":
-                return maybe_copy(state)
-            if attribute in state["attributes"]:
-                return maybe_copy(state["attributes"][attribute])
-            if attribute in state:
-                return maybe_copy(state[attribute])
-            return default
 
-        if attribute is not None:
-            raise ValueError("{}: Querying a specific attribute is only possible for a single entity".format(name))
+            if attribute is not None:
+                raise ValueError("{}: Querying a specific attribute is only possible for a single entity".format(name))
 
-        if entity_id is None:
-            return maybe_copy(self.state[namespace])
+            if entity_id is None:
+                return maybe_copy(self.state[namespace])
 
-        domain = entity_id.split(".", 1)[0]
-        return {
-            entity_id: maybe_copy(state)
-            for entity_id, state in self.state[namespace].items()
-            if entity_id.split(".", 1)[0] == domain
-        }  # fmt: skip
+            domain = entity_id.split(".", 1)[0]
+            return {
+                eid: maybe_copy(state)
+                for eid, state in self.state[namespace].items()
+                if eid.split(".", 1)[0] == domain
+            }  # fmt: skip
 
     def parse_state(
         self,
         namespace: str,
-        entity: str,
+        entity_id: str,
         state: Any | None = None,
         attributes: dict | None = None,
         replace: bool = False,
         **kwargs
     ):  # fmt: skip
-        self.logger.debug(f"parse_state: {entity}, {kwargs}")
+        self.logger.debug(f"parse_state: {entity_id}, {kwargs}")
 
-        if entity in self.state[namespace]:
-            new_state: dict[str, Any] = deepcopy(self.state[namespace][entity])
+        if entity_id in self.state[namespace]:
+            new_state: dict[str, Any] = deepcopy(self.state[namespace][entity_id])
         else:
             # Its a new state entry
             new_state = {"attributes": {}}
@@ -649,18 +659,18 @@ class State:
                 new_state["attributes"].update(new_attrs)
 
         # API created entities won't necessarily have entity_id set
-        new_state["entity_id"] = entity
+        new_state["entity_id"] = entity_id
 
         return new_state
 
     async def add_to_state(self, name: str, namespace: str, entity_id: str, i):
-        value = await self.get_state(name, namespace, entity_id)
+        value = self.get_state(name, namespace, entity_id)
         if value is not None:
             value += i
             await self.set_state(name, namespace, entity_id, state=value)
 
     async def add_to_attr(self, name: str, namespace: str, entity_id: str, attr, i):
-        state = await self.get_state(name, namespace, entity_id, attribute="all")
+        state = self.get_state(name, namespace, entity_id, attribute="all")
         if state is not None:
             state["attributes"][attr] = copy(state["attributes"][attr]) + i
             await self.set_state(name, namespace, entity_id, attributes=state["attributes"])
@@ -694,7 +704,7 @@ class State:
         elif service == "add_entity":
             state = kwargs.get("state")
             attributes = kwargs.get("attributes")
-            await self.add_entity(namespace, entity_id, state, attributes)
+            self.add_entity(namespace, entity_id, state, attributes)
 
         elif service == "add_namespace":
             writeback = kwargs.get("writeback")
@@ -760,15 +770,16 @@ class State:
         else:
             old_state = {"state": None, "attributes": {}}
         new_state = self.parse_state(namespace, entity, **kwargs)
-        now = await self.AD.sched.get_now()
-        new_state["last_changed"] = utils.dt_to_str(now, self.AD.tz, round=True)
+        # now = await self.AD.sched.get_now()
+        now = self.AD.sched.get_now_sync()
+        new_state["last_changed"] = utils.dt_to_str(now, self.AD.tz, include_us=True)
         self.logger.debug("Old state: %s", old_state)
         self.logger.debug("New state: %s", new_state)
 
         if not self.entity_exists(namespace, entity):
-            await self.add_entity(namespace, entity, new_state.get("state"), new_state.get("attributes"))
+            self.add_entity(namespace, entity, new_state.get("state"), new_state.get("attributes"))
             if not _silent:
-                self.logger.info("%s: Entity %s created in namespace: %s", name, entity, namespace)
+                self.logger.info("Entity %s created in namespace: %s", entity, namespace)
 
         # Fire the plugin's state update if it has one
 
@@ -778,16 +789,21 @@ class State:
             # We assume that the state change will come back to us via the plugin
             self.logger.debug("sending event to plugin")
 
-            result = await set_plugin_state( # pyright: ignore[reportCallIssue]
-                namespace,
-                entity,
-                state=new_state["state"],
-                attributes=new_state["attributes"]
+            def _cleanup(future: asyncio.Future) -> None:
+                result: dict[str, Any] = future.result()
+                with self.lock:
+                    self.state[namespace][entity] = self.parse_state(namespace, **result)
+
+            task = self.AD.loop.create_task(
+                set_plugin_state( # pyright: ignore[reportCallIssue]
+                    namespace,
+                    entity,
+                    state=new_state["state"],
+                    attributes=new_state["attributes"]
+                )
             )  # fmt: skip
-            if result is not None:
-                if "entity_id" in result:
-                    result.pop("entity_id")
-                self.state[namespace][entity] = self.parse_state(namespace, entity, **result)
+            task.add_done_callback(_cleanup)
+
         else:
             # Set the state locally
             self.state[namespace][entity] = new_state
@@ -797,17 +813,13 @@ class State:
                 "event_type": "state_changed",
                 "data": {"entity_id": entity, "new_state": new_state, "old_state": old_state},
             }
-
-            #
             # Schedule this rather than awaiting to avoid locking ourselves out
-            #
-            # await self.AD.events.process_event(namespace, data)
             self.AD.loop.create_task(self.AD.events.process_event(namespace, data))
 
         return new_state
 
-    def set_state_simple(self, namespace: str, entity_id: str, state: Any):
-        """Set state without any checks or triggering amy events, and only if the entity exists"""
+    def set_state_from_event(self, namespace: str, entity_id: str, state: Any) -> None:
+        """Set state without any checks or triggering any events, and only if the entity exists"""
         if self.entity_exists(namespace, entity_id):
             self.state[namespace][entity_id] = state
 

@@ -24,7 +24,6 @@ from appdaemon.models.config.plugin import HASSConfig, StartupConditions
 from appdaemon.plugin_management import PluginBase
 
 from .exceptions import HAEventsSubError
-from .models import HASSMetaData
 from .utils import ServiceCallStatus, hass_check, looped_coro
 
 
@@ -221,7 +220,7 @@ class HassPlugin(PluginBase):
             await self.ready_event.wait()
 
         await self.notify_plugin_started(
-            meta=await self.get_hass_config(),
+            meta=self.metadata,
             state=await self.get_complete_state()
         )
         self.first_time = False
@@ -593,11 +592,11 @@ class HassPlugin(PluginBase):
     async def get_hass_config(self) -> dict[str, Any] | None:
         resp = await self.websocket_send_json(type="get_config")
         match resp:
-            case {"success": True, "result": meta}:
-                HASSMetaData.model_validate(meta)
-                if meta.get('state') == "RUNNING":
-                    self.ready_event.set()
-                self.metadata = meta
+            case {"success": True, "result": metadata}:
+                self.metadata = metadata
+                match metadata:
+                    case {"state": "RUNNING"}:
+                        self.ready_event.set()
                 return self.metadata
             case _:
                 return # websocket_send_json will log warnings if something happens on the AD side
@@ -834,7 +833,7 @@ class HassPlugin(PluginBase):
         self,
         entity_id: str,
         timeout: str | int | float | datetime.timedelta | None = 5
-    ) -> dict | None:
+    ) -> dict[str, Any] | None:
         resp = await self.http_method('get', f'/api/states/{entity_id}', timeout)
         match resp:
             case ClientResponse():

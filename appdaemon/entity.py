@@ -29,8 +29,6 @@ class Entity:
     AD: "AppDaemon" = field(init=False)
     logger: Logger = field(init=False)
     name: str  = field(init=False)
-
-    adapi: "ADAPI"
     _async_events: dict[str, asyncio.Event] = field(default_factory=lambda: defaultdict(asyncio.Event))
     # states_attrs = EntityAttrs()
 
@@ -311,8 +309,12 @@ class Entity:
             **kwargs,
         )
 
-    @utils.sync_decorator
-    async def add(self, state: str | int | float | None = None, attributes: dict[str, Any] | None = None) -> None:
+    def add(
+        self,
+        state: str | int | float | None = None,
+        attributes: dict[str, Any] | None = None,
+        **kwargs: Any,
+    ) -> None:
         """Adds a non-existent entity, by creating it within a namespaces.
 
         It should be noted that this api call, is mainly for creating AD internal entities.
@@ -321,6 +323,7 @@ class Entity:
         Args:
             state (optional): The state the new entity is to have
             attributes (optional): The attributes the new entity is to have
+            kwargs (optional): Zero or more keyword arguments. These will be applied to the attributes.
 
         Returns:
             None
@@ -333,6 +336,10 @@ class Entity:
             >>> self.my_entity.add(state="off", attributes={"friendly_name": "Living Room Light"})
 
         """
+        if attributes is None and kwargs:
+            attributes = kwargs
+        elif attributes is not None and kwargs:
+            attributes.update(kwargs)
         return self.adapi.add_entity(
             entity_id=self.entity_id,
             state=state,

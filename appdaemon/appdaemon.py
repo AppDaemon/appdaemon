@@ -23,7 +23,6 @@ from appdaemon.thread_async import ThreadAsync
 from appdaemon.threads import Threading
 from appdaemon.utility_loop import Utility
 
-
 if TYPE_CHECKING:
     from appdaemon.http import HTTP
     from appdaemon.logging import Logging
@@ -373,11 +372,11 @@ class AppDaemon:
         return self.config.use_stream
 
     @property
-    def write_toml(self):
+    def write_toml(self) -> bool:
         return self.config.write_toml
 
     @property
-    def utility_delay(self):
+    def utility_delay(self) -> int:
         return self.config.utility_delay
 
     def start(self) -> None:

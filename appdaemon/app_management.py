@@ -21,7 +21,6 @@ from typing import TYPE_CHECKING, Any, Literal, TypeVar
 
 from pydantic import ValidationError
 
-
 from appdaemon.dependency import DependencyResolutionFail, get_full_module_name
 from appdaemon.dependency_manager import DependencyManager
 from appdaemon.models.config import AllAppConfig, AppConfig, GlobalModule
@@ -33,9 +32,9 @@ from . import utils
 from .models.internal.app_management import LoadingActions, ManagedObject, UpdateActions, UpdateMode
 
 if TYPE_CHECKING:
-    from .appdaemon import AppDaemon
-    from .adbase import ADBase
     from .adapi import ADAPI
+    from .adbase import ADBase
+    from .appdaemon import AppDaemon
     from .plugin_management import PluginBase
 
 T = TypeVar("T")
@@ -213,7 +212,7 @@ class AppManagement:
         else:
             entity_id = name
 
-        return await self.AD.state.get_state("_app_management", "admin", entity_id, **kwargs)
+        return self.AD.state.get_state("_app_management", "admin", entity_id, **kwargs)
 
     async def init_admin_entities(self):
         for app_name, cfg in self.app_config.root.items():
@@ -237,7 +236,7 @@ class AppManagement:
         else:
             entity_id = name
 
-        await self.AD.state.add_entity("admin", entity_id, state, attributes)
+        self.AD.state.add_entity("admin", entity_id, state, attributes)
 
     async def remove_entity(self, name: str):
         await self.AD.state.remove_entity("admin", f"app.{name}")
@@ -291,12 +290,13 @@ class AppManagement:
         if obj := self.objects.get(name):
             return obj.object
 
-    def get_app_info(self, name: str):
+    def get_managed_object(self, name: str) -> ManagedObject | None:
         return self.objects.get(name)
 
-    def get_app_instance(self, name: str, id):
-        if (obj := self.objects.get(name)) and obj.id == id:
-            return obj.object
+    def get_app_instance(self, name: str, id: str) -> Any | None:
+        match self.get_managed_object(name):
+            case ManagedObject(object=obj, id=_id) if _id == id:
+                return obj
 
     def get_app_pin(self, name: str) -> bool:
         return self.objects[name].pin_app
@@ -1555,4 +1555,28 @@ class AppManagement:
 
                 return result
             case _:
+                self.logger.warning("Invalid app service call '%s' with app '%s' from  app %s.", service, app, __name)
+                self.logger.warning("Invalid app service call '%s' with app '%s' from  app %s.", service, app, __name)
+                self.logger.warning("Invalid app service call '%s' with app '%s' from  app %s.", service, app, __name)
+                self.logger.warning("Invalid app service call '%s' with app '%s' from  app %s.", service, app, __name)
+                self.logger.warning("Invalid app service call '%s' with app '%s' from  app %s.", service, app, __name)
+                self.logger.warning("Invalid app service call '%s' with app '%s' from  app %s.", service, app, __name)
+                self.logger.warning("Invalid app service call '%s' with app '%s' from  app %s.", service, app, __name)
+                self.logger.warning("Invalid app service call '%s' with app '%s' from  app %s.", service, app, __name)
+                self.logger.warning("Invalid app service call '%s' with app '%s' from  app %s.", service, app, __name)
+                self.logger.warning("Invalid app service call '%s' with app '%s' from  app %s.", service, app, __name)
+                self.logger.warning("Invalid app service call '%s' with app '%s' from  app %s.", service, app, __name)
+                self.logger.warning("Invalid app service call '%s' with app '%s' from  app %s.", service, app, __name)
+                self.logger.warning("Invalid app service call '%s' with app '%s' from  app %s.", service, app, __name)
+                self.logger.warning("Invalid app service call '%s' with app '%s' from  app %s.", service, app, __name)
+                self.logger.warning("Invalid app service call '%s' with app '%s' from  app %s.", service, app, __name)
+                self.logger.warning("Invalid app service call '%s' with app '%s' from  app %s.", service, app, __name)
+                self.logger.warning("Invalid app service call '%s' with app '%s' from  app %s.", service, app, __name)
+                self.logger.warning("Invalid app service call '%s' with app '%s' from  app %s.", service, app, __name)
+                self.logger.warning("Invalid app service call '%s' with app '%s' from  app %s.", service, app, __name)
+                self.logger.warning("Invalid app service call '%s' with app '%s' from  app %s.", service, app, __name)
+                self.logger.warning("Invalid app service call '%s' with app '%s' from  app %s.", service, app, __name)
+                self.logger.warning("Invalid app service call '%s' with app '%s' from  app %s.", service, app, __name)
+                self.logger.warning("Invalid app service call '%s' with app '%s' from  app %s.", service, app, __name)
+                self.logger.warning("Invalid app service call '%s' with app '%s' from  app %s.", service, app, __name)
                 self.logger.warning("Invalid app service call '%s' with app '%s' from  app %s.", service, app, __name)

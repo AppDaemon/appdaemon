@@ -22,10 +22,9 @@ from functools import wraps
 from logging import Logger
 from pathlib import Path
 from time import perf_counter
-from typing import (TYPE_CHECKING, Any, Callable, Coroutine, Literal,
-                    ParamSpec, Protocol, TypeVar)
+from typing import TYPE_CHECKING, Any, Callable, Coroutine, Literal, ParamSpec, Protocol, TypeVar, overload
 
-import dateutil.parser
+import pytz
 import tomli
 import tomli_w
 import yaml
@@ -34,8 +33,6 @@ from pydantic import BaseModel, ValidationError
 from pytz import BaseTzInfo
 
 from appdaemon.parse import parse_datetime
-from appdaemon.version import __version__  # noqa: F401
-from appdaemon.version import __version_comments__  # noqa: F401
 
 from . import exceptions as ade
 from .parse import parse_timedelta
@@ -44,7 +41,6 @@ logger = logging.getLogger("AppDaemon._utility")
 file_log = logger.getChild("file")
 
 if TYPE_CHECKING:
-    from .adbase import ADBase
     from .appdaemon import AppDaemon
 
 
@@ -57,6 +53,8 @@ ELEVATION_REGEX = re.compile(r"^(?P<N>\d+(?:\.\d+)?)\s+deg\s+(?P<dir>rising|sett
 
 OFFSET_SPLIT_REGEX = re.compile(r"\s*?[+-]\s*?")
 
+
+MIN_DATETIME = datetime.fromtimestamp(0, pytz.utc)
 
 def has_offset(time_str: str) -> bool:
     """Check if a time string has an offset.
@@ -209,26 +207,6 @@ class StateAttrs(dict):
         self.__dict__ = device_dict
 
 
-def check_state(logger, new_state, callback_state, name) -> bool:
-    passed = False
-
-    try:
-        if isinstance(callback_state, (str, int, float)):
-            passed = new_state == callback_state
-
-        elif isinstance(callback_state, Iterable):
-            passed = new_state in callback_state
-
-        elif callback_state.__name__ == "<lambda>":  # lambda function
-            passed = callback_state(new_state)
-
-    except Exception as e:
-        logger.warning("Could not evaluate state check due to %s, from %s", e, name)
-        passed = False
-
-    return passed
-
-
 P = ParamSpec("P")
 R = TypeVar("R")
 
@@ -251,6 +229,57 @@ def resolve_offset(
         random_offset = parse_timedelta(random_secs)
         offset += random_offset
     return offset
+
+
+def run_in_main_thread(func: Callable[P, R | Awaitable[R]]) -> Callable[P, R]:
+    """Decorator for methods to ensure they get run in the main thread, where the async event loop is.
+
+    All the methods need to have a reference to the top-level AppDaemon object in ``self.AD`` for things to work
+    correctly.
+
+    This relies on :py:func:`~asyncio.run_coroutine_threadsafe` or :py:meth:`~asyncio.loop.call_soon_threadsafe` as
+    necessary, depending on whether the wrapped method is async or not.
+    """
+    future: concurrent.futures.Future = concurrent.futures.Future()
+
+    def _set_future(*args, **kwargs) -> None:
+        assert not asyncio.iscoroutinefunction(func)
+        try:
+            future.set_result(func(*args, **kwargs))
+        except Exception as e:
+            future.set_exception(e)
+            future.cancel()
+
+    async def _async_set_future(*args, **kwargs) -> None:
+        assert asyncio.iscoroutinefunction(func)
+        try:
+            future.set_result(await func(*args, **kwargs))
+        except Exception as e:
+            future.set_exception(e)
+            future.cancel()
+
+    @wraps(func)
+    def _main_thread_wrapper(*args, **kwargs):
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            # Not in the main thread
+            loop: asyncio.AbstractEventLoop = args[0].AD.loop
+            if asyncio.iscoroutinefunction(func):
+                asyncio.run_coroutine_threadsafe(_async_set_future(*args, **kwargs), loop)
+            else:
+                loop.call_soon_threadsafe(functools.partial(_set_future, *args, **kwargs))
+            return future.result()
+        else:
+            # In the main thread
+            if asyncio.iscoroutinefunction(func):
+                raise RuntimeError("In event loop")
+                asyncio.run_coroutine_threadsafe(_async_set_future(*args, **kwargs), loop)
+                return future.result()
+            else:
+                return func(*args, **kwargs)
+
+    return _main_thread_wrapper
 
 
 def sync_decorator(coro_func: Callable[P, Awaitable[R]]) -> Callable[P, R]:
@@ -448,15 +477,20 @@ def rreplace(s, old, new, occurrence):
     li = s.rsplit(old, occurrence)
     return new.join(li)
 
+@overload
+def day_of_week(day: str) -> int: ...
 
-def day_of_week(day):
+@overload
+def day_of_week(day: int) -> str: ...
+
+def day_of_week(day: str | int) -> str | int:
     nums = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
     days = {day: idx for idx, day in enumerate(nums)}
-
-    if isinstance(day, str):
-        return days[day]
-    if isinstance(day, int):
-        return nums[day]
+    match day:
+        case str(day_str):
+            return days[day_str]
+        case int(day_int):
+            return nums[day_int]
     raise ValueError("Incorrect type for 'day' in day_of_week()'")
 
 
@@ -552,6 +586,7 @@ class Subsystem(Protocol):
     """Used for registering futures, and maybe other things?"""
 
 
+
 def executor_decorator(func: Callable[..., R]) -> Callable[..., Coroutine[Any, Any, R]]:
     """Decorate a sync function to turn it into an async function that runs in a separate thread."""
 
@@ -586,7 +621,18 @@ async def run_in_executor(self: Subsystem, fn: Callable[..., R], *args, **kwargs
     return await future
 
 
-def run_coroutine_threadsafe(self: "ADBase", coro: Coroutine[Any, Any, R], timeout: str | int | float | timedelta | None = None) -> R:
+class ADObject(Protocol):
+    """Protocol for the self argument of methods that need access to the AppDaemon object."""
+
+    AD: "AppDaemon"
+    """Reference to the top-level AppDaemon object"""
+    name: str
+    """Used for registering futures"""
+    logger: Logger
+    """Logger for warning messages"""
+
+
+def run_coroutine_threadsafe(self: ADObject, coro: Coroutine[Any, Any, R], timeout: str | int | float | timedelta | None = None) -> R:
     """Run an instantiated coroutine (async) from sync code.
 
     This wraps the native python function ``asyncio.run_coroutine_threadsafe`` with logic to add a timeout. See
@@ -782,13 +828,13 @@ def check_path(type, logger, inpath, pathtype="directory", permissions=None):  #
         pass
 
 
-def str_to_dt(time):
-    if time == "never":
-        return time
-    return dateutil.parser.parse(time)
+def str_to_dt(time_str: str) -> datetime:
+    if time_str == "never":
+        return MIN_DATETIME
+    return datetime.fromisoformat(time_str)
 
 
-def dt_to_str(dt: datetime, tz: tzinfo | None = None, *, round: bool = False) -> str | Literal["never"]:
+def dt_to_str(dt: datetime, tz: tzinfo | None = None, *, include_us: bool = False) -> str | Literal["never"]:
     """Convert a datetime object to a string.
 
     This function provides a single place for standardizing the conversion of datetimes to strings.
@@ -796,18 +842,18 @@ def dt_to_str(dt: datetime, tz: tzinfo | None = None, *, round: bool = False) ->
     Args:
         dt (datetime): The datetime object to convert.
         tz (tzinfo, optional): Optional timezone to apply. Defaults to None.
-        round (bool, optional): Whether to round the datetime to the nearest second. Defaults to False.
+        include_us (bool, optional): Whether to include microseconds in the output. Defaults to False.
     """
-    if round:
-        dt = dt.replace(microsecond=0)
-
-    if dt == datetime(1970, 1, 1, 0, 0, 0, 0):
+    if dt.timestamp() == 0:
         return "never"
-    else:
-        if tz is not None:
-            return dt.astimezone(tz).isoformat()
-        else:
-            return dt.isoformat()
+
+    if not include_us:
+        dt = dt.replace(microsecond=0) + timedelta(seconds=round(dt.microsecond / 10**6, 0))
+
+    if tz is not None and dt.tzinfo != tz:
+        dt = dt.astimezone(tz)
+
+    return dt.isoformat()
 
 
 def convert_json(data, **kwargs):
@@ -1167,4 +1213,10 @@ def recursive_get_files(base: Path, suffix: str, exclude: set[str] | None = None
         elif item.is_file() and item.suffix == suffix and os.access(item, os.R_OK):
             yield item
         elif item.is_dir() and os.access(item, os.R_OK):
+            yield from recursive_get_files(item, suffix, exclude)
+            yield from recursive_get_files(item, suffix, exclude)
+            yield from recursive_get_files(item, suffix, exclude)
+            yield from recursive_get_files(item, suffix, exclude)
+            yield from recursive_get_files(item, suffix, exclude)
+            yield from recursive_get_files(item, suffix, exclude)
             yield from recursive_get_files(item, suffix, exclude)

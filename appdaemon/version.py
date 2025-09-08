@@ -1,2 +1,2 @@
-__version__ = "4.5.11"
-__version_comments__ = ""
+__version__ = "4.5.12"
+__version_comments__ = "testing release"

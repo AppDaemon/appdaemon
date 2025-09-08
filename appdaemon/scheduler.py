@@ -2,17 +2,20 @@ import asyncio
 import functools
 import logging
 import re
+import threading
 import traceback
 import uuid
 from collections import OrderedDict
 from copy import deepcopy
 from datetime import datetime, time, timedelta, timezone
 from logging import Logger
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any, Callable, Literal
 
 import pytz
 from astral import LocationInfo
 from astral.location import Location
+
+from appdaemon.utils import MIN_DATETIME
 
 from . import parse, utils
 
@@ -47,19 +50,27 @@ class Scheduler:
     active_event: asyncio.Event
     loop_task: asyncio.Task[None]
 
+    now: datetime
+    """Always timezone-aware and in UTC, using ``pytz.utc``. This is only read/written in the scheduler loop in the main
+    thread, but could be read from other threads, so it needs to be locked."""
+    now_lock: threading.RLock
+
+    _last_fired: datetime
+    """The last time the scheduler woke up to process events. Always timezone-aware and in UTC, using ``pytz.utc``."""
+
     def __init__(self, ad: "AppDaemon"):
         self.AD = ad
         self.logger = ad.logging.get_child("_scheduler")
         self.error = ad.logging.get_error()
         self.diag = ad.logging.get_diag()
-        self.last_fired = None
+        self._last_fired = MIN_DATETIME
         self.sleep_task = None
         self.timer_resetted = False
         self.schedule = {}
 
         self.active_event = asyncio.Event()
-
-        self.now = datetime.now(timezone.utc)
+        self.now = self.get_now_sync(pytz.utc)
+        self.now_lock = threading.RLock()
 
         #
         # If we were waiting for a timezone from metadata, we have it now.
@@ -118,23 +129,20 @@ class Scheduler:
         """Whether the scheduler is running in real time (timewarp == 1)."""
         return self.AD.real_time
 
-    async def _init_loop(self):
-        # self.active = True
-
+    async def _init_loop(self) -> None:
+        """Initializes the scheduler loop by setting up the start/end times and time travel."""
         if self.AD.starttime is not None:
             self.now = utils.ensure_timezone(self.AD.starttime, pytz.utc)
-        else:
-            self.now = await self.get_now(pytz.utc)
 
         if self.AD.endtime is not None:
             self.endtime = utils.ensure_timezone(self.AD.endtime, pytz.utc)
         else:
             self.endtime = None
 
-        self.last_fired = await self.get_now(pytz.utc)
+        self._last_fired = self.get_now_sync(pytz.utc)
         if not self.AD.real_time:
             self.logger.info("Starting time travel ...")
-            self.logger.info("Setting clocks to %s", self.last_fired.isoformat())
+            self.logger.info("Setting clocks to %s", self.now.isoformat())
             if self.AD.timewarp == 0:
                 self.logger.info("Time displacement factor infinite")
             else:
@@ -214,13 +222,13 @@ class Scheduler:
             else:
                 function_name = callback.__name__
 
-        await self.AD.state.add_entity(
+        self.AD.state.add_entity(
             namespace="admin",
             entity=f"scheduler_callback.{handle}",
             state="active",
             attributes={
                 "app": name,
-                "execution_time": utils.dt_to_str(timestamp, self.AD.tz, round=True),
+                "execution_time": utils.dt_to_str(timestamp, self.AD.tz, include_us=True),
                 "repeat": str(utils.parse_timedelta(interval)),
                 "function": function_name,
                 "pinned": pin_app,
@@ -262,9 +270,9 @@ class Scheduler:
                 days_offset = 1 if offset < 0 else 0
                 match args:
                     case {"type": "next_rising"}:
-                        args["basetime"] = await self.next_sunrise(days_offset)
+                        args["basetime"] = self.next_sunrise(days_offset)
                     case {"type": "next_setting"}:
-                        args["basetime"] = await self.next_sunset(days_offset)
+                        args["basetime"] = self.next_sunset(days_offset)
             case {"interval": interval}:
                 # Just increment the basetime with the repeat interval
                 args["basetime"] += utils.parse_timedelta(interval)
@@ -279,12 +287,11 @@ class Scheduler:
         args["timestamp"] = args["basetime"] + c_offset
 
         # Update entity
-        execution_time = utils.dt_to_str(args["timestamp"].replace(microsecond=0), self.AD.tz)
         await self.AD.state.set_state(
             "_scheduler",
             "admin",
             f"scheduler_callback.{uuid_}",
-            execution_time=execution_time,
+            execution_time=utils.dt_to_str(args["timestamp"], self.AD.tz, include_us=True),
         )
 
         return args
@@ -308,7 +315,7 @@ class Scheduler:
                 return False
 
         self.logger.debug("Resetting timer %s for %s", handle, name)
-        args["basetime"] = await self.get_now()
+        args["basetime"] = self.get_now_sync()
         args = await self.restart_timer(handle, args)
         self.schedule[name][handle] = args
 
@@ -466,11 +473,11 @@ class Scheduler:
     ) -> datetime:
         interval = utils.parse_timedelta(interval)
         start = "now" if start is None else start
-        aware_start = await self.parse_datetime(start, aware=True)
+        aware_start = self.parse_datetime(start, aware=True)
         assert isinstance(aware_start, datetime) and aware_start.tzinfo is not None
         buffer = utils.parse_timedelta(buffer)
         while True:
-            if aware_start >= (await self.get_now() - buffer):
+            if aware_start >= (self.get_now_sync() - buffer):
                 return aware_start
             else:
                 aware_start += interval
@@ -537,21 +544,20 @@ class Scheduler:
                 return offset
         return limit
 
-    async def loop(self):  # noqa: C901
+    async def loop(self, idle_time: int = 1) -> None:  # noqa: C901
         """Core scheduler loop, which processes scheduled callbacks and sleeping between them."""
         self.logger.debug("Starting scheduler loop()")
         await self._init_loop()
 
         next_entries = []
         result = False
-        idle_time = 1
         delay = 0
         loop_now = datetime.now(pytz.utc)
         now_local = loop_now.astimezone(self.AD.tz)
         old_dst_offset = now_local.dst()
         while not self.AD.stopping:
             try:
-                if self.endtime is not None and self.now >= self.endtime:
+                if self.endtime is not None and self.get_now_sync(pytz.utc, use_existing=True) >= self.endtime:
                     self.logger.info("End time reached, exiting")
                     if self.AD.stop_function is not None:
                         self.AD.stop_function()
@@ -560,12 +566,13 @@ class Scheduler:
 
                 loop_now = datetime.now(pytz.utc)
                 if self.realtime:
-                    self.now = loop_now
+                    with self.now_lock:
+                        self.now = loop_now
 
                 else:
-                    if result is True and self.last_fired is not None:
+                    if result is True and self._last_fired is not None:
                         # We got kicked so lets figure out the elapsed pseudo time
-                        delta = (loop_now - self.last_fired).total_seconds() * self.AD.timewarp
+                        delta = (loop_now - self._last_fired).total_seconds() * self.AD.timewarp
 
                     else:
                         if len(next_entries) > 0:
@@ -575,16 +582,17 @@ class Scheduler:
                             # No kick, no scheduler expiry ...
                             delta = idle_time
 
-                    self.now += utils.parse_timedelta(delta)
+                    with self.now_lock:
+                        self.now += utils.parse_timedelta(delta)
 
-                self.last_fired = await self.get_now(pytz.utc)
-                self.logger.debug("self.now   utc=%s", self.last_fired.isoformat())
-                self.logger.debug("self.now local=%s", self.last_fired.astimezone(self.AD.tz).isoformat())
+                self._last_fired = self.get_now_sync(pytz.utc)
+                now_local = self._last_fired.astimezone(self.AD.tz)
+                self.logger.debug("self.now   utc=%s", self._last_fired.isoformat())
+                self.logger.debug("self.now local=%s", now_local.isoformat())
 
                 #
                 # Now we're awake and know what time it is
                 #
-                now_local = await self.get_now(self.AD.tz)
                 dst_offset = now_local.dst()
                 self.logger.debug(
                     "local now=%s old_dst_offset=%s new_dst_offset=%s",
@@ -616,7 +624,7 @@ class Scheduler:
                         # Things may have changed since we last woke up
                         # so check our callbacks are still valid before we execute them
                         case {"timestamp": datetime() as timestamp, "name": str(name), "uuid": str(uuid_)}:
-                            time_to_run = timestamp <= self.now
+                            time_to_run = timestamp <= self.get_now_sync(pytz.utc, use_existing=True)
                             args = self.schedule.get(name, {}).get(uuid_, False)
                             if time_to_run and args:
                                 func = utils.unwrapped(args["callback"])
@@ -631,7 +639,7 @@ class Scheduler:
                 for entry in self.get_next_entries():
                     match entry:
                         case {"timestamp": datetime() as timestamp}:
-                            delay = (timestamp - self.now).total_seconds()
+                            delay = (timestamp - self.get_now_sync(pytz.utc, use_existing=True)).total_seconds()
                             break
                 else:
                     delay = idle_time
@@ -644,7 +652,6 @@ class Scheduler:
                 # We are about to go to sleep, but we need to ensure we don't miss a DST transition or we will
                 # sleep in and potentially miss an event that should happen earlier than expected due to the time change
                 #
-
                 next = self.now + utils.parse_timedelta(delay)
 
                 self.logger.debug("next event=%s", next.astimezone(self.AD.tz).isoformat())
@@ -653,7 +660,6 @@ class Scheduler:
                     #
                     # Reset delay to wake up at the DST change so we can re-jig everything
                     #
-
                     delay = self.get_next_dst_offset(self.now, delay)
                     self.logger.debug(
                         "DST transition before next event: %s %s",
@@ -704,12 +710,6 @@ class Scheduler:
     # App API Calls
     #
 
-    async def sun_up(self) -> bool:
-        return await self.now_is_between(start_time="sunrise", end_time="sunset")
-
-    async def sun_down(self) -> bool:
-        return await self.now_is_between(start_time="sunset", end_time="sunrise")
-
     async def info_timer(self, handle, name) -> tuple[datetime, float, dict] | None:
         if self.timer_running(name, handle):
             callback = self.schedule[name][handle]
@@ -759,11 +759,9 @@ class Scheduler:
 
         return ordered_schedule
 
-    async def is_dst(self, dt=None):
-        if dt is None:
-            return (await self.get_now()).astimezone(self.AD.tz).dst() != timedelta(0)
-        else:
-            return dt.astimezone(self.AD.tz).dst() != timedelta(0)
+    async def is_dst(self, dt: datetime | None = None) -> bool:
+        check = self.get_now_sync(self.AD.tz) if dt is None else dt
+        return check.dst() != timedelta(0)
 
     async def get_now(self, tz: str | pytz.BaseTzInfo | None = None) -> datetime:
         """Get the current time for the scheduler.
@@ -774,85 +772,106 @@ class Scheduler:
         Args:
             tz: The timezone to use for the current time. If None, uses the timezone configured in appdaemon.yaml.
         """
-        if self.realtime:
-            match tz:
-                case None:
-                    tz = self.AD.tz
-                case str() as tz_str:
-                    tz = pytz.timezone(tz_str)
-                case pytz.BaseTzInfo() as tz_info:
-                    tz = tz_info
+        return self.get_now_sync(tz)
+
+    def get_now_sync(
+        self,
+        _tz: str | timezone | pytz.BaseTzInfo | Literal[False] | None = None,
+        *,
+        use_existing: bool = False,
+    ) -> datetime:
+        """Get the current datetime for the scheduler.
+
+        The ``self.now`` attribute is mostly used internally by the Scheduler, but this method provides thread-locked
+        access to it.
+
+        Args:
+            _tz: The timezone to use for the result. By default this will be the timezone configured in appdaemon.yaml,
+                but could be another timezone as given. A value of ``False`` will return a naive datetime in the local
+                time, equivalent to calling ``datetime.now()``.
+            use_existing: If ``True``, will return the existing ``self.now`` value even if in real-time mode. Defaults
+                to ``False``, which means that in real-time mode, the current time will be returned.
+        """
+        match _tz:
+            case False:
+                tz = None
+            case None:
+                tz = self.AD.tz
+            case str() as tz_str:
+                tz = pytz.timezone(tz_str)
+            case pytz.BaseTzInfo() | timezone() as tz_info:
+                tz = tz_info
+            case _:
+                raise ValueError(f"Invalid timezone: {_tz!r}")
+        if self.realtime and not use_existing:
             return datetime.now(tz)
         else:
-            return self.now
-
-    # Non async version of get_now(), required for logging time formatter - no locking but only used during time travel
-    # so should be OK ...
-    def get_now_sync(self):
-        if self.realtime:
-            return pytz.utc.localize(datetime.utcnow())
-        else:
-            return self.now
+            with self.now_lock:
+                return self.now if tz is None else self.now.astimezone(tz)
 
     async def get_now_ts(self) -> float:
-        return (await self.get_now()).timestamp()
+        return self.get_now_sync().timestamp()
 
     async def get_now_naive(self):
-        return self.make_naive(await self.get_now())
+        return self.make_naive(self.get_now_sync())
 
-    async def now_is_between(
+    def now_is_between(
         self,
         start_time: str | time | datetime,
         end_time: str | time | datetime,
         now: datetime | None = None,
     ) -> bool:
-        now = now if now is not None else await self.get_now()
         return utils.now_is_between(
-            now=now.astimezone(self.AD.tz),  # Need to force timezone during time-travel mode
+            now=now if now is not None else self.get_now_sync(),
             start_time=start_time,
             end_time=end_time,
             location=self.location,
         )
 
-    async def sunrise(self, aware: bool = True, today: bool | None = None, days_offset: int = 0) -> datetime:
-        return await self.parse_datetime("sunrise", aware=aware, today=today, days_offset=days_offset)
+    def sun_up(self) -> bool:
+        return self.now_is_between(start_time="sunrise", end_time="sunset")
 
-    async def todays_sunrise(self, days_offset: int = 0) -> datetime:
-        return await self.sunrise(days_offset=days_offset, today=True)
+    def sun_down(self) -> bool:
+        return self.now_is_between(start_time="sunset", end_time="sunrise")
 
-    async def next_sunrise(self, days_offset: int = 0) -> datetime:
-        return await self.sunrise(days_offset=days_offset, today=False)
+    def sunrise(self, aware: bool = True, today: bool | None = None, days_offset: int = 0) -> datetime:
+        return self.parse_datetime("sunrise", aware=aware, today=today, days_offset=days_offset)
 
-    async def sunset(self, aware: bool = True, today: bool | None = None, days_offset: int = 0) -> datetime:
-        return await self.parse_datetime("sunset", aware=aware, today=today, days_offset=days_offset)
+    def todays_sunrise(self, days_offset: int = 0) -> datetime:
+        return self.sunrise(days_offset=days_offset, today=True)
 
-    async def todays_sunset(self, days_offset: int = 0) -> datetime:
-        return await self.sunset(days_offset=days_offset, today=True)
+    def next_sunrise(self, days_offset: int = 0) -> datetime:
+        return self.sunrise(days_offset=days_offset, today=False)
 
-    async def next_sunset(self, days_offset: int = 0) -> datetime:
-        return await self.sunset(days_offset=days_offset, today=False)
+    def sunset(self, aware: bool = True, today: bool | None = None, days_offset: int = 0) -> datetime:
+        return self.parse_datetime("sunset", aware=aware, today=today, days_offset=days_offset)
 
-    async def parse_time(
+    def todays_sunset(self, days_offset: int = 0) -> datetime:
+        return self.sunset(days_offset=days_offset, today=True)
+
+    def next_sunset(self, days_offset: int = 0) -> datetime:
+        return self.sunset(days_offset=days_offset, today=False)
+
+    def parse_time(
         self,
         time_str: str,
         aware: bool = False,
         today: bool | None = None,
-        days_offset: int = 0
+        days_offset: int = 0,
     ) -> time:  # fmt: skip
-        dt = await self.parse_datetime(
+        return self.parse_datetime(
             time_str,
             aware=aware,
             today=today,
             days_offset=days_offset,
-        )
-        return dt.time()
+        ).time()
 
-    async def parse_datetime(
+    def parse_datetime(
         self,
         input_: str | time | datetime,
         aware: bool = False,
         today: bool | None = None,
-        days_offset: int = 0
+        days_offset: int = 0,
     ) -> datetime:  # fmt: skip
         """Parse a variety of inputs into a datetime object.
 
@@ -868,11 +887,9 @@ class Scheduler:
             days_offset (int, optional): Number of days to offset from the current date for sunrise/sunset parsing. If
                 this is negative, this will unset the `today` argument, which allows the result to be in the past.
         """
-        # Need to force timezone during time-travel mode
-        now = (await self.get_now()).astimezone(self.AD.tz)
         return parse.parse_datetime(
             input_=input_,
-            now=now,
+            now=self.get_now_sync(),
             location=self.location,
             today=today,
             days_offset=days_offset,
@@ -887,13 +904,13 @@ class Scheduler:
         self.diag.info("-------------------------------------------------")
         self.diag.info("Sun")
         self.diag.info("-------------------------------------------------")
-        self.diag.info("Next Sunrise:    %s", await self.next_sunrise())
-        self.diag.info("Today's Sunrise: %s", await self.todays_sunrise())
-        self.diag.info("Next Sunset:     %s", await self.next_sunset())
-        self.diag.info("Today's Sunset:  %s", await self.todays_sunset())
+        self.diag.info("Next Sunrise:    %s", self.next_sunrise())
+        self.diag.info("Today's Sunrise: %s", self.todays_sunrise())
+        self.diag.info("Next Sunset:     %s", self.next_sunset())
+        self.diag.info("Today's Sunset:  %s", self.todays_sunset())
         self.diag.info("-------------------------------------------------")
-        self.diag.info("Sun Up:   %s", await self.sun_up())
-        self.diag.info("Sun Down: %s", await self.sun_down())
+        self.diag.info("Sun Up:   %s", self.sun_up())
+        self.diag.info("Sun Down: %s", self.sun_down())
         self.diag.info("-------------------------------------------------")
 
     async def dump_schedule(self):
@@ -958,5 +975,6 @@ class Scheduler:
 
         return result
 
-    def make_naive(self, dt: datetime) -> datetime:
+    @staticmethod
+    def make_naive(dt: datetime) -> datetime:
         return dt.replace(tzinfo=None)

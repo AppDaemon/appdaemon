@@ -81,10 +81,13 @@ class Hass(ADBase, ADAPI):
         Returns:
             Bool of whether the entity exists.
         """
-        plugin: "HassPlugin" = self.AD.plugins.get_plugin_object(
-            namespace or self.namespace
-        )
-        return await plugin.check_for_entity(entity_id)
+        namespace = namespace if namespace is not None else self.namespace
+        match self.AD.plugins.get_plugin_object(namespace):
+            case HassPlugin() as hass:
+                match await hass.check_for_entity(entity_id):
+                    case dict():
+                        return True
+        return False
 
     #
     # Internal Helpers

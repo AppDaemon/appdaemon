@@ -29,6 +29,6 @@ class AdminLoop:
                 and self.AD.sched is not None
             ):  # fmt: skip
                 await self.AD.threading.get_callback_update()
-                await self.AD.threading.get_q_update()
+                await self.AD.threading.update_queue_sizes()
 
             await self.AD.utility.sleep(self.AD.admin_delay, timeout_ok=True)

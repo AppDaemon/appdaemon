@@ -46,11 +46,24 @@ class Sequences:
     def sequence_exists(self, sequence: str) -> bool:
         return self.AD.state.entity_exists(self.namespace, self.normalized(sequence))
 
-    async def set_state(self, entity_id: str, state: str = None, replace: bool = False, **kwargs):
-        return await self.AD.state.set_state(name="_sequences", namespace=self.namespace, entity=self.normalized(entity_id), state=state, replace=replace, **kwargs)
+    async def set_state(self, entity_id: str, state: str | None = None, replace: bool = False, **kwargs):
+        return await self.AD.state.set_state(
+            name="_sequences",
+            namespace=self.namespace,
+            entity=self.normalized(entity_id),
+            state=state,
+            replace=replace,
+            **kwargs,
+        )  # fmt: skip
 
-    async def get_state(self, entity_id: str = None, attribute: str = None, copy: bool = True):
-        return await self.AD.state.get_state(name=self.name, namespace=self.namespace, entity_id=self.normalized(entity_id) if entity_id else None, attribute=attribute, copy=copy)
+    async def get_state(self, entity_id: str | None = None, attribute: str | None = None, *, copy: bool = True):
+        return self.AD.state.get_state(
+            name=self.name,
+            namespace=self.namespace,
+            entity_id=self.normalized(entity_id) if entity_id else None,
+            attribute=attribute,
+            copy=copy,
+        )  # fmt: skip
 
     async def sequence_running(self, sequence: str) -> bool:
         state = await self.get_state(sequence, copy=False)

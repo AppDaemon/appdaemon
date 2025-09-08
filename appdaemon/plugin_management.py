@@ -144,7 +144,7 @@ class PluginBase(abc.ABC):
         raise NotImplementedError
 
     @utils.warning_decorator(error_text="Unexpected error during notify_plugin_started()")
-    async def notify_plugin_started(self, meta: dict, state: dict):
+    async def notify_plugin_started(self, meta: dict[str, Any], state: dict[str, Any]) -> None:
         """Notifys the AD internals that the plugin has started
 
         - sets the namespace state in self.AD.state
@@ -179,7 +179,7 @@ class PluginBase(abc.ABC):
 
         admin_entity = f"plugin.{self.name}"
         if not self.AD.state.entity_exists("admin", admin_entity):
-            await self.AD.state.add_entity(
+            self.AD.state.add_entity(
                 namespace="admin",
                 entity=admin_entity,
                 state="active",
@@ -461,7 +461,7 @@ class PluginManagement:
 
     async def refresh_update_time(self, plugin_name: str):
         """Updates the internal time for when the plugin's state was last updated"""
-        self.last_plugin_state[plugin_name] = await self.AD.sched.get_now()
+        self.last_plugin_state[plugin_name] = self.AD.sched.get_now_sync()
 
     async def time_since_plugin_update(self, plugin_name: str) -> datetime.timedelta:
         return await self.AD.sched.get_now() - self.last_plugin_state[plugin_name]

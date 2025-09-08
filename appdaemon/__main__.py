@@ -23,9 +23,7 @@ from logging import Logger
 from pathlib import Path
 from time import perf_counter
 
-
 import appdaemon.appdaemon as ad
-from .dependency_manager import DependencyManager
 import appdaemon.utils as utils
 from appdaemon import exceptions as ade
 from appdaemon.app_management import UpdateMode
@@ -34,7 +32,9 @@ from appdaemon.exceptions import NoADConfig
 from appdaemon.http import HTTP
 from appdaemon.logging import Logging
 
+from .dependency_manager import DependencyManager
 from .models.config.yaml import MainConfig
+from .version import __version__, __version_comments__
 
 logger = logging.getLogger(__name__)
 err_logger = logging.getLogger("bare")
@@ -137,7 +137,7 @@ def parse_arguments() -> argparse.Namespace:
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
     )
     parser.add_argument("-m", "--moduledebug", nargs=2, action="append")
-    parser.add_argument("-v", "--version", action="version", version="%(prog)s " + utils.__version__)
+    parser.add_argument("-v", "--version", action="version", version="%(prog)s " + __version__)
     parser.add_argument("--profiledash", help=argparse.SUPPRESS, action="store_true")
     parser.add_argument("--write_toml", help="use TOML for creating new app configuration files", action="store_true")
     # TODO Implement --write_toml
@@ -355,7 +355,7 @@ class ADMain:
             case signal.SIGUSR1:
                 self.AD.thread_async.call_async_no_wait(self.AD.sched.dump_schedule)
                 self.AD.thread_async.call_async_no_wait(self.AD.callbacks.dump_callbacks)
-                self.AD.thread_async.call_async_no_wait(self.AD.threading.dump_threads)
+                self.AD.loop.call_soon_threadsafe(self.AD.threading.dump_threads)
                 self.AD.thread_async.call_async_no_wait(self.AD.app_management.dump_objects)
                 self.AD.thread_async.call_async_no_wait(self.AD.sched.dump_sun)
             case signal.SIGHUP:
@@ -479,10 +479,10 @@ class ADMain:
         try:
             # Startup message
             self.logger.info("-" * 60)
-            self.logger.info("AppDaemon Version %s starting", utils.__version__)
+            self.logger.info("AppDaemon Version %s starting", __version__)
 
-            if utils.__version_comments__ is not None and utils.__version_comments__ != "":
-                self.logger.info("Additional version info: %s", utils.__version_comments__)
+            if __version_comments__ is not None and __version_comments__ != "":
+                self.logger.info("Additional version info: %s", __version_comments__)
 
             self.logger.info("-" * 60)
             self.logger.info("Python version is %s.%s.%s", *sys.version_info[:3])

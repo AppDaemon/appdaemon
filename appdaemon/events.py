@@ -102,7 +102,7 @@ class Events:
                 __event_handle=handle,
             )
 
-        await self.AD.state.add_entity(
+        self.AD.state.add_entity(
             namespace="admin",
             entity=f"event_callback.{handle}",
             state="active",
@@ -231,12 +231,12 @@ class Events:
                     if data["data"]["new_state"] is None:
                         # most likely it is a deleted entity
                         entity_id = data["data"]["entity_id"]
-                        await self.AD.state.remove_entity_simple(namespace, entity_id)
+                        self.AD.state.remove_entity_simple(namespace, entity_id)
                         return
 
                     entity_id = data["data"]["entity_id"]
 
-                    self.AD.state.set_state_simple(namespace, entity_id, data["data"]["new_state"])
+                    self.AD.state.set_state_from_event(namespace, entity_id, data["data"]["new_state"])
 
                     if self.AD.apps_enabled and namespace != "admin":
                         await self.AD.state.process_state_callbacks(namespace, data)

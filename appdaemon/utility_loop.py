@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING
 
 from . import exceptions as ade
 from . import utils
+from .version import __version__
 
 if TYPE_CHECKING:
     from .appdaemon import AppDaemon
@@ -100,7 +101,7 @@ class Utility:
 
     async def _init_stats(self):
         # This method was originally part of self.loop
-        await self.AD.threading.init_admin_stats()
+        self.AD.threading._init_admin_stats()
         if self.AD.apps_enabled:
             await self.AD.threading.create_initial_threads()
             await self.AD.app_management.init_admin_stats()
@@ -111,9 +112,9 @@ class Utility:
 
         self.booted = await self.AD.sched.get_now()
         boot_time_str = self.booted.replace(microsecond=0).isoformat()
-        await self.AD.state.add_entity("admin", "sensor.appdaemon_version", utils.__version__)
-        await self.AD.state.add_entity("admin", "sensor.appdaemon_uptime", str(datetime.timedelta(0)))
-        await self.AD.state.add_entity("admin", "sensor.appdaemon_booted", boot_time_str)
+        self.AD.state.add_entity("admin", "sensor.appdaemon_version", __version__)
+        self.AD.state.add_entity("admin", "sensor.appdaemon_uptime", str(datetime.timedelta(0)))
+        self.AD.state.add_entity("admin", "sensor.appdaemon_booted", boot_time_str)
 
     async def _register_services(self):
         """Register core AppDaemon services for state management, events, sequences, and admin functions.
@@ -206,7 +207,7 @@ class Utility:
                 (
                     warning_step,
                     warning_iterations,
-                ) = await self.AD.threading.check_q_size(warning_step, warning_iterations)
+                ) = self.AD.threading.check_q_size(warning_step, warning_iterations)
 
                 # Check for any overdue threads
                 await self.AD.threading.check_overdue_and_dead_threads()
