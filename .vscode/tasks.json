@@ -199,6 +199,40 @@
                     "clear": true
                 },
         },
+        {
+            "label": "Ruff Statistics",
+            "detail": "Displays the statistics of all the linting violations",
+            "type": "shell",
+            "problemMatcher": [],
+            "command": "uv",
+            "args": ["run", "ruff", "check", "--statistics"],
+            "presentation":
+                {
+                    "echo": true,
+                    "reveal": "always",
+                    "focus": false,
+                    "panel": "shared",
+                    "showReuseMessage": true,
+                    "clear": true
+                },
+        },
+        {
+            "label": "Ruff Lint Watch",
+            "detail": "Runs the auto linter when files change",
+            "type": "process",
+            "problemMatcher": [],
+            "command": "uv",
+            "args": ["run", "ruff", "check", "--watch"],
+            "presentation":
+                {
+                    "echo": true,
+                    "reveal": "always",
+                    "focus": false,
+                    "panel": "shared",
+                    "showReuseMessage": true,
+                    "clear": true
+                },
+        },
     ],
     "inputs":
     [

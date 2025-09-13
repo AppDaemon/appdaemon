@@ -1,0 +1,77 @@
+src = ["appdaemon", "tests"]
+
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    ".devenv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+]
+
+line-length = 200
+indent-width = 4
+
+# Assume Python 3.10.
+target-version = "py310"
+
+[lint]
+extend-select = [
+    "A",    # https://docs.astral.sh/ruff/rules/#flake8-builtins-a
+    "B",    # https://docs.astral.sh/ruff/rules/#flake8-bugbear-b
+    "COM",  # https://docs.astral.sh/ruff/rules/#flake8-commas-com
+    "C4",   # https://docs.astral.sh/ruff/rules/#flake8-comprehensions-c4
+    "DTZ",  # https://docs.astral.sh/ruff/rules/#flake8-datetimez-dtz
+    "E",    # https://docs.astral.sh/ruff/rules/#error-e
+    "F",    # https://docs.astral.sh/ruff/rules/#pyflakes-f
+    "FA",   # https://docs.astral.sh/ruff/rules/#flake8-future-annotations-fa
+    "FBT",  # https://docs.astral.sh/ruff/rules/#flake8-boolean-trap-fbt
+    "I",    # https://docs.astral.sh/ruff/rules/#isort-i
+    "N",    # https://docs.astral.sh/ruff/rules/#pep8-naming-n
+    "UP",   # https://docs.astral.sh/ruff/rules/#pyupgrade-up
+    "PLE",  # https://docs.astral.sh/ruff/rules/#error-ple
+    "PLR",  # https://docs.astral.sh/ruff/rules/#refactor-plr
+    "PLW",  # https://docs.astral.sh/ruff/rules/#warning-plw
+    "PT",   # https://docs.astral.sh/ruff/rules/#flake8-pytest-style-pt
+    "PTH",  # https://docs.astral.sh/ruff/rules/#flake8-use-pathlib-pth
+    "PYI",  # https://docs.astral.sh/ruff/rules/#flake8-pyi-pyi
+    "SIM",  # https://docs.astral.sh/ruff/rules/#flake8-simplify-sim
+    "TID",  # https://docs.astral.sh/ruff/rules/#flake8-tidy-imports-tid
+]
+extend-ignore = [
+    "COM812",
+    # "COM819",   # https://docs.astral.sh/ruff/rules/prohibited-trailing-comma/
+]
+
+# Allow autofix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+extend-unfixable = []
+
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+per-file-ignores = {}
+
+[lint.mccabe]
+max-complexity = 10
+
+[format]
+quote-style = "double"
+indent-style = "space"
+docstring-code-format = true
