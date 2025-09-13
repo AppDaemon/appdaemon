@@ -1,12 +1,24 @@
 {
     "ruff.configuration": "pyproject.toml",
     "notebook.defaultFormatter": "charliermarsh.ruff",
+    "ruff.nativeServer": true,
     "ruff.lineLength": 200,
     "python.analysis.typeCheckingMode": "basic",
-    "python.testing.pytestArgs": [
-        "-s",
-    ],
+    "[python]": {
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.fixAll": "explicit",
+            "source.organizeImports": "explicit"
+        },
+        "editor.defaultFormatter": "charliermarsh.ruff"
+    },
+    "notebook.formatOnSave.enabled": true,
+    "notebook.codeActionsOnSave": {
+        "notebook.source.fixAll": "explicit",
+        "notebook.source.organizeImports": "explicit"
+    },
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
-    "python.testing.autoTestDiscoverOnSavePattern": "tests/**/*.py",
+    "python.testing.pytestArgs": ["-s"],
+    "python.testing.autoTestDiscoverOnSavePattern": "tests/**/*.py"
 }
