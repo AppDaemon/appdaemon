@@ -1,15 +1,20 @@
+import asyncio
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
+
+from paho.mqtt.client import topic_matches_sub
 
 import appdaemon.adapi as adapi
 import appdaemon.adbase as adbase
-import appdaemon.utils as utils
-
+from appdaemon import exceptions as ade
+from appdaemon import utils
+from appdaemon.events import EventCallback
 from appdaemon.appdaemon import AppDaemon
 
+from .mqttplugin import MqttPlugin
+
 if TYPE_CHECKING:
-    from ...models.config import AppConfig
-    from .mqttplugin import MqttPlugin
+    from appdaemon.models.config import AppConfig
 
 
 # Check if the module is being imported using the legacy method
@@ -21,7 +26,7 @@ if __name__ == Path(__file__).name:
     # having configured the error logger to use a different name than 'Error'
     Logging().get_error().warning(
         "Importing 'mqttapi' directly is deprecated and will be removed in a future version. "
-        "To use the Mqtt plugin use 'from appdaemon.plugins import mqtt' instead.",
+        "To use the Mqtt plugin use 'from appdaemon.plugins.mqtt import Mqtt' instead.",
     )
 
 
@@ -78,17 +83,21 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
         adbase.ADBase.__init__(self, ad, config_model)
         adapi.ADAPI.__init__(self, ad, config_model)
 
-    #
-    # Override listen_event()
-    #
-
     @utils.sync_decorator
-    async def listen_event(self, callback: Callable, event: str = None, **kwargs: Optional[Any]) -> str:
+    async def listen_event(
+        self,
+        callback: EventCallback,
+        event: str | None = None,
+        namespace: str | None = None,
+        topic: str | None = None,
+        wildcard: str | None = None,
+        binary: bool = False,
+        **kwargs: Any
+    ) -> str:
         """Listens for changes within the MQTT plugin.
 
-        Unlike other plugins, MQTT does not keep state. All MQTT messages will have an event
-        which is set to ``MQTT_MESSAGE`` by default. This can be changed to whatever that is
-        required in the plugin configuration.
+        Unlike other plugins, MQTT does not keep state. All MQTT messages will have an event which is set to
+        ``MQTT_MESSAGE`` by default. This can be changed to whatever that is required in the plugin configuration.
 
         Args:
             callback: Function to be invoked when the requested event occurs. It must conform
@@ -96,6 +105,13 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
             event: Name of the event to subscribe to. Can be the declared ``event_name`` parameter
                 as specified in the plugin configuration. If no event is specified, ``listen_event()`` will
                 subscribe to all MQTT events within the app's functional namespace.
+            namespace (str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases it is safe to ignore this parameter.
+            binary (bool, optional): If wanting the payload to be returned as binary, this should
+                be specified. If not given, AD will return the payload as decoded data. It should
+                be noted that it is not possible to have different apps receive both binary and non-binary
+                data on the same topic
             **kwargs (optional): One or more keyword value pairs representing App specific parameters to
                 supply to the callback. If the keywords match values within the event data, they will act
                 as filters, meaning that if they don't match the values, the callback will not fire.
@@ -112,16 +128,6 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
                 the data associated with the event to understand what values can be filtered on.
                 If using ``wildcard``, only those used to subscribe to the broker can be used as wildcards.
                 The plugin supports the use both single and multi-level wildcards.
-
-        Keyword Args:
-            namespace (str, optional): Namespace to use for the call. See the section on
-                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
-                In most cases it is safe to ignore this parameter.
-
-            binary (bool, optional): If wanting the payload to be returned as binary, this should
-                be specified. If not given, AD will return the payload as decoded data. It should
-                be noted that it is not possible to have different apps receive both binary and non-binary
-                data on the same topic
 
         Returns:
             A handle that can be used to cancel the callback.
@@ -157,26 +163,29 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
             At this point, it is not possible to use single level wildcard like using ``homeassistant/+/light`` instead of ``homeassistant/bedroom/light``. This could be added later, if need be.
 
         """
-
-        namespace = self._get_namespace(**kwargs)
-        plugin: "MqttPlugin" = self.AD.plugins.get_plugin_object(namespace)
-        topic = kwargs.get("topic", kwargs.get("wildcard"))
-
-        if plugin is not None:
-            if kwargs.pop("binary", None) is True:
-                if topic is not None:
-                    self.logger.debug("Adding topic %s, to binary payload topics", topic)
-                    plugin.add_mqtt_binary(topic)
-
+        assert sum([kw is not None for kw in (topic, wildcard)]) <= 1, "Cannot specify both 'topic' and 'wildcard'"
+        topic = wildcard if wildcard is not None else topic
+        namespace = namespace if namespace is not None else self.namespace
+        match self.AD.plugins.get_plugin_object(namespace):
+            case MqttPlugin(mqtt_binary_topics=binary_topics):
+                if binary:
+                    if topic is not None and topic not in binary_topics:
+                        self.logger.debug("Adding topic %s, to binary payload topics", topic)
+                        binary_topics.add(topic)
                 else:
-                    self.logger.warning("Cannot register for binary data, since no topic nor wildcard given")
+                    if topic is not None and topic in binary_topics:
+                        self.logger.debug("Removing topic %s, from binary payload topics", topic)
+                        binary_topics.remove(topic)
+            case _:
+                raise ade.BadPluginNamespace(namespace=namespace, type_="MQTT")
 
-            else:
-                if topic is not None and hasattr(plugin, "mqtt_binary_topics") and topic in plugin.mqtt_binary_topics:
-                    self.logger.debug("Removing topic %s, from binary payload topics", topic)
-                    plugin.remove_mqtt_binary(topic)
+        if topic is not None and ("#" in topic or "+" in topic):
+            def check_topic_wildcard(t: str) -> bool:
+                return topic_matches_sub(topic, t)
+            kwargs["topic"] = check_topic_wildcard
 
-        return await super(Mqtt, self).listen_event(callback, event, **kwargs)
+        # The pyright ignore is needed here until the sync_decorator is fixed to properly handle generics
+        return await super().listen_event(callback, event=event, **kwargs)  # pyright: ignore[reportGeneralTypeIssues]
 
     #
     # service calls
@@ -320,7 +329,7 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
         return self._run_service_call("unsubscribe", topic, **kwargs)
 
     @utils.sync_decorator
-    async def is_client_connected(self, **kwargs: Optional[Any]) -> bool:
+    async def is_client_connected(self, *, namespace: str, **_: Any) -> bool:
         """Returns ``TRUE`` if the MQTT plugin is connected to its broker, ``FALSE`` otherwise.
 
         This a helper function used to check or confirm within an app if the plugin is connected
@@ -333,27 +342,29 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
         parameter.
 
         Args:
-            **kwargs (optional): Zero or more keyword arguments.
-
-        Keyword Args:
             namespace (str, optional): Namespace to use for the call. See the section on
                 `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
                 In most cases it is safe to ignore this parameter.
+
+        Keyword Args:
+            **kwargs (optional): Zero or more keyword arguments.
 
         Returns:
             Boolean.
 
         Examples:
             Check if client is connected, and send data.
-            >>> if self.clientConnected():
+            >>> if self.is_client_connected():
             >>>     self.mqtt_publish(topic, payload)
 
             Check if client is connected in mqtt2 namespace, and send data.
 
-            >>> if self.clientConnected(namespace = 'mqtt2'):
-            >>>     self.mqtt_publish(topic, payload, namespace = 'mqtt2')
+            >>> if self.is_client_connected(namespace='mqtt2'):
+            >>>     self.mqtt_publish(topic, payload, namespace='mqtt2')
 
         """
-        namespace = self._get_namespace(**kwargs)
-        plugin = self.AD.plugins.get_plugin_object(namespace)
-        return await plugin.mqtt_client_state()
+        namespace = namespace if namespace is not None else self.namespace
+        match self.AD.plugins.get_plugin_object(namespace):
+            case MqttPlugin(connect_event=asyncio.Event() as connected):
+                return connected.is_set()
+        return False

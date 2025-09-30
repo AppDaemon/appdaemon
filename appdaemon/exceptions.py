@@ -90,8 +90,8 @@ def user_exception_block(logger: Logger, exception: Exception, app_dir: Path | N
                             app_name = loc[0]
                             field = loc[-1]
                             logger.error(f"{indent}Assertion error in app '{app_name}' field '{field}': {msg}")
-                        case _:
-                            pass
+                        case {"loc": loc, "msg": str(msg), "input": input_value}:
+                            logger.error(f"{indent}{'.'.join(map(str, loc))}: {msg}: input_value={input_value}")
             case AppDaemonException():
                 assert app_dir is not None, "app_dir is required to format exception block"
                 for i, line in enumerate(str(exc).splitlines()):
@@ -581,6 +581,15 @@ class NoADConfig(AppDaemonException):
 
     def __str__(self):
         return self.msg
+
+
+@dataclass
+class BadPluginNamespace(AppDaemonException):
+    namespace: str
+    type_: str
+
+    def __str__(self):
+        return f"No {self.type_} plugin found for namespace '{self.namespace}'"
 
 
 @dataclass

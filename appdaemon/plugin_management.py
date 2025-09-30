@@ -2,6 +2,7 @@ import abc
 import asyncio
 import datetime
 import importlib
+import math
 import sys
 import traceback
 from collections.abc import Generator, Iterable
@@ -39,12 +40,13 @@ class PluginBase(abc.ABC):
     updates_recv: int
     last_check_ts: float
 
+    start: float = math.nan
     connect_event: asyncio.Event
     ready_event: asyncio.Event
 
     constraints: list
 
-    first_time: bool = True
+    first_time: bool
     """Flag for this being the first time the plugin has made a connection.
 
     The first connection a plugin makes is handled a little differently
@@ -62,6 +64,7 @@ class PluginBase(abc.ABC):
         self.connect_event = asyncio.Event()
         self.ready_event = asyncio.Event()
         self.constraints = []
+        self.first_time = True
 
         # Performance Data
         self.bytes_sent = 0
@@ -119,6 +122,10 @@ class PluginBase(abc.ABC):
     @abc.abstractmethod
     async def get_complete_state(self):
         raise NotImplementedError
+
+    def utility(self):
+        """A utility function that can be called periodically by the plugin manager"""
+        pass
 
     # @abc.abstractmethod
     async def remove_entity(self, namespace: str, entity: str) -> None:
@@ -194,7 +201,9 @@ class PluginBase(abc.ABC):
                 },
             )
 
-        if not self.first_time:
+        if self.first_time:
+            self.first_time = False
+        else:
             self.AD.loop.create_task(
                 self.AD.app_management.check_app_updates(
                     plugin_ns=self.namespace,
@@ -274,15 +283,14 @@ class PluginManagement:
                 self.logger.info("Plugin '%s' disabled", name)
             else:
                 if name.lower() in built_ins:
-                    msg = "Loading built-in plugin '%s' using '%s' from '%s'"
+                    self.logger.debug("Loading %s under config name '%s'", cfg.plugin_class, name)
                 else:
-                    msg = "Loading custom plugin '%s' using '%s' from '%s'"
-                self.logger.info(
-                    msg,
-                    name,
-                    cfg.plugin_class,
-                    cfg.plugin_module,
-                )
+                    self.logger.info(
+                        "Loading custom plugin '%s' using '%s' from '%s'",
+                        name,
+                        cfg.plugin_class,
+                        cfg.plugin_module,
+                    )
 
                 try:
                     try:
@@ -344,7 +352,7 @@ class PluginManagement:
 
     @property
     def namespaces(self) -> list[str]:
-        return self.AD.namespaces
+        return list(self.AD.namespaces.keys())
 
     async def stop(self):
         """Stops all the plugins and clears the callbacks for them.
@@ -372,9 +380,10 @@ class PluginManagement:
         self.logger.info("All plugins stopped gracefully")
 
     def run_plugin_utility(self):
-        for plugin in self.plugin_objs:
-            if hasattr(self.plugin_objs[plugin]["object"], "utility"):
-                self.plugin_objs[plugin]["object"].utility()
+        for cfg in self.plugin_objs.values():
+            match cfg:
+                case {"object": PluginBase() as plugin, "active": True}:
+                    plugin.utility()
 
     async def get_plugin_perf_data(self):
         # Grab stats every 10th time we are called (this will be roughly a 10 second average)
@@ -385,18 +394,20 @@ class PluginManagement:
 
         self.perf_count = 0
 
-        for plugin in self.plugin_objs:
-            if hasattr(self.plugin_objs[plugin]["object"], "perf_data"):
-                p_data = await self.plugin_objs[plugin]["object"].perf_data()
-                await self.AD.state.set_state(
-                    "plugin",
-                    "admin",
-                    f"plugin.{self.get_plugin_from_namespace(plugin)}",
-                    bytes_sent_ps=round(p_data["bytes_sent"] / p_data["duration"], 1),
-                    bytes_recv_ps=round(p_data["bytes_recv"] / p_data["duration"], 1),
-                    requests_sent_ps=round(p_data["requests_sent"] / p_data["duration"], 1),
-                    updates_recv_ps=round(p_data["updates_recv"] / p_data["duration"], 1),
-                )
+        for cfg in self.plugin_objs.values():
+            match cfg:
+                case {"object": PluginBase(name=str(name)) as plugin, "active": True}:
+                    if (get_perf_data := getattr(plugin, "perf_data", None)) is not None:
+                        pd = await get_perf_data()
+                        await self.AD.state.set_state(
+                            "plugin",
+                            "admin",
+                            f"plugin.{name}",
+                            bytes_sent_ps=round(pd["bytes_sent"] / pd["duration"], 1),
+                            bytes_recv_ps=round(pd["bytes_recv"] / pd["duration"], 1),
+                            requests_sent_ps=round(pd["requests_sent"] / pd["duration"], 1),
+                            updates_recv_ps=round(pd["updates_recv"] / pd["duration"], 1),
+                        )
 
     def process_meta(self, meta: dict, name: str):
         """Looks for certain keys in the metadata dict to override ones in the
@@ -414,15 +425,13 @@ class PluginManagement:
         return self.config[plugin]
 
     def get_plugin_object(self, namespace: str) -> PluginBase | None:
-        if not (plugin := self.plugin_objs.get(namespace)):
-            for _, cfg in self.config.items():
-                if namespace in cfg.namespaces:
-                    plugin = self.plugin_objs[namespace]
-                    break
-            else:
-                plugin = {}
-
-        return plugin.get("object")
+        match self.plugin_objs.get(namespace):
+            case {"object": PluginBase() as obj, "active": True}:
+                return obj
+            case None:
+                for cfg in self.config.values():
+                    if namespace in cfg.namespaces:
+                        return self.get_plugin_object(cfg.namespace)
 
     def get_plugin_from_namespace(self, namespace: str) -> str:
         """Gets the name of the plugin that's associated with the given namespace.
@@ -492,7 +501,7 @@ class PluginManagement:
         return self.config[plugin_name]
 
     @property
-    def active_plugins(self) -> Generator[tuple[PluginBase, PluginConfig], None, None]:
+    def active_plugins(self) -> Generator[tuple[PluginBase, PluginConfig]]:
         for namespace, plugin_cfg in self.plugin_objs.items():
             match plugin_cfg:
                 case {"object": PluginBase() as obj, "active": True}:
@@ -536,7 +545,7 @@ class PluginManagement:
                             ns = cfg.namespace
                         self.AD.state.update_namespace_state(ns, state)
                 finally:
-                    await self.refresh_update_time(plugin)
+                    await self.refresh_update_time(plugin.name)
 
     def required_meta_check(self):
         OK = True

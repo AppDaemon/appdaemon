@@ -1,22 +1,30 @@
+from collections.abc import Iterable
 import os
+import ssl
 from datetime import timedelta
 from ssl import _SSLMethod
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, BeforeValidator, Field, SecretBytes, SecretStr, field_validator, model_validator
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, SecretBytes, SecretStr, ValidationError, field_validator, model_validator
 from typing_extensions import deprecated
 
 
 from .common import CoercedPath, ParsedTimedelta
 
 
-class PluginConfig(BaseModel, extra="allow"):
+class PluginConfig(BaseModel):
     type: Annotated[str, BeforeValidator(lambda s: s.lower())]
     name: str
     """Name of the plugin, which is used by the plugin manager to track it.
 
     This is set by a field_validator in the AppDaemonConfig.
     """
+    # Used by the AppDaemon internals to import the plugins.
+    plugin_module: str
+    plugin_class: str
+    api_module: str
+    api_class: str
+
     disable: bool = False
     persist_entities: bool = False
     refresh_delay: ParsedTimedelta = timedelta(minutes=10)
@@ -24,34 +32,30 @@ class PluginConfig(BaseModel, extra="allow"):
     refresh_timeout: ParsedTimedelta = timedelta(seconds=30)
     """Timeout for refreshes of the complete plugin state in the utility loop."""
 
-    connect_timeout: ParsedTimedelta = timedelta(seconds=1)
+    connect_timeout: ParsedTimedelta = timedelta(seconds=3)
     retry_secs: ParsedTimedelta = timedelta(seconds=5)
 
     namespace: str = "default"
     namespaces: list[str] = Field(default_factory=list)
     """Additional namespaces to associate with this plugin."""
 
-    # Used by the AppDaemon internals to import the plugins.
-    plugin_module: str = None  # pyright: ignore[reportAssignmentType]
-    plugin_class: str = None  # pyright: ignore[reportAssignmentType]
-    api_module: str = None  # pyright: ignore[reportAssignmentType]
-    api_class: str = None  # pyright: ignore[reportAssignmentType]
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True,
+        extra="allow",
+        validate_assignment=True,
+        validate_default=True,
+    )
 
-    @model_validator(mode="after")
-    def set_internal_fields(self):
-        if "plugin_module" not in self.model_fields_set:
-            self.plugin_module = f"appdaemon.plugins.{self.type}.{self.type}plugin"
-
-        if "plugin_class" not in self.model_fields_set:
-            self.plugin_class = f"{self.type.capitalize()}Plugin"
-
-        if "api_module" not in self.model_fields_set:
-            self.api_module = f"appdaemon.plugins.{self.type}.{self.type}api"
-
-        if "api_classname" not in self.model_fields_set:
-            self.api_class = f"{self.type.capitalize()}"
-
-        return self
+    @model_validator(mode="before")
+    @classmethod
+    def set_internals(cls, values: dict[str, Any]) -> dict[str, Any]:
+        match values.get("type"):
+            case str(type_):
+                values["plugin_module"] = values.get("plugin_module", f"appdaemon.plugins.{type_}.{type_}plugin")
+                values["plugin_class"] = values.get("plugin_class", f"{type_.capitalize()}Plugin")
+                values["api_module"] = values.get("api_module", f"appdaemon.plugins.{type_}.{type_}api")
+                values["api_class"] = values.get("api_class", f"{type_.capitalize()}")
+        return values
 
     @property
     def disabled(self) -> bool:
@@ -164,19 +168,19 @@ class MQTTConfig(PluginConfig):
     client_user: str | None = None
     client_password: SecretBytes | None = None
     client_id: str | None = None
-    client_qos: int = 0
-    client_topics: list[str] = Field(default=["#"])
+    client_qos: Literal[0, 1, 2] = 0
+    client_topics: set[str] = Field(default={"#"})
     client_timeout: int = 60
     event_name: str = "MQTT_MESSAGE"
     force_start: bool = False
 
-    status_topic: str | None = None
+    status_topic: str
 
-    birth_topic: str | None = None
+    birth_topic: str
     birth_payload: str = "online"
     birth_retain: bool = True
 
-    will_topic: str | None = None
+    will_topic: str
     will_payload: str = "offline"
     will_retain: bool = True
 
@@ -186,42 +190,51 @@ class MQTTConfig(PluginConfig):
     client_cert: str | None = None
     client_key: str | None = None
     verify_cert: bool = True
-    tls_version: _SSLMethod | Literal["auto", "1.0", "1.1", "1.2"] = "auto"
+    tls_version: _SSLMethod = "auto" # pyright: ignore[reportAssignmentType]
+
+    @field_validator("tls_version", mode="before")
+    @classmethod
+    def validate_tls_version(cls, v: Any) -> _SSLMethod:
+        match v:
+            case "1.0":
+                return ssl.PROTOCOL_TLSv1
+            case "1.1":
+                return ssl.PROTOCOL_TLSv1_1
+            case "1.2":
+                return ssl.PROTOCOL_TLSv1_2
+            case "auto":
+                import sys
+                return ssl.PROTOCOL_TLS if sys.hexversion >= 0x03060000 else ssl.PROTOCOL_TLSv1
+            case _:
+                raise ValidationError("tls_version must be one of '1.0', '1.1', '1.2', or 'auto'")
 
     @field_validator("client_topics", mode="before")
     @classmethod
-    def validate_client_topics(cls, v: Any) -> list[str]:
+    def validate_client_topics(cls, v: Any) -> set[str]:
         match v:
             case None:
-                return []
+                return set()
             case str():
                 match v.upper():
                     case "NONE":
-                        return []
+                        return set()
                     case "ALL":
-                        return ["#"]
+                        return {"#"}
                     case _:
-                        return [v]
-            case list():
-                return v
+                        return {v}
+            case Iterable():
+                return set(v)
             case _:
-                raise ValueError("client_topics must be a string or a list")
+                raise ValueError("client_topics must be a string or an iterable of them")
 
-    @model_validator(mode="after")
-    def set_topics(self):
-        if "client_id" not in self.model_fields_set:
-            self.client_id = f"appdaemon_{self.name}_client".lower()
-
-        if "status_topic" not in self.model_fields_set:
-            self.status_topic = f"{self.client_id}/status"
-
-        if "birth_topic" not in self.model_fields_set:
-            self.birth_topic = self.status_topic
-
-        if "will_topic" not in self.model_fields_set:
-            self.will_topic = self.status_topic
-
-        if "shutdown_payload" not in self.model_fields_set:
-            self.shutdown_payload = self.will_payload
-
-        return self
+    @model_validator(mode="before")
+    def set_defaults(cls, values: dict[str, Any]) -> dict[str, Any]:
+        values["client_id"] = values.get("client_id", f"appdaemon_{values.get('name', 'unknown')}_client").lower()
+        values["status_topic"] = values.get(
+            "status_topic",
+            f"appdaemon/{values.get('client_id', 'unknown')}/status".lower(),
+        )
+        values["birth_topic"] = values.get("birth_topic", values.get("status_topic"))
+        values["will_topic"] = values.get("will_topic", values.get("status_topic"))
+        values["shutdown_payload"] = values.get("shutdown_payload", values.get("will_topic"))
+        return values
