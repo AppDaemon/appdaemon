@@ -18,111 +18,184 @@
                 },
         },
         {
-            "label": "Build Docs",
-            "command": "sphinx-build",
-            "args": ["-T", "-E", "${workspaceFolder}/docs", "${workspaceFolder}/.docs_build"],
+            "label": "Build Package",
+            "detail": "Builds the package as a wheel file in the dist/ directory",
             "type": "shell",
+            "problemMatcher": [],
+            "command": "uv",
+            "args": ["build", "--wheel"],
+            "presentation":
+                {
+                    "reveal": "always",
+                    "clear": true,
+                    "focus": false,
+                    "panel": "shared",
+                },
+        },
+        {
+            "label": "Build Docker Image",
+            "detail": "Builds the Docker image for the application",
+            "dependsOn": "Build Package",
+            "type": "shell",
+            "problemMatcher": [],
+            "command": "docker",
+            "args": [
+                "build",
+                "-t", "acockburn/appdaemon:local-dev",
+                // "-f", "Dockerfile.uv",
+                "${workspaceFolder}"
+            ],
+            "presentation":
+                {
+                    "reveal": "always",
+                    "clear": true,
+                    "focus": false,
+                    "panel": "shared",
+                },
+        },
+        {
+            "label": "Build Multi-Platform Docker Images",
+            "detail": "Builds Docker images for multiple platforms and analyzes their sizes",
+            "type": "shell",
+            "problemMatcher": [],
+            "command": "${workspaceFolder}/scripts/multiplatform-docker-build.sh",
+            "group": "build",
+            "presentation":
+                {
+                    "reveal": "always",
+                    "clear": true,
+                    "focus": true,
+                    "panel": "shared",
+                },
+        },
+        {
+            "label": "Build Docs",
+            "detail": "Builds the docs into a self-contained set of HTML files using Sphinx",
+            "type": "shell",
+            "problemMatcher": [],
+            "command": "uv",
+            "args": [
+                "run", "--extra", "doc",
+                "sphinx-build", "-T", "-E",
+                "${workspaceFolder}/docs",
+                "${workspaceFolder}/.docs_build"
+            ],
             "presentation":
                 {
                     "echo": true,
                     "reveal": "always",
                     "focus": false,
                     "panel": "shared",
-                    "showReuseMessage": false,
+                    "showReuseMessage": true,
                     "clear": true
                 },
         },
         {
             "label": "Auto Build Docs",
-            "command": "sphinx-autobuild",
-            "args": ["-T", "-E", "${workspaceFolder}/docs", "${workspaceFolder}/.docs_build", "--port", "9999"],
-            "type": "shell",
-            "presentation":
-                {
-                    "echo": true,
-                    "reveal": "always",
-                    "focus": false,
-                    "panel": "shared",
-                    "showReuseMessage": false,
-                    "clear": true
-                },
-        },
-        {
-            "label": "Build Package",
+            "detail": "Runs the Sphinx documentation server on localhost:9999 with live reloading.",
+            "type": "process",
+            "problemMatcher": [],
             "command": "uv",
-            "args": ["build"],
-            "type": "shell",
+            "args": [
+                "run", "--extra", "doc",
+                "sphinx-autobuild", "-T", "-E",
+                "${workspaceFolder}/docs",
+                "${workspaceFolder}/.docs_build",
+                "--port", "9999",
+                "--watch", "${workspaceFolder}/appdaemon",
+                "--watch", "${workspaceFolder}/tests",
+            ],
             "presentation":
                 {
                     "echo": true,
                     "reveal": "always",
                     "focus": false,
                     "panel": "shared",
-                    "showReuseMessage": false,
+                    "showReuseMessage": true,
                     "clear": true
                 },
         },
         {
             "label": "Build Runtime Requirements",
-            "command": "uv",
-            "args": ["pip", "compile", "--resolver=backtracking",  "--upgrade", "pyproject.toml"],
             "type": "shell",
+            "problemMatcher": [],
+            "command": "uv",
+            "args": ["pip", "compile", "--upgrade", "pyproject.toml"],
             "presentation":
                 {
                     "echo": true,
                     "reveal": "always",
                     "focus": false,
                     "panel": "shared",
-                    "showReuseMessage": false,
+                    "group": "requirements",
+                    "showReuseMessage": true,
                     "clear": true
                 },
         },
         {
             "label": "Build Dev Requirements",
-            "command": "uv",
-            "args": ["pip", "compile", "--extra=dev", "--output-file=dev-requirements.txt", "--resolver=backtracking",  "--upgrade", "pyproject.toml"],
             "type": "shell",
+            "problemMatcher": [],
+            "command": "uv",
+            "args": [
+                "pip", "compile",
+                "--extra=dev",
+                "--output-file=dev-requirements.txt",
+                "--upgrade", "pyproject.toml"
+            ],
             "presentation":
                 {
                     "echo": true,
                     "reveal": "always",
                     "focus": false,
                     "panel": "shared",
-                    "showReuseMessage": false,
+                    "group": "requirements",
+                    "showReuseMessage": true,
                     "clear": true
                 },
         },
         {
             "label": "Build Doc Requirements",
-            "command": "uv",
-            "args": ["pip", "compile", "--extra=doc", "--output-file=doc-requirements.txt", "--resolver=backtracking", "--upgrade", "pyproject.toml"],
             "type": "shell",
+            "problemMatcher": [],
+            "command": "uv",
+            "args": [
+                "pip", "compile",
+                "--extra=doc",
+                "--output-file=doc-requirements.txt",
+                "--upgrade", "pyproject.toml"
+            ],
             "presentation":
                 {
                     "echo": true,
                     "reveal": "always",
                     "focus": false,
                     "panel": "shared",
-                    "showReuseMessage": false,
+                    "group": "requirements",
+                    "showReuseMessage": true,
                     "clear": true
                 },
         },
         {
-            "label": "Build All Requirements",
-            "dependsOn": ["Build Runtime Requirements", "Build Dev Requirements", "Build Doc Requirements"]
+            "label": "Build All Requirements Files",
+            "detail": "Resolves all the dependencies into requirements files.",
+            "dependsOn": ["Build Runtime Requirements", "Build Dev Requirements", "Build Doc Requirements"],
+            "problemMatcher": [],
         },
         {
             "label": "Install Dependencies",
-            "command": "pip",
-            "args": ["install", "-r", "requirements.txt", "-r", "doc-requirements.txt", "-r", "dev-requirements.txt"],
+            "detail": "Installs all the dependencies, including dev and doc extras",
             "type": "shell",
+            "problemMatcher": [],
+            "command": "uv",
+            "args": ["sync", "--all-extras"],
             "presentation":
                 {
                     "echo": true,
                     "reveal": "always",
                     "focus": false,
                     "panel": "shared",
-                    "showReuseMessage": false,
+                    "showReuseMessage": true,
                     "clear": true
                 },
         },

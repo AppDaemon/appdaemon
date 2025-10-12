@@ -5,7 +5,7 @@ from typing import Annotated, Any, Literal, Union
 from pydantic import BaseModel, BeforeValidator, Discriminator, Field, RootModel, Tag, WrapSerializer, model_validator
 
 from ... import exceptions as ade
-from .common import TimeType
+from .common import ParsedTimedelta
 
 
 class SequenceStep(BaseModel):
@@ -13,18 +13,18 @@ class SequenceStep(BaseModel):
 
 
 class SleepStep(SequenceStep):
-    sleep: TimeType
+    sleep: ParsedTimedelta
 
 
 class WaitStateStep(SequenceStep):
     entity_id: str
     state: Any
-    timeout: TimeType = timedelta(minutes=15)
+    timeout: ParsedTimedelta = timedelta(minutes=15)
     namespace: str = "default"
 
 
 class LoopStep(SequenceStep):
-    interval: TimeType
+    interval: ParsedTimedelta
     times: int = 1
 
 

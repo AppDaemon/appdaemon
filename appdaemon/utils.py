@@ -2,39 +2,47 @@ import asyncio
 import concurrent.futures
 import copy
 import cProfile
-import datetime
 import functools
 import inspect
 import io
 import json
+import logging
 import os
 import platform
 import pstats
+import random
 import re
 import shelve
 import sys
 import threading
-import time
 import traceback
-from collections.abc import Awaitable, Generator, Iterable
-from datetime import timedelta, tzinfo
+from collections.abc import Awaitable, Generator, Iterable, Mapping, Sequence
+from datetime import datetime, time, timedelta, tzinfo
 from functools import wraps
 from logging import Logger
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Coroutine, Dict, Literal, ParamSpec, Protocol, TypeVar
+from time import perf_counter
+from typing import TYPE_CHECKING, Any, Callable, Coroutine, Literal, ParamSpec, Protocol, TypeVar
 
 import dateutil.parser
 import tomli
 import tomli_w
 import yaml
+from astral.location import Location
 from pydantic import BaseModel, ValidationError
+from pytz import BaseTzInfo
 
+from appdaemon.parse import parse_datetime
 from appdaemon.version import (
     __version__,  # noqa: F401
     __version_comments__,  # noqa: F401
 )
 
 from . import exceptions as ade
+from .parse import parse_timedelta
+
+logger = logging.getLogger("AppDaemon._utility")
+file_log = logger.getChild("file")
 
 if TYPE_CHECKING:
     from .adbase import ADBase
@@ -45,6 +53,24 @@ if platform.system() != "Windows":
     import pwd
 
 secrets = None
+
+ELEVATION_REGEX = re.compile(r"^(?P<N>\d+(?:\.\d+)?)\s+deg\s+(?P<dir>rising|setting)$", re.IGNORECASE)
+
+OFFSET_SPLIT_REGEX = re.compile(r"\s*?[+-]\s*?")
+
+T = TypeVar("T")
+
+
+def has_offset(time_str: str) -> bool:
+    """Check if a time string has an offset.
+
+    Args:
+        time_str (str): The time string to check.
+
+    Returns:
+        bool: True if the time string has an offset, False otherwise.
+    """
+    return bool(OFFSET_SPLIT_REGEX.search(time_str))
 
 
 class Formatter(object):
@@ -91,13 +117,13 @@ class PersistentDict(shelve.DbfilenameShelf):
     Dict-like object that uses a Shelf to persist its contents.
     """
 
-    def __init__(self, filename: str | Path, safe: bool, *args, **kwargs):
+    def __init__(self, filename: str | Path, safe: bool, **kwargs):
         filename = Path(filename).resolve().as_posix()
         # writeback=True allows for mutating objects in place, like with a dict.
         super().__init__(filename, writeback=True)
         self.safe = safe
         self.rlock = threading.RLock()
-        self.update(*args, **kwargs)
+        self.update(new=kwargs)
 
     def __contains__(self, key):
         with self.rlock:
@@ -139,9 +165,9 @@ class PersistentDict(shelve.DbfilenameShelf):
         with self.rlock:
             super().sync()
 
-    def update(self, save=True, *args, **kwargs):
+    def update(self, new: dict, *args, save=True, **kwargs):
         with self.rlock:
-            for key, value in dict(*args, **kwargs).items():
+            for key, value in dict(*args, **new, **kwargs).items():
                 # use super().__setitem__() to prevent multiple save() calls
                 super().__setitem__(key, value)
                 if self.safe and save:
@@ -210,6 +236,26 @@ P = ParamSpec("P")
 R = TypeVar("R")
 
 
+def resolve_offset(
+    offset: str | int | float | timedelta | None,
+    random_start: int | float | None = None,
+    random_end: int | float | None = None,
+) -> timedelta:
+    """Resolves a given offset with some randomization into a timedelta object."""
+    offset = parse_timedelta(offset)
+    if random_start is not None or random_end is not None:
+        random_start = random_start if random_start is not None else 0
+        random_end = random_end if random_end is not None else 0
+
+        span = random_end - random_start
+        assert span >= 0, "Random end must be greater than or equal to random start"
+
+        random_secs = (span * random.random()) + random_start
+        random_offset = parse_timedelta(random_secs)
+        offset += random_offset
+    return offset
+
+
 def sync_decorator(coro_func: Callable[P, Awaitable[R]]) -> Callable[P, R]:
     """Wrap a coroutine function to ensure it gets run in the main thread.
 
@@ -248,13 +294,13 @@ def sync_decorator(coro_func: Callable[P, Awaitable[R]]) -> Callable[P, R]:
 def timeit(func):
     @wraps(func)
     async def wrapper(self, *args, **kwargs):
-        start_time = time.perf_counter()
+        start_time = perf_counter()
         try:
             return await func(self, *args, **kwargs)
         except Exception as e:
             self.logger.exception(e)
         finally:
-            elapsed_time = time.perf_counter() - start_time
+            elapsed_time = perf_counter() - start_time
             self.logger.debug(f"Finished [{func.__name__}] in {elapsed_time * 10**3:.0f} ms")
 
     return wrapper
@@ -282,67 +328,6 @@ def _profile_this(fn):
 
 def format_seconds(secs: str | int | float | timedelta) -> str:
     return str(parse_timedelta(secs))
-
-
-def parse_timedelta(s: str | int | float | timedelta | None) -> timedelta:
-    """Convert disparate types into a timedelta object.
-
-    Args:
-        s (str | int | float | timedelta | None): The value to convert. Can be a string, int, float, or timedelta.
-            Numbers get interpreted as seconds. Strings can in different formats either ``HH:MM:SS``, ``MM:SS``, or
-            ``SS``.
-
-    Returns:
-        Timedelta object.
-
-    Examples:
-        >>> parse_timedelta(0.025374)
-        datetime.timedelta(microseconds=25374)
-
-        >>> parse_timedelta(0.687)
-        datetime.timedelta(microseconds=687000)
-
-        >>> parse_timedelta(2.5)
-        datetime.timedelta(seconds=2, microseconds=500000)
-
-        >>> parse_timedelta("25")
-        datetime.timedelta(seconds=25)
-
-        >>> parse_timedelta("02:30")
-        datetime.timedelta(seconds=150)
-
-        >>> parse_timedelta("00:00:00")
-        datetime.timedelta(0)
-
-    """
-    match s:
-        case timedelta():
-            return s
-        case int() | float():
-            return timedelta(seconds=s)
-        case str():
-            parts = tuple(float(p.strip()) for p in re.split(r"[^\d\.]+", s))
-            match len(parts):
-                case 1:
-                    return timedelta(seconds=parts[0])
-                case 2:
-                    min, sec = parts
-                    return timedelta(minutes=min, seconds=sec)
-                case 3:
-                    hour, min, sec = parts
-                    return timedelta(hours=hour, minutes=min, seconds=sec)
-                case 4:
-                    day, hour, min, sec = parts
-                    return timedelta(days=day, hours=hour, minutes=min, seconds=sec)
-                case _:
-                    raise ValueError(
-                        f"Invalid string format for timedelta: {s}."
-                        "Must be in the format 'HH:MM:SS', 'MM:SS', or 'SS'."
-                    )
-        case None:
-            return timedelta()
-        case _:
-            raise ValueError(f"Invalid type for timedelta: {type(s)}. Must be str, int, float, or timedelta")
 
 
 def format_timedelta(td: str | int | float | timedelta | None) -> str:
@@ -393,6 +378,49 @@ def format_timedelta(td: str | int | float | timedelta | None) -> str:
                 if hours == 0:  # Remove the hours portion if it's 0
                     res = res.split(":", 1)[1]
                 return res
+
+
+def now_is_between(
+    now: datetime,
+    start_time: str | time | datetime,
+    end_time: str | time | datetime,
+    location: Location | None = None,
+) -> bool:
+    assert now.tzinfo is not None, "Now must be a timezone-aware datetime"
+    parse = functools.partial(
+        parse_datetime,
+        now=now,
+        location=location,
+        today=True,
+    )
+
+    aware_start = parse(start_time)
+    aware_end = parse(end_time)
+
+    if aware_start > aware_end and (now < aware_start or now < aware_end):
+        aware_start = parse(start_time, days_offset=-1)
+        if aware_start > aware_end:
+            aware_start -= timedelta(days=1)
+
+    if aware_start > aware_end and now > aware_start and now > aware_end:
+        aware_end = parse(end_time, days_offset=1)
+        if aware_start > aware_end:
+            aware_end += timedelta(days=1)
+
+    return aware_start <= now <= aware_end
+
+
+def ensure_timezone(input_: datetime, timezone: BaseTzInfo | None) -> datetime:
+    if timezone is not None:
+        if input_.tzinfo is None:
+            result = timezone.localize(input_)
+        else:
+            result = input_.astimezone(timezone)
+    else:
+        result = input_
+
+    assert result.tzinfo is not None, "Resulting datetime must be timezone-aware"
+    return result
 
 
 def deep_compare(check: dict, data: dict) -> bool:
@@ -776,7 +804,7 @@ def dt_to_str(dt: datetime, tz: tzinfo | None = None, *, round: bool = False) ->
     if round:
         dt = dt.replace(microsecond=0)
 
-    if dt == datetime.datetime(1970, 1, 1, 0, 0, 0, 0):
+    if dt == datetime(1970, 1, 1, 0, 0, 0, 0):
         return "never"
     else:
         if tz is not None:
@@ -832,19 +860,20 @@ def write_toml_config(path, **kwargs):
         tomli_w.dump(kwargs, stream)
 
 
-def read_config_file(file: Path, app_config: bool = False) -> dict[str, dict | list]:
+def read_config_file(file: Path, app_config: bool = False) -> dict[str, dict[str, Any]]:
     # raise ValueError
     """Reads a single YAML or TOML file.
 
     This includes all the mechanics for including secrets and environment variables.
 
     Args:
+        file: Path to the configuration file to read.
         app_config: Flag for whether to add the config_path key to the loaded dictionaries
     """
     try:
         file = Path(file) if not isinstance(file, Path) else file
-        match file.suffix:
-            case ".yaml":
+        match file.suffix.lower():
+            case ".yaml" | ".yml":
                 full_cfg = read_yaml_config(file)
             case ".toml":
                 full_cfg = read_toml_config(file)
@@ -864,7 +893,7 @@ def read_config_file(file: Path, app_config: bool = False) -> dict[str, dict | l
         raise ade.ConfigReadFailure(file) from exc
 
 
-def read_toml_config(path: Path):
+def read_toml_config(path: Path) -> dict[str, dict[str, Any]]:
     with path.open("rb") as f:
         config = tomli.load(f)
 
@@ -969,7 +998,7 @@ def _include_yaml(loader, node):
         return yaml.load(f, Loader=yaml.SafeLoader)
 
 
-def read_yaml_config(file: Path) -> Dict[str, Dict]:
+def read_yaml_config(file: Path) -> dict[str, dict[str, Any]]:
     #
     # First locate secrets file
     #
@@ -991,6 +1020,7 @@ def read_yaml_config(file: Path) -> Dict[str, Dict]:
     #
     yaml.add_constructor("!secret", _dummy_secret, Loader=yaml.SafeLoader)
     with file.open("r") as yamlfd:
+        file_log.debug("Reading config file: %s", file)
         config = yaml.safe_load(yamlfd)
 
     # No need to keep processing if the file is empty
@@ -1041,31 +1071,52 @@ class Singleton(type):
 
 
 def time_str(start: float, now: float | None = None) -> str:
-    return format_timedelta((now or time.perf_counter()) - start)
+    return format_timedelta((now or perf_counter()) - start)
 
 
-def clean_kwargs(**kwargs):
-    """Converts everything to strings and removes null values"""
+def clean_kwargs(val: Any, *, http: bool = False) -> Any:
+    """Recursively clean a dict of kwargs.
 
-    def clean_value(val: Any) -> str:
-        match val:
-            case int() | float() | str():
-                return val
-            case datetime.datetime():
-                return val.isoformat()
-            case dict():
-                return clean_kwargs(**val)
-            case Iterable():
-                return [clean_value(v) for v in val]
-            case _:
-                return str(val)
+    Conversions:
+        - datetime values are converted to ISO format strings
+        - Mapping values (like dicts) are converted to dicts of cleaned key-value pairs
+        - Iterable values (like lists and tuples) are converted to lists of cleaned values
+        - Other values are converted to strings
+    """
 
-    kwargs = {
-        k: clean_value(v)
-        for k, v in kwargs.items()
-        if v is not None
-    }  # fmt: skip
-    return kwargs
+    match val:
+        case True if http:
+            return "true"
+        case str() | int() | float() | bool() | None:
+            return val
+        case datetime():
+            return val.isoformat()
+        case Mapping():
+            return {k: clean_kwargs(v, http=http) for k, v in val.items()}
+        case Iterable():
+            return [clean_kwargs(v, http=http) for v in val]
+        case _:
+            return str(val)
+
+
+def remove_literals(val: Any, literal: Sequence[Any]) -> Any:
+    """Remove instances of literals from a nested data structure."""
+    match val:
+        case str():
+            return val
+        case Mapping():
+            return {k: remove_literals(v, literal) for k, v in val.items() if v not in literal}
+        case Iterable():
+            return [remove_literals(v, literal) for v in val if v not in literal]
+        case _:
+            return val
+
+
+def clean_http_kwargs(val: Any) -> Any:
+    """Recursively cleans the kwarg dict to prepare it for use in HTTP requests."""
+    cleaned = clean_kwargs(val, http=True)
+    pruned = remove_literals(cleaned, (None, False))
+    return pruned
 
 
 def make_endpoint(base: str, endpoint: str) -> str:
@@ -1133,6 +1184,7 @@ def recursive_get_files(base: Path, suffix: str, exclude: set[str] | None = None
     Yields:
         Path objects to files that have the matching extension and are readable.
     """
+    exclude = set() if exclude is None else exclude
     for item in base.iterdir():
         if item.name.startswith(".") or (exclude is None or item.name in exclude):
             continue

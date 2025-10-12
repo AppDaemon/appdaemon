@@ -6,10 +6,10 @@ import re
 import ssl
 import time
 import traceback
+from urllib.parse import urlparse
 import uuid
 from socket import gaierror
 from typing import TYPE_CHECKING, Callable, Optional
-from urllib.parse import urlparse
 
 import bcrypt
 import feedparser
@@ -20,12 +20,12 @@ import appdaemon.admin as adadmin
 import appdaemon.dashboard as addashboard
 import appdaemon.stream.adstream as stream
 import appdaemon.utils as utils
+from appdaemon.models.config import MainConfig
 
 from . import exceptions as ade
 
 if TYPE_CHECKING:
     from appdaemon.appdaemon import AppDaemon
-
 
 def securedata(myfunc):
     """
@@ -116,21 +116,34 @@ class HTTP:
     """Reference to the AppDaemon container object
     """
     name: str = "_http"
-
-    stopping: bool
     executor: concurrent.futures.ThreadPoolExecutor
 
-    def __init__(self, ad: "AppDaemon", dashboard, old_admin, admin, api, http):
+    start_event: asyncio.Event
+
+    # def __init__(self, ad: AppDaemon, loop, logging, appdaemon, dashboard, old_admin, admin, api, http):
+    def __init__(self, ad: "AppDaemon", main_cfg: MainConfig) -> None:
         self.AD = ad
         self.logger = self.logging.get_child(self.name)
         self.access = self.logging.get_access()
 
-        self.dashboard = dashboard
-        self.dashboard_dir = None
-        self.old_admin = old_admin
-        self.admin = admin
-        self.http = http
-        self.api = api
+        self.appdaemon = main_cfg.appdaemon
+
+        if main_cfg.hadashboard is not None:
+            self.dashboard = main_cfg.hadashboard.model_dump(mode="python", exclude_none=True, by_alias=True)
+            self.dashboard_dir = (
+                self.AD.config_dir / "dashboards"
+                if main_cfg.hadashboard.dashboard_dir is None
+                else main_cfg.hadashboard.dashboard_dir
+            )  # fmt: skip
+        else:
+            self.dashboard = None
+            self.dashboard_dir = None
+
+        self.old_admin = main_cfg.old_admin
+        self.admin = main_cfg.admin
+        if main_cfg.http is not None:
+            self.http = main_cfg.http.model_dump(mode="json", exclude_none=True, by_alias=True)
+        self.api = main_cfg.api
         self.runner = None
 
         self.template_dir = os.path.join(os.path.dirname(__file__), "assets", "templates")
@@ -144,13 +157,11 @@ class HTTP:
         self.transport = "ws"
 
         self.config_dir = None
-        self._process_arg("config_dir", dashboard)
+        self._process_arg("config_dir", self.dashboard)
 
         self.static_dirs = {}
 
-        self._process_http(http)
-
-        self.stopping = False
+        self._process_http(self.http)
 
         self.app_endpoints = {}
         self.app_routes = {}
@@ -173,27 +184,18 @@ class HTTP:
         self.aui_js_dir = os.path.join(self.install_dir, "assets", "aui/js")
 
         try:
-            url = urlparse(self.url)
-            self.host = url.hostname
-            self.scheme = url.scheme
-
-            if url.port is None:
-                match url.scheme:
-                    case "http":
-                        self.port = 80
-                    case "https":
-                        self.port = 443
-                    case _:
-                        self.port = None  # let the validation catch it
-            else:
-                self.port = url.port
+            url = urlparse(str(self.http["url"]))
+            net = url.netloc.split(":")
+            self.host = net[0]
+            try:
+                self.port = net[1]
+            except IndexError:
+                self.port = 80
 
             if self.host == "":
                 raise ValueError("Invalid host for 'url'")
 
             self.app = web.Application()
-
-            self.logger.info(f"HTTP Listening on port {self.port}")
 
             if "headers" in self.http:
                 self.app.on_response_prepare.append(self.add_response_headers)
@@ -201,7 +203,6 @@ class HTTP:
             # Setup event stream
 
             self.stream = stream.ADStream(self.AD, self.app, self.transport)
-
             self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
 
             if self.ssl_certificate is not None and self.ssl_key is not None:
@@ -216,7 +217,7 @@ class HTTP:
             # API
             #
 
-            if api is not None:
+            if self.api is not None:
                 self.logger.info("Starting API")
                 self.setup_api_routes()
             else:
@@ -226,22 +227,21 @@ class HTTP:
             # Admin
             #
 
-            admin_args = None
-            if admin is not None:
+            if self.admin is not None:
                 self.logger.info("Starting Admin Interface")
 
                 self.stats_update = "realtime"
-                self._process_arg("stats_update", admin)
-                admin_args = admin
+                self._process_arg("stats_update", self.admin)
+                admin_args = self.admin
 
-            if old_admin is not None:
+            if self.old_admin is not None:
                 self.logger.info("Starting Old Admin Interface")
 
                 self.stats_update = "realtime"
-                self._process_arg("stats_update", old_admin)
-                admin_args = old_admin
+                self._process_arg("stats_update", self.old_admin)
+                admin_args = self.old_admin
 
-            if old_admin is not None or admin is not None:
+            if self.old_admin is not None or self.admin is not None:
                 self.admin_obj = adadmin.Admin(
                     self.config_dir,
                     self.logging,
@@ -256,14 +256,14 @@ class HTTP:
                     **admin_args,
                 )
 
-            if old_admin is None and admin is None:
+            if self.old_admin is None and self.admin is None:
                 self.logger.info("Admin Interface is disabled")
             #
             # Dashboards
             #
 
-            if dashboard is not None:
-                self._process_dashboard(dashboard)
+            if self.dashboard is not None:
+                self._process_dashboard(self.dashboard)
 
             else:
                 self.logger.info("Dashboards Disabled")
@@ -294,6 +294,22 @@ class HTTP:
     @property
     def loop(self):
         return self.AD.loop
+
+    @property
+    def has_been_started(self) -> bool:
+        return self.runner is not None
+
+    def __enter__(self, *args, **kwargs) -> asyncio.Event:
+        self.start_event = asyncio.Event()
+        start_task = self.AD.loop.create_task(self.start_server())
+        start_task.add_done_callback(lambda t: self.start_event.set())
+        return self.start_event
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.start_event.clear()
+        if self.runner is not None:
+            self.loop.run_until_complete(self.stop_server())
+            # self.loop.create_task(self.stop_server())
 
     def _process_dashboard(self, dashboard):
         self.logger.info("Starting Dashboards")
@@ -386,31 +402,31 @@ class HTTP:
 
         self._process_arg("static_dirs", http)
 
-    async def start_server(self):
+    async def start_server(self) -> None:
+        self.logger.debug("Starting webserver on %s:%s", self.host, self.port)
         self.runner = web.AppRunner(self.app)
         await self.runner.setup()
-        site = web.TCPSite(self.runner, self.host, int(self.port), ssl_context=self.context)
+        self.site = web.TCPSite(self.runner, self.host, int(self.port), ssl_context=self.context)
         try:
-            await site.start()
+            await self.site.start()
             self.logger.info("Running on port %s", self.port)
         except gaierror as exc:
             raise ade.HTTPHostError(int(self.port)) from exc
         except Exception as exc:
             raise ade.HTTPFailure(f"{self.host}:{self.port}") from exc
 
-    async def stop_server(self):
-        self.logger.info("Shutting down webserver")
-        #
-        # We should do this but it makes AD hang so ...
-        #
-        # await self.runner.cleanup()
+    async def stop_server(self) -> None:
+        if self.site is not None:
+            self.logger.debug("Stopping HTTP site")
+            await self.site.stop()
+        if self.runner is not None:
+            self.logger.debug("Cleaning up AppRunner")
+            await self.runner.cleanup()
+        self.logger.info("Stopped HTTP server gracefully")
 
     async def add_response_headers(self, request, response):
         for header, value in self.http["headers"].items():
             response.headers[header] = value
-
-    def stop(self):
-        self.stopping = True
 
     def _process_arg(self, arg, kwargs):
         if kwargs:
@@ -480,7 +496,7 @@ class HTTP:
     async def update_rss(self):
         # Grab RSS Feeds
         if self.rss_feeds is not None and self.rss_update is not None:
-            while not self.stopping:
+            while not self.AD.stopping:
                 try:
                     if self.rss_last_update is None or (self.rss_last_update + self.rss_update) <= time.time():
                         self.rss_last_update = time.time()
@@ -499,7 +515,7 @@ class HTTP:
                                 # RSS Feeds always live in the admin namespace
                                 await self.AD.state.set_state("rss", "admin", feed_data["target"], state=new_state)
 
-                    await asyncio.sleep(1)
+                    await self.AD.utility.sleep(1, timeout_ok=True)
                 except Exception:
                     self.logger.warning("-" * 60)
                     self.logger.warning("Unexpected error in update_rss()")

@@ -10,6 +10,7 @@ __pycache__/
 .Python
 env/
 build/
+docker_build/
 docs_build/
 develop-eggs/
 dist/
@@ -65,6 +66,7 @@ target/
 venv
 .venv
 uv.lock
+*.ipynb
 
 # Mac stuff
 .DS_Store

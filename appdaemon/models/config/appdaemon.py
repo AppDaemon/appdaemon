@@ -5,22 +5,35 @@ from pathlib import Path
 from typing import Annotated, Any, Literal
 
 import pytz
-from pydantic import BaseModel, BeforeValidator, ConfigDict, Discriminator, Field, RootModel, SecretStr, Tag, field_validator, model_validator
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Discriminator, Field, PlainSerializer, RootModel, SecretStr, Tag, field_validator, model_validator
 from pytz.tzinfo import BaseTzInfo
 from typing_extensions import deprecated
 
-from appdaemon import utils
-from appdaemon.models.config.http import CoercedPath
+from appdaemon.version import __version__
 
-from ...models.config.plugin import HASSConfig, MQTTConfig
-from ...version import __version__
+from .common import CoercedPath, CoercedRelPath, ParsedTimedelta
 from .misc import FilterConfig, NamespaceConfig
+from .plugin import HASSConfig, MQTTConfig, PluginConfig
 
-def plugin_discriminator(plugin):
-    if isinstance(plugin, dict):
-        return plugin["type"].lower()
-    else:
-        plugin.type
+
+def plugin_discriminator(plugin: dict[str, Any] | PluginConfig) -> Literal["hass", "mqtt", "custom"]:
+    """Determine which tag string to use for the plugin config.
+
+    Only built-in plugins like HASS and MQTT use their own config models. Custom plugins will fall back to the generic
+    PluginConfig model.
+    """
+    match plugin:
+        case {"type": str(t)} | PluginConfig(type=str(t)):
+            match t.lower():
+                case ("hass" | "mqtt") as type_:
+                    return type_
+    return "custom"
+
+
+DiscriminatedPluginConfig = Annotated[
+    Annotated[HASSConfig, Tag("hass")] | Annotated[MQTTConfig, Tag("mqtt")] | Annotated[PluginConfig, Tag("custom")],
+    Discriminator(plugin_discriminator),
+]
 
 
 class ModuleLoggingLevels(RootModel):
@@ -31,18 +44,15 @@ class AppDaemonConfig(BaseModel, extra="allow"):
     latitude: float
     longitude: float
     elevation: int
-    time_zone: Annotated[BaseTzInfo, BeforeValidator(pytz.timezone)]
-    plugins: dict[
-        str,
-        Annotated[
-            Annotated[HASSConfig, Tag("hass")] | Annotated[MQTTConfig, Tag("mqtt")],
-            Discriminator(plugin_discriminator),
-        ],
-    ] = Field(default_factory=dict)
+    time_zone: Annotated[BaseTzInfo, BeforeValidator(pytz.timezone), PlainSerializer(lambda tz: tz.zone)]
+    plugins: dict[str, DiscriminatedPluginConfig] = Field(default_factory=dict)
 
-    config_dir: Path
-    config_file: Path
-    app_dir: Path = "./apps"
+    config_dir: CoercedPath
+    config_file: CoercedPath
+    # The CoercedRelPath validator doesn't resolve the relative paths because it will be done relative to wherever
+    # AppDaemon is started from, which might not be the config directory.
+    app_dir: CoercedRelPath = Path("./apps")
+    """Directory to look for apps in, relative to config_dir if not absolute"""
 
     write_toml: bool = False
     ext: Literal[".yaml", ".toml"] = ".yaml"
@@ -52,10 +62,9 @@ class AppDaemonConfig(BaseModel, extra="allow"):
     starttime: datetime | None = None
     endtime: datetime | None = None
     timewarp: float = 1
-    max_clock_skew: int = 1
 
     loglevel: str = "INFO"
-    module_debug: ModuleLoggingLevels = Field(default_factory=dict)
+    module_debug: ModuleLoggingLevels = Field(default_factory=ModuleLoggingLevels)
 
     api_port: int | None = None
     api_key: SecretStr | None = None
@@ -63,14 +72,11 @@ class AppDaemonConfig(BaseModel, extra="allow"):
     api_ssl_key: CoercedPath | None = None
     stop_function: Callable | None = None
 
-    utility_delay: int = 1
-    admin_delay: int = 1
+    utility_delay: ParsedTimedelta = timedelta(seconds=1)
+    admin_delay: ParsedTimedelta = timedelta(seconds=1)
     plugin_performance_update: int = 10
     """How often in seconds to update the admin entities with the plugin performance data"""
-    max_utility_skew: Annotated[
-        timedelta,
-        BeforeValidator(utils.parse_timedelta)
-    ] = Field(default_factory=lambda: timedelta(seconds=2))
+    max_utility_skew: ParsedTimedelta = timedelta(seconds=2)
     check_app_updates_profile: bool = False
     production_mode: bool = False
     invalid_config_warnings: bool = True
@@ -79,10 +85,7 @@ class AppDaemonConfig(BaseModel, extra="allow"):
     qsize_warning_threshold: int = 50
     qsize_warning_step: int = 60
     qsize_warning_iterations: int = 10
-    internal_function_timeout: Annotated[
-        timedelta,
-        BeforeValidator(utils.parse_timedelta)
-    ] = Field(default_factory=lambda: timedelta(seconds=60))
+    internal_function_timeout: ParsedTimedelta = timedelta(seconds=60)
     """Timeout for internal function calls. This determines how long apps can wait in their thread for an async function
     to complete in the main thread."""
     use_dictionary_unpacking: Annotated[bool, deprecated("This option is no longer necessary")] = False
@@ -91,10 +94,15 @@ class AppDaemonConfig(BaseModel, extra="allow"):
     import_paths: list[Path] = Field(default_factory=list)
     namespaces: dict[str, NamespaceConfig] = Field(default_factory=dict)
     exclude_dirs: list[str] = Field(default_factory=list)
+    """List of directory names to exclude when searching for apps. This will always include __pycache__, build, and
+    .venv"""
     cert_verify: bool = True
     disable_apps: bool = False
     suppress_log_messages: bool = False
     """Suppresses the log messages based on the result field of the response"""
+    discard_init_events: bool = False
+    """If True, the thread workers will not do anything with events that arrive while the app is initializing. This can
+    be used to prevent race conditions at startup."""
     import_method: Literal["default", "legacy", "expert"] | None = None
 
     ascii_encode: bool = True
@@ -128,36 +136,50 @@ class AppDaemonConfig(BaseModel, extra="allow"):
         arbitrary_types_allowed=True,
         extra="allow",
         validate_assignment=True,
+        validate_default=True,
     )
     ad_version: str = __version__
 
-    @field_validator("config_dir", mode="after")
-    @classmethod
-    def convert_to_absolute(cls, v: Path):
-        return v.resolve()
+    @model_validator(mode="after")
+    def resolve_app_dir(self) -> "AppDaemonConfig":
+        if not self.app_dir.is_absolute():
+            self.app_dir = (self.config_dir / self.app_dir).resolve()
+        return self
 
     @field_validator("exclude_dirs", mode="after")
     @classmethod
-    def add_default_exclusions(cls, v: list[Path]):
+    def add_default_exclusions(cls, v: list[str]) -> list[str]:
         v.extend(["__pycache__", "build", ".venv"])
         return v
 
     @field_validator("loglevel", mode="before")
     @classmethod
-    def convert_loglevel(cls, v: str | int):
-        if isinstance(v, int):
-            return logging._levelToName[int]
-        elif isinstance(v, str):
-            v = v.upper()
-            assert v in logging._nameToLevel, f"Invalid log level: {v}"
-            return v
+    def convert_loglevel(cls, lvl: str | int) -> str:
+        match lvl:
+            case int():
+                return logging._levelToName[lvl]
+            case str():
+                lvl = lvl.upper()
+                assert lvl in logging._nameToLevel, f"Invalid log level: {lvl}"
+                return lvl
+            case _:
+                raise ValueError(f"Invalid log level: {lvl}")
 
     @field_validator("plugins", mode="before")
     @classmethod
     def validate_plugins(cls, v: Any):
+        # This is needed to set the name field in each plugin config to the name of the key used to define it.
         for n in set(v.keys()):
             v[n]["name"] = n
         return v
+
+    @model_validator(mode="before")
+    @classmethod
+    def validate_ad_cfg(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            if (file := data.get("config_file")) and not data.get("config_dir"):
+                data["config_dir"] = Path(file).parent
+        return data
 
     def model_post_init(self, __context: Any):
         # Convert app_dir to Path object
@@ -169,10 +191,11 @@ class AppDaemonConfig(BaseModel, extra="allow"):
 
         self.ext = ".toml" if self.write_toml else ".yaml"
 
-    @model_validator(mode="before")
-    @classmethod
-    def validate_ad_cfg(cls, data: Any) -> Any:
-        if isinstance(data, dict):
-            if (file := data.get("config_file")) and not data.get("config_dir"):
-                data["config_dir"] = Path(file).parent
-        return data
+        if self.total_threads is not None:
+            self.pin_apps = False
+
+        if self.pin_threads is not None and self.total_threads is not None:
+            # assert self.total_threads is not None, "Using pin_threads requires total_threads to be set."
+            assert self.pin_threads <= self.total_threads, (
+                "Number of pin threads has to be less than or equal to total threads."
+            )

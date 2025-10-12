@@ -11,4 +11,4 @@ class DashboardConfig(BaseModel):
     force_compile: BoolNum = False
     compile_on_start: BoolNum = False
     profile_dashboard: bool = False
-    dashboard: bool
+    dashboard: bool = False

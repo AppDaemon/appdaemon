@@ -14,14 +14,16 @@ from logging import Logger
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, TypeVar, overload
 
-from appdaemon import dependency, utils
+from appdaemon import dependency
 from appdaemon import exceptions as ade
+from appdaemon import utils
 from appdaemon.appdaemon import AppDaemon
 from appdaemon.entity import Entity
 from appdaemon.events import EventCallback
 from appdaemon.logging import Logging
 from appdaemon.models.config.app import AppConfig
-from appdaemon.state import StateCallback
+from appdaemon.parse import resolve_time_str
+from appdaemon.state import StateCallbackType
 
 T = TypeVar("T")
 
@@ -240,7 +242,7 @@ class ADAPI:
         stack_info: bool = False,
         stacklevel: int = 1,
         extra: Mapping[str, object] | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         """Logs a message to AppDaemon's main logfile.
 
@@ -731,7 +733,7 @@ class ADAPI:
             >>> self.save_namespace()
 
         """
-        namespace = namespace or self.namespace
+        namespace = namespace if namespace is not None else self.namespace
         await self.AD.state.save_namespace(namespace)
 
     #
@@ -785,7 +787,7 @@ class ADAPI:
     async def add_entity(
         self,
         entity_id: str,
-        state: str | dict[str, Any],
+        state: Any,
         attributes: dict | None = None,
         namespace: str | None = None,
     ) -> None:
@@ -1400,7 +1402,7 @@ class ADAPI:
     @utils.sync_decorator
     async def listen_state(
         self,
-        callback: StateCallback,
+        callback: StateCallbackType,
         entity_id: str | None,
         namespace: str | None = None,
         new: str | Callable[[Any], bool] | None = None,
@@ -1419,7 +1421,7 @@ class ADAPI:
     @utils.sync_decorator
     async def listen_state(
         self,
-        callback: StateCallback,
+        callback: StateCallbackType,
         entity_id: Iterable[str],
         namespace: str | None = None,
         new: str | Callable[[Any], bool] | None = None,
@@ -1437,7 +1439,7 @@ class ADAPI:
     @utils.sync_decorator
     async def listen_state(
         self,
-        callback: StateCallback,
+        callback: StateCallbackType,
         entity_id: str | Iterable[str] | None = None,
         namespace: str | None = None,
         new: str | Callable[[Any], bool] | None = None,
@@ -2442,7 +2444,6 @@ class ADAPI:
         """
         return await self.AD.sched.parse_time(
             time_str=time_str,
-            name=name or self.name,
             aware=aware,
             today=today,
             days_offset=days_offset,
@@ -2454,7 +2455,7 @@ class ADAPI:
         time_str: str,
         name: str | None = None,
         aware: bool = False,
-        today: bool = False,
+        today: bool | None = None,
         days_offset: int = 0,
     ) -> dt.datetime:
         """Creates a `datetime` object from its string representation.
@@ -2506,8 +2507,7 @@ class ADAPI:
             2019-08-16 06:33:17
         """
         return await self.AD.sched.parse_datetime(
-            time_str=time_str,
-            name=name or self.name,
+            input_=time_str,
             aware=aware,
             today=today,
             days_offset=days_offset,
@@ -2536,25 +2536,13 @@ class ADAPI:
         """
         return (await self.get_now(aware)).timestamp()
 
-    @overload
-    @utils.sync_decorator
-    async def now_is_between(self, start_time: str, end_time: str) -> bool: ...
-
-    @overload
-    @utils.sync_decorator
-    async def now_is_between(self, start_time: str, end_time: str, name: str) -> bool: ...
-
-    @overload
-    @utils.sync_decorator
-    async def now_is_between(self, start_time: str, end_time: str, now: str) -> bool: ...
-
     @utils.sync_decorator
     async def now_is_between(
         self,
-        start_time: str | dt.datetime,
-        end_time: str | dt.datetime,
+        start_time: str | dt.time | dt.datetime,
+        end_time: str | dt.time | dt.datetime,
         name: str | None = None,
-        now: str | None = None,
+        now: dt.datetime | None = None,
     ) -> bool:
         """Determine if the current `time` is within the specified start and end times.
 
@@ -2590,7 +2578,7 @@ class ADAPI:
             >>>     #do something
 
         """
-        return await self.AD.sched.now_is_between(start_time, end_time, name or self.name, now)
+        return await self.AD.sched.now_is_between(start_time=start_time, end_time=end_time, now=now)
 
     @utils.sync_decorator
     async def sunrise(self, aware: bool = False, today: bool = False, days_offset: int = 0) -> dt.datetime:
@@ -2791,7 +2779,7 @@ class ADAPI:
             callback: Function that will be called after the specified delay. It must conform to the standard scheduler
                 callback format documented `here <APPGUIDE.html#scheduler-callbacks>`__.
             delay (str, int, float, datetime.timedelta): Delay before the callback is executed. Numbers will be
-                interpreted as seconds. Strings can be in the format of ``HH:MM``, ``HH:MM:SS``, or
+                interpreted as seconds. Strings can be in the format of ``SS``, ``MM:SS``, ``HH:MM:SS``, or
                 ``DD days, HH:MM:SS``. If a ``timedelta`` object is given, it will be used as is.
             *args: Arbitrary positional arguments to be provided to the callback function when it is triggered.
             random_start (int, optional): Start of range of the random time.
@@ -2822,9 +2810,8 @@ class ADAPI:
 
 
         """
-        delay = delay if isinstance(delay, timedelta) else utils.parse_timedelta(delay)
-        assert isinstance(delay, timedelta), f"Invalid delay: {delay}"
-        self.logger.debug(f"Registering run_in in {delay.total_seconds():.1f}s for {self.name}")
+        delay = utils.parse_timedelta(delay)
+        self.logger.debug(f"Registering run_in in {utils.format_timedelta(delay)} for {self.name}")
         exec_time = (await self.get_now()) + delay
         sched_func = functools.partial(callback, *args, **kwargs)
         return await self.AD.sched.insert_schedule(
@@ -2911,7 +2898,7 @@ class ADAPI:
     async def run_at(
         self,
         callback: Callable,
-        start: str | dt.time | dt.datetime | None = None,
+        start: str | dt.time | dt.datetime,
         *args,
         random_start: int | None = None,
         random_end: int | None = None,
@@ -2948,49 +2935,55 @@ class ADAPI:
             Run at 10:30am today, or 10:30am tomorrow if it is already after 10:30am.
 
             >>> def delayed_callback(self, **kwargs): ...  # example callback
-            >>> handle = self.run_once(self.delayed_callback, datetime.time(10, 30, 0))
+            >>> handle = self.run_at(self.delayed_callback, datetime.time(10, 30, 0))
 
             Run today at 04:00pm using the `parse_time()` function.
 
             >>> def delayed_callback(self, **kwargs): ...  # example callback
-            >>> handle = self.run_once(self.delayed_callback, "04:00:00 PM")
+            >>> handle = self.run_at(self.delayed_callback, "04:00:00 PM")
 
             Run at sunset.
 
             >>> def delayed_callback(self, **kwargs): ...  # example callback
-            >>> handle = self.run_once(self.delayed_callback, "sunset")
+            >>> handle = self.run_at(self.delayed_callback, "sunset")
 
             Run an hour after sunrise.
 
             >>> def delayed_callback(self, **kwargs): ...  # example callback
-            >>> handle = self.run_once(self.delayed_callback, "sunrise + 01:00:00")
+            >>> handle = self.run_at(self.delayed_callback, "sunrise + 01:00:00")
 
         """
+        start = "now" if start is None else start
         match start:
-            case str():
-                info = await self.AD.sched._parse_time(start, self.name)
-                start = info["datetime"]
-            case dt.time():
-                if start.tzinfo is None:
-                    start = start.replace(tzinfo=self.AD.tz)
-                date = await self.date()
-                start = dt.datetime.combine(date, start)
-            case dt.datetime():
-                ...
+            case str() as start_str if start.startswith("sun"):
+                if start.startswith("sunrise"):
+                    func = self.run_at_sunrise
+                elif start.startswith("sunset"):
+                    func = self.run_at_sunset
+                else:
+                    raise ValueError(f"Invalid sun event: {start_str}")
+
+                now = await self.get_now() # type: ignore
+                _, offset = resolve_time_str(start_str, now=now, location=self.AD.sched.location)
+                func = functools.partial(func, *args, repeat=True, offset=offset)
             case _:
-                raise ValueError("Invalid type for start")
+                start = await self.AD.sched.parse_datetime(start, aware=True)
+                func = functools.partial(
+                    self.AD.sched.insert_schedule,
+                    name=self.name,
+                    aware_dt=start,
+                    interval=timedelta(days=1).total_seconds()
+                )  # fmt: skip
 
-        self.logger.debug("Registering run_at at %s for %s", start, self.name)
-
-        return await self.AD.sched.insert_schedule(
-            name=self.name,
-            aware_dt=start,
+        func = functools.partial(
+            func,
             callback=functools.partial(callback, *args, **kwargs),
             random_start=random_start,
             random_end=random_end,
             pin=pin,
             pin_thread=pin_thread,
         )
+        return await func()  # type: ignore
 
     @utils.sync_decorator
     async def run_daily(
@@ -3052,36 +3045,38 @@ class ADAPI:
             >>> handle = self.run_daily(self.daily_callback, "sunset + 01:00:00")
 
         """
-        offset = 0
-        sun: Literal["sunrise", "sunset"] | None = None
+        start = "now" if start is None else start
         match start:
-            case str():
-                info = await self.AD.sched._parse_time(start, self.name)
-                start, offset, sun = info["datetime"], info["offset"], info["sun"]
-            case dt.time():
-                if start.tzinfo is None:
-                    start = start.replace(tzinfo=self.AD.tz)
-                date = await self.date()
-                start = dt.datetime.combine(date, start)
-            case dt.datetime():
-                ...
-            case _:
-                raise ValueError("Invalid type for start")
+            case str() as start_str if start.startswith("sun"):
+                if start.startswith("sunrise"):
+                    func = self.run_at_sunrise
+                elif start.startswith("sunset"):
+                    func = self.run_at_sunset
+                else:
+                    raise ValueError(f"Invalid sun event: {start_str}")
 
-        ad_kwargs = dict(
+                now = await self.get_now() # type: ignore
+                _, offset = resolve_time_str(start_str, now=now, location=self.AD.sched.location)
+                func = functools.partial(func, callback, *args, repeat=True, offset=offset)
+            case _:
+                func = functools.partial(
+                    self.run_every,
+                    callback,
+                    start,
+                    timedelta(days=1).total_seconds(),
+                    *args,
+                )  # fmt: skip
+
+        # Add additional kwargs here
+        func = functools.partial(
+            func,
             random_start=random_start,
             random_end=random_end,
             pin=pin,
             pin_thread=pin_thread,
-        )
-
-        match sun:
-            case None:
-                return await self.run_every(callback, start, timedelta(days=1), *args, **ad_kwargs, **kwargs)
-            case "sunrise":
-                return await self.run_at_sunrise(callback, *args, repeat=True, offset=offset, **ad_kwargs, **kwargs)
-            case "sunset":
-                return await self.run_at_sunset(callback, *args, repeat=True, offset=offset, **ad_kwargs, **kwargs)
+            **kwargs
+        )  # fmt: skip
+        return await func() # type: ignore
 
     @utils.sync_decorator
     async def run_hourly(
@@ -3211,7 +3206,7 @@ class ADAPI:
         self,
         callback: Callable,
         start: str | dt.time | dt.datetime | None = None,
-        interval: str | int | float | dt.timedelta = 0,
+        interval: str | int | float | timedelta = 0,
         *args,
         random_start: int | None = None,
         random_end: int | None = None,
@@ -3298,31 +3293,12 @@ class ADAPI:
 
         """
         interval = utils.parse_timedelta(interval)
-        assert isinstance(interval, dt.timedelta)
-
-        match start:
-            case str():
-                if not start.startswith("now"):
-                    info = await self.AD.sched._parse_time(start, self.name)
-                    start = info["datetime"]
-            case dt.time():
-                if start.tzinfo is None:
-                    start = start.replace(tzinfo=self.AD.tz)
-                date = await self.date()
-                start = dt.datetime.combine(date, start)
-            case dt.datetime():
-                ...
-            case None:
-                pass  # This will be handled by get_next_period
-            case _:
-                raise ValueError("Invalid type for start")
-
         next_period = await self.AD.sched.get_next_period(interval, start)
 
         self.logger.debug(
             "Registering %s for run_every in %s intervals, starting %s",
             callback.__name__,
-            interval,
+            utils.format_seconds(interval),
             next_period,
         )
 
@@ -3344,7 +3320,7 @@ class ADAPI:
         callback: Callable,
         *args,
         repeat: bool = True,
-        offset: int | None = None,
+        offset: str | int | float | timedelta | None = None,
         random_start: int | None = None,
         random_end: int | None = None,
         pin: bool | None = None,
@@ -3417,7 +3393,7 @@ class ADAPI:
         callback: Callable,
         *args,
         repeat: bool = True,
-        offset: int | None = None,
+        offset: str | int | float | timedelta | None = None,
         random_start: int | None = None,
         random_end: int | None = None,
         pin: bool | None = None,
@@ -3468,7 +3444,7 @@ class ADAPI:
             >>> self.run_at_sunrise(self.sun, random_start = -60*60, random_end = 30*60)
 
         """
-        sunrise = await self.AD.sched.sunrise(today=False, aware=True)
+        sunrise = await self.AD.sched.next_sunrise()
         td = utils.parse_timedelta(offset)
         self.logger.debug(f"Registering run_at_sunrise at {sunrise + td} with {args}, {kwargs}")
         return await self.AD.sched.insert_schedule(
@@ -3726,9 +3702,8 @@ class ADAPI:
         return task
 
     @staticmethod
-    async def sleep(delay: float, result=None) -> None:
+    async def sleep(delay: float, result: T = None) -> T:
         """Pause execution for a certain time span
-        (not available in sync apps)
 
         Args:
             delay (float): Number of seconds to pause.

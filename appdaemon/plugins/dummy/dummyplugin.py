@@ -11,7 +11,6 @@ class DummyPlugin(PluginBase):
         super().__init__(ad, name, args)
 
         self.AD = ad
-        self.stopping = False
         self.config = args
         self.name = name
 
@@ -47,7 +46,6 @@ class DummyPlugin(PluginBase):
 
     def stop(self):
         self.logger.debug("stop() called for %s", self.name)
-        self.stopping = True
 
     #
     # Get initial state
@@ -83,11 +81,11 @@ class DummyPlugin(PluginBase):
             await self.get_metadata(),
             await self.get_complete_state(),
         )
-        while not self.stopping:
+        while not self.AD.stopping:
             if self.current_event >= len(self.config["sequence"]["events"]) and (
                 "loop" in self.config["sequence"] and self.config["loop"] == 0 or "loop" not in self.config["sequence"]
             ):
-                while not self.stopping:
+                while not self.AD.stopping:
                     await asyncio.sleep(1)
                 return None
             else:

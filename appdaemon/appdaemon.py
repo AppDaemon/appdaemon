@@ -1,7 +1,9 @@
+import asyncio
 import os
 import threading
-from asyncio import BaseEventLoop
+from asyncio import AbstractEventLoop
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import ExitStack
 from pathlib import Path
 from threading import RLock
 from typing import TYPE_CHECKING, Any
@@ -21,14 +23,12 @@ from appdaemon.thread_async import ThreadAsync
 from appdaemon.threads import Threading
 from appdaemon.utility_loop import Utility
 
-from .utils import Singleton
-
 if TYPE_CHECKING:
     from appdaemon.http import HTTP
     from appdaemon.logging import Logging
 
 
-class AppDaemon(metaclass=Singleton):
+class AppDaemon:
     """Top-level container for the subsystem objects. This gets passed to the subsystem objects and stored in them as
     the ``self.AD`` attribute.
 
@@ -73,42 +73,53 @@ class AppDaemon(metaclass=Singleton):
     """
 
     # asyncio
-    loop: BaseEventLoop
+    loop: AbstractEventLoop
     """Main asyncio event loop
     """
     executor: ThreadPoolExecutor
     """Executes functions from a pool of async threads. Configured with the ``threadpool_workers`` key. Defaults to 10.
     """
+    exit_stack: ExitStack
 
     # subsystems
-    app_management: "AppManagement"
-    callbacks: "Callbacks"
-    events: "Events"
-    futures: "Futures"
+    app_management: AppManagement
+    callbacks: Callbacks
+    events: Events
+    futures: Futures
     logging: "Logging"
-    plugins: "PluginManagement"
-    scheduler: "Scheduler"
-    services: "Services"
-    sequences: "Sequences"
-    state: "State"
-    threading: "Threading"
-    thread_async: "ThreadAsync | None" = None
-    utility: "Utility"
+    plugins: PluginManagement
+    scheduler: Scheduler
+    services: Services
+    sequences: Sequences
+    state: State
+    threading: Threading
+    thread_async: ThreadAsync
+    utility: Utility
 
     admin_loop: "AdminLoop | None" = None
     http: "HTTP | None" = None
     global_lock: RLock = RLock()
 
-    # shut down flag
-    stopping: bool = False
+    stop_event: asyncio.Event
+    """Flag to indicate that AppDaemon is stopping. Set by :meth:`~.appdaemon.AppDaemon.stop` and checked by subsystems."""
+    stop_time: float = 0.0
+    """Stores the value of perf_counter() when self.stop is first called."""
 
-    def __init__(self, logging: "Logging", loop: BaseEventLoop, ad_config_model: AppDaemonConfig):
+    def __init__(
+        self,
+        logging: "Logging",
+        loop: AbstractEventLoop,
+        ad_config_model: AppDaemonConfig,
+        exit_stack: ExitStack | None = None,
+    ) -> None:
         self.logging = logging
         self.loop = loop
+        self.exit_stack = exit_stack if exit_stack is not None else ExitStack()
         self.config = ad_config_model
         self.booted = "booting"
         self.logger = logging.get_logger()
         self.logging.register_ad(self)  # needs to go last to reference the config object
+        self.stop_event = asyncio.Event()
 
         self.global_vars: Any = {}
         self.main_thread_id = threading.current_thread().ident
@@ -120,9 +131,10 @@ class AppDaemon(metaclass=Singleton):
         self.sequences = Sequences(self)
         self.sched = Scheduler(self)
         self.state = State(self)
+        self.thread_async = ThreadAsync(self)
         self.futures = Futures(self)
 
-        if not self.apps:
+        if not self.apps_enabled:
             self.logger.info("Apps are disabled, skipping app management initialization")
         else:
             assert self.config_dir is not None, "Config_dir not set. This is a development problem"
@@ -147,28 +159,13 @@ class AppDaemon(metaclass=Singleton):
             self.app_management = AppManagement(self)
 
         self.threading = Threading(self)
-
-        # Create ThreadAsync loop
-        self.logger.debug("Starting thread_async loop")
-        self.thread_async = ThreadAsync(self)
-        loop.create_task(self.thread_async.loop())
-
         self.executor = ThreadPoolExecutor(max_workers=self.threadpool_workers)
-
-        # Initialize Plugins
-        self.plugins = PluginManagement(self, self.config.plugins)
-
-        # Create utility loop
-        self.logger.debug("Starting utility loop")
         self.utility = Utility(self)
-        loop.create_task(self.utility.loop())
+        self.plugins = PluginManagement(self, self.config.plugins)
 
     #
     # Property definitions
     #
-    @property
-    def admin_delay(self) -> int:
-        return self.config.admin_delay
 
     @property
     def api_port(self) -> int | None:
@@ -184,9 +181,16 @@ class AppDaemon(metaclass=Singleton):
         self.config.app_dir = Path(path)
 
     @property
-    def apps(self):
+    def apps_enabled(self):
         """Flag for whether ``disable_apps`` was set in the AppDaemon config"""
         return not self.config.disable_apps
+
+    @apps_enabled.setter
+    def apps_enabled(self, value: bool) -> None:
+        """Set whether apps are enabled or disabled"""
+        self.config.disable_apps = not value
+        action = "enabled" if value else "disabled"
+        self.logger.info(f"Apps {action}")
 
     @property
     def certpath(self):
@@ -254,14 +258,6 @@ class AppDaemon(metaclass=Singleton):
         return self.config.longitude
 
     @property
-    def max_clock_skew(self):
-        return self.config.max_clock_skew
-
-    @property
-    def max_utility_skew(self):
-        return self.config.max_utility_skew
-
-    @property
     def missing_app_warnings(self):
         return self.config.invalid_config_warnings
 
@@ -296,12 +292,35 @@ class AppDaemon(metaclass=Singleton):
         return self.config.qsize_warning_threshold
 
     @property
+    def real_time(self) -> bool:
+        """Flag for whether the AppDaemon instance is running in real time or not."""
+        return self.config.timewarp == 1
+
+    @real_time.setter
+    def real_time(self, value: bool) -> None:
+        """Set the AppDaemon instance to run in real time or not."""
+        if value:
+            self.timewarp = 1.0
+        else:
+            raise NotImplementedError("Setting real_time to False is not supported. Set timewarp to a value other than 1.0 instead.")
+
+    @property
     def starttime(self):
         return self.config.starttime
 
     @property
-    def stop_function(self):
-        return self.config.stop_function or self.stop
+    def stopping(self) -> bool:
+        """Check if the AppDaemon instance is stopping."""
+        return self.stop_event.is_set()
+
+    @stopping.setter
+    def stopping(self, value: bool) -> None:
+        """Set the stopping state of the AppDaemon instance."""
+        if value:
+            self.stop_event.set()
+            self.logger.debug("Set stop event")
+        else:
+            self.stop_event.clear()
 
     @property
     def thread_duration_warning_threshold(self):
@@ -319,6 +338,14 @@ class AppDaemon(metaclass=Singleton):
     def timewarp(self):
         return self.config.timewarp
 
+    @timewarp.setter
+    def timewarp(self, value: float):
+        """Set the timewarp value for the AppDaemon instance."""
+        if not isinstance(value, (int, float)):
+            raise TypeError("Timewarp must be a number.")
+        self.config.timewarp = value
+        self.logger.info(f"Timewarp set to {value}")
+
     @property
     def tz(self):
         return self.config.time_zone
@@ -335,32 +362,66 @@ class AppDaemon(metaclass=Singleton):
     def utility_delay(self):
         return self.config.utility_delay
 
-    def stop(self):
-        """Called by the signal handler to shut AD down.
+    def start(self) -> None:
+        """Start AppDaemon, which also starts all the component subsystems like the scheduler, etc.
 
-        Also stops
+        - :meth:`ThreadAsync <appdaemon.thread_async.ThreadAsync.start>`
+        - :meth:`Scheduler <appdaemon.scheduler.Scheduler.start>`
+        - :meth:`Utility <appdaemon.utility_loop.Utility.start>`
+        - :meth:`AppManagement <appdaemon.app_management.AppManagement.start>`
 
-        - :class:`~.admin_loop.AdminLoop`
-        - :class:`~.thread_async.ThreadAsync`
-        - :class:`~.scheduler.Scheduler`
-        - :class:`~.utility_loop.Utility`
-        - :class:`~.plugin_management.Plugins`
         """
+        self.logger.debug("Starting AppDaemon")
+        self.thread_async.start()
+        self.sched.start()
+        self.utility.start()
+
+        if self.apps_enabled:
+            self.app_management.start()
+
+    async def stop(self) -> None:
+        """Stop AppDaemon by calling the stop method of the subsystems.
+
+        This does not stop the event loop, but waits for all the existings tasks to finish before returning, which has a 3s timeout.
+
+        - :meth:`AppManagement <appdaemon.app_management.AppManagement.stop>`
+        - :meth:`ThreadAsync <appdaemon.thread_async.ThreadAsync.stop>`
+        - :meth:`Plugins <appdaemon.plugin_management.Plugins.stop>`
+        - :meth:`Scheduler <appdaemon.scheduler.Scheduler.stop>`
+        - :meth:`State <appdaemon.state.State.stop>`
+        """
+        self.logger.info("Stopping AppDaemon")
         self.stopping = True
-        if self.admin_loop is not None:
-            self.admin_loop.stop()
+
+        # Subsystems are able to create tasks during their stop methods
+        if self.apps_enabled:
+            try:
+                await asyncio.wait_for(self.app_management.stop(), timeout=3)
+            except asyncio.TimeoutError:
+                self.logger.warning("AppManagement stop timed out, continuing shutdown")
         if self.thread_async is not None:
             self.thread_async.stop()
-        if self.sched is not None:
-            self.sched.stop()
-        if self.utility is not None:
-            self.utility.stop()
         if self.plugins is not None:
-            self.plugins.stop()
+            try:
+                await asyncio.wait_for(self.plugins.stop(), timeout=1)
+            except asyncio.TimeoutError:
+                self.logger.warning("Timed out stopping plugins, continuing shutdown")
+        self.sched.stop()
+        self.state.stop()
+        self.threading.stop()
 
-    def terminate(self):
-        if self.state is not None:
-            self.state.terminate()
+        self.executor.shutdown(wait=True)
+
+        # This creates a task that will wait for all the ones that were running when stop() was called to finish
+        # before stopping the event loop. This allows subsystems to create tasks during their own stop methods
+        current_task = asyncio.current_task()
+        running_tasks = [task for task in asyncio.all_tasks() if task is not current_task]
+        if running_tasks:
+            all_coro = asyncio.wait(running_tasks, return_when=asyncio.ALL_COMPLETED, timeout=3)
+            gather_task = asyncio.create_task(all_coro, name="appdaemon_stop_tasks")
+            gather_task.add_done_callback(lambda _: self.logger.debug("All tasks finished"))
+            self.logger.debug("Waiting for tasks to finish...")
+            await gather_task
 
     #
     # Utilities
@@ -376,4 +437,4 @@ class AppDaemon(metaclass=Singleton):
             self.logger.debug("Starting admin loop")
 
             self.admin_loop = AdminLoop(self)
-            self.loop.create_task(self.admin_loop.loop())
+            self.loop.create_task(self.admin_loop.loop(), name="admin loop")

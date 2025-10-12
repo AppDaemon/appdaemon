@@ -1,7 +1,8 @@
-import asyncio
 import functools
 from enum import Enum, auto
 from typing import TYPE_CHECKING
+
+from appdaemon import utils
 
 if TYPE_CHECKING:
     from .hassplugin import HassPlugin
@@ -18,13 +19,14 @@ def looped_coro(coro, sleep_time: int | float):
 
     @functools.wraps(coro)
     async def loop(self: "HassPlugin", *args, **kwargs):
-        while not self.stopping:
+        while not self.AD.stopping:
             try:
                 await coro()
             except Exception:
-                self.logger.error(f"Error running {coro.__name__} - retrying in {sleep_time}s")
+                sleep_time_str = utils.format_timedelta(sleep_time)
+                self.logger.error(f"Error running {coro.__name__} - retrying in {sleep_time_str}")
             finally:
-                await asyncio.sleep(sleep_time)
+                await self.AD.utility.sleep(sleep_time, timeout_ok=True)
 
     return loop
 

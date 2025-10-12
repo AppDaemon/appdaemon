@@ -1,0 +1,22 @@
+line-length = 200
+indent-width = 4
+
+[lint]
+# Enable pycodestyle (`E`) and Pyflakes (`F`) codes by default.
+extend-select = ["COM", "E", "F", "UP", "I"]
+extend-ignore = ["COM812"]
+
+# Allow autofix for all enabled rules (when `--fix`) is provided.
+extend-fixable = ["E", "F", "UP", "I"]
+extend-unfixable = []
+
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+per-file-ignores = {}
+
+[lint.mccabe]
+max-complexity = 5
+
+[format]
+docstring-code-format = true

@@ -13,7 +13,9 @@ if TYPE_CHECKING:
 
 
 class ServiceCallback(Protocol):
-    def __call__(self, result: Any) -> None: ...
+    """Simple :py:class:`~typing.Protocol` for callbacks for service results."""
+    def __call__(self, result: Any) -> None:
+        """Required form of the callback function for a service result."""
 
 
 class Services:
@@ -21,6 +23,13 @@ class Services:
 
     Attributes:
         AD: Reference to the AppDaemon container object
+        services: AppDaemon's internal service registry, which is a set of nested dicts, organized like this:
+
+            * Namespace
+            * Domain
+            * Service name
+            * Service Info
+        services_lock: Re-entrant lock for preventing the service dict from being read and modified at the same time.
     """
 
     AD: "AppDaemon"
@@ -38,7 +47,8 @@ class Services:
         ]
     ] = {}
     services_lock: threading.RLock = threading.RLock()
-    app_registered_services: defaultdict[str, set[str]] = defaultdict(set)
+    app_registered_services: defaultdict[str, set[str]] = defaultdict(set)  # TODO: remove this
+
 
     def __init__(self, ad: "AppDaemon"):
         self.AD = ad

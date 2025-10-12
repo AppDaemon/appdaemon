@@ -191,6 +191,12 @@ The following options are available under the ``appdaemon`` section:
     - Use this directive to add additional arbitrary directories to the python interpreter's search path. Directories must be fully qualified.
     - No
 
+  * - discard_init_events
+    - If set to ``1``, AppDaemon will discard all events that occur while an app is running it's initialize() method. This can be useful to avoid race conditions
+      when callbacks are registered, and incoming events occu before the app has finished initializing. Note that this will prevent any event, including state changes,
+      events and scheduler callbacks form being executed until initialize() is complete
+    - No
+
 
 .. _filters:
 

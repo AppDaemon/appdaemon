@@ -28,7 +28,7 @@ if __name__ == Path(__file__).name:
     # having configured the error logger to use a different name than 'Error'
     Logging().get_error().warning(
         "Importing 'hassapi' directly is deprecated and will be removed in a future version. "
-        "To use the Hass plugin use 'from appdaemon.plugins import hass' instead.",
+        "To use the Hass plugin use 'from appdaemon.plugins.hass import Hass' instead.",
     )
 
 
@@ -69,8 +69,7 @@ class Hass(ADBase, ADAPI):
 
     @utils.sync_decorator
     async def check_for_entity(self, entity_id: str, namespace: str | None = None) -> bool:
-        """Uses the REST API to check if an entity exists instead of checking
-        AD's internal state.
+        """Uses the REST API to check if an entity exists instead of checking AppDaemon's internal state.
 
         Args:
             entity_id (str): Fully qualified id.
@@ -81,10 +80,14 @@ class Hass(ADBase, ADAPI):
         Returns:
             Bool of whether the entity exists.
         """
-        plugin: "HassPlugin" = self.AD.plugins.get_plugin_object(
-            namespace or self.namespace
-        )
-        return await plugin.check_for_entity(entity_id)
+        namespace = namespace if namespace is not None else self.namespace
+        match self.AD.plugins.get_plugin_object(namespace):
+            case HassPlugin() as plugin:
+                match await plugin.check_for_entity(entity_id):
+                    case dict():
+                        return True
+        return False
+
 
     #
     # Internal Helpers
@@ -119,18 +122,28 @@ class Hass(ADBase, ADAPI):
             - Asserts that the entity is in the right domain.
             - Displays a warning if the entity doesn't exist in the namespace.
         """
-        namespace = namespace or self.namespace
-        domain = service.split('/')[0]
+        namespace = namespace if namespace is not None else self.namespace
+        service_domain = service.split('/')[0]
+
+        def _check(entity_ids: Iterable[str]) -> None:
+            for eid in entity_ids:
+                entity_domain = eid.split('.')[0]
+                # This check needs to work for domains like "number" and "input_number"
+                assert entity_domain in service_domain, (
+                    f"Entity domain '{entity_domain}' does not match service domain '{service_domain}'"
+                )
+                self._check_entity(namespace, eid)
 
         match entity_id:
             case str():
-                assert domain == entity_id.split('.')[0], f'{entity_id} does not match domain for {service}'
-                self._check_entity(namespace, entity_id)
-            case Iterable():
-                entity_id = entity_id if isinstance(entity_id, list) else list(entity_id)
-                for e in entity_id:
-                    assert domain == e.split('.')[0], f'{e} does not match domain for {service}'
-                    self._check_entity(namespace, e)
+                _check([entity_id])
+            case list(entity_ids):
+                _check(entity_ids)
+            case Iterable() as entity_ids:
+                entity_id = entity_ids if isinstance(entity_ids, list) else list(entity_ids)
+                _check(entity_id)
+            case _:
+                raise TypeError('entity_id must be a string or an iterable of strings')
 
         return await self.call_service(
             service=service,
@@ -355,31 +368,33 @@ class Hass(ADBase, ADAPI):
 
     def constrain_presence(self, value: Literal["everyone", "anyone", "noone"] | None = None) -> bool:
         """Returns True if unconstrained"""
-        match value.lower():
-            case "everyone":
-                return not self.everyone_home()
-            case "anyone":
-                return not self.anyone_home()
-            case "noone":
-                return not self.noone_home()
+        match value:
             case None:
                 return True
-            case _:
-                raise ValueError(f'Invalid presence constraint: {value}')
+            case str(value_str):
+                match value_str.strip().lower():
+                    case "everyone":
+                        return self.everyone_home()
+                    case "anyone":
+                        return self.anyone_home()
+                    case "noone":
+                        return self.noone_home()
+        raise ValueError(f'Invalid presence constraint: {value}')
 
     def constrain_person(self, value: Literal["everyone", "anyone", "noone"] | None = None) -> bool:
         """Returns True if unconstrained"""
-        match value.lower():
-            case "everyone":
-                return not self.everyone_home(person=True)
-            case "anyone":
-                return not self.anyone_home(person=True)
-            case "noone":
-                return not self.noone_home(person=True)
+        match value:
             case None:
                 return True
-            case _:
-                raise ValueError(f'Invalid presence constraint: {value}')
+            case str(value_str):
+                match value_str.strip().lower():
+                    case "everyone":
+                        return self.everyone_home(person=True)
+                    case "anyone":
+                        return self.anyone_home(person=True)
+                    case "noone":
+                        return self.noone_home(person=True)
+        raise ValueError(f'Invalid presence constraint: {value}')
 
     def constrain_input_boolean(self, value: str | Iterable[str]) -> bool:
         """Returns True if unconstrained - all input_booleans match the desired
@@ -445,7 +460,7 @@ class Hass(ADBase, ADAPI):
     ) -> Any: ...
 
     @utils.sync_decorator
-    async def call_service(self, *args, **kwargs) -> Any:
+    async def call_service(self, *args, timeout: str | int | float | None = None, **kwargs) -> Any:
         """Calls a Service within AppDaemon.
 
         Services represent specific actions, and are generally registered by plugins or provided by AppDaemon itself.
@@ -528,7 +543,8 @@ class Hass(ADBase, ADAPI):
 
         """
         # We just wrap the ADAPI.call_service method here to add some additional arguments and docstrings
-        return await super().call_service(*args, **kwargs)
+        kwargs = utils.remove_literals(kwargs, (None,))
+        return await super().call_service(*args, timeout=timeout, **kwargs)
 
     def get_service_info(self, service: str) -> dict | None:
         """Get some information about what kind of data the service expects to receive, which is helpful for debugging.
@@ -677,9 +693,9 @@ class Hass(ADBase, ADAPI):
         days: int | None = None,
         start_time: datetime | str | None = None,
         end_time: datetime | str | None = None,
-        minimal_response: bool | None = None,
-        no_attributes: bool | None = None,
-        significant_changes_only: bool | None = None,
+        minimal_response: bool = False,
+        no_attributes: bool = False,
+        significant_changes_only: bool = False,
         callback: Callable | None = None,
         namespace: str | None = None,
     ) -> list[list[dict[str, Any]]] | None:
@@ -750,16 +766,13 @@ class Hass(ADBase, ADAPI):
             >>> data = self.get_history(end_time = end_time, days = 5)
 
         """
-
-        namespace = namespace or self._namespace
-
         if days is not None:
-            end_time = end_time or await self.get_now()
+            end_time = self.parse_datetime(end_time) if end_time is not None else await self.get_now()
             start_time = end_time - timedelta(days=days)
 
-        plugin = self.AD.plugins.get_plugin_object(namespace or self.namespace)
-        match plugin:
-            case HassPlugin():
+        namespace = namespace if namespace is not None else self.namespace
+        match self.AD.plugins.get_plugin_object(namespace):
+            case HassPlugin() as plugin:
                 coro = plugin.get_history(
                     filter_entity_id=entity_id,
                     timestamp=start_time,
@@ -774,21 +787,18 @@ class Hass(ADBase, ADAPI):
                 else:
                     return await coro
             case _:
-                self.logger.warning(
-                    "Wrong Namespace selected, as %s has no database plugin attached to it",
-                    namespace,
-                )
+                self.logger.warning("HASS plugin not found in namespace '%s'", namespace)
 
     @utils.sync_decorator
     async def get_logbook(
         self,
         entity: str | None = None,
-        start_time: datetime | None = None,
-        end_time: datetime | None = None,
+        start_time: datetime | str | None = None,
+        end_time: datetime | str | None = None,
         days: int | None = None,
         callback: Callable | None = None,
         namespace: str | None = None,
-    ) -> list[dict[str, str | datetime]]:
+    ) -> list[dict[str, str | datetime]] | None:
         """Gets access to the HA Database.
         This is a convenience function that allows accessing the HA Database.
         Caution must be taken when using this, as depending on the size of the
@@ -826,23 +836,24 @@ class Hass(ADBase, ADAPI):
 
         """
         if days is not None:
-            end_time = end_time or await self.get_now()
+            end_time = self.parse_datetime(end_time) if end_time is not None else await self.get_now()
             start_time = end_time - timedelta(days=days)
 
-        plugin: "HassPlugin" = self.AD.plugins.get_plugin_object(
-            namespace or self.namespace
-        )
-        if plugin is not None:
-            coro = plugin.get_logbook(
-                entity=entity,
-                timestamp=start_time,
-                end_time=end_time,
-            )
+        namespace = namespace if namespace is not None else self.namespace
+        match self.AD.plugins.get_plugin_object(namespace):
+            case HassPlugin() as plugin:
+                coro = plugin.get_logbook(
+                    entity=entity,
+                    timestamp=start_time,
+                    end_time=end_time,
+                )
 
-            if callback is not None and callable(callback):
-                self.create_task(coro, callback)
-            else:
-                return await coro
+                if callback is not None and callable(callback):
+                    self.create_task(coro, callback)
+                else:
+                    return await coro
+            case _:
+                self.logger.warning("HASS plugin not found in namespace '%s'", namespace)
 
     # Input Helpers
 
@@ -993,7 +1004,7 @@ class Hass(ADBase, ADAPI):
             namespace=namespace,
         )
 
-    def last_pressed(self, button_id: str, namespace: str | None = None) -> datetime:
+    def last_pressed(self, button_id: str, namespace: str | None = None) -> datetime | None:
         """Only works on entities in the input_button domain"""
         assert button_id.split('.')[0] == 'input_button'
         state = self.get_state(button_id, namespace=namespace)
@@ -1005,14 +1016,17 @@ class Hass(ADBase, ADAPI):
             case _:
                 self.logger.warning(f'Unknown time: {state}')
 
-    def time_since_last_press(self, button_id: str, namespace: str | None = None) -> timedelta:
+    def time_since_last_press(self, button_id: str, namespace: str | None = None) -> timedelta | None:
         """Only works on entities in the input_button domain"""
-        return self.get_now() - self.last_pressed(button_id, namespace)
+        match self.last_pressed(button_id, namespace):
+            case datetime() as dt:
+                return self.get_now() - dt
+            case _:
+                self.logger.warning("Unknown last pressed time for %s", button_id)
 
     #
     # Notifications
     #
-
     @utils.sync_decorator
     async def notify(
         self,
@@ -1056,27 +1070,29 @@ class Hass(ADBase, ADAPI):
         )
 
     @utils.sync_decorator
-    async def persistent_notification(self, message: str, title=None, id=None) -> None:
-        kwargs = {"message": message}
+    async def persistent_notification(self, message: str, title: str | None = None, id: int | None = None) -> None:
+        kwargs: dict[str, Any] = {"message": message}
         if title is not None:
             kwargs["title"] = title
         if id is not None:
             kwargs["notification_id"] = id
         await self.call_service("persistent_notification/create", **kwargs)
 
-    @overload
     def notify_android(
         self,
         device: str,
-        tag: str,
-        title: str,
-        message: str,
-        target: str,
-        **data
-    ) -> dict: ...
-
-    def notify_android(self, device: str, tag: str = 'appdaemon', **kwargs) -> dict:
+        tag: str = 'appdaemon',
+        title: str | None = None,
+        message: str | None = None,
+        target: str | None = None,
+        **kwargs: Any,
+    ) -> dict:
         """Convenience method for quickly creating mobile Android notifications"""
+        kwargs.update({
+            'title': title,
+            'message': message,
+            'target': target,
+        })
         return self._notify_mobile_app(device, AndroidData, tag, **kwargs)
 
     def notify_ios(self, device: str, tag: str = 'appdaemon', **kwargs) -> dict:
@@ -1086,20 +1102,24 @@ class Hass(ADBase, ADAPI):
     def _notify_mobile_app(
         self,
         device: str,
-        model: str | Type[NotificationData],
+        type_: str | Type[NotificationData],
         tag: str = 'appdaemon',
         **kwargs
     ) -> dict:
-        match model:
+        match type_:
             case NotificationData():
                 pass
             case 'android':
                 model = AndroidData
             case 'iOS' | 'ios':
                 model = iOSData
+            case _:
+                raise ValueError(f'Unknown model type: {type_}')
 
         model = model.model_validate(kwargs)
-        model.data.tag = model.data.tag or tag # Fills in the tag if it's blank
+        if model.data is not None:
+            # Fills in the tag if it's blank
+            model.data.tag = model.data.tag or tag
         return self.call_service(
             service=f'notify/mobile_app_{device}',
             **model.model_dump(mode='json', exclude_none=True, by_alias=True)
@@ -1122,7 +1142,8 @@ class Hass(ADBase, ADAPI):
             tts_text (str): String of text to translate into speech
             media_stream (optional): Defaults to ``music_stream``.
             critical (bool, optional): Defaults to False. If set to ``True``, the notification will use the correct
-                settings to have the TTS at the maximum possible volume. For more information see `Critical Notifications <https://companion.home-assistant.io/docs/notifications/critical-notifications/#android>`_
+                settings to have the TTS at the maximum possible volume. For more information see
+                `Critical Notifications <https://companion.home-assistant.io/docs/notifications/critical-notifications/#android>`_
         """
         return self.call_service(
             **AndroidNotification.tts(device, tts_text, media_stream, critical).to_service_call()
@@ -1133,65 +1154,159 @@ class Hass(ADBase, ADAPI):
 
     # Backup/Restore
 
-    @overload
-    def backup_full(
+    @utils.sync_decorator
+    async def backup_full(
         self,
         name: str | None = None,
         password: str | None = None,
-        compressed: bool = True,
+        compressed: bool | None = None,
         location: str | None = None,
-        homeassistant_exclude_database: bool = False,
-        timeout: int | float = 30 # Used by sync_decorator
-    ): ...
+        homeassistant_exclude_database: bool | None = None,
+        timeout: str | int | float = 30,  # Used by sync_decorator
+        hass_timeout: str | int | float = 10,
+    ) -> dict:
+        """Create a full backup.
+
+        Action `hassio.backup_full <https://www.home-assistant.io/integrations/hassio/#action-hassiobackup_full>`_
+
+        Args:
+            name (str, optional): By default, the current date and time are used in your local time, which you have set in your general settings.
+            password (str, optional): Optional password for backup.
+            compressed (bool, optional): False to create uncompressed backups.
+            location (str, optional): Alternate backup location instead of using the default location for backups.
+            homeassistant_exclude_database (bool, optional): Exclude the Home Assistant database file from backup.
+            timeout (str | int | float, optional): Timeout for the app thread to wait for a response from the main
+                thread.
+            hass_timeout (str | int | float, optional): Timeout for AppDaemon waiting on a response from Home Assistant
+                to respond to the backup request. Cannot be set lower than the timeout value.
+
+        Returns:
+            dict: Response from the backup service.
+        """
+        return await self.call_service(
+            "hassio/backup_full",
+            name=name,
+            password=password,
+            compressed=compressed,
+            location=location,
+            homeassistant_exclude_database=homeassistant_exclude_database,
+            hass_timeout=max(timeout, hass_timeout),
+        )
 
     @utils.sync_decorator
-    async def backup_full(self, name=None, timeout: int | float = 30, **kwargs) -> dict:
-        # https://www.home-assistant.io/integrations/hassio/#action-hassiobackup_full
-        return await self.call_service("hassio/backup_full", name=name, **kwargs)
-
-    @overload
     async def backup_partial(
         self,
-        addons: Iterable[str] = None,
-        folders: Iterable[str] = None,
-        name: str = None,
-        password: str = None,
-        compressed: bool = True,
-        location: str = None,
-        homeassistant: bool = False,
-        homeassistant_exclude_database: bool = False,
-        timeout: int | float = 30 # Used by sync_decorator
-    ): ...
+        addons: Iterable[str] | None = None,
+        folders: Iterable[str] | None = None,
+        name: str | None = None,
+        password: str | None = None,
+        compressed: bool | None = None,
+        location: str | None = None,
+        homeassistant: bool | None = None,
+        homeassistant_exclude_database: bool | None = None,
+        timeout: str | int | float = 30,  # Used by sync_decorator
+        hass_timeout: str | int | float = 10,
+    ) -> dict:
+        """Create a partial backup.
 
-    @utils.sync_decorator
-    async def backup_partial(self, name=None, timeout: int | float = 30, **kwargs) -> dict:
-        # https://www.home-assistant.io/integrations/hassio/#action-hassiobackup_partial
-        return await self.call_service("hassio/backup_partial", name=name, **kwargs)
+        Action `hassio.backup_partial <https://www.home-assistant.io/integrations/hassio/#action-hassiobackup_partial>`_
+
+        Args:
+            addons (Iterable[str], optional): List of add-on slugs to backup.
+            folders (Iterable[str], optional): List of directories to backup.
+            name (str, optional): Name of the backup file. Default is the current date and time in the user's local time.
+            password (str, optional): Optional password for backup.
+            compressed (bool, optional): False to create uncompressed backups. Defaults to True.
+            location (str, optional): Alternate backup location instead of using the default location for backups.
+            homeassistant (bool, optional): Include Home Assistant and associated config in backup. Defaults to False.
+            homeassistant_exclude_database (bool, optional): Exclude the Home Assistant database file from backup.
+                Defaults to False.
+            timeout (str | int | float, optional): Timeout for the app thread to wait for a response from the main
+                thread.
+            hass_timeout (str | int | float, optional): Timeout for AppDaemon waiting on a response from Home Assistant
+                to respond to the backup request. Cannot be set lower than the timeout value.
+
+        Returns:
+            dict: Response from the backup service.
+        """
+        return await self.call_service(
+            "hassio/backup_partial",
+            name=name,
+            addons=addons,
+            folders=folders,
+            password=password,
+            compressed=compressed,
+            location=location,
+            homeassistant=homeassistant,
+            homeassistant_exclude_database=homeassistant_exclude_database,
+            hass_timeout=max(timeout, hass_timeout),
+        )
 
     @utils.sync_decorator
     async def restore_full(
         self,
         slug: str,
         password: str | None = None,
-        timeout: int | float = 30 # Used by sync_decorator
+        timeout: str | int | float = 30,  # Used by sync_decorator
+        hass_timeout: str | int | float = 10,
     ) -> dict:
-        # https://www.home-assistant.io/integrations/hassio/#action-hassiorestore_full
-        return await self.call_service("hassio/restore_full", slug=slug, password=password)
+        """Restore from full backup.
 
-    @overload
-    async def restore_parial(
+        Action `hassio.restore_full <https://www.home-assistant.io/integrations/hassio/#action-hassiorestore_full>`_
+
+        Args:
+            slug (str): Slug of backup to restore from.
+            password (str, optional): Optional password for backup.
+            timeout (str | int | float, optional): Timeout for the app thread to wait for a response from the main
+                thread.
+            hass_timeout (str | int | float, optional): Timeout for AppDaemon waiting on a response from Home Assistant
+                to respond to the backup request. Cannot be set lower than the timeout value.
+        """
+        return await self.call_service(
+            "hassio/restore_full",
+            slug=slug,
+            password=password,
+            hass_timeout=max(timeout, hass_timeout),
+        )
+
+    @utils.sync_decorator
+    async def restore_partial(
         self,
         slug: str,
-        homeassistant: bool = False,
-        addons: Iterable[str] = None,
-        folders: Iterable[str] = None,
-        password: str = None,
-        timeout: int | float = 30 # Used by sync_decorator
-    ): ...
+        homeassistant: bool | None = None,
+        addons: Iterable[str] | None = None,
+        folders: Iterable[str] | None = None,
+        password: str | None = None,
+        timeout: str | int | float = 30,  # Used by sync_decorator
+        hass_timeout: str | int | float = 10,
+    ) -> dict:
+        """Restore from partial backup.
 
-    async def restore_parial(self, slug: str, timeout: int | float = 30, **kwargs) -> dict:
-        # https://www.home-assistant.io/integrations/hassio/#action-hassiorestore_partial
-        return await self.call_service("hassio/restore_parial", slug=slug, **kwargs)
+        Action `hassio.restore_partial <https://www.home-assistant.io/integrations/hassio/#action-hassiorestore_partial>`_
+
+        Args:
+            slug (str): Slug of backup to restore from.
+            homeassistant (bool, optional): Whether to restore Home Assistant, true or false. Defaults to False.
+            addons (Iterable[str], optional): List of add-on slugs to restore.
+            folders (Iterable[str], optional): List of directories to restore.
+            password (str, optional): Optional password for backup.
+            timeout (str | int | float, optional): Timeout for the app thread to wait for a response from the main
+                thread.
+            hass_timeout (str | int | float, optional): Timeout for AppDaemon waiting on a response from Home Assistant
+                to respond to the backup request. Cannot be set lower than the timeout value.
+
+        Returns:
+            dict: Response from the restore service.
+        """
+        return await self.call_service(
+            "hassio/restore_partial",
+            slug=slug,
+            homeassistant=homeassistant,
+            addons=addons,
+            folders=folders,
+            password=password,
+            hass_timeout=max(timeout, hass_timeout),
+        )
 
     # Media
 
@@ -1239,10 +1354,10 @@ class Hass(ADBase, ADAPI):
         self,
         entity_id: str = "calendar.localcalendar",
         days: int = 1,
-        hours: int = None,
-        minutes: int = None,
+        hours: int | None = None,
+        minutes: int | None = None,
         namespace: str | None = None
-    ) -> list[dict[str, str | datetime]]:
+    ) -> list[dict[str, str | datetime]] | None:
         """
         Retrieve calendar events for a specified entity within a given number of days.
 
@@ -1280,14 +1395,17 @@ class Hass(ADBase, ADAPI):
             entity_id=entity_id,
             duration=duration,
         )
-        if isinstance(res, dict) and res['success']:
-            return [
-                {
-                    k: datetime.fromisoformat(v) if k in ('start', 'end') else v
-                    for k, v in event.items()
-                }
-                for event in res['result']['response'][entity_id]['events']
-            ]
+        match res:
+            case {"success": True, "result": {"response": resp}}:
+                return [
+                    {
+                        k: datetime.fromisoformat(v) if k in ('start', 'end') else v
+                        for k, v in event.items()
+                    }
+                    for event in resp[entity_id]['events']
+                ]
+            case _:
+                self.logger.error("Failed to get calendar events for '%s'", entity_id)
 
     # Scripts
 
@@ -1328,8 +1446,8 @@ class Hass(ADBase, ADAPI):
             service = f'{domain}/{script_name}'
             service_data = kwargs
 
+        namespace = namespace if namespace is not None else self.namespace
         try:
-            namespace = namespace or self.namespace
             return self.call_service(
                 service, namespace,
                 entity_id=entity_id,
@@ -1373,20 +1491,22 @@ class Hass(ADBase, ADAPI):
             hello bob
 
         """
-        plugin: "HassPlugin" = self.AD.plugins.get_plugin_object(
-            namespace or self.namespace
-        )
-        result = await plugin.render_template(self.namespace, template, **kwargs)
-        try:
-            return literal_eval(result)
-        except (SyntaxError, ValueError):
-            return result
+        namespace = namespace if namespace is not None else self.namespace
+        match self.AD.plugins.get_plugin_object(namespace):
+            case HassPlugin() as plugin:
+                result = await plugin.render_template(self.namespace, template, **kwargs)
+                if result is not None:
+                    try:
+                        return literal_eval(result)
+                    except (SyntaxError, ValueError):
+                        return result
 
-    def _template_command(self, command: str, *args: str) -> str | list[str]:
+    def _template_command(self, command: str, *args: str) -> Any:
         """Internal AppDaemon function to format calling a single template command correctly."""
         if len(args) == 0:
             return self.render_template(f'{{{{ {command}() }}}}')
         else:
+            args = tuple(a for a in args if a is not None)
             assert all(isinstance(i, str) for i in args), f"All inputs must be strings, got {args}"
             arg_str = ', '.join(f"'{i}'" for i in args)
             cmd_str = f'{{{{ {command}({arg_str}) }}}}'
@@ -1427,7 +1547,7 @@ class Hass(ADBase, ADAPI):
         See `device functions <https://www.home-assistant.io/docs/configuration/templating/#devices>`_ for more
         information.
         """
-        return self._template_command('is_device_attr', device_or_entity_id, attr_name, attr_value)
+        return self._template_command('is_device_attr', device_or_entity_id, attr_name, str(attr_value))
 
     def device_id(self, entity_id: str) -> str:
         """Get the device ID for a given entity ID or device name.
@@ -1493,13 +1613,13 @@ class Hass(ADBase, ADAPI):
     # Labels
     # https://www.home-assistant.io/docs/configuration/templating/#labels
 
-    def labels(self, input: str = None) -> list[str]:
+    def labels(self) -> list[str]:
         """Get the full list of label IDs, or those for a given area ID, device ID, or entity ID.
 
         See `label functions <https://www.home-assistant.io/docs/configuration/templating/#labels>`_ for more
         information.
         """
-        return self._template_command('labels', input)
+        return self._template_command('labels')
 
     def label_id(self, lookup_value: str) -> str:
         """Get the label ID for a given label name.

@@ -3,14 +3,14 @@ import uuid
 from collections import defaultdict
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
-from datetime import timedelta
+from datetime import datetime, timedelta
 from logging import Logger
 from typing import TYPE_CHECKING, Any, overload
 
 from appdaemon import utils
 
 from .exceptions import TimeOutException
-from .state import StateCallback
+from .state import StateCallbackType
 
 if TYPE_CHECKING:
     from appdaemon import ADAPI
@@ -23,13 +23,14 @@ class Entity:
 
     Primarily stores the namespace, app name, and entity id in order to pre-fill calls to the AppDaemon internals.
     """
+    adapi: "ADAPI"
+    namespace: str
+    _entity_id: str
     AD: "AppDaemon" = field(init=False)
     logger: Logger = field(init=False)
     name: str  = field(init=False)
 
     adapi: "ADAPI"
-    namespace: str
-    entity_id: str | None
     _async_events: dict[str, asyncio.Event] = field(default_factory=lambda: defaultdict(asyncio.Event))
     # states_attrs = EntityAttrs()
 
@@ -37,6 +38,7 @@ class Entity:
         self.AD = self.adapi.AD
         self.logger = self.adapi.logger
         self.name = self.adapi.name
+        self.entity_id = self._entity_id  # calls the setter to set domain/entity_name
 
     def set_namespace(self, namespace: str) -> None:
         """Set a new namespace for the Entity to use from that point forward.
@@ -115,7 +117,7 @@ class Entity:
 
         """
         self.logger.debug("set state: %s, %s from %s", self.entity_id, kwargs, self.name)
-        return await self.adapi.set_state(
+        return await self.adapi.set_state( # pyright: ignore[reportGeneralTypeIssues]
             entity_id=self.entity_id,
             namespace=self.namespace,
             state=state,
@@ -175,7 +177,7 @@ class Entity:
 
         """
         self.logger.debug("get state: %s, %s from %s", self.entity_id, self.namespace, self.name)
-        return await self.adapi.get_state(
+        return await self.adapi.get_state( # pyright: ignore[reportGeneralTypeIssues]
             namespace=self.namespace,
             entity_id=self.entity_id,
             attribute=attribute,
@@ -187,7 +189,7 @@ class Entity:
     @utils.sync_decorator
     async def listen_state(
         self,
-        callback: StateCallback,
+        callback: StateCallbackType,
         new: str | Callable[[Any], bool] | None = None,
         old: str | Callable[[Any], bool] | None = None,
         duration: str | int | float | timedelta | None = None,
@@ -197,10 +199,11 @@ class Entity:
         oneshot: bool = False,
         pin: bool | None = None,
         pin_thread: int | None = None,
+        **kwargs: Any,
     ) -> str: ...
 
     @utils.sync_decorator
-    async def listen_state(self, callback: StateCallback, **kwargs: Any) -> str:
+    async def listen_state(self, callback: StateCallbackType, **kwargs: Any) -> str:
         """Registers a callback to react to state changes.
 
         This function allows the user to register a callback for a wide variety of state changes.
@@ -301,7 +304,7 @@ class Entity:
 
             >>> self.handle = self.my_entity.listen_state(self.my_callback, new="on", duration=60, immediate=True)
         """
-        return await self.adapi.listen_state(
+        return await self.adapi.listen_state( # pyright: ignore[reportGeneralTypeIssues]
             callback,
             entity_id=self.entity_id,
             namespace=self.namespace,
@@ -309,7 +312,7 @@ class Entity:
         )
 
     @utils.sync_decorator
-    async def add(self, state: str | int | float = None, attributes: dict = None) -> None:
+    async def add(self, state: str | int | float | None = None, attributes: dict[str, Any] | None = None) -> None:
         """Adds a non-existent entity, by creating it within a namespaces.
 
         It should be noted that this api call, is mainly for creating AD internal entities.
@@ -383,9 +386,9 @@ class Entity:
     async def wait_state(
         self,
         state: Any,
-        attribute: str | int = None,
+        attribute: str | None = None,
         duration: int | float = 0,
-        timeout: int | float = None,
+        timeout: int | float | None = None,
     ) -> None:
         """Used to wait for the state of an entity's attribute
 
@@ -419,7 +422,7 @@ class Entity:
         async_event = self._async_events[wait_id]
 
         try:
-            handle = await self.listen_state(
+            handle = await self.listen_state( # pyright: ignore[reportGeneralTypeIssues]
                 self.entity_state_changed,
                 new=state,
                 attribute=attribute,
@@ -556,7 +559,7 @@ class Entity:
         return self._entity_id
 
     @entity_id.setter
-    def entity_id(self, new: str) -> str:
+    def entity_id(self, new: str) -> None:
         """Get the entity's entity_id"""
         self._entity_id = new
         try:
@@ -572,16 +575,6 @@ class Entity:
         return self._simple_state["state"]
 
     @property
-    def namespace(self) -> str:
-        """Get the entity's namespace name"""
-
-        return self._namespace
-
-    @namespace.setter
-    def namespace(self, new: str):
-        self._namespace = new
-
-    @property
     def attributes(self) -> dict[str, Any]:
         """Get the entity's attributes"""
         return self._simple_state.get("attributes", {})
@@ -592,7 +585,7 @@ class Entity:
         return self.attributes.get("friendly_name", self.entity_id)
 
     @property
-    def last_changed(self) -> str:
+    def last_changed(self) -> str | None:
         """Get the entity's last changed time in iso format"""
         return self._simple_state.get("last_changed")
 
@@ -600,7 +593,7 @@ class Entity:
     def last_changed_delta(self) -> timedelta | None:
         """A timedelta object representing the time since the entity was last changed"""
         if time_str := self.last_changed:
-            compare = self.adapi.parse_datetime(time_str, aware=True)
+            compare = datetime.fromisoformat(time_str)
             now = self.AD.sched.get_now_sync()
             return (now - compare)
 

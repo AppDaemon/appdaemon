@@ -1,0 +1,26 @@
+state_test_app:
+  module: state_test_app
+  class: StateTestApp
+  delay: 0.5
+
+scheduler_test_app:
+  module: scheduler_test_app
+  class: SchedulerTestApp
+
+test_run_in:
+  module: scheduler_test_app
+  class: TestSchedulerRunIn
+
+test_event_app:
+  module: event_test_app
+  class: TestEventCallback
+  event: "test_event"
+
+test_immediate_state:
+  module: state_test_app
+  class: TestImmediate
+
+test_run_daily:
+  module: scheduler_test_app
+  class: TestSchedulerRunDaily
+  time: "00:00:05"

@@ -326,7 +326,7 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
         }
     };
 
-    this.call_service = function(child, args)
+    this.call_service = function(child, args, callback)
     {
         if ("resident_namespace" in child.parameters)
         {
@@ -339,7 +339,7 @@ var WidgetBase = function(widget_id, url, skin, parameters, monitored_entities, 
 
         service = args["service"];
 
-        window.dashstream.stream.call_service(service, ns, args)
+        window.dashstream.stream.call_service(service, ns, args, callback)
     };
 
     // Initialization

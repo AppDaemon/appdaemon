@@ -7,6 +7,8 @@ from logging import Logger
 from pathlib import Path
 from typing import Any, Literal
 
+from appdaemon.models.config import AppConfig
+
 from ...dependency import find_all_dependents, topo_sort
 from ...dependency_manager import DependencyManager
 
@@ -28,6 +30,7 @@ class UpdateMode(Enum):
     PLUGIN_FAILED = auto()
     PLUGIN_RESTART = auto()
     TERMINATE = auto()
+    TESTING = auto()
 
 
 
@@ -66,7 +69,7 @@ class LoadingActions:
         order = [n for n in topo_sort(dm.python_deps.dep_graph) if n in items]
         return order
 
-    def start_sort(self, dm: DependencyManager, logger: Logger = None) -> list[str]:
+    def start_sort(self, dm: DependencyManager, logger: Logger | None = None) -> list[str]:
         """Finds the apps that need to be started.
 
         Uses a dependency graph to sort the internal ``init`` and ``reload`` sets together
@@ -74,8 +77,9 @@ class LoadingActions:
         items = copy(self.init_set)
         items |= find_all_dependents(items, dm.app_deps.dep_graph)
         priorities = {
-            app_name: dm.app_deps.app_config.root[app_name].priority
+            app_name: app_cfg.priority
             for app_name in items
+            if isinstance(app_cfg := dm.app_deps.app_config.root[app_name], AppConfig)
         }
         priority_deps = {
             app_name: set(
@@ -103,7 +107,7 @@ class LoadingActions:
     def term_set(self) -> set[str]:
         return self.reload | self.term
 
-    def term_sort(self, dm: DependencyManager):
+    def term_sort(self, dm: DependencyManager) -> list[str]:
         """Finds all the apps that need to be terminated.
 
         Uses a dependency graph to sort the internal ``reload`` and ``term`` sets together
@@ -131,11 +135,10 @@ class ManagedObject:
     pin_app: bool | None = None
     pin_thread: int | None = None
     running: bool = False
-    use_dictionary_unpacking: bool = False
     callback_counter: int = 0
     lock: threading.RLock = field(init=False, default_factory=threading.RLock)
 
     def increment_callback_counter(self, n: int = 1) -> None:
-        """Increments the callback counter by one"""
+        """Increments the callback counter"""
         with self.lock:
             self.callback_counter += n

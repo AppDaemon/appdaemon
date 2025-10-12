@@ -1,10 +1,11 @@
 from pathlib import Path
 from typing import Annotated, Any
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, Field, model_validator
 from typing_extensions import deprecated
 
-from ... import utils
+from appdaemon import utils
+
 from .appdaemon import AppDaemonConfig
 from .dashboard import DashboardConfig
 from .http import HTTPConfig
@@ -15,18 +16,24 @@ from .misc import AppDaemonCLIKwargs
 class MainConfig(BaseModel):
     appdaemon: AppDaemonConfig
     hadashboard: DashboardConfig | None = None
-    admin: dict | None = None
-    old_admin: dict | None = None
-    api: dict | None = None
+    admin: dict[str, Any] | None = None
+    old_admin: dict[str, Any] | None = None
+    api: dict[str, Any] | None = None
     http: HTTPConfig | None = None
-    logs: AppDaemonFullLogConfig | None = None
+    logs: AppDaemonFullLogConfig = Field(default_factory=AppDaemonFullLogConfig)
     log: Annotated[dict | None, deprecated("'log' directive deprecated, please convert to new 'logs' syntax")] = None
 
     @classmethod
     def from_config_file(cls, file: str | Path):
-        config = utils.read_config_file(file)
-        config["appdaemon"]["config_file"] = file
-        return cls.model_validate(config)
+        file = file if isinstance(file, Path) else Path(file)
+        raw_cfg = utils.read_config_file(file)
+        match raw_cfg:
+            case {"appdaemon": dict() as cfg}:
+                cfg["config_file"] = file
+                cfg["config_dir"] = file.parent
+                return cls.model_validate(raw_cfg)
+            case _:
+                raise ValueError(f"Invalid configuration file: {file}")
 
     @classmethod
     def from_cli_kwargs(cls, cli_kwargs: AppDaemonCLIKwargs):

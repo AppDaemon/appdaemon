@@ -180,12 +180,12 @@ class Sequences:
                 if loop_step := step.loop_step:
                     for _ in range(loop_step.times):
                         await self.AD.services.call_service(**kwargs)
-                        await asyncio.sleep(loop_step.interval.total_seconds())
+                        await self.AD.utility.sleep(loop_step.interval.total_seconds(), timeout_ok=True)
                 else:
                     await self.AD.services.call_service(**kwargs)
             case SleepStep():
                 self.logger.debug(f"Sleeping for {step.sleep}")
-                await asyncio.sleep(step.sleep.total_seconds())
+                await self.AD.utility.sleep(step.sleep.total_seconds(), timeout_ok=True)
             case WaitStateStep():
                 self.logger.warning("Cannot process command 'wait_state', as not supported in sequence")
             case SubSequenceStep():

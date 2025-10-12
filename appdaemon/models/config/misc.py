@@ -1,7 +1,7 @@
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -35,10 +35,14 @@ class NamespaceConfig(BaseModel):
     persist: bool = Field(default=False, alias="persistent")
 
     @model_validator(mode="before")
-    def validate_persistence(cls, values: dict):
+    @classmethod
+    def validate_persistence(cls, values: Any):
         """Sets persistence to True if writeback is set to safe or hybrid."""
-        if values.get("writeback") is not None:
-            values["persistent"] = True
+        match values:
+            case {"writeback": wb} if wb is not None:
+                values["persistent"] = True
+            case _ if getattr(values, "writeback", None) is not None:
+                values.persistent = True
         return values
 
     @model_validator(mode="after")

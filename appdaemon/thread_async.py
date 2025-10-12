@@ -13,35 +13,40 @@ class ThreadAsync:
     """
 
     AD: "AppDaemon"
-    stopping: bool
     logging: Logger
+    name: str = "_thread_async"
     appq: asyncio.Queue
 
     def __init__(self, ad: "AppDaemon"):
         self.AD = ad
-        self.stopping = False
-        self.logger = ad.logging.get_child("_thread_async")
-        self.appq = asyncio.Queue(maxsize=0)
+        self.logger = ad.logging.get_child(self.name)
+        self.appq = asyncio.Queue()
+
+    def start(self) -> None:
+        """Start the thread_async loop"""
+        self.logger.debug("Starting thread_async loop")
+        self.AD.loop.create_task(self.loop(), name="thread_async loop")
 
     def stop(self):
+        """Stops the thread/async loop by putting a sentinel value in the queue."""
         self.logger.debug("stop() called for thread_async")
-        self.stopping = True
         # Queue a fake event to make the loop wake up and exit
         self.appq.put_nowait({"stop": True})
 
     async def loop(self):
-        while not self.stopping:
+        self.logger.debug("Starting thread_async loop")
+        while not self.AD.stopping:
             args = None
             try:
-                args = await self.appq.get()
-                if "stop" not in args:
-                    self.logger.debug("thread_async loop, args=%s", args)
-                    function = args["function"]
-                    myargs = args["args"]
-                    mykwargs = args["kwargs"]
-                    asyncio.create_task(function(*myargs, **mykwargs))
-                    # self.logger.debug("calling task_done()")
-                    # self.appq.task_done()
+                match args := await self.appq.get():
+                    case {"stop": True}:
+                        self.logger.debug("thread_async loop stopped")
+                        break
+                    case {"function": function, "args": myargs, "kwargs": mykwargs}:
+                        self.logger.debug("thread_async loop, args=%s", args)
+                        asyncio.create_task(function(*myargs, **mykwargs))
+                    case _:
+                        self.logger.warning("Unexpected args format: %s", args)
             except Exception:
                 self.logger.warning("-" * 60)
                 self.logger.warning("Unexpected error during thread_async() loop()")

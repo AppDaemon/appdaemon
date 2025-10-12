@@ -85,15 +85,15 @@ class Callbacks:
                         )
         return callbacks
 
-    async def clear_callbacks(self, name):
-        self.logger.debug("Clearing callbacks for %s", name)
+    async def clear_callbacks(self, name: str) -> None:
         async with self.callbacks_lock:
-            if name in self.callbacks:
-                for cid in self.callbacks[name]:
-                    if self.callbacks[name][cid]["type"] == "event":
-                        await self.AD.state.remove_entity("admin", "event_callback.{}".format(cid))
-                    if self.callbacks[name][cid]["type"] == "state":
-                        await self.AD.state.remove_entity("admin", "state_callback.{}".format(cid))
-                    if self.callbacks[name][cid]["type"] == "log":
-                        await self.AD.state.remove_entity("admin", "log_callback.{}".format(cid))
-                del self.callbacks[name]
+            if (callbacks := self.callbacks.pop(name, None)) is not None:
+                self.logger.debug("Clearing callbacks for %s", name)
+                for cid, info in callbacks.items():
+                    match info:
+                        case {"type": "event"}:
+                            await self.AD.state.remove_entity("admin", f"event_callback.{cid}")
+                        case {"type": "state"}:
+                            await self.AD.state.remove_entity("admin", f"state_callback.{cid}")
+                        case {"type": "log"}:
+                            await self.AD.state.remove_entity("admin", f"log_callback.{cid}")

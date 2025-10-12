@@ -79,7 +79,6 @@ class MqttPlugin(PluginBase):
 
     def stop(self):
         self.logger.debug("stop() called for %s", self.name)
-        self.stopping = True
         if self.mqtt_connected:
             self.logger.info(
                 "Stopping MQTT Plugin and Unsubscribing from URL %s:%s",
@@ -166,7 +165,7 @@ class MqttPlugin(PluginBase):
     def mqtt_on_disconnect(self, client, userdata, rc):
         try:
             # unexpected disconnection
-            if rc != 0 and not self.stopping:
+            if rc != 0 and not self.AD.stopping:
                 self.initialized = False
                 self.mqtt_connected = False
                 self.logger.critical("MQTT Client Disconnected Abruptly. Will attempt reconnection")
@@ -428,10 +427,10 @@ class MqttPlugin(PluginBase):
 
         self.mqtt_connect_event = asyncio.Event()
 
-        while not self.stopping:
+        while not self.AD.stopping:
             while (
                 not self.initialized or not already_initialized
-            ) and not self.stopping:  # continue until initialization is successful
+            ) and not self.AD.stopping:  # continue until initialization is successful
                 if (
                     not already_initialized and not already_notified
                 ):  # if it had connected before, it need not run this. Run if just trying for the first time
@@ -478,14 +477,14 @@ class MqttPlugin(PluginBase):
                         already_initialized = False
                     if not already_initialized and not already_notified:
                         self.logger.critical("Could not complete MQTT Plugin initialization, trying again in 5 seconds")
-                        if self.stopping:
+                        if self.AD.stopping:
                             break
                     else:
                         self.logger.critical(
                             "Unable to reinitialize MQTT Plugin, will keep trying again until complete"
                         )
-                    await asyncio.sleep(5)
-            await asyncio.sleep(5)
+                    await self.AD.utility.sleep(5, timeout_ok=True)  # wait for 5 seconds before trying again
+            await self.AD.utility.sleep(5, timeout_ok=True)
 
     def start_mqtt_service(self, first_time: bool):
         try:

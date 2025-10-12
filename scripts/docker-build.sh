@@ -4,7 +4,7 @@ set -e
 
 readonly REPO_DIR=$(cd $(dirname $(dirname $(readlink -f "${BASH_SOURCE[0]}"))) && pwd)
 
-rm -rf ./build ./dist
+rm -rf ${REPO_DIR}/build ${REPO_DIR}/dist
 
 if command -v uv >/dev/null 2>&1; then
     uv sync -U --all-extras
@@ -17,4 +17,4 @@ else
     python -m build
 fi
 
-docker build --pull -t acockburn/appdaemon:${1:-"local-dev"} .
+docker build --pull -t acockburn/appdaemon:${1:-"local-dev"} ${REPO_DIR}

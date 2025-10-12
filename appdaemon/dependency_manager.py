@@ -1,9 +1,11 @@
 from abc import ABC
 from copy import deepcopy
 from dataclasses import InitVar, dataclass, field
+from functools import partial
 from pathlib import Path
 from typing import Iterable
 
+from . import utils
 from .dependency import find_all_dependents, get_dependency_graph, get_full_module_name, reverse_graph, topo_sort
 from .models.config.app import AllAppConfig, BaseApp
 from .models.internal.file_check import FileCheck
@@ -150,8 +152,31 @@ class DependencyManager:
         self.python_deps = PythonDeps.from_paths(python_files)
         self.app_deps = AppDeps.from_paths(config_files)
 
+    @classmethod
+    def from_app_directory(
+        cls,
+        app_dir: Path,
+        exclude: str | Iterable[str] | None = None,
+        config_suffix: str = ".yaml",
+    ) -> "DependencyManager":
+        """Creates a new instance of the dependency manager from the given app directory"""
+        match exclude:
+            case str():
+                exclude_set = {exclude}
+            case None:
+                exclude_set = None
+            case _:
+                exclude_set = set(exclude)
+
+        get_files = partial(utils.recursive_get_files, base=app_dir, exclude=exclude_set)
+        return cls(
+            # python_files=get_files(suffix=".py"),
+            python_files=list(),
+            config_files=get_files(suffix=config_suffix)
+        )  # fmt: skip
+
     @property
-    def config_files(self) -> set[Path]:
+    def app_config_files(self) -> set[Path]:
         return set(self.app_deps.files.paths)
 
     def get_dependent_apps(self, modules: Iterable[str]) -> set[str]:

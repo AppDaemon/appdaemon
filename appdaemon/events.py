@@ -238,7 +238,7 @@ class Events:
 
                     self.AD.state.set_state_simple(namespace, entity_id, data["data"]["new_state"])
 
-                    if self.AD.apps is True and namespace != "admin":
+                    if self.AD.apps_enabled and namespace != "admin":
                         await self.AD.state.process_state_callbacks(namespace, data)
                 else:
                     self.logger.warning("Malformed 'state_changed' event: %s", data["data"])
@@ -252,7 +252,7 @@ class Events:
 
                 await self.AD.logging.process_log_callbacks(namespace, data)
 
-            if self.AD.apps is True:  # and namespace != "admin":
+            if self.AD.apps_enabled:  # and namespace != "admin":
                 # Process callbacks
                 await self.process_event_callbacks(namespace, data)
 

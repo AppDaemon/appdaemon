@@ -1,11 +1,50 @@
 # Change Log
 
+## 4.5.12
+
+**Features**
+
+- Only building python package and docker image for pushes to the dev branch
+- Filtering disabled apps from `AllAppConfig.dependency_graph()`
+- Added an assert about `pin_threads` being less than `total_threads` if both are specified
+- Added a `TESTING` update mode for `check_app_updates`
+- Refactored startup/shutdown
+- New timedelta/datetime/sun event string parsing
+    - Changed `ADAPI.run_at` to use new datetime parsing
+    - Changed `ADAPI.run_daily` to use new datetime parsing
+- Bumped versions in CI pipeline
+    - uv version
+    - Docker build/push version
+- Improved error messages
+    - for failed connections to Home Assistant
+    - for failed HTTP requests to Home Assistant
+- Improved error messages for custom plugins
+- Parsing various timedeltas in config with `utils.parse_timedelta`
+- Add callback argument to Dashboard's call_service - contributed by [psolyca](https://github.com/psolyca)
+- Added docstrings to `HassPlugin` methods and added it to the reference in the docs.
+
+**Fixes**
+
+- Config models
+    - Edge case that broke the logging config
+    - `persistent` gets set for namespaces if `writeback` is.
+- Debug log messages for state changes with `None` as the old state
+- Type hints for async state callbacks
+- Various type hints
+- Reverted discarding of events during app initialize methods to pre-4.5  by default and added an option to turn it on if required (should fix run_in() calls with a delay of 0 during initialize, as well as listen_state() with a duration and immediate=True)
+- Fixed logic in presence/person constraints
+- Fixed logic in calling services from HA so that things like `input_number/set_value` work with entities in the `number` domain
+- Fixed `get_history` for boolean objects
+- Fixed config models to allow custom plugins
+- Fixed a bug causing spurious state refreshes - contributed by [FredericMa](https://github.com/FredericMa)
+
 ## 4.5.11
 
 **Features**
 
 - Add skin parameter to dash_navigate function for dynamic theme switching - contributed by [Vitor](https://github.com/vitorrm)
 - Improved error handling for service calls
+
 
 **Fixes**
 
