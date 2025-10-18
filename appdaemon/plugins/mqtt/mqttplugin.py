@@ -523,7 +523,7 @@ class MqttPlugin(PluginBase):
                     retain=self.config.will_retain,
                 )
 
-            self.mqtt_client.connect_async(self.config.client_host, self.config.client_port, self.config.tls_version)
+            self.mqtt_client.connect_async(self.config.client_host, self.config.client_port)
             self.mqtt_client.loop_start()
         except Exception as e:
             self.logger.critical(
