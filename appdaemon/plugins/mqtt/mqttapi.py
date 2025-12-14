@@ -25,7 +25,7 @@ if __name__ == Path(__file__).name:
     )
 
 
-class Mqtt(adbase.ADBase, adapi.ADAPI):
+class Mqtt[T: AppConfig](adbase.ADBase, adapi.ADAPI[T]):
     """
     A list of API calls and information specific to the MQTT plugin.
 
@@ -73,7 +73,7 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
 
     _plugin: "MqttPlugin"
 
-    def __init__(self, ad: AppDaemon, config_model: "AppConfig"):
+    def __init__(self, ad: AppDaemon, config_model: T):
         # Call Super Classes
         adbase.ADBase.__init__(self, ad, config_model)
         adapi.ADAPI.__init__(self, ad, config_model)

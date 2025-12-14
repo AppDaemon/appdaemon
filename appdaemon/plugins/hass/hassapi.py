@@ -36,7 +36,7 @@ if TYPE_CHECKING:
     from ...models.config.app import AppConfig
 
 
-class Hass(ADBase, ADAPI):
+class Hass[T: AppConfig](ADBase, ADAPI[T]):
     """HASS API class for the users to inherit from.
 
     This class provides an interface to the HassPlugin object that connects to Home Assistant.
@@ -44,7 +44,7 @@ class Hass(ADBase, ADAPI):
 
     _plugin: HassPlugin
 
-    def __init__(self, ad: AppDaemon, config_model: "AppConfig"):
+    def __init__(self, ad: AppDaemon, config_model: T):
         # Call Super Classes
         ADBase.__init__(self, ad, config_model)
         ADAPI.__init__(self, ad, config_model)

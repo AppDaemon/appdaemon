@@ -1,0 +1,40 @@
+hello_world_1:
+  module: hello
+  class: HelloWorld
+
+hello_world_2:
+  module: hello
+  class: HelloWorld
+  my_kwarg: "asdf"
+
+hello_world_3:
+  module: hello
+  clas: HelloWorld # wrong attribute name
+  my_kwarg: "asdf"
+
+typed_hello_world_1:
+  module: typed_hello
+  class: TypedHelloWorld
+  required_int: 1
+  optional_str: "Hi!"
+
+typed_hello_world_2:
+  module: typed_hello
+  class: TypedHelloWorld
+  required_int: 1
+
+typed_hello_world_3:
+  module: typed_hello
+  class: TypedHelloWorld
+  # required_int: 1 # missing
+
+typed_hello_world_4:
+  module: typed_hello
+  class: TypedHelloWorld
+  required_int: "a" # wrong_type
+
+typed_hello_world_5:
+  module: typed_hello
+  class: TypedHelloWorld
+  required_int: 1
+  typed_hello_world: "does not accept extra fields" # Will fail at load time
