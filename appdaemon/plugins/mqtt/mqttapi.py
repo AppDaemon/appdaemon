@@ -1,5 +1,6 @@
+import sys
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union, TypeVar, Generic
 
 import appdaemon.adapi as adapi
 import appdaemon.adbase as adbase
@@ -24,8 +25,12 @@ if __name__ == Path(__file__).name:
         "To use the Mqtt plugin use 'from appdaemon.plugins import mqtt' instead.",
     )
 
+if sys.version_info >= (3, 13):
+    ModelType = TypeVar("ModelType", bound="AppConfig", default="AppConfig")
+else:
+    ModelType = TypeVar("ModelType", bound="AppConfig")
 
-class Mqtt[T: AppConfig](adbase.ADBase, adapi.ADAPI[T]):
+class Mqtt(Generic[ModelType], adbase.ADBase, adapi.ADAPI[ModelType]):
     """
     A list of API calls and information specific to the MQTT plugin.
 
@@ -73,7 +78,7 @@ class Mqtt[T: AppConfig](adbase.ADBase, adapi.ADAPI[T]):
 
     _plugin: "MqttPlugin"
 
-    def __init__(self, ad: AppDaemon, config_model: T):
+    def __init__(self, ad: AppDaemon, config_model: ModelType):
         # Call Super Classes
         adbase.ADBase.__init__(self, ad, config_model)
         adapi.ADAPI.__init__(self, ad, config_model)

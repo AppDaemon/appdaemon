@@ -12,7 +12,7 @@ from copy import deepcopy
 from datetime import timedelta
 from logging import Logger
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, TypeVar, overload
+from typing import TYPE_CHECKING, Any, Literal, TypeVar, overload, Generic
 
 from appdaemon import dependency
 from appdaemon import exceptions as ade
@@ -26,9 +26,15 @@ from appdaemon.parse import resolve_time_str
 from appdaemon.state import StateCallbackType
 from .utils import get_typing_argument
 
-T = TypeVar("T")
-ModelType = TypeVar("ModelType", bound="AppConfig", default=AppConfig)
+if TYPE_CHECKING:
+    from .models.config.app import AppConfig
+    from .plugin_management import PluginBase
 
+T = TypeVar("T")
+if sys.version_info >= (3, 13):
+    ModelType = TypeVar("ModelType", bound="AppConfig", default="AppConfig")
+else:
+    ModelType = TypeVar("ModelType", bound="AppConfig")
 
 # Check if the module is being imported using the legacy method
 if __name__ == Path(__file__).name:
@@ -42,12 +48,7 @@ if __name__ == Path(__file__).name:
     )
 
 
-if TYPE_CHECKING:
-    from .models.config.app import AppConfig
-    from .plugin_management import PluginBase
-
-
-class ADAPI[ModelType]:
+class ADAPI(Generic[ModelType]):
     """AppDaemon API class.
 
     This class includes all native API calls to AppDaemon

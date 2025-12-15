@@ -1254,7 +1254,6 @@ def get_typing_argument(object) -> Type[TA]:
         argument depends on the generic type definition.
     """
     from typing import get_args, get_origin
-    from types import get_original_bases
     from .models.config import AppConfig
 
     oc = getattr(object, "__orig_class__", None) or get_origin(object)
@@ -1263,8 +1262,16 @@ def get_typing_argument(object) -> Type[TA]:
             if issubclass(arg, AppConfig):
                 return arg
 
-    for base in get_original_bases(object.__class__):
-        if base.__name__ in {"ADAPI", "ADBase"}:
+    # get_original_bases was added in Python 3.12
+    if sys.version_info >= (3, 12):
+        from types import get_original_bases
+        bases = get_original_bases(object.__class__)
+    else:
+        # For Python 3.10 and 3.11, use __orig_bases__ attribute
+        bases = getattr(object.__class__, "__orig_bases__", ())
+
+    for base in bases:
+        if hasattr(base, "__name__") and base.__name__ in {"ADAPI", "ADBase"}:
             for arg in get_args(base):
                 if issubclass(arg, AppConfig):
                     return arg

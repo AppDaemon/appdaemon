@@ -1,10 +1,11 @@
 import re
+import sys
 from ast import literal_eval
 from collections.abc import Iterable
 from copy import deepcopy
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Literal, Type, overload
+from typing import TYPE_CHECKING, Any, Callable, Literal, Type, overload, Generic, TypeVar
 
 from appdaemon import exceptions as ade
 from appdaemon import utils
@@ -19,6 +20,9 @@ from appdaemon.plugins.hass.hassplugin import HassPlugin
 from appdaemon.plugins.hass.notifications import AndroidNotification
 from appdaemon.services import ServiceCallback
 
+if TYPE_CHECKING:
+    from appdaemon.models.config import AppConfig
+
 # Check if the module is being imported using the legacy method
 if __name__ == Path(__file__).name:
     from appdaemon.logging import Logging
@@ -32,11 +36,12 @@ if __name__ == Path(__file__).name:
     )
 
 
-if TYPE_CHECKING:
-    from ...models.config.app import AppConfig
+if sys.version_info >= (3, 13):
+    ModelType = TypeVar("ModelType", bound="AppConfig", default="AppConfig")
+else:
+    ModelType = TypeVar("ModelType", bound="AppConfig")
 
-
-class Hass[T: AppConfig](ADBase, ADAPI[T]):
+class Hass(Generic[ModelType], ADBase, ADAPI[ModelType]):
     """HASS API class for the users to inherit from.
 
     This class provides an interface to the HassPlugin object that connects to Home Assistant.
@@ -44,7 +49,7 @@ class Hass[T: AppConfig](ADBase, ADAPI[T]):
 
     _plugin: HassPlugin
 
-    def __init__(self, ad: AppDaemon, config_model: T):
+    def __init__(self, ad: AppDaemon, config_model: ModelType):
         # Call Super Classes
         ADBase.__init__(self, ad, config_model)
         ADAPI.__init__(self, ad, config_model)
