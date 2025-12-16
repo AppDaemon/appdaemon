@@ -12,14 +12,15 @@ To create apps based on just the MQTT API, use some code like the following:
 
 .. code:: python
 
-    import mqttapi as mqtt
+    from appdaemon.plugins.mqtt import Mqtt
 
-    class MyApp(mqtt.Mqtt):
 
+    class MyApp(Mqtt):
         def initialize(self):
+            ... # Your initialization code here
 
- Typed app configuration (Pydantic models)
- ----------------------------------------
+Typed app configuration (Pydantic models)
+-----------------------------------------
 
  App args can be validated and accessed via a typed model by subclassing
  ``appdaemon.models.config.app.AppConfig`` and typing the ``Mqtt`` API with it:

@@ -55,7 +55,7 @@ for plugins in multiple namespaces.
             # handle = self.adapi.run_every(...)
 
 Typed app configuration (Pydantic models)
-----------------------------------------
+-----------------------------------------
 
 App args can be validated and accessed via a typed model by subclassing
 ``appdaemon.models.config.app.AppConfig`` and typing ``ADAPI`` with it:
