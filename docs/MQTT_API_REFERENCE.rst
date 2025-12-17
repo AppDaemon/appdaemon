@@ -61,8 +61,8 @@ Typed app configuration (Pydantic models)
       ``ADAPI`` usage and the ``config_model`` attribute
       (`link <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.config_model>`__).
 
- Making Calls to MQTT
- --------------------
+Making Calls to MQTT
+--------------------
 
 The MQTT Plugin uses the inherited ``call_service()`` helper function the AppDaemon API,
 to carry out service calls from within an AppDaemon app. See the documentation of this
