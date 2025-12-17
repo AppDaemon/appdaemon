@@ -272,6 +272,57 @@ Create apps using the `Hass` API by inheriting from the :py:class:`Hass <appdaem
 Read the `AppDaemon API Reference <AD_API_REFERENCE.html>`__ to learn other inherited helper functions that
 can be used by Hass applications.
 
+Typed app configuration (Pydantic models)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+App args can be validated and accessed via a typed model by subclassing
+``appdaemon.models.config.app.AppConfig`` and typing the ``Hass`` API with it:
+``class MyApp(Hass[MyConfig]):``. The model instance is available as
+``self.config_model``; the untyped dict ``self.args`` remains available for
+backward compatibility.
+
+.. code:: python
+
+    from appdaemon.plugins.hass import Hass
+    from appdaemon.models.config import AppConfig
+
+
+    class MyConfig(AppConfig, extra="forbid"):
+        light: str
+        brightness: int = 255
+
+
+    class MyApp(Hass[MyConfig]):
+        def initialize(self) -> None:
+            # Typed access
+            self.call_service(
+                "light/turn_on",
+                target=self.config_model.light,
+                brightness=self.config_model.brightness,
+            )
+            # Legacy access
+            self.call_service(
+                "light/turn_on",
+                target=self.args["light"],
+                brightness=self.args.get("brightness", 255),
+            )
+
+.. code:: yaml
+
+    # apps.yaml
+    typed_light_app:
+      module: my_module
+      class: MyApp
+      light: light.kitchen
+      brightness: 200
+
+.. note::
+   - Validation errors are logged and prevent the app from starting.
+   - ``extra="forbid"`` rejects unknown keys; omit it if you want to allow extra args.
+   - See the `AD API Reference <AD_API_REFERENCE.html>`__ for the generic
+     ``ADAPI`` usage and the ``config_model`` attribute
+     (`link <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.config_model>`__).
+
 Services
 ~~~~~~~~
 

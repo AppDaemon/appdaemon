@@ -12,11 +12,54 @@ To create apps based on just the MQTT API, use some code like the following:
 
 .. code:: python
 
-    import mqttapi as mqtt
+    from appdaemon.plugins.mqtt import Mqtt
 
-    class MyApp(mqtt.Mqtt):
 
+    class MyApp(Mqtt):
         def initialize(self):
+            ... # Your initialization code here
+
+Typed app configuration (Pydantic models)
+-----------------------------------------
+
+ App args can be validated and accessed via a typed model by subclassing
+ ``appdaemon.models.config.app.AppConfig`` and typing the ``Mqtt`` API with it:
+ ``class MyApp(mqtt.Mqtt[MyConfig]):``. The model instance is available as
+ ``self.config_model``; the untyped dict ``self.args`` remains available for
+ backward compatibility.
+
+ .. code:: python
+
+    import mqttapi as mqtt
+    from appdaemon.models.config import AppConfig
+
+    class MyConfig(AppConfig, extra="forbid"):
+        required_topic: str
+        qos: int = 0
+
+    class MyApp(mqtt.Mqtt[MyConfig]):
+        def initialize(self):
+            # Typed access
+            topic = self.config_model.required_topic
+            self.mqtt_publish(topic, payload="ON", qos=self.config_model.qos)
+            # Legacy access
+            self.call_service("mqtt/publish", topic=self.args["required_topic"], payload="ON")
+
+ .. code:: yaml
+
+    # apps.yaml
+    my_mqtt_app:
+      module: my_module
+      class: MyApp
+      required_topic: "homeassistant/bedroom/light"
+      qos: 1
+
+ .. note::
+    - Validation errors are logged and prevent the app from starting.
+    - ``extra="forbid"`` rejects unknown keys; omit it if you want to allow extra args.
+    - See the `AD API Reference <AD_API_REFERENCE.html>`__ for the generic
+      ``ADAPI`` usage and the ``config_model`` attribute
+      (`link <AD_API_REFERENCE.html#appdaemon.adapi.ADAPI.config_model>`__).
 
 Making Calls to MQTT
 --------------------

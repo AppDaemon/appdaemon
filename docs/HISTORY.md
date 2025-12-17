@@ -8,6 +8,8 @@
 - Add request context logging for failed HASS calls - contributed by [ekutner](https://github.com/ekutner)
 - Reload modified apps on SIGUSR2 - contributed by [chatziko](https://github.com/chatziko)
 - Using urlib to create endpoints from URLs - contributed by [cebtenzzre](https://github.com/cebtenzzre)
+- Support for typed AppConfiguration for apps, using Pydantic models (ADAPI[MyConfig]);
+  also supported in Hass and MQTT APIs. Contributed by [TCampmany](https://github.com/tcampmany)
 
 **Fixes**
 

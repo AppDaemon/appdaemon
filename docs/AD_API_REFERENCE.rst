@@ -54,6 +54,47 @@ for plugins in multiple namespaces.
             # handle = self.adapi.run_in(...)
             # handle = self.adapi.run_every(...)
 
+Typed app configuration (Pydantic models)
+-----------------------------------------
+
+App args can be validated and accessed via a typed model by subclassing
+``appdaemon.models.config.app.AppConfig`` and typing ``ADAPI`` with it:
+``class MyApp(ADAPI[MyConfig]):``. The model instance is available as
+``self.config_model``; the untyped dict ``self.args`` remains available for
+backward compatibility.
+
+.. code:: python
+
+   from appdaemon.adapi import ADAPI
+   from appdaemon.models.config import AppConfig
+
+   class MyConfig(AppConfig, extra="forbid"):
+       required_int: int
+       optional_str: str = "Hello"
+
+   class MyApp(ADAPI[MyConfig]):
+       def initialize(self):
+           # Typed access
+           self.log(f"Typed: {self.config_model.required_int}")
+           # Legacy access
+           self.log(f"Legacy: {self.args['required_int']}")
+
+.. code:: yaml
+
+   # apps.yaml
+   my_app:
+     module: my_module
+     class: MyApp
+     required_int: 42
+
+.. note::
+   - Validation errors are logged and prevent the app from starting.
+   - ``extra="forbid"`` rejects unknown keys; omit it if you want to allow
+     extra args.
+
+See also the user guide section on app configuration (apps.yaml) for a
+full walkthrough.
+
 Entity Class
 ------------
 
@@ -260,6 +301,17 @@ Cancels a predefined sequence. The `entity_id` arg with the sequence full-qualif
 
 Reference
 ---------
+
+Configuration
+~~~~~~~~~~~~~
+
+.. py:attribute:: appdaemon.adapi.ADAPI.config_model
+   :type: appdaemon.models.config.app.AppConfig
+
+   Typed view of the app’s configuration. When ``ADAPI`` is used with a
+   generic parameter (e.g., ``ADAPI[MyConfig]``), this attribute is an instance
+   of that model, providing IDE-friendly, validated access to app args.
+   ``self.args`` remains available as a plain dict.
 
 Entity API
 ~~~~~~~~~~

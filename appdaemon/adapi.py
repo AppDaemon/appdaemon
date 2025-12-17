@@ -12,7 +12,7 @@ from copy import deepcopy
 from datetime import timedelta
 from logging import Logger
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, TypeVar, overload
+from typing import TYPE_CHECKING, Any, Literal, TypeVar, overload, Generic
 
 from appdaemon import dependency
 from appdaemon import exceptions as ade
@@ -24,9 +24,17 @@ from appdaemon.logging import Logging
 from appdaemon.models.config.app import AppConfig
 from appdaemon.parse import resolve_time_str
 from appdaemon.state import StateCallbackType
+from .utils import get_typing_argument
+
+if TYPE_CHECKING:
+    from .models.config.app import AppConfig
+    from .plugin_management import PluginBase
 
 T = TypeVar("T")
-
+if sys.version_info >= (3, 13):
+    ModelType = TypeVar("ModelType", bound="AppConfig", default="AppConfig")
+else:
+    ModelType = TypeVar("ModelType", bound="AppConfig")
 
 # Check if the module is being imported using the legacy method
 if __name__ == Path(__file__).name:
@@ -40,12 +48,7 @@ if __name__ == Path(__file__).name:
     )
 
 
-if TYPE_CHECKING:
-    from .models.config.app import AppConfig
-    from .plugin_management import PluginBase
-
-
-class ADAPI:
+class ADAPI(Generic[ModelType]):
     """AppDaemon API class.
 
     This class includes all native API calls to AppDaemon
@@ -73,9 +76,20 @@ class ADAPI:
     namespace: str
     _plugin: "PluginBase"
 
-    def __init__(self, ad: AppDaemon, config_model: "AppConfig"):
+    def __init__(self, ad: AppDaemon, config_model: ModelType):
+        self.__app_config_model_class = get_typing_argument(self) or AppConfig
         self.AD = ad
-        self.config_model = config_model
+        # Re-validate/convert incoming AppConfig to the typed config model if specified
+        try:
+            if isinstance(config_model, self.__app_config_model_class):
+                self.config_model = config_model
+            else:
+                data = config_model.model_dump(by_alias=True, exclude_unset=True)
+                self.config_model = self.__app_config_model_class.model_validate(data)
+        except Exception:
+            self.err(f"{self.name} configuration does not match the expected type {self.__app_config_model_class.__name__}")
+            # Let AppManagement wrappers handle logging/state on failure
+            raise
         self.dashboard_dir = None
 
         if self.AD.http is not None:
@@ -85,12 +99,12 @@ class ADAPI:
         self.logger = self._logging.get_child(self.name)
         self.err = self._logging.get_error().getChild(self.name)
 
-        if lvl := config_model.log_level:
+        if lvl := self.config_model.log_level:
             self.logger.setLevel(lvl)
             self.err.setLevel(lvl)
 
         self.user_logs = {}
-        if log_name := config_model.log:
+        if log_name := self.config_model.log:
             if user_log := self.get_user_log(log_name):
                 self.logger = user_log
 
@@ -151,17 +165,17 @@ class ADAPI:
         self.logger.warning("config_dir is read-only and needs to be set before AppDaemon starts")
 
     @property
-    def config_model(self) -> AppConfig:
-        """The AppConfig model only for this app."""
+    def config_model(self) -> ModelType:
+        """The AppConfig (or specialized) model only for this app."""
         return self._config_model
 
     @config_model.setter
     def config_model(self, new_config: Any) -> None:
         match new_config:
-            case AppConfig():
+            case self.__app_config_model_class():
                 self._config_model = new_config
             case _:
-                self._config_model = AppConfig.model_validate(new_config)
+                self._config_model = self.__app_config_model_class.model_validate(new_config)
         self.args = self._config_model.model_dump(by_alias=True, exclude_unset=True)
 
     @property

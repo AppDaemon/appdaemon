@@ -23,7 +23,7 @@ from functools import wraps
 from logging import Logger
 from pathlib import Path
 from time import perf_counter
-from typing import TYPE_CHECKING, Any, Callable, Coroutine, Literal, ParamSpec, Protocol, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, Coroutine, Literal, ParamSpec, Protocol, TypeVar, Type
 
 import dateutil.parser
 import tomli
@@ -46,6 +46,7 @@ logger = logging.getLogger("AppDaemon._utility")
 file_log = logger.getChild("file")
 
 if TYPE_CHECKING:
+    from .models.config import AppConfig
     from .adbase import ADBase
     from .appdaemon import AppDaemon
 
@@ -1236,3 +1237,43 @@ def recursive_get_files(base: Path, suffix: str, exclude: set[str] | None = None
             yield item
         elif item.is_dir() and os.access(item, os.R_OK):
             yield from recursive_get_files(item, suffix, exclude)
+
+TA = TypeVar("TA", bound="AppConfig")
+
+def get_typing_argument(object) -> Type[TA]:
+    """
+    This function is used to extract the typing argument of a generic class or object.
+
+    The purpose is to be able to create an instance of such a type during execution time.
+
+    Args:
+        object: The object or instance for which the typing argument is to be retrieved.
+
+    Returns:
+        The typing argument (TA) associated with the given object. The specific typing
+        argument depends on the generic type definition.
+    """
+    from typing import get_args, get_origin
+    from .models.config import AppConfig
+
+    oc = getattr(object, "__orig_class__", None) or get_origin(object)
+    if oc is not None:
+        for arg in get_args(oc):
+            if issubclass(arg, AppConfig):
+                return arg
+
+    # get_original_bases was added in Python 3.12
+    if sys.version_info >= (3, 12):
+        from types import get_original_bases
+        bases = get_original_bases(object.__class__)
+    else:
+        # For Python 3.10 and 3.11, use __orig_bases__ attribute
+        bases = getattr(object.__class__, "__orig_bases__", ())
+
+    for base in bases:
+        if hasattr(base, "__name__") and base.__name__ in {"ADAPI", "ADBase"}:
+            for arg in get_args(base):
+                if issubclass(arg, AppConfig):
+                    return arg
+
+    return AppConfig
