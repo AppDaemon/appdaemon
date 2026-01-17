@@ -14,9 +14,8 @@ from logging import Logger
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, TypeVar, overload
 
-from appdaemon import dependency
+from appdaemon import dependency, utils
 from appdaemon import exceptions as ade
-from appdaemon import utils
 from appdaemon.appdaemon import AppDaemon
 from appdaemon.entity import Entity
 from appdaemon.events import EventCallback
@@ -24,6 +23,8 @@ from appdaemon.logging import Logging
 from appdaemon.models.config.app import AppConfig
 from appdaemon.parse import resolve_time_str
 from appdaemon.state import StateCallbackType
+
+from .types import TimeDeltaLike
 
 T = TypeVar("T")
 
@@ -587,99 +588,115 @@ class ADAPI:
     # Namespace
     #
 
-    def set_namespace(self, namespace: str, writeback: str = "safe", persist: bool = True) -> None:
-        """Set the current namespace of the app
+    def set_namespace(
+        self,
+        namespace: str,
+        writeback: Literal["safe", "hybrid"] | utils.ADWritebackType = "safe",
+        persist: bool = True,
+    ) -> None:
+        """Set the current namespace of the app.
 
-        See the `namespace documentation <APPGUIDE.html#namespaces>`__ for more information.
+        This will create a new namespace if it doesn't already exist. By default, this will be a persistent namespace
+        with ``safe`` writeback, which means that all state changes will be stored to disk as they happen.
+
+        See the :py:ref:`app_namespaces` for more information.
 
         Args:
             namespace (str): Name of the new namespace
             writeback (str, optional): The writeback to be used if a new namespace gets created. Will be ``safe`` by
                 default.
             persist (bool, optional): Whether to make the namespace persistent if a new one is created. Defaults to
-                ``True``.
+                `True`.
 
         Returns:
             None.
 
         Examples:
-            >>> self.set_namespace("hass1")
+            Create a namespace that buffers state changes in memory and periodically writes them to disk.
 
+            >>> self.set_namespace("on_disk", writeback="hybrid", persist=True)
+
+            Create an in-memory namespace that won't survive AppDaemon restarts.
+
+            >>> self.set_namespace("in_memory", persist=False)
         """
-        # Keeping namespace get/set functions for legacy compatibility
         if not self.namespace_exists(namespace):
-            self.add_namespace(namespace=namespace, writeback=writeback, persist=persist)
+            self.add_namespace(
+                namespace=namespace,
+                writeback=utils.ADWritebackType(writeback),
+                persist=persist
+            )
         self.namespace = namespace
 
     def get_namespace(self) -> str:
         """Get the app's current namespace.
 
-        See the `namespace documentation <APPGUIDE.html#namespaces>`__ for more information.
+        See :py:ref:`app_namespaces` for more information.
         """
         # Keeping namespace get/set functions for legacy compatibility
         return self.namespace
 
     @utils.sync_decorator
     async def namespace_exists(self, namespace: str) -> bool:
-        """Check the existence of a namespace in AppDaemon.
+        """Check for the existence of a namespace.
 
-        See the `namespace documentation <APPGUIDE.html#namespaces>`__ for more information.
+        See :py:ref:`app_namespaces` for more information.
 
         Args:
-            namespace (str): The namespace to be checked.
+            namespace (str): The namespace to check for.
 
         Returns:
-            bool: ``True`` if the namespace exists, otherwise ``False``.
-
-        Examples:
-            Check if the namespace ``storage`` exists within AD
-
-            >>> if self.namespace_exists("storage"):
-            >>>     #do something like create it
-
+            bool: `True` if the namespace exists, otherwise `False`.
         """
         return self.AD.state.namespace_exists(namespace)
 
     @utils.sync_decorator
-    async def add_namespace(self, namespace: str, writeback: str = "safe", persist: bool = True) -> str | None:
-        """Add a user-defined namespace, which has a database file associated with it.
+    async def add_namespace(
+        self,
+        namespace: str,
+        writeback: Literal["safe", "hybrid"] | utils.ADWritebackType = "safe",
+        persist: bool = True,
+    ) -> str | None:
+        """Add a user-defined namespace.
 
-        When AppDaemon restarts these entities will be loaded into the namespace with all their previous states. This
-        can be used as a basic form of non-volatile storage of entity data. Depending on the configuration of the
-        namespace, this function can be setup to constantly be running automatically
-        or only when AD shutdown.
-
-        See the `namespace documentation <APPGUIDE.html#namespaces>`__ for more information.
+        See the :py:ref:`app_namespaces` for more information.
 
         Args:
             namespace (str): The name of the new namespace to create
-            writeback (optional): The writeback to be used. Will be ``safe`` by default
+            writeback (optional): The writeback to be used. Defaults to ``safe``, which writes every state change to
+                disk. This can be problematic for namespaces that have a lot of state changes. `Safe` in this case
+                refers data loss, rather than performance. The other option is ``hybrid``, which buffers state changes.
             persist (bool, optional): Whether to make the namespace persistent. Persistent namespaces are stored in a
-                database file and are reloaded when AppDaemon restarts. Defaults to ``True``
+                database file and are reloaded when AppDaemon restarts. Defaults to `True`.
 
         Returns:
-            The file path to the newly created namespace. Will be ``None`` if not persistent
+            The file path to the newly created namespace. Will be ``None`` if not persistent.
 
         Examples:
-            Add a new namespace called `storage`.
+            Create a namespace that buffers state changes in memory and periodically writes them to disk.
 
-            >>> self.add_namespace("storage")
+            >>> self.add_namespace("on_disk", writeback="hybrid", persist=True)
 
+            Create an in-memory namespace that won't survive AppDaemon restarts.
+
+            >>> self.add_namespace("in_memory", persist=False)
         """
-        new_namespace = await self.AD.state.add_namespace(namespace, writeback, persist, self.name)
-        match new_namespace:
-            case Path() | str():
-                new_namespace = str(new_namespace)
-                self.AD.state.app_added_namespaces.add(new_namespace)
-                return new_namespace
-            case _:
-                self.logger.warning("Namespace %s already exists or was not created", namespace)
+        match await self.AD.state.add_namespace(
+            namespace,
+            utils.ADWritebackType(writeback),
+            persist,
+            self.name
+        ):
+            case Path() as ns_path:
+                return str(ns_path)
+            case False | None:
+                return None
 
     @utils.sync_decorator
     async def remove_namespace(self, namespace: str) -> dict[str, Any] | None:
         """Remove a user-defined namespace, which has a database file associated with it.
 
-        See the `namespace documentation <APPGUIDE.html#namespaces>`__ for more information.
+        See :py:ref:`app_namespaces` for more information.
 
         Args:
             namespace (str): The namespace to be removed, which must not be the current namespace.
@@ -709,32 +726,22 @@ class ADAPI:
         return self.AD.state.list_namespaces()
 
     @utils.sync_decorator
-    async def save_namespace(self, namespace: str | None = None) -> None:
-        """Saves entities created in user-defined namespaces into a file.
+    async def save_namespace(self, namespace: str | None = None) -> bool:
+        """Saves the given state namespace to its corresponding file.
 
-        This way, when AD restarts these entities will be reloaded into AD with its
-        previous states within the namespace. This can be used as a basic form of
-        non-volatile storage of entity data. Depending on the configuration of the
-        namespace, this function can be setup to constantly be running automatically
-        or only when AD shutdown. This function also allows for users to manually
-        execute the command as when needed.
+        This is only relevant for persistent namespaces, which if not set to ``safe`` buffers changes in memory and only
+        periodically writes them to disk. This function manually forces a write of all the changes since the last save
+        to disk. See the :py:ref:`app_namespaces` docs section for more information.
 
         Args:
-            namespace (str, optional): Namespace to use for the call. See the section on
-                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
-                In most cases it is safe to ignore this parameter.
+            namespace (str, optional): Namespace to save. If not specified, the current app namespace will be used.
 
         Returns:
-            None.
-
-        Examples:
-            Save all entities of the default namespace.
-
-            >>> self.save_namespace()
+            bool: `True` if the namespace was saved successfully, `False` otherwise.
 
         """
         namespace = namespace if namespace is not None else self.namespace
-        await self.AD.state.save_namespace(namespace)
+        return await self.AD.state.save_namespace(namespace)
 
     #
     # Utility
@@ -765,9 +772,9 @@ class ADAPI:
         """Ensures that the entity exists in the given namespace"""
         if entity_id is not None and "." in entity_id and not self.AD.state.entity_exists(namespace, entity_id):
             if namespace == "default":
-                self.logger.warning(f"Entity {entity_id} not found in the default namespace")
+                self.logger.warning("Entity %s not found in the default namespace", entity_id)
             else:
-                self.logger.warning(f"Entity {entity_id} not found in namespace {namespace}")
+                self.logger.warning("Entity %s not found in namespace %s", entity_id, namespace)
 
     @staticmethod
     def get_ad_version() -> str:
@@ -817,7 +824,7 @@ class ADAPI:
             >>> self.add_entity('mqtt.living_room_temperature', namespace='mqtt')
 
         """
-        namespace = namespace or self.namespace
+        namespace = namespace if namespace is not None else self.namespace
         return await self.AD.state.add_entity(namespace, entity_id, state, attributes)
 
     @utils.sync_decorator
@@ -850,7 +857,7 @@ class ADAPI:
             >>> if self.entity_exists("mqtt.security_settings", namespace = "mqtt"):
             >>>    #do something
         """
-        namespace = namespace or self.namespace
+        namespace = namespace if namespace is not None else self.namespace
         return self.AD.state.entity_exists(namespace, entity_id)
 
     @utils.sync_decorator
@@ -877,7 +884,7 @@ class ADAPI:
             >>>     #do something specific to scenes
 
         """
-        namespace = namespace or self.namespace
+        namespace = namespace if namespace is not None else self.namespace
         self._check_entity(namespace, entity_id)
         return entity_id.split(".")
 
@@ -907,7 +914,7 @@ class ADAPI:
             >>> self.remove_entity('mqtt.living_room_temperature', namespace = 'mqtt')
 
         """
-        namespace = namespace or self.namespace
+        namespace = namespace if namespace is not None else self.namespace
         await self.AD.state.remove_entity(namespace, entity_id)
 
     @staticmethod
@@ -952,7 +959,7 @@ class ADAPI:
             My current position is 50.8333(Lat), 4.3333(Long)
 
         """
-        namespace = namespace or self.namespace
+        namespace = namespace if namespace is not None else self.namespace
         return self.AD.plugins.get_plugin_meta(namespace)
 
     @utils.sync_decorator
@@ -976,7 +983,7 @@ class ADAPI:
             device_tracker.andrew (Andrew Tracker) is on.
 
         """
-        namespace = namespace or self.namespace
+        namespace = namespace if namespace is not None else self.namespace
         self._check_entity(namespace, entity_id)
         return await self.get_state(
             entity_id=entity_id,
@@ -1407,9 +1414,9 @@ class ADAPI:
         namespace: str | None = None,
         new: str | Callable[[Any], bool] | None = None,
         old: str | Callable[[Any], bool] | None = None,
-        duration: str | int | float | timedelta | None = None,
+        duration: TimeDeltaLike | None = None,
         attribute: str | None = None,
-        timeout: str | int | float | timedelta | None = None,
+        timeout: TimeDeltaLike | None = None,
         immediate: bool = False,
         oneshot: bool = False,
         pin: bool | None = None,
@@ -1426,9 +1433,9 @@ class ADAPI:
         namespace: str | None = None,
         new: str | Callable[[Any], bool] | None = None,
         old: str | Callable[[Any], bool] | None = None,
-        duration: str | int | float | timedelta | None = None,
+        duration: TimeDeltaLike | None = None,
         attribute: str | None = None,
-        timeout: str | int | float | timedelta | None = None,
+        timeout: TimeDeltaLike | None = None,
         immediate: bool = False,
         oneshot: bool = False,
         pin: bool | None = None,
@@ -1444,9 +1451,9 @@ class ADAPI:
         namespace: str | None = None,
         new: str | Callable[[Any], bool] | None = None,
         old: str | Callable[[Any], bool] | None = None,
-        duration: str | int | float | timedelta | None = None,
+        duration: TimeDeltaLike | None = None,
         attribute: str | None = None,
-        timeout: str | int | float | timedelta | None = None,
+        timeout: TimeDeltaLike | None = None,
         immediate: bool = False,
         oneshot: bool = False,
         pin: bool | None = None,
@@ -1480,7 +1487,7 @@ class ADAPI:
                 careful when comparing them. The ``self.get_state()`` method is useful for checking the data type of
                 the desired attribute. If ``old`` is a callable (lambda, function, etc), then it will be called with
                 the old state, and the callback will only be invoked if the callable returns ``True``.
-            duration (str | int | float | timedelta, optional): If supplied, the callback will not be invoked unless the
+            duration (TimeDeltaLike, optional): If supplied, the callback will not be invoked unless the
                 desired state is maintained for that amount of time. This requires that a specific attribute is
                 specified (or the default of ``state`` is used), and should be used in conjunction with either or both
                 of the ``new`` and ``old`` parameters. When the callback is called, it is supplied with the values of
@@ -1494,7 +1501,7 @@ class ADAPI:
                 the default behavior is to use the value of ``state``. Using the value ``all`` will cause the callback
                 to get triggered for any change in state, and the new/old values used for the callback will be the
                 entire state dict rather than the individual value of an attribute.
-            timeout (str | int | float | timedelta, optional): If given, the callback will be automatically removed
+            timeout (TimeDeltaLike, optional): If given, the callback will be automatically removed
                 after that amount of time. If activity for the listened state has occurred that would trigger a
                 duration timer, the duration timer will still be fired even though the callback has been removed.
             immediate (bool, optional): If given, it enables the countdown for a delay parameter to start at the time.
@@ -1584,7 +1591,7 @@ class ADAPI:
         """
         kwargs = dict(new=new, old=old, duration=duration, attribute=attribute, **kwargs)
         kwargs = {k: v for k, v in kwargs.items() if v is not None}
-        namespace = namespace or self.namespace
+        namespace = namespace if namespace is not None else self.namespace
 
         # pre-fill some arguments here
         add_callback = functools.partial(
@@ -1724,9 +1731,10 @@ class ADAPI:
         if kwargs:
             self.logger.warning(f"Extra kwargs passed to get_state, will be ignored: {kwargs}")
 
+        namespace = namespace if namespace is not None else self.namespace
         return await self.AD.state.get_state(
             name=self.name,
-            namespace=namespace or self.namespace,
+            namespace=namespace,
             entity_id=entity_id,
             attribute=attribute,
             default=default,
@@ -1783,7 +1791,7 @@ class ADAPI:
             >>> self.set_state("light.office_1", state="off", namespace="hass")
 
         """
-        namespace = namespace or self.namespace
+        namespace = namespace if namespace is not None else self.namespace
         if check_existence:
             self._check_entity(namespace, entity_id)
         return await self.AD.state.set_state(
@@ -1846,7 +1854,7 @@ class ADAPI:
         self._check_service(service)
         self.logger.debug("register_service: %s, %s", service, kwargs)
 
-        namespace = namespace or self.namespace
+        namespace = namespace if namespace is not None else self.namespace
         try:
             domain, service = service.split("/", 2)
         except ValueError as e:
@@ -1886,7 +1894,7 @@ class ADAPI:
             >>> self.deregister_service("myservices/service1")
 
         """
-        namespace = namespace or self.namespace
+        namespace = namespace if namespace is not None else self.namespace
         self.logger.debug("deregister_service: %s, %s", service, namespace)
         self._check_service(service)
         return self.AD.services.deregister_service(namespace, *service.split("/"), name=self.name)
@@ -1996,7 +2004,7 @@ class ADAPI:
         """
         self.logger.debug("call_service: %s, %s", service, data)
         self._check_service(service)
-        namespace = namespace or self.namespace
+        namespace = namespace if namespace is not None else self.namespace
 
         # Check the entity_id if it exists
         if eid := data.get("entity_id"):
@@ -2054,7 +2062,7 @@ class ADAPI:
                 ])
 
         """
-        namespace = namespace or self.namespace
+        namespace = namespace if namespace is not None else self.namespace
         self.logger.debug("Calling run_sequence() for %s from %s", sequence, self.name)
 
         try:
@@ -2095,7 +2103,7 @@ class ADAPI:
         event: str | None = None,
         *,
         namespace: str | None = None,
-        timeout: str | int | float | timedelta | None = None,
+        timeout: TimeDeltaLike | None = None,
         oneshot: bool = False,
         pin: bool | None = None,
         pin_thread: int | None = None,
@@ -2110,7 +2118,7 @@ class ADAPI:
         event: list[str],
         *,
         namespace: str | None = None,
-        timeout: str | int | float | timedelta | None = None,
+        timeout: TimeDeltaLike | None = None,
         oneshot: bool = False,
         pin: bool | None = None,
         pin_thread: int | None = None,
@@ -2124,7 +2132,7 @@ class ADAPI:
         event: str | Iterable[str] | None = None,
         *,  # Arguments after this are keyword only
         namespace: str | Literal["global"] | None = None,
-        timeout: str | int | float | timedelta | None = None,
+        timeout: TimeDeltaLike | None = None,
         oneshot: bool = False,
         pin: bool | None = None,
         pin_thread: int | None = None,
@@ -2197,11 +2205,12 @@ class ADAPI:
         """
         self.logger.debug(f"Calling listen_event() for {self.name} for {event}: {kwargs}")
 
+        namespace = namespace if namespace is not None else self.namespace
         # pre-fill some arguments here
         add_callback = functools.partial(
             self.AD.events.add_event_callback,
             name=self.name,
-            namespace=namespace or self.namespace,
+            namespace=namespace,
             cb=callback,
             timeout=timeout,
             oneshot=oneshot,
@@ -2286,7 +2295,7 @@ class ADAPI:
         self,
         event: str,
         namespace: str | None = None,
-        timeout: str | int | float | timedelta | None = -1,  # Used by utils.sync_decorator
+        timeout: TimeDeltaLike | None = -1,  # Used by utils.sync_decorator
         **kwargs,
     ) -> None:
         """Fires an event on the AppDaemon bus, for apps and plugins.
@@ -2311,7 +2320,7 @@ class ADAPI:
             # Convert to float if it's not None
             timeout = utils.parse_timedelta(timeout).total_seconds() if timeout is not None else timeout
             kwargs["timeout"] = timeout
-        namespace = namespace or self.namespace
+        namespace = namespace if namespace is not None else self.namespace
         await self.AD.events.fire_event(namespace, event, **kwargs)
 
     #
@@ -2739,7 +2748,7 @@ class ADAPI:
         return await self.AD.sched.reset_timer(self.name, handle)
 
     @utils.sync_decorator
-    async def info_timer(self, handle: str) -> tuple[dt.datetime, int, dict] | None:
+    async def info_timer(self, handle: str) -> tuple[dt.datetime, float, dict] | None:
         """Get information about a previously created timer.
 
         Args:
@@ -2749,7 +2758,7 @@ class ADAPI:
             A tuple with the following values or ``None`` if handle is invalid or timer no longer exists.
 
             - `time` - datetime object representing the next time the callback will be fired
-            - `interval` - repeat interval if applicable, `0` otherwise.
+            - `interval` - repeat interval in seconds if applicable, `0` otherwise.
             - `kwargs` - the values supplied when the callback was initially created.
 
         Examples:
@@ -2757,16 +2766,19 @@ class ADAPI:
             >>>     time, interval, kwargs = info
 
         """
-        return await self.AD.sched.info_timer(handle, self.name)
+        if (result := await self.AD.sched.info_timer(handle, self.name)) is not None:
+            time, interval, kwargs = result
+            return time, interval.total_seconds(), kwargs
+        return None
 
     @utils.sync_decorator
     async def run_in(
         self,
         callback: Callable,
-        delay: str | int | float | timedelta,
+        delay: TimeDeltaLike,
         *args,
-        random_start: int | None = None,
-        random_end: int | None = None,
+        random_start: TimeDeltaLike | None = None,
+        random_end: TimeDeltaLike | None = None,
         pin: bool | None = None,
         pin_thread: int | None = None,
         **kwargs,
@@ -2818,8 +2830,8 @@ class ADAPI:
             name=self.name,
             aware_dt=exec_time,
             callback=sched_func,
-            random_start=random_start,
-            random_end=random_end,
+            random_start=utils.parse_timedelta_or_none(random_start),
+            random_end=utils.parse_timedelta_or_none(random_end),
             pin=pin,
             pin_thread=pin_thread,
         )
@@ -2830,8 +2842,8 @@ class ADAPI:
         callback: Callable,
         start: str | dt.time | dt.datetime | None = None,
         *args,
-        random_start: int | None = None,
-        random_end: int | None = None,
+        random_start: TimeDeltaLike | None = None,
+        random_end: TimeDeltaLike | None = None,
         pin: bool | None = None,
         pin_thread: int | None = None,
         **kwargs,
@@ -2900,8 +2912,8 @@ class ADAPI:
         callback: Callable,
         start: str | dt.time | dt.datetime,
         *args,
-        random_start: int | None = None,
-        random_end: int | None = None,
+        random_start: TimeDeltaLike | None = None,
+        random_end: TimeDeltaLike | None = None,
         pin: bool | None = None,
         pin_thread: int | None = None,
         **kwargs,
@@ -2954,6 +2966,9 @@ class ADAPI:
 
         """
         start = "now" if start is None else start
+        random_start_td = utils.parse_timedelta_or_none(random_start)
+        random_end_td = utils.parse_timedelta_or_none(random_end)
+
         match start:
             case str() as start_str if start.startswith("sun"):
                 if start.startswith("sunrise"):
@@ -2967,19 +2982,21 @@ class ADAPI:
                 _, offset = resolve_time_str(start_str, now=now, location=self.AD.sched.location)
                 func = functools.partial(func, *args, repeat=True, offset=offset)
             case _:
-                start = await self.AD.sched.parse_datetime(start, aware=True)
+                # For run_at, always schedule for the next occurrence (today=False)
+                # This ensures that times in the past are scheduled for tomorrow
+                start = await self.AD.sched.parse_datetime(start, aware=True, today=False)
                 func = functools.partial(
                     self.AD.sched.insert_schedule,
                     name=self.name,
                     aware_dt=start,
-                    interval=timedelta(days=1).total_seconds()
+                    interval=timedelta(days=1)
                 )  # fmt: skip
 
         func = functools.partial(
             func,
             callback=functools.partial(callback, *args, **kwargs),
-            random_start=random_start,
-            random_end=random_end,
+            random_start=random_start_td,
+            random_end=random_end_td,
             pin=pin,
             pin_thread=pin_thread,
         )
@@ -2991,8 +3008,8 @@ class ADAPI:
         callback: Callable,
         start: str | dt.time | dt.datetime | None = None,
         *args,
-        random_start: int | None = None,
-        random_end: int | None = None,
+        random_start: TimeDeltaLike | None = None,
+        random_end: TimeDeltaLike | None = None,
         pin: bool | None = None,
         pin_thread: int | None = None,
         **kwargs,
@@ -3084,8 +3101,8 @@ class ADAPI:
         callback: Callable,
         start: str | dt.time | dt.datetime | None = None,
         *args,
-        random_start: int | None = None,
-        random_end: int | None = None,
+        random_start: TimeDeltaLike | None = None,
+        random_end: TimeDeltaLike | None = None,
         pin: bool | None = None,
         pin_thread: int | None = None,
         **kwargs,
@@ -3145,8 +3162,8 @@ class ADAPI:
         callback: Callable,
         start: str | dt.time | dt.datetime | None = None,
         *args,
-        random_start: int | None = None,
-        random_end: int | None = None,
+        random_start: TimeDeltaLike | None = None,
+        random_end: TimeDeltaLike | None = None,
         pin: bool | None = None,
         pin_thread: int | None = None,
         **kwargs,
@@ -3206,10 +3223,10 @@ class ADAPI:
         self,
         callback: Callable,
         start: str | dt.time | dt.datetime | None = None,
-        interval: str | int | float | timedelta = 0,
+        interval: TimeDeltaLike = 0,
         *args,
-        random_start: int | None = None,
-        random_end: int | None = None,
+        random_start: TimeDeltaLike | None = None,
+        random_end: TimeDeltaLike | None = None,
         pin: bool | None = None,
         pin_thread: int | None = None,
         **kwargs,
@@ -3224,7 +3241,9 @@ class ADAPI:
                 intervals will be calculated forward from the start time, and the first trigger will be the first
                 interval in the future.
 
-                - If this is a ``str`` it will be parsed with :meth:`~appdaemon.adapi.ADAPI.parse_time()`.
+                - If this is ``now`` (default), then the first trigger will be now + interval
+                - If this is ``immediate``, then the first trigger will happen immediately
+                - Other ``str`` types will be parsed with :meth:`~appdaemon.adapi.ADAPI.parse_time()`.
                 - If this is a ``datetime.time`` object, the current date will be assumed.
                 - If this is a ``datetime.datetime`` object, it will be used as is.
 
@@ -3307,9 +3326,9 @@ class ADAPI:
             aware_dt=next_period,
             callback=functools.partial(callback, *args, **kwargs),
             repeat=True,
-            interval=interval.total_seconds(),
-            random_start=random_start,
-            random_end=random_end,
+            interval=interval,
+            random_start=utils.parse_timedelta_or_none(random_start),
+            random_end=utils.parse_timedelta_or_none(random_end),
             pin=pin,
             pin_thread=pin_thread,
         )
@@ -3320,9 +3339,9 @@ class ADAPI:
         callback: Callable,
         *args,
         repeat: bool = True,
-        offset: str | int | float | timedelta | None = None,
-        random_start: int | None = None,
-        random_end: int | None = None,
+        offset: TimeDeltaLike | None = None,
+        random_start: TimeDeltaLike | None = None,
+        random_end: TimeDeltaLike | None = None,
         pin: bool | None = None,
         pin_thread: int | None = None,
         **kwargs,
@@ -3371,18 +3390,22 @@ class ADAPI:
             >>> self.run_at_sunset(self.sun, random_start = -60*60, random_end = 30*60)
 
         """
-        sunset = await self.AD.sched.next_sunset()
-        td = utils.parse_timedelta(offset)
-        self.logger.debug(f"Registering run_at_sunset at {sunset + td} with {args}, {kwargs}")
+        now = await self.AD.sched.get_now()
+        sunset = await self.AD.sched.todays_sunset()
+        offset_td = utils.parse_timedelta(offset)
+        if sunset + offset_td < now:
+            sunset = await self.AD.sched.next_sunset()
+
+        self.logger.debug(f"Registering run_at_sunset at {sunset + offset_td} with {args}, {kwargs}")
         return await self.AD.sched.insert_schedule(
             name=self.name,
             aware_dt=sunset,
             callback=functools.partial(callback, *args, **kwargs),
             repeat=repeat,
             type_="next_setting",
-            offset=offset,
-            random_start=random_start,
-            random_end=random_end,
+            offset=offset_td,
+            random_start=utils.parse_timedelta_or_none(random_start),
+            random_end=utils.parse_timedelta_or_none(random_end),
             pin=pin,
             pin_thread=pin_thread,
         )
@@ -3393,9 +3416,9 @@ class ADAPI:
         callback: Callable,
         *args,
         repeat: bool = True,
-        offset: str | int | float | timedelta | None = None,
-        random_start: int | None = None,
-        random_end: int | None = None,
+        offset: TimeDeltaLike | None = None,
+        random_start: TimeDeltaLike | None = None,
+        random_end: TimeDeltaLike | None = None,
         pin: bool | None = None,
         pin_thread: int | None = None,
         **kwargs,
@@ -3444,18 +3467,21 @@ class ADAPI:
             >>> self.run_at_sunrise(self.sun, random_start = -60*60, random_end = 30*60)
 
         """
-        sunrise = await self.AD.sched.next_sunrise()
-        td = utils.parse_timedelta(offset)
-        self.logger.debug(f"Registering run_at_sunrise at {sunrise + td} with {args}, {kwargs}")
+        now = await self.AD.sched.get_now()
+        sunrise = await self.AD.sched.todays_sunrise()
+        offset_td = utils.parse_timedelta(offset)
+        if sunrise + offset_td < now:
+            sunrise = await self.AD.sched.next_sunrise()
+        self.logger.debug(f"Registering run_at_sunrise at {sunrise + offset_td} with {args}, {kwargs}")
         return await self.AD.sched.insert_schedule(
             name=self.name,
             aware_dt=sunrise,
             callback=functools.partial(callback, *args, **kwargs),
             repeat=repeat,
             type_="next_rising",
-            offset=offset,
-            random_start=random_start,
-            random_end=random_end,
+            offset=offset_td,
+            random_start=utils.parse_timedelta_or_none(random_start),
+            random_end=utils.parse_timedelta_or_none(random_end),
             pin=pin,
             pin_thread=pin_thread,
         )
@@ -3467,7 +3493,7 @@ class ADAPI:
     def dash_navigate(
         self,
         target: str,
-        timeout: str | int | float | timedelta | None = -1,  # Used by utils.sync_decorator
+        timeout: TimeDeltaLike | None = -1,  # Used by utils.sync_decorator
         ret: str | None = None,
         sticky: int = 0,
         deviceid: str | None = None,
@@ -3736,7 +3762,7 @@ class ADAPI:
     #
 
     def get_entity(self, entity: str, namespace: str | None = None, check_existence: bool = True) -> Entity:
-        namespace = namespace or self.namespace
+        namespace = namespace if namespace is not None else self.namespace
         if check_existence:
             self._check_entity(namespace, entity)
         return Entity(self, namespace, entity)

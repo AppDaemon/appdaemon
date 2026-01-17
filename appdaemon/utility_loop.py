@@ -119,13 +119,9 @@ class Utility:
         """Register core AppDaemon services for state management, events, sequences, and admin functions."""
         # Register state services
         for ns in self.AD.state.list_namespaces():
-            # only default, rules or it belongs to a local plugin. Don't allow for admin/appdaemon/global namespaces
-            if ns in ["default", "rules"] or ns in self.AD.plugins.plugin_objs or ns in self.AD.namespaces:
-                self.AD.services.register_service(ns, "state", "add_namespace", self.AD.state.state_services)
-                self.AD.services.register_service(ns, "state", "add_entity", self.AD.state.state_services)
-                self.AD.services.register_service(ns, "state", "set", self.AD.state.state_services)
-                self.AD.services.register_service(ns, "state", "remove_namespace", self.AD.state.state_services)
-                self.AD.services.register_service(ns, "state", "remove_entity", self.AD.state.state_services)
+            if ns in ("admin", "appdaemon", "global"):
+                continue  # Don't allow admin/appdaemon/global namespaces
+            self.AD.state.register_state_services(ns)
 
             # Register fire_event services
             self.AD.services.register_service(ns, "event", "fire", self.AD.events.event_services)
@@ -147,7 +143,8 @@ class Utility:
         * Starts the web server if configured
         * Waits for all plugins to initialize
         * Registers services
-        * Runs check_app_updates with UpdateMode.INIT if apps are enabled
+        * Starts the scheduler
+        * Initializes apps if apps are enabled
         """
         self.logger.debug("Starting utility loop")
 
@@ -162,7 +159,20 @@ class Utility:
         # Wait for all plugins to initialize
         await self.AD.plugins.wait_for_plugins()
 
+        if self.AD.stopping:
+            self.logger.debug("AppDaemon already stopping before starting utility loop")
+            return
+
         await self._register_services()
+
+        # Start the scheduler
+        self.AD.sched.start()
+
+        if self.AD.apps_enabled:
+            await self.AD.app_management.start()
+
+            # Fire APPD Started Event
+            await self.AD.events.process_event("global", {"event_type": "appd_started", "data": {}})
 
     async def loop(self):
         """Run the utility loop, which handles the following:
@@ -210,7 +220,7 @@ class Utility:
                 await self.AD.threading.check_overdue_and_dead_threads()
 
                 # Save any hybrid namespaces
-                self.AD.state.save_hybrid_namespaces()
+                # self.AD.state.save_hybrid_namespaces()
 
                 # Run utility for each plugin
                 self.AD.plugins.run_plugin_utility()

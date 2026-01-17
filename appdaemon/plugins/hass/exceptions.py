@@ -41,3 +41,10 @@ class ScriptNotFound(ade.AppDaemonException):
         if self.namespace != "default":
             res += f" with namespace '{self.namespace}'"
         return res
+
+@dataclass
+class HassConnectionError(ade.AppDaemonException):
+    msg: str
+
+    def __str__(self) -> str:
+        return self.msg

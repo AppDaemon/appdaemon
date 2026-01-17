@@ -1,9 +1,13 @@
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
+
+from appdaemon.utils import ADWritebackType
+
+from .common import ParsedTimedelta
 
 LEVELS = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
@@ -31,8 +35,9 @@ class FilterConfig(BaseModel):
 
 
 class NamespaceConfig(BaseModel):
-    writeback: Literal["safe", "hybrid"] | None = None
+    writeback: ADWritebackType | None = None
     persist: bool = Field(default=False, alias="persistent")
+    save_interval: ParsedTimedelta = Field(default=timedelta(seconds=1))
 
     @model_validator(mode="before")
     @classmethod
@@ -40,14 +45,14 @@ class NamespaceConfig(BaseModel):
         """Sets persistence to True if writeback is set to safe or hybrid."""
         match values:
             case {"writeback": wb} if wb is not None:
-                values["persistent"] = True
+                values["persist"] = True
             case _ if getattr(values, "writeback", None) is not None:
-                values.persistent = True
+                values.persist = True
         return values
 
     @model_validator(mode="after")
     def validate_writeback(self):
         """Makes the writeback safe by default if persist is set to True."""
         if self.persist and self.writeback is None:
-            self.writeback = "safe"
+            self.writeback = ADWritebackType.safe
         return self

@@ -23,3 +23,20 @@ async def test_hello_world(ad: AppDaemon, caplog: pytest.LogCaptureFixture, app_
 
     assert "Hello from AppDaemon" in caplog.text
     assert "You are now ready to run Apps!" in caplog.text
+
+
+@pytest.mark.ci
+@pytest.mark.functional
+@pytest.mark.asyncio(loop_scope="session")
+async def test_no_plugins(ad_obj: AppDaemon, caplog: pytest.LogCaptureFixture) -> None:
+    """Ensure that apps start correctly when there are no plugins configured."""
+    ad_obj.config.plugins = {}
+    ad_obj.app_dir = ad_obj.config_dir / "apps/hello_world"
+
+    ad_obj.start()
+    with caplog.at_level(logging.INFO, logger="AppDaemon"):
+        async with ad_obj.app_management.app_run_context("hello_world"):
+            await ad_obj.utility.app_update_event.wait()
+
+    await ad_obj.stop()
+    assert not any(r.levelname == "ERROR" for r in caplog.records)

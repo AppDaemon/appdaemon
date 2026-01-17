@@ -1,7 +1,6 @@
 from abc import ABC
 from copy import deepcopy
 from dataclasses import InitVar, dataclass, field
-from functools import partial
 from pathlib import Path
 from typing import Iterable
 
@@ -16,7 +15,7 @@ class Dependencies(ABC):
     """Wraps an instance of ``FileCheck`` with a corresponding set of dependency graphs."""
 
     files: FileCheck = field(repr=False)
-    ext: str = field(init=False)  # this has to be defined by the children classes
+    ext: str | set[str] = field(init=False)  # this has to be defined by the children classes
     dep_graph: dict[str, set[str]] = field(init=False)
     rev_graph: dict[str, set[str]] = field(init=False)
     bad_files: set[tuple[Path, float]] = field(default_factory=set, init=False)
@@ -39,7 +38,13 @@ class Dependencies(ABC):
 
     @classmethod
     def from_path(cls, path: Path):
-        return cls.from_paths(path.rglob(f"*{cls.ext}"))
+        return cls.from_paths(
+            utils.recursive_get_files(
+                base=path,
+                suffix={".yaml", ".toml"},
+                exclude={"ruff.toml", "pyproject.toml", "secrets.yaml"},
+            )
+        )
 
     @classmethod
     def from_paths(cls, paths: Iterable[Path]):
@@ -90,7 +95,6 @@ class PythonDeps(Dependencies):
 @dataclass
 class AppDeps(Dependencies):
     app_config: AllAppConfig = field(init=False, repr=False)
-    ext: str = ".yaml"
 
     def __post_init__(self):
         self.app_config = AllAppConfig.from_config_files(self.files)
@@ -157,7 +161,6 @@ class DependencyManager:
         cls,
         app_dir: Path,
         exclude: str | Iterable[str] | None = None,
-        config_suffix: str = ".yaml",
     ) -> "DependencyManager":
         """Creates a new instance of the dependency manager from the given app directory"""
         match exclude:
@@ -168,12 +171,14 @@ class DependencyManager:
             case _:
                 exclude_set = set(exclude)
 
-        get_files = partial(utils.recursive_get_files, base=app_dir, exclude=exclude_set)
         return cls(
-            # python_files=get_files(suffix=".py"),
             python_files=list(),
-            config_files=get_files(suffix=config_suffix)
-        )  # fmt: skip
+            config_files=utils.recursive_get_files(
+                base=app_dir,
+                suffix={".yaml", ".toml"},
+                exclude=exclude_set,
+            )
+        )
 
     @property
     def app_config_files(self) -> set[Path]:

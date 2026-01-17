@@ -119,6 +119,7 @@ class AppDaemon:
         self.booted = "booting"
         self.logger = logging.get_logger()
         self.logging.register_ad(self)  # needs to go last to reference the config object
+        self._shutdown_logger = self.logging.get_child("_shutdown")
         self.stop_event = asyncio.Event()
 
         self.global_vars: Any = {}
@@ -366,18 +367,14 @@ class AppDaemon:
         """Start AppDaemon, which also starts all the component subsystems like the scheduler, etc.
 
         - :meth:`ThreadAsync <appdaemon.thread_async.ThreadAsync.start>`
-        - :meth:`Scheduler <appdaemon.scheduler.Scheduler.start>`
         - :meth:`Utility <appdaemon.utility_loop.Utility.start>`
-        - :meth:`AppManagement <appdaemon.app_management.AppManagement.start>`
 
+        Note: The scheduler is started by the utility loop after plugins are ready.
         """
         self.logger.debug("Starting AppDaemon")
         self.thread_async.start()
-        self.sched.start()
         self.utility.start()
-
-        if self.apps_enabled:
-            self.app_management.start()
+        self.state.start()
 
     async def stop(self) -> None:
         """Stop AppDaemon by calling the stop method of the subsystems.
@@ -390,7 +387,7 @@ class AppDaemon:
         - :meth:`Scheduler <appdaemon.scheduler.Scheduler.stop>`
         - :meth:`State <appdaemon.state.State.stop>`
         """
-        self.logger.info("Stopping AppDaemon")
+        self._shutdown_logger.info("Stopping AppDaemon")
         self.stopping = True
 
         # Subsystems are able to create tasks during their stop methods
@@ -398,14 +395,14 @@ class AppDaemon:
             try:
                 await asyncio.wait_for(self.app_management.stop(), timeout=3)
             except asyncio.TimeoutError:
-                self.logger.warning("AppManagement stop timed out, continuing shutdown")
+                self._shutdown_logger.warning("AppManagement stop timed out, continuing shutdown")
         if self.thread_async is not None:
             self.thread_async.stop()
         if self.plugins is not None:
             try:
                 await asyncio.wait_for(self.plugins.stop(), timeout=1)
             except asyncio.TimeoutError:
-                self.logger.warning("Timed out stopping plugins, continuing shutdown")
+                self._shutdown_logger.warning("Timed out stopping plugins, continuing shutdown")
         self.sched.stop()
         self.state.stop()
         self.threading.stop()
@@ -420,7 +417,20 @@ class AppDaemon:
             all_coro = asyncio.wait(running_tasks, return_when=asyncio.ALL_COMPLETED, timeout=3)
             gather_task = asyncio.create_task(all_coro, name="appdaemon_stop_tasks")
             gather_task.add_done_callback(lambda _: self.logger.debug("All tasks finished"))
-            self.logger.debug("Waiting for tasks to finish...")
+            self._shutdown_logger.debug("Waiting for tasks %s to finish...", len(running_tasks))
+
+            # These is left here for future debugging purposes
+            # await asyncio.sleep(2.0)
+            # still_running = [
+            #     task
+            #     for task in asyncio.all_tasks()
+            #     if task is not current_task and task is not gather_task and not task.done()
+            # ]
+            # self._shutdown_logger.debug("%s tasks still running after 2 seconds", len(still_running))
+            # if still_running:
+            #     for task in still_running:
+            #         self._shutdown_logger.debug("Still running: %s", task.get_name())
+
             await gather_task
 
     #

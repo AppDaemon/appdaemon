@@ -162,6 +162,8 @@ class HTTP:
         self.static_dirs = {}
 
         self._process_http(self.http)
+        if (cfg := main_cfg.http) is not None and (p := cfg.password) is not None:
+            self.password = p.get_secret_value()  # read secret directly
 
         self.app_endpoints = {}
         self.app_routes = {}
@@ -386,7 +388,6 @@ class HTTP:
         self.setup_dashboard_routes()
 
     def _process_http(self, http):
-        self._process_arg("password", http)
         self._process_arg("tokens", http)
         self._process_arg("work_factor", http)
         self._process_arg("ssl_certificate", http)

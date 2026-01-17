@@ -469,23 +469,23 @@ class PluginManagement:
             self.AD.loop.create_task(event.wait(), name=f"waiting for {plugin_name} to be ready")
             for plugin_name, event in self._ready_events()
         ]
-        readiness = self.AD.loop.create_task(
-            asyncio.wait(wait_tasks, timeout=timeout, return_when=asyncio.ALL_COMPLETED),
-            name="waiting for all plugins to be ready",
-        )
+        if wait_tasks:
+            readiness = self.AD.loop.create_task(
+                asyncio.wait(wait_tasks, timeout=timeout, return_when=asyncio.ALL_COMPLETED),
+                name="waiting for all plugins to be ready",
+            )
 
-        early_stop = self.AD.loop.create_task(self.AD.stop_event.wait(), name="waiting for appdaemon to stop")
-        await self.AD.loop.create_task(
-            asyncio.wait((readiness, early_stop), timeout=timeout, return_when=asyncio.FIRST_COMPLETED),
-            name="waiting for plugins or stop event",
-        )
-        if readiness.done():
-            # The readiness wait completed
-            self.logger.info("All plugins ready")
-        elif self.AD.stopping:
-            self.logger.info("AppDaemon stopping before all plugins ready, cancelling readiness waits")
-            for task in wait_tasks:
-                task.cancel()
+            early_stop = self.AD.loop.create_task(self.AD.stop_event.wait(), name="waiting for appdaemon to stop")
+            await self.AD.loop.create_task(
+                asyncio.wait((readiness, early_stop), timeout=timeout, return_when=asyncio.FIRST_COMPLETED),
+                name="waiting for plugins or stop event",
+            )
+            if self.AD.stopping:
+                self.logger.info("AppDaemon stopping before all plugins ready, cancelling readiness waits")
+                for task in wait_tasks:
+                    task.cancel()
+                return
+        self.logger.info("All plugins ready")
 
     def get_config_for_namespace(self, namespace: str) -> PluginConfig:
         plugin_name = self.get_plugin_from_namespace(namespace)

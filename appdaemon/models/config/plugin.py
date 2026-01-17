@@ -3,9 +3,9 @@ from datetime import timedelta
 from ssl import _SSLMethod
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, BeforeValidator, Field, SecretBytes, SecretStr, field_validator, model_validator
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, PlainSerializer, SecretBytes, SecretStr, field_validator, model_validator
 from typing_extensions import deprecated
-
+from yarl import URL
 
 from .common import CoercedPath, ParsedTimedelta
 
@@ -85,9 +85,13 @@ class StartupConditions(BaseModel):
     event: EventStartupCondition | None = None
 
 
-class HASSConfig(PluginConfig):
-    ha_url: str = "http://supervisor/core"
-    token: SecretStr
+class HASSConfig(PluginConfig, extra="forbid"):
+    ha_url: Annotated[
+        URL,
+        BeforeValidator(URL),
+        PlainSerializer(str),
+    ] = Field(default="http://supervisor/core", validate_default=True) # pyright: ignore[reportAssignmentType]
+    token: SecretStr = Field(default_factory=lambda: SecretStr(os.environ.get("SUPERVISOR_TOKEN"))) # pyright: ignore[reportArgumentType]
     ha_key: Annotated[SecretStr, deprecated("'ha_key' is deprecated. Please use long lived tokens instead")] | None = None
     appdaemon_startup_conditions: StartupConditions | None = None
     """Startup conditions that apply only when AppDaemon first starts."""
@@ -101,42 +105,26 @@ class HASSConfig(PluginConfig):
     commtype: Annotated[str, deprecated("'commtype' is deprecated")] | None = None
     ws_timeout: ParsedTimedelta = timedelta(seconds=10)
     """Default timeout for waiting for responses from the websocket connection"""
+    ws_max_msg_size: int = 4 * 1024 * 1024
     suppress_log_messages: bool = False
     services_sleep_time: ParsedTimedelta = timedelta(seconds=60)
     """The sleep time in the background task that updates the internal list of available services every once in a while"""
     config_sleep_time: ParsedTimedelta = timedelta(seconds=60)
     """The sleep time in the background task that updates the config metadata every once in a while"""
 
-    @field_validator("ha_key", mode="after")
-    @classmethod
-    def validate_ha_key(cls, v: Any):
-        if v is None:
-            return os.environ.get("SUPERVISOR_TOKEN")
-        else:
-            return v
-
-    @field_validator("ha_url", mode="after")
-    @classmethod
-    def validate_ha_url(cls, v: str):
-        return v.rstrip("/")
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     @model_validator(mode="after")
     def custom_validator(self):
-        assert "token" in self.model_fields_set or "ha_key" in self.model_fields_set, (
-            "Either 'token' or 'ha_key' must be set for the Home Assistant plugin"
-        )
+        if self.token.get_secret_value() is None:
+            raise ValueError(
+                "Home Assistant token must be set either via 'token' field or 'SUPERVISOR_TOKEN' env variable"
+            )
         return self
 
     @property
-    def websocket_url(self) -> str:
-        return f"{self.ha_url}/api/websocket"
-
-    @property
-    def states_api(self) -> str:
-        return f"{self.ha_url}/api/states"
-
-    def get_entity_api(self, entity_id: str) -> str:
-        return f"{self.states_api}/{entity_id}"
+    def websocket_url(self) -> URL:
+        return self.ha_url / "api/websocket"
 
     @property
     def auth_json(self) -> dict:
@@ -151,7 +139,7 @@ class HASSConfig(PluginConfig):
         if self.token is not None:
             return {"Authorization": f"Bearer {self.token.get_secret_value()}"}
         elif self.ha_key is not None:
-            return {"x-ha-access": self.ha_key}
+            return {"x-ha-access": self.ha_key.get_secret_value()}
         raise ValueError("Home Assistant token not set")
 
 

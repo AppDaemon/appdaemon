@@ -35,14 +35,10 @@ class MqttPlugin(PluginBase):
         self.logger.info("MQTT Plugin Initializing")
 
         if self.config.birth_topic is not None:
-            self.logger.info(
-                f"Using '{self.config.birth_topic}' as birth topic with payload '{self.config.birth_payload}'"
-            )
+            self.logger.info(f"Using '{self.config.birth_topic}' as birth topic with payload '{self.config.birth_payload}'")
 
         if self.config.will_topic is not None:
-            self.logger.info(
-                f"Using '{self.config.will_topic}' as will topic with payload '{self.config.will_payload}'"
-            )
+            self.logger.info(f"Using '{self.config.will_topic}' as will topic with payload '{self.config.will_payload}'")
 
         if self.config.tls_version == "1.2":
             self.config.tls_version = ssl.PROTOCOL_TLSv1_2
@@ -220,9 +216,7 @@ class MqttPlugin(PluginBase):
             self.loop.create_task(self.send_ad_event(event_data))
         except Exception as e:
             self.logger.critical(f"There was an error while processing MQTT message: {type(e)} {e}")
-            self.logger.error(
-                f"There was an error while processing MQTT message, with Traceback: {traceback.format_exc()}"
-            )
+            self.logger.error(f"There was an error while processing MQTT message, with Traceback: {traceback.format_exc()}")
 
     def mqtt_subscribe(self, topic, qos):
         self.logger.debug("Subscribing to Topic: %s, with Qos %s", topic, qos)
@@ -400,7 +394,7 @@ class MqttPlugin(PluginBase):
     # Get initial state
     #
 
-    async def get_complete_state(self): # Needs to be async for plugins that need to send/receive something
+    async def get_complete_state(self):  # Needs to be async for plugins that need to send/receive something
         self.logger.debug("*** Sending Complete State: %s ***", self.state)
         return copy.deepcopy(self.state)
 
@@ -428,19 +422,11 @@ class MqttPlugin(PluginBase):
         self.mqtt_connect_event = asyncio.Event()
 
         while not self.AD.stopping:
-            while (
-                not self.initialized or not already_initialized
-            ) and not self.AD.stopping:  # continue until initialization is successful
-                if (
-                    not already_initialized and not already_notified
-                ):  # if it had connected before, it need not run this. Run if just trying for the first time
+            while (not self.initialized or not already_initialized) and not self.AD.stopping:  # continue until initialization is successful
+                if not already_initialized and not already_notified:  # if it had connected before, it need not run this. Run if just trying for the first time
                     try:
-                        await asyncio.wait_for(
-                            utils.run_in_executor(self, self.start_mqtt_service, first_time_service), 5.0
-                        )
-                        await asyncio.wait_for(
-                            self.mqtt_connect_event.wait(), 5.0
-                        )  # wait for it to return true for 5 seconds in case still processing connect
+                        await asyncio.wait_for(utils.run_in_executor(self, self.start_mqtt_service, first_time_service), 5.0)
+                        await asyncio.wait_for(self.mqtt_connect_event.wait(), 5.0)  # wait for it to return true for 5 seconds in case still processing connect
                     except asyncio.TimeoutError:
                         self.logger.critical(
                             "Could not Complete Connection to Broker, please Ensure Broker at URL %s:%s is correct and broker is not down and restart Appdaemon",
@@ -480,9 +466,7 @@ class MqttPlugin(PluginBase):
                         if self.AD.stopping:
                             break
                     else:
-                        self.logger.critical(
-                            "Unable to reinitialize MQTT Plugin, will keep trying again until complete"
-                        )
+                        self.logger.critical("Unable to reinitialize MQTT Plugin, will keep trying again until complete")
                     await self.AD.utility.sleep(5, timeout_ok=True)  # wait for 5 seconds before trying again
             await self.AD.utility.sleep(5, timeout_ok=True)
 
@@ -492,9 +476,7 @@ class MqttPlugin(PluginBase):
             self.mqtt_connect_event.clear()
             if first_time:
                 if self.config.client_user is not None:
-                    self.mqtt_client.username_pw_set(
-                        self.config.client_user, password=self.config.client_password.get_secret_value()
-                    )
+                    self.mqtt_client.username_pw_set(self.config.client_user, password=self.config.client_password.get_secret_value())
 
                 set_tls = False
                 auth = {"tls_version": self.config.tls_version}
@@ -523,7 +505,7 @@ class MqttPlugin(PluginBase):
                     retain=self.config.will_retain,
                 )
 
-            self.mqtt_client.connect_async(self.config.client_host, self.config.client_port, self.config.tls_version)
+            self.mqtt_client.connect_async(self.config.client_host, self.config.client_port)
             self.mqtt_client.loop_start()
         except Exception as e:
             self.logger.critical(

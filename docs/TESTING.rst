@@ -7,7 +7,7 @@ AppDaemon uses `pytest <https://docs.pytest.org/en/stable/>`_ and `pytest-asynci
 
   .. literalinclude:: ../pyproject.toml
     :language: toml
-    :lines: 94-104
+    :lines: 88-96
     :caption: Pytest configuration options
 
 - Pytest-asyncio manages creating the event loop, which is normally handled by :py:class:`~appdaemon.__main__.ADMain`.

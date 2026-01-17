@@ -18,6 +18,7 @@ import threading
 import traceback
 from collections.abc import Awaitable, Generator, Iterable, Mapping, Sequence
 from datetime import datetime, time, timedelta, tzinfo
+from enum import Enum
 from functools import wraps
 from logging import Logger
 from pathlib import Path
@@ -40,6 +41,7 @@ from appdaemon.version import (
 
 from . import exceptions as ade
 from .parse import parse_timedelta
+from .types import TimeDeltaLike
 
 logger = logging.getLogger("AppDaemon._utility")
 file_log = logger.getChild("file")
@@ -112,18 +114,66 @@ class Formatter(object):
         return "(%s)" % (",".join(items) + self.lfchar + self.htchar * indent)
 
 
+class ADWritebackType(str, Enum):
+    """Represents different strategies for AppDaemon to write persistent namespaces to disk.
+
+    See :py:meth:`shelve.open` for more details about writeback modes for the underlying shelf object and
+    `user Defined Namespaces <https://appdaemon.readthedocs.io/en/latest/APPGUIDE.html#user-defined-namespaces>`_
+    """
+    safe = "safe"
+    """The namespace is written to disk every time a change is made so will be up to date even if a crash happens. The
+    downside is that there is a possible performance impact for systems with slower disks, or that set state on many
+    UDNS at a time."""
+    hybrid = "hybrid"
+    """A compromise setting in which the namespaces are saved periodically (once each time around the utility loop,
+    usually once every second- with this setting a maximum of 1 second of data will be lost if AppDaemon crashes."""
+
+
 class PersistentDict(shelve.DbfilenameShelf):
     """
-    Dict-like object that uses a Shelf to persist its contents.
+    Dict-like object that uses a shelf to persist its contents.
+
+    A “shelf” is a persistent, dictionary-like object. The difference with “dbm” databases is that the values (not the
+    keys!) in a shelf can be essentially arbitrary Python objects — anything that the pickle module can handle. This
+    includes most class instances, recursive data types, and objects containing lots of shared sub-objects. The keys are
+    ordinary strings.
     """
 
-    def __init__(self, filename: str | Path, safe: bool, **kwargs):
-        filename = Path(filename).resolve().as_posix()
-        # writeback=True allows for mutating objects in place, like with a dict.
-        super().__init__(filename, writeback=True)
-        self.safe = safe
+    writeback_type: ADWritebackType
+    safe: bool
+    rlock: threading.RLock
+    filepath: Path
+
+    def __init__(self, filename: str | Path, writeback_type: ADWritebackType = ADWritebackType.safe) -> None:
+        match writeback_type:
+            case ADWritebackType.safe:
+                # This is the default condition for shelf objects, which saves all assignments to the dict to disk.
+                writeback = False
+            case ADWritebackType.hybrid:
+                # From the Python docs:
+                # If the optional writeback parameter is set to True, all entries accessed are also cached in memory,
+                # and written back on sync() and close(); this can make it handier to mutate mutable entries in the
+                # persistent dictionary, but, if many entries are accessed, it can consume vast amounts of memory for
+                # the cache, and it can make the close operation very slow since all accessed entries are written back
+                # (there is no way to determine which accessed entries are mutable, nor which ones were actually mutated).
+                writeback = True
+
+        filepath = Path(filename).resolve()
+        if sys.version_info.minor < 13:
+            filepath = filepath.with_suffix("")
+        else:
+            filepath = filepath.with_suffix(".db")
+
+        super().__init__(str(filepath), writeback=writeback)
+        self.writeback_type = writeback_type
+        self.safe = writeback_type == ADWritebackType.safe
         self.rlock = threading.RLock()
-        self.update(new=kwargs)
+        self.filepath = filepath
+        # print(f'PersistentDict using writeback mode: {self.writeback_type}, writeback={writeback}')
+
+    @property
+    def is_safe(self) -> bool:
+        return self.writeback_type == ADWritebackType.safe
 
     def __contains__(self, key):
         with self.rlock:
@@ -165,13 +215,12 @@ class PersistentDict(shelve.DbfilenameShelf):
         with self.rlock:
             super().sync()
 
-    def update(self, new: dict, *args, save=True, **kwargs):
+    def update(self, new: dict[str, Any], save: bool = False) -> None:
         with self.rlock:
-            for key, value in dict(*args, **new, **kwargs).items():
-                # use super().__setitem__() to prevent multiple save() calls
-                super().__setitem__(key, value)
-                if self.safe and save:
-                    self.sync()
+            for key, val in new.items():
+                super().__setitem__(key, val)
+            if self.is_safe or save:
+                self.sync()
 
 
 class AttrDict(dict):
@@ -236,24 +285,84 @@ P = ParamSpec("P")
 R = TypeVar("R")
 
 
+def parse_timedelta_or_none(input_: str | int | float | timedelta | None) -> timedelta | None:
+    """Parse to timedelta, but return None if input is None."""
+    return parse_timedelta(input_) if input_ is not None else None
+
+
 def resolve_offset(
-    offset: str | int | float | timedelta | None,
-    random_start: int | float | None = None,
-    random_end: int | float | None = None,
+    offset: timedelta,
+    random_start: timedelta | None = None,
+    random_end: timedelta | None = None,
 ) -> timedelta:
-    """Resolves a given offset with some randomization into a timedelta object."""
-    offset = parse_timedelta(offset)
+    """Resolves a given offset with some randomization into a timedelta object.
+
+    Args:
+        offset: Base offset as a timedelta
+        random_start: Start of random range as a timedelta (can be negative)
+        random_end: End of random range as a timedelta
+
+    Returns:
+        The offset plus a random value in [random_start, random_end]
+    """
     if random_start is not None or random_end is not None:
-        random_start = random_start if random_start is not None else 0
-        random_end = random_end if random_end is not None else 0
+        r_start = random_start if random_start is not None else timedelta()
+        r_end = random_end if random_end is not None else timedelta()
 
-        span = random_end - random_start
-        assert span >= 0, "Random end must be greater than or equal to random start"
+        span = r_end - r_start
+        assert span >= timedelta(), "Random end must be greater than or equal to random start"
 
-        random_secs = (span * random.random()) + random_start
-        random_offset = parse_timedelta(random_secs)
+        random_offset = span * random.random() + r_start
         offset += random_offset
     return offset
+
+
+# Maximum allowed offset for sun events (sunrise/sunset repeat daily)
+SUN_EVENT_INTERVAL = timedelta(days=1)
+
+
+def validate_offset_within_interval(
+    offset: timedelta,
+    interval: timedelta,
+    event_type: str,
+    random_start: timedelta | None = None,
+    random_end: timedelta | None = None,
+) -> None:
+    """Validate that the offset (including random range) doesn't exceed the event interval.
+
+    For repeating schedules, an offset that exceeds the interval between events would cause
+    confusing behavior where the callback fires at unpredictable times relative to the intended
+    base time.
+
+    Args:
+        offset: The base offset as a timedelta
+        interval: The interval between events as a timedelta
+        event_type: Human-readable description of the event type (e.g., "sunrise", "daily")
+        random_start: Optional random range start as a timedelta
+        random_end: Optional random range end as a timedelta
+
+    Raises:
+        OffsetExceedsIntervalError: If the maximum possible offset exceeds the interval
+    """
+    if interval <= timedelta():
+        return  # Non-repeating event or invalid interval, skip validation
+
+    r_start = random_start if random_start is not None else timedelta()
+    r_end = random_end if random_end is not None else timedelta()
+
+    # Calculate the extreme possible offsets
+    min_offset = offset + r_start
+    max_offset = offset + r_end
+
+    # Check if any possible offset would exceed the interval
+    if abs(min_offset) >= interval or abs(max_offset) >= interval:
+        raise ade.OffsetExceedsIntervalError(
+            offset=offset,
+            interval=interval,
+            event_type=event_type,
+            random_start=random_start,
+            random_end=random_end,
+        )
 
 
 def sync_decorator(coro_func: Callable[P, Awaitable[R]]) -> Callable[P, R]:
@@ -270,7 +379,7 @@ def sync_decorator(coro_func: Callable[P, Awaitable[R]]) -> Callable[P, R]:
     """
 
     @wraps(coro_func)
-    def wrapper(self, *args, timeout: str | int | float | timedelta | None = None, **kwargs) -> R:
+    def wrapper(self, *args, timeout: TimeDeltaLike | None = None, **kwargs) -> R:
         ad: "AppDaemon" = self.AD
 
         # Checks to see if it's being called from the main thread, which has the event loop in it
@@ -326,11 +435,11 @@ def _profile_this(fn):
     return profiled_fn
 
 
-def format_seconds(secs: str | int | float | timedelta) -> str:
+def format_seconds(secs: TimeDeltaLike) -> str:
     return str(parse_timedelta(secs))
 
 
-def format_timedelta(td: str | int | float | timedelta | None) -> str:
+def format_timedelta(td: TimeDeltaLike | None) -> str:
     """Format a timedelta object into a human-readable string.
 
     There are different brackets for lengths of time that will format the strings differently.
@@ -589,7 +698,7 @@ async def run_in_executor(self: Subsystem, fn: Callable[..., R], *args, **kwargs
     return await future
 
 
-def run_coroutine_threadsafe(self: "ADBase", coro: Coroutine[Any, Any, R], timeout: str | int | float | timedelta | None = None) -> R:
+def run_coroutine_threadsafe(self: "ADBase", coro: Coroutine[Any, Any, R], timeout: TimeDeltaLike | None = None) -> R:
     """Run an instantiated coroutine (async) from sync code.
 
     This wraps the native python function ``asyncio.run_coroutine_threadsafe`` with logic to add a timeout. See
@@ -814,7 +923,12 @@ def dt_to_str(dt: datetime, tz: tzinfo | None = None, *, round: bool = False) ->
 
 
 def convert_json(data, **kwargs):
-    return json.dumps(data, default=str, **kwargs)
+    def fallback_serializer(obj):
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        return str(obj)
+
+    return json.dumps(data, default=fallback_serializer, **kwargs)
 
 
 def get_object_size(obj, seen=None):
@@ -1119,15 +1233,6 @@ def clean_http_kwargs(val: Any) -> Any:
     return pruned
 
 
-def make_endpoint(base: str, endpoint: str) -> str:
-    """Formats a URL appropriately with slashes"""
-    if not endpoint.startswith(base):
-        result = f"{base}/{endpoint.strip('/')}"
-    else:
-        result = endpoint
-    return result.strip("/")
-
-
 def unwrapped(func: Callable) -> Callable:
     while hasattr(func, "__wrapped__"):
         func = func.__wrapped__
@@ -1173,7 +1278,7 @@ def deprecation_warnings(model: BaseModel, logger: Logger):
                 deprecation_warnings(attr, logger)
 
 
-def recursive_get_files(base: Path, suffix: str, exclude: set[str] | None = None) -> Generator[Path, None, None]:
+def recursive_get_files(base: Path, suffix: str | set[str], exclude: set[str] | None = None) -> Generator[Path, None, None]:
     """Recursively generate file paths.
 
     Args:
@@ -1184,11 +1289,12 @@ def recursive_get_files(base: Path, suffix: str, exclude: set[str] | None = None
     Yields:
         Path objects to files that have the matching extension and are readable.
     """
+    suffix = {suffix} if isinstance(suffix, str) else suffix
     exclude = set() if exclude is None else exclude
     for item in base.iterdir():
         if item.name.startswith(".") or (exclude is None or item.name in exclude):
             continue
-        elif item.is_file() and item.suffix == suffix and os.access(item, os.R_OK):
+        elif item.is_file() and item.suffix in suffix and os.access(item, os.R_OK):
             yield item
         elif item.is_dir() and os.access(item, os.R_OK):
             yield from recursive_get_files(item, suffix, exclude)

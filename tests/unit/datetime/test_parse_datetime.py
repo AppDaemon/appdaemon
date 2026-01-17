@@ -1,10 +1,14 @@
+import itertools
 from datetime import date, datetime, timedelta
 from functools import partial
 from typing import Literal
 
 import appdaemon.parse
 import pytest
+import pytz
+from appdaemon.exceptions import OffsetExceedsIntervalError
 from appdaemon.parse import resolve_time_str
+from appdaemon.utils import SUN_EVENT_INTERVAL, validate_offset_within_interval
 from astral import SunDirection
 from astral.location import Location
 from pytz import BaseTzInfo
@@ -34,6 +38,31 @@ class TestParseDatetime:
                 return
 
         assert result.date() == default_now.date()
+
+    @pytest.mark.parametrize(
+        ("input_", "aware", "today"),
+        itertools.product(
+            ["2025-10-25 13:51:42"],
+            (True, False),
+            (True, False),
+        ),
+    )
+    def test_parse_datetime(
+        self,
+        input_: str,
+        aware: bool,
+        today: bool,
+        parser: partial[datetime],
+    ) -> None:
+        try:
+            result = parser(input_, aware=aware, today=today)
+        except Exception as e:
+            assert False, f"Parsing failed: {e}"
+        else:
+            correct = datetime(2025, 10, 25, 13, 51, 42)
+            if aware:
+                correct = pytz.timezone("America/New_York").localize(correct)
+            assert result == correct
 
     @pytest.mark.parametrize(*ParameterBuilder.sun_params())
     def test_parse_sun_offsets(
@@ -302,3 +331,100 @@ def test_exact_sun_event(default_date: date, location: Location, tz: BaseTzInfo)
     assert next_sunset.date() != default_date, "Next sunset should be tomorrow"
     assert next_sunset.date() != default_date, "Next sunset should be tomorrow"
     assert next_sunset.date() != default_date, "Next sunset should be tomorrow"
+
+
+def test_run_at_time_in_past(default_now: datetime, default_date: date, tomorrow_date: date, parser: partial[datetime]) -> None:
+    """Test that run_at schedules for next day when time is in the past.
+
+    This test reproduces the bug reported in issue #2491 where run_at() with a time
+    in the past runs immediately instead of scheduling for the next day.
+
+    The fix is to have run_at() explicitly pass today=False to parse_datetime,
+    which forces times in the past to be scheduled for tomorrow.
+    """
+    from datetime import time
+
+    # Current time is 12:00 (default_now is 12:00:00)
+    # Test with a time object that's 1 hour in the past (11:00)
+    past_time = time(11, 0, 0)
+    # run_at should call parse_datetime with today=False
+    result = parser(past_time, today=False)
+
+    # Since the time is in the past and today=False (behavior for run_at),
+    # it should be scheduled for tomorrow
+    assert result.date() == tomorrow_date, f"Expected {tomorrow_date}, got {result.date()}"
+    assert result.time() == past_time
+
+    # Test with a time string that's in the past
+    result_str = parser("11:00:00", today=False)
+    assert result_str.date() == tomorrow_date, f"Expected {tomorrow_date}, got {result_str.date()}"
+
+    # Test with a time that's in the future (should be today)
+    future_time = time(13, 0, 0)
+    result_future = parser(future_time, today=False)
+    assert result_future.date() == default_date, f"Expected {default_date}, got {result_future.date()}"
+    assert result_future.time() == future_time
+
+    # Test with today=True explicitly (should be today even if in the past)
+    result_today = parser(past_time, today=True)
+    assert result_today.date() == default_date
+    assert result_today.time() == past_time
+
+    # Test with today=None (default for elevation events - should be today even if past)
+    result_none = parser(past_time, today=None)
+    assert result_none.date() == default_date
+    assert result_none.time() == past_time
+
+
+class TestOffsetValidation:
+    """Tests for validate_offset_within_interval"""
+
+    def test_valid_offset_within_interval(self) -> None:
+        """Offset smaller than interval should pass"""
+        # 1 hour offset with 24 hour interval - should not raise
+        offset = timedelta(hours=1)
+        validate_offset_within_interval(offset, timedelta(days=1), "daily")
+
+    def test_valid_offset_with_random_within_interval(self) -> None:
+        """Offset + random range smaller than interval should pass"""
+        # 1 hour offset with random range of -30min to +30min
+        # Max possible offset = 1h + 30m = 1.5h, which is < 1 day
+        offset = timedelta(hours=1)
+        validate_offset_within_interval(
+            offset, SUN_EVENT_INTERVAL, "sunset",
+            random_start=timedelta(minutes=-30), random_end=timedelta(minutes=30)
+        )
+
+    def test_offset_exceeds_interval_raises(self) -> None:
+        """Offset larger than interval should raise"""
+        # 25 hour offset with 1 day sun event interval - should raise
+        offset = timedelta(hours=25)
+        with pytest.raises(OffsetExceedsIntervalError) as exc_info:
+            validate_offset_within_interval(offset, SUN_EVENT_INTERVAL, "sunrise")
+
+        assert exc_info.value.offset == timedelta(hours=25)
+        assert exc_info.value.interval == SUN_EVENT_INTERVAL
+        assert exc_info.value.event_type == "sunrise"
+
+    def test_random_end_exceeds_interval_raises(self) -> None:
+        """Random end that would push total offset past interval should raise"""
+        # 23 hour offset + random range up to 2 hours = 25 hours max, exceeds 1 day
+        offset = timedelta(hours=23)
+        with pytest.raises(OffsetExceedsIntervalError):
+            validate_offset_within_interval(
+                offset, SUN_EVENT_INTERVAL, "sunset",
+                random_start=timedelta(), random_end=timedelta(hours=2)
+            )
+
+    def test_negative_offset_exceeds_interval_raises(self) -> None:
+        """Negative offset larger than interval should raise"""
+        # -25 hour offset with 24 hour daily interval - should raise
+        offset = timedelta(hours=-25)
+        with pytest.raises(OffsetExceedsIntervalError):
+            validate_offset_within_interval(offset, timedelta(days=1), "daily")
+
+    def test_zero_interval_skips_validation(self) -> None:
+        """Zero interval (non-repeating) should skip validation"""
+        # Even a huge offset should pass with zero interval
+        offset = timedelta(days=365)
+        validate_offset_within_interval(offset, timedelta(), "one-time")

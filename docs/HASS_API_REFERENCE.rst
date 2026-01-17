@@ -4,6 +4,8 @@ Hass Plugin/API
 About
 -----
 
+.. _hass_plugin:
+
 Hass Plugin
 ~~~~~~~~~~~
 
@@ -82,6 +84,11 @@ This is the full list of configuration options available for the `Hass` plugin.
      - Timeout for waiting for Home Assistant response from the websocket API. This is the time between when a websocket
        message is first sent and when Home Assistant responds with some kind of acknowledgement/result. Config values
        are parsed with :py:func:`parse_timedelta <appdaemon.utils.parse_timedelta>`. Defaults to 10 seconds.
+   * - ``ws_max_msg_size``
+     - optional
+     - Maximum size in bytes for incoming websocket messages. Defaults to 4MB. Increase this if you have very large
+       entities (e.g., many attributes) that cause messages to exceed this size. You can also allow any message size by
+       setting this to 0, but that may cause other unforeseen issues.
    * - ``suppress_log_messages``
      - optional
      - If ``true``, suppress log messages related to :py:meth:`call_service <appdaemon.plugins.hass.hassapi.Hass.call_service>`.
@@ -247,6 +254,9 @@ Example to wait for an input button before starting AppDaemon
         service: press
         service_data:
           entity_id: input_button.start_appdaemon # example entity
+
+
+.. _hass-api-usage:
 
 API Usage
 ---------

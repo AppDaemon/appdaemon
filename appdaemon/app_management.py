@@ -13,14 +13,13 @@ import threading
 import traceback
 from collections import OrderedDict
 from collections.abc import AsyncGenerator, Iterable
-from copy import copy
+import copy
 from functools import partial, reduce, wraps
 from logging import Logger
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, TypeVar
 
 from pydantic import ValidationError
-
 
 from appdaemon.dependency import DependencyResolutionFail, find_all_dependents, get_full_module_name
 from appdaemon.dependency_manager import DependencyManager
@@ -33,9 +32,9 @@ from . import utils
 from .models.internal.app_management import LoadingActions, ManagedObject, UpdateActions, UpdateMode
 
 if TYPE_CHECKING:
-    from .appdaemon import AppDaemon
-    from .adbase import ADBase
     from .adapi import ADAPI
+    from .adbase import ADBase
+    from .appdaemon import AppDaemon
     from .plugin_management import PluginBase
 
 T = TypeVar("T")
@@ -87,7 +86,6 @@ class AppManagement:
 
     def __init__(self, ad: "AppDaemon"):
         self.AD = ad
-        self.ext = self.AD.config.ext
         self.logger = ad.logging.get_child(self.name)
         self.error = ad.logging.get_error()
         self.diag = ad.logging.get_diag()
@@ -163,28 +161,24 @@ class AppManagement:
     def valid_apps(self) -> set[str]:
         return self.running_apps | self.loaded_globals
 
-    def start(self) -> None:
-        """Start the app management subsystem, which creates async tasks to
+    async def start(self) -> None:
+        """Start the app management subsystem.
 
-        * Initialize admin entities
-        * Call :meth:`~.check_app_updates`
-        * Fire an ``appd_started`` event in the ``global`` namespace.
-
+        This method:
+        * Initializes admin entities
+        * Initializes the dependency manager (INIT mode)
+        * Loads all apps (normal mode)
         """
         if self.AD.apps_enabled:
             self.logger.debug("Starting the app management subsystem")
-            self.AD.loop.create_task(self.init_admin_entities())
+            await self.init_admin_entities()
 
-            task = self.AD.loop.create_task(
-                self.check_app_updates(mode=UpdateMode.INIT),
-                name="check_app_updates",
-            )
-            task.add_done_callback(
-                lambda _: self.AD.loop.create_task(
-                    self.AD.events.process_event("global", {"event_type": "appd_started", "data": {}}),
-                    name="appd_started_event"
-                )
-            )
+            await self.check_app_updates(mode=UpdateMode.INIT)
+
+            self.logger.debug("Loading apps")
+            await self.check_app_updates()
+
+            self.logger.info("App initialization complete")
 
     async def stop(self) -> None:
         """Stop the app management subsystem and all the running apps.
@@ -531,12 +525,11 @@ class AppManagement:
                     module_name,
                 )
 
-                if (pin := cfg.pin_thread) and pin >= self.AD.threading.total_threads:
+                if (pin := cfg.pin_thread) is not None and pin >= self.AD.threading.total_threads:
                     raise ade.PinOutofRange(pin_thread=pin, total_threads=self.AD.threading.total_threads)
-                elif (obj := self.objects.get(app_name)) and obj.pin_thread is not None:
+                if (obj := self.objects.get(app_name)) and obj.pin_thread is not None:
                     pin = obj.pin_thread
-                else:
-                    pin = -1
+                # else pin is already None from cfg.pin_thread
 
                 # This module should already be loaded and stored in sys.modules
                 mod_obj = await utils.run_in_executor(self, importlib.import_module, module_name)
@@ -589,7 +582,7 @@ class AppManagement:
             type="plugin",
             object=object,
             pin_app=False,
-            pin_thread=-1,
+            pin_thread=None,
             running=False,
         )
 
@@ -1051,8 +1044,8 @@ class AppManagement:
         return set(
             utils.recursive_get_files(
                 base=self.AD.app_dir.resolve(),
-                suffix=self.ext,
-                exclude=set(self.AD.exclude_dirs),
+                suffix={".yaml", ".toml"},
+                exclude=set(self.AD.exclude_dirs) | {"ruff.toml", "pyproject.toml", "secrets.yaml"},
             )
         )
 
@@ -1152,7 +1145,7 @@ class AppManagement:
 
     def _filter_running_apps(self, *trackers: Iterable[str]) -> Iterable[Iterable[str]]:
         """App names that get added to the start order indirectly may already be running."""
-        for app_name in copy(trackers[0]):
+        for app_name in copy.copy(trackers[0]):
             match self.objects.get(app_name):
                 case ManagedObject(running=True):
                     self.logger.debug("Dependent app '%s' is already running", app_name)
@@ -1327,7 +1320,7 @@ class AppManagement:
             return False
 
         app_directory: Path = self.AD.app_dir / kwargs.pop("app_dir", "ad_apps")
-        app_file: Path = app_directory / kwargs.pop("app_file", f"{app}{self.ext}")
+        app_file: Path = app_directory / kwargs.pop("app_file", f"{app}{self.AD.config.ext}")
         app_directory = app_file.parent  # in case the given app_file is multi level
 
         try:

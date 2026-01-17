@@ -16,6 +16,7 @@ from astral import LocationInfo
 from astral.location import Location
 
 from . import parse, utils
+from .types import TimeDeltaLike
 
 if TYPE_CHECKING:
     from .adbase import ADBase
@@ -152,10 +153,10 @@ class Scheduler:
         callback: Callable | None,
         repeat: bool = False,
         type_: str | None = None,
-        interval: str | int | float | timedelta = 0,
-        offset: str | int | float | timedelta | None = None,
-        random_start: int | None = None,
-        random_end: int | None = None,
+        interval: timedelta = timedelta(),
+        offset: timedelta = timedelta(),
+        random_start: timedelta | None = None,
+        random_end: timedelta | None = None,
         pin: bool | None = None,
         pin_thread: int | None = None,
         **kwargs,
@@ -172,6 +173,8 @@ class Scheduler:
             # Otherwise, use the current pin_app setting in app management
             if pin is None:
                 pin_app = self.AD.app_management.objects[name].pin_app
+            else:
+                pin_app = pin
 
             if pin_thread is None:
                 pin_thread = self.AD.app_management.objects[name].pin_thread
@@ -184,25 +187,37 @@ class Scheduler:
         handle = uuid.uuid4().hex
 
         # Resolve the first run
-        offset = utils.parse_timedelta(offset)
+
+        # Validate offset doesn't exceed the interval for repeating schedules
+        if repeat:
+            match type_:
+                case "next_rising":
+                    utils.validate_offset_within_interval(
+                        offset, utils.SUN_EVENT_INTERVAL, "sunrise", random_start, random_end
+                    )
+                case "next_setting":
+                    utils.validate_offset_within_interval(
+                        offset, utils.SUN_EVENT_INTERVAL, "sunset", random_start, random_end
+                    )
+                case _ if interval.total_seconds() > 0:
+                    utils.validate_offset_within_interval(
+                        offset, interval, "interval", random_start, random_end
+                    )
+
         c_offset = utils.resolve_offset(offset=offset, random_start=random_start, random_end=random_end)
         timestamp = basetime + c_offset
-
-        # Preserve randomization kwargs because this is where they're looked for later
-        if random_start is not None:
-            kwargs["random_start"] = random_start
-        if random_end is not None:
-            kwargs["random_end"] = random_end
 
         self.schedule[name][handle] = {
             "name": name,
             "id": self.AD.app_management.objects[name].id,
             "callback": callback,
             "timestamp": timestamp,
-            "interval": utils.parse_timedelta(interval).total_seconds(),  # guarantees that interval is a float
+            "interval": interval,
             "basetime": basetime,
             "repeat": repeat,
-            "offset": offset.total_seconds(),
+            "offset": offset,
+            "random_start": random_start,
+            "random_end": random_end,
             "type": type_,
             "pin_app": pin_app,
             "pin_thread": pin_thread,
@@ -259,10 +274,13 @@ class Scheduler:
     async def restart_timer(self, uuid_: str, args: dict[str, Any]) -> dict:
         """Used to restart a timer. This directly modifies the internal schedule dict."""
         match args:
-            case {"type": "next_rising" | "next_setting", "offset": offset}:
-                # If the offset is negative, the next sunrise/sunset will still be today, so get tomorrow's by setting
-                # the days_offset to 1.
-                days_offset = 1 if offset < 0 else 0
+            case {"type": "next_rising" | "next_setting", "timestamp": timestamp, "basetime": basetime}:
+                # Determine if we need to skip ahead a day based on the effective offset
+                # (including any random component) that was actually used for this firing.
+                # If negative, the callback fired before the sun event, so next_*() returns
+                # that same event and we need to skip ahead.
+                effective_offset = timestamp - basetime
+                days_offset = 1 if effective_offset < timedelta() else 0
                 match args:
                     case {"type": "next_rising"}:
                         args["basetime"] = await self.next_sunrise(days_offset)
@@ -270,7 +288,7 @@ class Scheduler:
                         args["basetime"] = await self.next_sunset(days_offset)
             case {"interval": interval}:
                 # Just increment the basetime with the repeat interval
-                args["basetime"] += utils.parse_timedelta(interval)
+                args["basetime"] += interval
             case _:
                 raise ValueError("Malformed scheduler args, expected 'type' or 'interval' key")
 
@@ -339,13 +357,13 @@ class Scheduler:
                 "callback": callback,
                 "timestamp": datetime() as timestamp,
                 "basetime": datetime() as basetime,
-                "interval": (int() | float()) as interval,
+                "interval": timedelta() as interval,
             }:
                 callback_name = utils.unwrapped(callback).__name__
                 logger.debug(f"callback name={callback_name}")
                 logger.debug(f"     basetime={basetime.astimezone(self.AD.tz).isoformat()}")
                 logger.debug(f"    timestamp={timestamp.astimezone(self.AD.tz).isoformat()}")
-                logger.debug(f"     interval={utils.parse_timedelta(interval)}")
+                logger.debug(f"     interval={interval}")
                 pass
             case _:
                 logger.debug("  Executing: %s", args)
@@ -463,20 +481,33 @@ class Scheduler:
 
     async def get_next_period(
         self,
-        interval: int | float | timedelta,
+        interval: TimeDeltaLike,
         start: time | datetime | str | None = None,
-        buffer: str | float | int | timedelta = 0.01,
     ) -> datetime:
+        """Calculate the next execution time for a periodic interval.
+
+        If start is "immediate", returns the current time.
+        Otherwise, calculates a start time (defaulting to "now") and advances by the
+        interval until a future time is reached.
+        """
         interval = utils.parse_timedelta(interval)
         start = "now" if start is None else start
-        aware_start = await self.parse_datetime(start, aware=True)
-        assert isinstance(aware_start, datetime) and aware_start.tzinfo is not None
-        buffer = utils.parse_timedelta(buffer)
-        while True:
-            if aware_start >= (await self.get_now() - buffer):
-                return aware_start
-            else:
-                aware_start += interval
+
+        # Get "now" once and use it consistently to avoid timing races
+        now = await self.get_now()
+        match start:
+            case "immediate":
+                return now
+            case "now" | _:
+                aware_next = await self.parse_datetime(start, aware=True, now=now)
+                # Skip forward to the next period if start is in the past
+                # This makes the result in the first
+                while aware_next <= now:
+                    aware_next += interval
+
+        assert isinstance(aware_next, datetime) and aware_next.tzinfo is not None, \
+            "aware_start must be a timezone aware datetime"
+        return aware_next
 
     async def terminate_app(self, name: str):
         if app_sched := self.schedule.pop(name, False):
@@ -622,7 +653,10 @@ class Scheduler:
                             args = self.schedule.get(name, {}).get(uuid_, False)
                             if time_to_run and args:
                                 func = utils.unwrapped(args["callback"])
-                                self.logger.debug("Firing scheduled callback %s for '%s'", func.__name__, name)
+                                if func is not None:
+                                    self.logger.debug("Firing scheduled callback %s for '%s'", func.__name__, name)
+                                else:
+                                    self.logger.debug("Firing timeout/cancellation entry for '%s'", name)
                                 await self.exec_schedule(name, args, uuid_)
                         case _:
                             raise ValueError(f"Unknown entry format: {entry}")
@@ -712,7 +746,7 @@ class Scheduler:
     async def sun_down(self) -> bool:
         return await self.now_is_between(start_time="sunset", end_time="sunrise")
 
-    async def info_timer(self, handle, name) -> tuple[datetime, float, dict] | None:
+    async def info_timer(self, handle, name) -> tuple[datetime, timedelta, dict] | None:
         if self.timer_running(name, handle):
             callback = self.schedule[name][handle]
             return (
@@ -748,11 +782,13 @@ class Scheduler:
                 schedule[name][str(entry)]["kwargs"] = ""
                 for kwarg in self.schedule[name][entry]["kwargs"]:
                     schedule[name][str(entry)]["kwargs"] = utils.get_kwargs(self.schedule[name][entry]["kwargs"])
-                if isinstance(self.schedule[name][entry]["callback"], functools.partial):
+                if self.schedule[name][entry]["callback"] is None:
+                    schedule[name][str(entry)]["callback"] = "cancel_callback"
+                elif isinstance(self.schedule[name][entry]["callback"], functools.partial):
                     schedule[name][str(entry)]["callback"] = self.schedule[name][entry]["callback"].func.__name__
                 else:
                     schedule[name][str(entry)]["callback"] = self.schedule[name][entry]["callback"].__name__
-                schedule[name][str(entry)]["pin_thread"] = self.schedule[name][entry]["pin_thread"] if self.schedule[name][entry]["pin_thread"] != -1 else "None"
+                schedule[name][str(entry)]["pin_thread"] = self.schedule[name][entry]["pin_thread"] if self.schedule[name][entry]["pin_thread"] is not None else "None"
                 schedule[name][str(entry)]["pin_app"] = "True" if self.schedule[name][entry]["pin_app"] is True else "False"
 
         # Order it
@@ -854,7 +890,9 @@ class Scheduler:
         input_: str | time | datetime,
         aware: bool = False,
         today: bool | None = None,
-        days_offset: int = 0
+        days_offset: int = 0,
+        *,
+        now: datetime | None = None,
     ) -> datetime:  # fmt: skip
         """Parse a variety of inputs into a datetime object.
 
@@ -869,9 +907,12 @@ class Scheduler:
                 of the next one.
             days_offset (int, optional): Number of days to offset from the current date for sunrise/sunset parsing. If
                 this is negative, this will unset the `today` argument, which allows the result to be in the past.
+            now (datetime, optional): The current time to use as reference. If not provided, will call get_now().
         """
         # Need to force timezone during time-travel mode
-        now = (await self.get_now()).astimezone(self.AD.tz)
+        if now is None:
+            now = await self.get_now()
+        now = utils.ensure_timezone(now, self.AD.tz)
         return parse.parse_datetime(
             input_=input_,
             now=now,
@@ -961,4 +1002,11 @@ class Scheduler:
         return result
 
     def make_naive(self, dt: datetime) -> datetime:
-        return dt.replace(tzinfo=None)
+        """Convert a timezone-aware datetime to a naive datetime in local timezone.
+
+        This is used for display purposes only. The scheduler internally works
+        with timezone-aware UTC datetimes.
+        """
+        # Convert from UTC to local timezone, then strip timezone info
+        local_dt = dt.astimezone(self.AD.tz)
+        return local_dt.replace(tzinfo=None)

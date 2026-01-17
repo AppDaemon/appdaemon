@@ -13,7 +13,7 @@ PLATFORMS="linux/arm64/v8,linux/amd64,linux/arm/v7,linux/arm/v6"
 IMAGE_TAG="acockburn/appdaemon:local-dev"
 BUILD_DIR="${REPO_DIR}/build"
 DOCKER_BUILD_DIR="${BUILD_DIR}/docker"
-DOCKERFILE="${REPO_DIR}/Dockerfile.uv"
+DOCKERFILE="${REPO_DIR}/Dockerfile"
 ARCHIVE_NAME="appdaemon-docker.tar"
 ARCHIVE_PATH="${DOCKER_BUILD_DIR}/${ARCHIVE_NAME}"
 
@@ -117,7 +117,7 @@ docker buildx build \
     --platform "$PLATFORMS" \
     --tag "$IMAGE_TAG" \
     --output "type=oci,dest=${ARCHIVE_PATH}" \
-    -f Dockerfile \
+    -f ${DOCKERFILE} \
     ${REPO_DIR}
 
 print_success "Multi-platform images built and exported"

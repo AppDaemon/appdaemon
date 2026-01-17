@@ -41,8 +41,9 @@ later.
 
 Before you start, you need to know the following:
 
-* HA\_URL: The URL of your running Home Assistant, in the form of ``http://[name]:[port]``. Port is usually 8123.
-* TOKEN: If your Home Assistant is using Long-Lived Tokens you will need to use TOKEN
+* **HA\_URL**: The URL of your running Home Assistant, in the form of ``http://[name]:[port]``. Port is usually 8123.
+* **TOKEN**: If your Home Assistant is using Long-Lived Tokens you will need to use TOKEN
+* **Tag**: Define the tag for the Docker image. The default is ``latest``, which uses the latest stable version. Alternatively, you can use ``dev`` for the development version, which is updated on each merge.
 
 Now, on your Docker host, for Linux users, run the following command,
 substituting the values above in the quotes below. (Note: to create a long-lived token, click your user icon in the HA front end and look for the Long-Lived Access Tokens card. If you do not
@@ -251,6 +252,8 @@ restart the normal container:
     $ docker start appdaemon
 
 You can also append any other AppDaemon flags to the end of the command line if desired, e.g. to use time travel.
+
+Note that when using ``docker compose``, you can add required flags via the ``command:`` directive, such as ``command: -D DEBUG``.
 
 Timezones
 ^^^^^^^^^

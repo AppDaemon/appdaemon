@@ -210,6 +210,9 @@ class Threading:
                     "Starting apps with %s worker threads. Apps will all be assigned threads and pinned to them.",
                     self.total_threads,
                 )
+            case 0, False:  # fully async
+                self.logger.info("Starting apps with no worker threads.")
+                self.pin_threads = 0
             case int(), False:
                 self.logger.info(
                     "Starting apps with %s worker threads, with %s reserved for pinned apps",
@@ -226,7 +229,7 @@ class Threading:
                 )
 
         assert self.pin_threads is not None
-        assert self.total_threads is not None and self.total_threads > 0
+        assert self.total_threads is not None
         for _ in range(self.total_threads):
             await self.add_thread(silent=True)
 
@@ -333,7 +336,7 @@ class Threading:
             thread = args["pin_thread"]
             # Handle the case where an App is unpinned but selects a pinned callback without specifying a thread
             # If this happens a lot, thread 0 might get congested but the alternatives are worse!
-            if thread == -1:
+            if thread is None:
                 self.logger.warning(
                     "Invalid thread ID for pinned thread in app: %s - assigning to thread 0",
                     args["name"],
@@ -572,7 +575,7 @@ class Threading:
         thread_pins = [0] * self.pin_threads
         for name, obj in self.AD.app_management.objects.items():
             # Looking for apps that already have a thread pin value
-            if obj.pin_app and (thread := obj.pin_thread) != -1:
+            if obj.pin_app and (thread := obj.pin_thread) is not None:
                 if thread >= self.thread_count:
                     raise ValueError("Pinned thread out of range - check apps.yaml for 'pin_thread' or app code for 'set_pin_thread()'")
                 # Ignore anything outside the pin range as it will have been set by the user
@@ -581,7 +584,7 @@ class Threading:
 
         # Now we know the numbers, go fill in the gaps
         for name, obj in self.AD.app_management.objects.items():
-            if obj.pin_app and obj.pin_thread == -1:
+            if obj.pin_app and obj.pin_thread is None:
                 thread = thread_pins.index(min(thread_pins))
                 self.AD.app_management.set_pin_thread(name, thread)
                 thread_pins[thread] += 1

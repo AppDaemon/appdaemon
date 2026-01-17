@@ -1,12 +1,57 @@
 import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from datetime import datetime, time, timedelta
+from datetime import datetime, time, timedelta, tzinfo
 from functools import partial
 from typing import ClassVar, Literal
+from zoneinfo import ZoneInfo
 
 import astral
+import pytz
 from astral.location import Location
+
+from .types import TimeDeltaLike
+
+
+def normalize_tz(tz: tzinfo) -> tzinfo:
+    """Convert pytz timezone to ZoneInfo for clean stdlib-compatible handling.
+
+    pytz timezones don't behave like normal tzinfo implementations and require
+    special localize()/normalize() calls. By converting to ZoneInfo at the boundary,
+    we can use standard replace(tzinfo=...) and astimezone() everywhere else.
+
+    Args:
+        tz: Any tzinfo object (pytz, ZoneInfo, or fixed-offset)
+
+    Returns:
+        ZoneInfo if input was pytz with an IANA zone name, otherwise unchanged
+    """
+    if isinstance(tz, pytz.tzinfo.BaseTzInfo) and tz.zone is not None:
+        return ZoneInfo(tz.zone)
+    return tz
+
+
+def localize_naive(naive_dt: datetime, tz: tzinfo) -> datetime:
+    """Interpret a naive datetime as wall-clock time in the given timezone.
+
+    This normalizes pytz timezones to ZoneInfo first, so we can use standard
+    replace(tzinfo=...) semantics instead of pytz's localize().
+
+    Args:
+        naive_dt: A naive datetime (no tzinfo)
+        tz: The timezone to interpret the datetime in
+
+    Returns:
+        A timezone-aware datetime
+
+    Raises:
+        ValueError: If naive_dt already has tzinfo
+    """
+    if naive_dt.tzinfo is not None:
+        raise ValueError("expected naive datetime")
+    tz = normalize_tz(tz)
+    return naive_dt.replace(tzinfo=tz)
+
 
 CONVERTERS = {
     "hour": lambda v: timedelta(hours=v),
@@ -187,7 +232,7 @@ TIME_FORMATS = [
 DATACLASSES: list[type[ParsedTimeString]] = [Now, SunEvent, ElevationEvent]
 
 
-def parse_timedelta(input_: str | int | float | timedelta | None, total: timedelta | None = None) -> timedelta:
+def parse_timedelta(input_: TimeDeltaLike | None, total: timedelta | None = None) -> timedelta:
     """Convert a variety of inputs, including strings in various formats, to a timedelta object."""
     total = timedelta() if total is None else total
 
@@ -267,14 +312,16 @@ def resolve_time_str(
             else:
                 raise ValueError(f"Invalid time string: {input_string}")
 
+    tz = normalize_tz(now.tzinfo)
+
     offset = timedelta()
     match _parse(time_str):
         case time() as parsed_time:
-            result = datetime.combine(
+            naive_dt = datetime.combine(
                 (now + timedelta(days=days_offset)).date(),
                 parsed_time,
-                tzinfo=now.tzinfo
             )
+            result = localize_naive(naive_dt, tz)
         case datetime() as result:
             pass
         case Now(offset=offset):
@@ -301,7 +348,7 @@ def parse_datetime(
     now: datetime | str,
     location: Location | None = None,
     today: bool | None = None,
-    offset: str | int | float | timedelta | None = None,
+    offset: TimeDeltaLike | None = None,
     days_offset: int = 0,
     aware: bool = True,
 ) -> datetime:
@@ -338,14 +385,16 @@ def parse_datetime(
 
     assert isinstance(now, datetime) and now.tzinfo is not None, "Now must be a timezone-aware datetime"
 
+    tz = normalize_tz(now.tzinfo)
+
     offset = timedelta()
     match input_:
         case time() as input_time:
-            result = datetime.combine(
+            naive_dt = datetime.combine(
                 (now + timedelta(days=days_offset)).date(),
                 input_time,
-                tzinfo=now.tzinfo
             )
+            result = localize_naive(naive_dt, tz)
         case datetime() as result:
             result += timedelta(days=days_offset)
         case str() as time_str:
@@ -362,12 +411,11 @@ def parse_datetime(
         case _:
             raise NotImplementedError(f"Unsupported input type: {type(input_)}")
 
-    if aware:
-        if result.tzinfo is None:
-            # Just adds the timezone without changing the time values
-            result = result.replace(tzinfo=now.tzinfo)
-        else:
-            result = result.astimezone(now.tzinfo)
+    # Make the timezones match for the comparison below
+    if result.tzinfo is None:
+        result = localize_naive(result, tz)
+    else:
+        result = result.astimezone(tz)
 
     # The the days offset is negative, the result can't be forced to today, so set today to False
     if days_offset < 0:

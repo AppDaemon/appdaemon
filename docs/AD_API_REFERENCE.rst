@@ -381,7 +381,9 @@ Namespace
 
 .. automethod:: appdaemon.adapi.ADAPI.set_namespace
 .. automethod:: appdaemon.adapi.ADAPI.get_namespace
+.. automethod:: appdaemon.adapi.ADAPI.add_namespace
 .. automethod:: appdaemon.adapi.ADAPI.list_namespaces
+.. automethod:: appdaemon.adapi.ADAPI.namespace_exists
 .. automethod:: appdaemon.adapi.ADAPI.save_namespace
 
 

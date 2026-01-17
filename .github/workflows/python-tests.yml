@@ -12,10 +12,10 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Install uv and set the python version
       id: setup-uv
-      uses: astral-sh/setup-uv@v6
+      uses: astral-sh/setup-uv@v7
       with:
         version: "0.8.15" # It is considered best practice to pin to a specific uv version
         # https://github.com/astral-sh/setup-uv?tab=readme-ov-file#enable-caching
@@ -44,13 +44,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.11", "3.12"]
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Install uv and set the python version
       id: setup-uv
-      uses: astral-sh/setup-uv@v6
+      uses: astral-sh/setup-uv@v7
       with:
         # https://docs.astral.sh/uv/guides/integration/github/#multiple-python-versions
         python-version: ${{ matrix.python-version }}

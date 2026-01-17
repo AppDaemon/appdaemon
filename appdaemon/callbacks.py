@@ -80,7 +80,7 @@ class Callbacks:
                         )
                         callbacks[name][str(uuid_)]["pin_thread"] = (
                             self.callbacks[name][uuid_]["pin_thread"]
-                            if self.callbacks[name][uuid_]["pin_thread"] != -1
+                            if self.callbacks[name][uuid_]["pin_thread"] is not None
                             else "None"
                         )
         return callbacks

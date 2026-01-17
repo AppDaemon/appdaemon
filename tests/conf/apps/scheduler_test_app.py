@@ -7,9 +7,22 @@ class SchedulerTestAppMode(str, Enum):
     """Enum for different modes of the SchedulerTestApp."""
 
     RUN_EVERY = "run_every"
+    RUN_IN = "run_in"
 
 
 class SchedulerTestApp(ADAPI):
+    """
+    A test app to verify scheduler functionality.
+
+    Configuration Args:
+        mode (str, optional): The mode of operation. Defaults to 'run_every'.
+        register_delay (float, optional): Delay before setup in seconds. Defaults to 0.5.
+
+    RUN_EVERY:
+        interval (int): Interval in seconds for run_every. Required.
+        msg (str): Message to pass to callback. Required.
+        start (str, optional): Start time description. Defaults to "now".
+    """
     def initialize(self):
         self.set_log_level("DEBUG")
         self.log("SchedulerTestApp initialized")
@@ -20,10 +33,14 @@ class SchedulerTestApp(ADAPI):
         self.log(f"Running in {self.mode} mode")
         match self.mode:
             case SchedulerTestAppMode.RUN_EVERY:
-                start = self.args.get("start", "now")
-                interval = self.args["interval"]
-                msg = self.args["msg"]
-                self.run_every(self.run_every_callback, start=start, interval=interval, msg=msg)
+                match self.args:
+                    case {"interval": interval, "msg": str(msg)}:
+                        start = self.args.get("start", "now")
+                        self.run_every(self.run_every_callback, start=start, interval=interval, msg=msg)
+                        return
+            case SchedulerTestAppMode.RUN_IN:
+                pass
+        raise ValueError(f"Invalid arguments for {self.mode}")
 
     @property
     def mode(self) -> SchedulerTestAppMode:

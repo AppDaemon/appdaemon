@@ -2469,7 +2469,7 @@ Here is an example of an App using the API:
 
     class API(Hass):
         def initialize(self):
-            self.register_endpoint(my_callback, "test_endpoint")
+            self.register_endpoint(self.my_callback, "test_endpoint")
 
         def my_callback(self, json_obj, **kwargs):
             self.log(json_obj)
@@ -2852,106 +2852,193 @@ The ``type`` parameter defines which of the plugins are used, and the parameters
 As you can see, the parameters for both hass instances are similar, and it supports all the parameters described in the
 installation section of the docs - here I am just using a subset.
 
+.. _namespaces:
+
 Namespaces
 ----------
 
-A critical piece of this is the concept of ``namespaces``. Each plugin has an optional ``namespace`` directive. If you have more than 1 plugin of any type, their state is separated into namespaces, and you need to name those namespaces using the ``namespace`` parameter. If you don't supply a namespace, the namespace defaults to ``default`` and this is the default for all areas of AppDaemon meaning that if you only have one plugin you don't need to worry about namespace at all.
+Namespaces primarily organize AppDaemon's internal state and event handling. The default namespace is ``default``, and
+if you are only using a single plugin, you don't need to worry about namespaces at all because everything will happen in
+the ``default`` namespace.
 
-In the case above, the first instance had no namespace so its namespace will be called ``default``. The second hass namespace will be ``hass2`` and so on.
+Plugin Namespaces
+~~~~~~~~~~~~~~~~~
 
-These namespaces can be accessed separately by the various API calls to keep things separate, but individual Apps can switch between namespaces at will as well as monitor all namespaces in certain calls like ``listen_state()`` or ``listen_event()`` by setting the namespace to ``global``.
+If only using a single plugin, this will default to ``default``, and no further action is required.
 
-Use of Namespaces in Apps
-~~~~~~~~~~~~~~~~~~~~~~~~~
+However, if using multiple plugins, each plugin needs its own namespace to keep their states and events separate. Only
+one of them can use the ``default`` namespace, so all the others need to have a namespace specified in their
+configuration. For example, if using 2 instances of the :py:ref:`hass_plugin`, one of them needs to have
+a namespace other than ``default`` specified.
 
-Each App maintains a current namespace at all times. At initialization, this is set to ``default``. This means that if you only have a single plugin, you don't need to worry about namespaces at all as everything will just work.
+.. caution::
+    Use caution when using plugin namespaces for other things because plugins can overwrite anything in their namespace
+    state at any time, for instance when they connect or restart.
 
-There are 2 ways to work with namespaces in apps. The first is to make a call to ``set_namespace()`` whenever you want to change namespaces. For instance, if in the configuration above, you wanted a particular App to work entirely with the ``HASS2`` plugin instance, all you would need to do is put the following code at the top of your ``initialize()`` function:
+.. code-block:: yaml
+  :caption: Example plugin config for Hass plugin and an MQTT plugin
 
-.. code:: python
+  appdaemon:
+    ... # other config here
+    plugins:
+      main_hass: # this plugin will have the `default` namespace
+        type: hass
+        ... # other config here
+      zigbee2mqtt: # this plugin will have the `mqtt` namespace
+        type: mqtt
+        namespace: mqtt
+        ... # other config here
 
-    self.set_namespace("hass2")
+.. code-block:: yaml
+  :caption: Example plugin config for 2 instances of the Hass plugin
 
-Note that you should use the value of the namespace parameter, not the name of the plugin section. From that point on, all state changes, events, service calls, etc. will apply to the ``HASS2`` instance and the ``HASS1`` and ``DUMMY`` instances will be ignored. This is convenient for the case in which you don't need to switch between namespaces.
+  appdaemon:
+    ... # other config here
+    plugins:
+      main_hass: # this instance will have the `default` namespace
+        type: hass
+        ... # other config here
+      other_hass: # this instance will have the `hass2` namespace
+        type: hass
+        namespace: hass2
+        ... # other config here
 
-In addition, most of the API calls allow you to optionally supply a namespace for them to operate under. This will override the namespace set by ``set_namespace()`` for that call only.
+.. _app_namespaces:
 
-For example:
+App Namespaces
+~~~~~~~~~~~~~~
 
-.. code:: python
+Apps all start in the ``default`` namespace, but they can change their namespace at any time using
+:py:meth:`~appdaemon.adapi.ADAPI.set_namespace`. Doing so changes the namespace for subsequent calls to methods like
+:py:meth:`~appdaemon.adapi.ADAPI.listen_event` or :py:meth:`~appdaemon.adapi.ADAPI.listen_state`, among many others.
+Namespaces can also be specified on a per-call basis for most API calls using the ``namespace`` parameter. The namespace
+``global`` is a special value that will make these calls apply to all namespaces.
 
-    self.set_namespace("hass2")
-    # Get the entity value from the HASS2 plugin
-    # Since the HASS2 plugin is configured with a namespace of "hass2"
-    state = self.get_state("light.light1")
+.. code-block:: python
+  :caption: Continued example with 2 instances of the Hass plugin
 
-    # Get the entity value from the HASS1 plugin
-    # Since the HASS1 plugin is configured with a namespace of "default"
-    state = self.get_state("light.light1", namespace="default")
+    from appdaemon.plugins.hass import Hass
 
-In this way it is possible to use a single App to work with multiple namespaces easily and quickly.
 
-A Note on Callbacks
+    class MyApp(Hass):
+        def initialize(self):
+            self.set_namespace("hass2")
+            # The app will now operate on the plugin in the `hass2` namespace by default
+
+            # The app has been set to the `hass2` namespace so this will get the entity from the other_hass plugin
+            state = self.get_state("light.light1")
+
+            # Get the entity value from the main_hass plugin since it uses the default namespace of `default`
+            state = self.get_state("light.light1", namespace="default")
+
+            # The app is still using the `hass2` namespace
+
+
+Callback Namespaces
 ~~~~~~~~~~~~~~~~~~~
 
-One important thing to note, when working with namespaces is that callbacks will honor the namespace they were created with. So if for instance, you create a ``listen_state()`` callback with a namespace of ``default`` then later change the namespace to ``hass1``, that callback will continue to listen to the ``default`` namespace.
+The namespace for a callback is the namespace of the app that at the time the callback is registered, but that can
+be overridden by passing the ``namespace`` argument to the registration method. Callbacks are only effective for the
+events or state changes in the namespace they are created in, with the exception of the namespace ``global`` which
+causes callbacks to listen in all namespaces.
 
-For instance:
+For example, these are 3 ways to register state callbacks in multiple namespaces:
 
-.. code:: python
+.. code-block:: python
 
-    self.set_namespace("default")
-    self.listen_state(callback)
-    self.set_namespace("hass2")
-    self.listen_state(callback)
-    self.set_namespace("dummy1")
-
-This will leave us with 2 callbacks, one listening for state changes in ``default`` and one for state changes in ``hass2``, regardless of the final value of the namespace.
-
-Similarly:
-
-.. code:: python
-
-    self.set_namespace("dummy2")
-    self.listen_state(callback, namespace="default")
-    self.listen_state(callback, namespace="hass2")
-    self.set_namespace("dummy1")
-
-This code fragment will achieve the same result as above since the namespace is being overridden, and will
-keep the same value for that callback regardless of what the namespace is set to.
-
-User Defined Namespaces
-~~~~~~~~~~~~~~~~~~~~~~~
-
-Each plugin has it's own unique namespace as described above, and they are pretty much in control of those
-namespaces. It is possible to set a state in a plugin managed namespace which can be used as a temporary
-variable or even as a way of signalling other apps using ``listen_state()`` however this is not recommended:
-
-- Plugin managed namespaces may be overwritten at any time by the plugin
-- They will likely be overwritten when the plugin restarts even if AppDaemon does not
-- They will not survive a restart of AppDaemon because it is regarded as the job of the plugin to reconstruct it's state and it knows nothing about any additional variables you have added. Although this technique can still be useful, for example, to add sensors to Home Assistant, a better alternative for Apps to use are User Defined Namespaces.
+    from appdaemon.adapi import ADAPI
 
 
-A User Defined Namespace is a new area of storage for entities that is not managed by a plugin. UDMs are guaranteed
-not to be changed by any plugin and are available to all apps just the same as a plugin-based namespace. UDMs also
-survive AppDaemon restarts and crashes, creating durable storage for saving the information and communicating with
-other apps via ``listen_state()`` and ``set_state()``.
+    class MyApp(ADAPI):
+        def initialize(self):
+            self.register_callbacks()
+            # self.register_callbacks2()
+            # self.register_callbacks3()
 
-They are configured in the ``appdaemon.yaml`` file as follows:
+        def register_callbacks(self):
+            for ns in ("default", "hass2"):
+                self.set_namespace(ns)
+                self.listen_state(self.state_callback, "light.light1")
+            self.set_namespace("default")
 
-.. code:: yaml
+        def register_callbacks2(self):
+            for ns in ("default", "hass2"):
+                self.listen_state(self.state_callback, "light.light1", namespace=ns)
 
-    namespaces:
+        def register_callbacks3(self):
+            self.listen_state(self.state_callback, "light.light1", namespace='global')
+
+        def state_callback(self, entity, attribute, old, new, **kwargs) -> None:
+            self.log(f"State change for {entity}: {new}")
+            return
+
+register_callbacks
+  Uses :py:meth:`~appdaemon.adapi.ADAPI.set_namespace` to change the namespace of the app before registering each
+  callback, which causes the callback to be registered once for each namespace.
+register_callbacks2
+  Uses the ``namespace`` parameter of :py:meth:`~appdaemon.adapi.ADAPI.listen_state` to register the callback in
+  each namespace.
+register_callbacks3
+  Uses the global namespace to register a single callback that will listen to for state changes in all namespaces.
+
+User-Defined (Persistent) Namespaces
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Users can define custom namespaces, which is recommended for custom entities to avoid clashing with anything in the
+namespaces used/managed by the plugins. These user-defined namespaces are guaranteed to not be changed by plugins, and
+can additionally be made persistent across AppDaemon restarts, using a thread-safe version of
+:py:class:`~shelve.DbfilenameShelf` to save their state to disk. These namespaces are available to all apps the same way
+that plugin namespaces are.
+
+There are 2 `writeback` modes for persistent namespaces, ``safe`` and ``hybrid``.
+
+``safe``
+  The namespace state is written to disk every time a change is made so will be up to date even if a crash happens. The
+  downside is that there is a possible performance impact for systems with slower disks, or that set many states.
+``hybrid``
+  The namespaces state is only saved periodically, and state changes between writes are cached in memory. This can
+  greatly improve performance in systems with many states changes.
+
+Defined in Configuration
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+One way users can define namespaces is in the ``namespaces`` section of the ``appdaemon.yaml`` configuration file.
+
+For example, here we are defining 3 new namespaces, ``my_namespace1``, ``other_namespace`` and ``temp_namespace``. The
+first 2 are written to disk so that they survive restarts, and the last one is not persistent and will only exist in
+memory.
+
+.. code-block:: yaml
+
+    appdaemon:
+      ... # other config here
+      namespaces:
         my_namespace:
-          # writeback is safe or hybrid
           writeback: safe
-        my_namespace2:
+        other_namespace:
           writeback: hybrid
+        temp_namespace:
+          persist: false # this namespace will only be in memory
 
-Here we are defining 3 new namespaces - you can have as many as you want. Their names are ``my_namespace1``, ``my_namespace2`` and ``my_namespace3``. UDMs are written to disk so that they survive restarts, and this can be done in 3 different ways, set by the writeback parameter for each UDM. They are:
+Defined by Apps
+^^^^^^^^^^^^^^^
 
-- ``safe`` - the namespace is written to disk every time a change is made so will be up to date even if a crash happens. The downside is that there is a possible performance impact for systems with slower disks, or that set state on many UDMs at a time.
-- ``hybrid`` - a compromise setting in which the namespaces are saved periodically (once each time around the utility loop, usually once every second- with this setting a maximum of 1 second of data will be lost if AppDaemon crashes.
+Another way users can create namespaces is by calling :py:meth:`~appdaemon.adapi.ADAPI.add_namespace` or
+:py:meth:`~appdaemon.adapi.ADAPI.set_namespace` from within an app.
+
+.. code-block:: python
+  :caption: Example of creating a new persistent namespace from an app
+
+    from appdaemon.adapi import ADAPI
+
+
+    class MyApp(ADAPI):
+        def initialize(self):
+            # A new persistent namespace called `storage` will be added if it doesn't already exist
+            self.set_namespace("storage", writeback="hybrid")
+
+            # Do stuff in the new namespace...
+
 
 Using Multiple APIs From One App
 --------------------------------

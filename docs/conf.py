@@ -35,6 +35,11 @@ extensions = [
 
 copybutton_exclude = '.linenos, .gp'
 
+# -- MyST configuration ------------------------------------------------------
+myst_enable_extensions = [
+    "colon_fence",
+]
+
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 

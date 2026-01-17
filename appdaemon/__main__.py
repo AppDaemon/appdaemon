@@ -296,7 +296,6 @@ class ADMain:
             self.dep_manager = DependencyManager.from_app_directory(
                 self.model.appdaemon.app_dir,
                 exclude=self.model.appdaemon.exclude_dirs,
-                config_suffix=self.model.appdaemon.ext,
             )
 
         except Exception as e:
@@ -341,6 +340,7 @@ class ADMain:
 
         Signals:
             SIGUSR1 will result in internal info being dumped to the DIAG log
+            SIGUSR2 will reload apps with modified code/config (useful in production_mode)
             SIGHUP will force a reload of all apps
             SIGINT and SIGTEM both result in AD shutting down
         """
@@ -351,6 +351,8 @@ class ADMain:
                 self.AD.thread_async.call_async_no_wait(self.AD.threading.dump_threads)
                 self.AD.thread_async.call_async_no_wait(self.AD.app_management.dump_objects)
                 self.AD.thread_async.call_async_no_wait(self.AD.sched.dump_sun)
+            case signal.SIGUSR2:
+                self.AD.thread_async.call_async_no_wait(self.AD.app_management.check_app_updates, mode=UpdateMode.NORMAL)
             case signal.SIGHUP:
                 self.AD.thread_async.call_async_no_wait(self.AD.app_management.check_app_updates, mode=UpdateMode.TERMINATE)
             case (signal.SIGINT | signal.SIGTERM) as sig:

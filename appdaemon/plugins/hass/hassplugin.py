@@ -6,24 +6,25 @@ import asyncio
 import functools
 import json
 import ssl
-from collections.abc import AsyncGenerator, Iterable
+from collections.abc import AsyncGenerator, Callable, Coroutine, Iterable
 from copy import deepcopy
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from time import perf_counter
 from typing import Any, Literal, Optional
 
 import aiohttp
-from aiohttp import ClientResponse, ClientResponseError, RequestInfo, WSMsgType
+from aiohttp import ClientResponseError, WebSocketError, WSMsgType
 from pydantic import BaseModel
 
 import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
 from appdaemon.models.config.plugin import HASSConfig, StartupConditions
 from appdaemon.plugin_management import PluginBase
+from appdaemon.types import TimeDeltaLike
 
-from .exceptions import HAEventsSubError
-from .utils import ServiceCallStatus, hass_check, looped_coro
+from .exceptions import HAEventsSubError, HassConnectionError
+from .utils import ServiceCallStatus, hass_check
 
 
 class HASSWebsocketResponse(BaseModel):
@@ -80,7 +81,11 @@ class HassPlugin(PluginBase):
 
     _result_futures: dict[int, asyncio.Future]
     _silent_results: dict[int, bool]
+    _request_context: dict[int, dict[str, Any]]
     startup_conditions: list[StartupWaitCondition]
+    maintenance_tasks: list[asyncio.Task]
+    """List of tasks that run in the background as part of the plugin operation. These are tracked because they might
+    need to get cancelled during shutdown."""
 
     start: float
 
@@ -95,7 +100,9 @@ class HassPlugin(PluginBase):
         self.services = {}
         self._result_futures = {}
         self._silent_results = {}
+        self._request_context = {}
         self.startup_conditions = []
+        self.maintenance_tasks = []
 
         self.service_logger = self.diag.getChild("services")
         self.logger.info("HASS Plugin initialization complete")
@@ -107,15 +114,18 @@ class HassPlugin(PluginBase):
         await self.session.close()
         self.logger.debug("aiohttp session closed for '%s'", self.name)
 
+    def _create_maintenance_task(self, coro: Coroutine, name: str) -> asyncio.Task:
+        task = self.AD.loop.create_task(coro, name=name)
+        self.maintenance_tasks.append(task)
+        task.add_done_callback(lambda t: self.maintenance_tasks.remove(t))
+        return task
+
     def create_session(self) -> aiohttp.ClientSession:
         """Handles creating an :py:class:`~aiohttp.ClientSession` with the cert information from the plugin config
         and the authorization headers for the `REST API <https://developers.home-assistant.io/docs/api/rest>`_.
         """
-        if self.config.cert_path is not None:
-            ssl_context = ssl.create_default_context(capath=self.config.cert_path)
-            conn = aiohttp.TCPConnector(ssl_context=ssl_context, verify_ssl=self.config.cert_verify)
-        else:
-            conn = aiohttp.TCPConnector(ssl=False)
+        ssl_context = ssl.create_default_context(capath=self.config.cert_path)
+        conn = aiohttp.TCPConnector(ssl_context=ssl_context)
 
         connect_timeout_secs = self.config.connect_timeout.total_seconds()
         return aiohttp.ClientSession(
@@ -125,7 +135,7 @@ class HassPlugin(PluginBase):
             timeout=aiohttp.ClientTimeout(
                 connect=connect_timeout_secs,
                 sock_connect=connect_timeout_secs,
-            )
+            ),
         )
 
     async def websocket_msg_factory(self) -> AsyncGenerator[aiohttp.WSMessage]:
@@ -142,30 +152,36 @@ class HassPlugin(PluginBase):
         self.start = perf_counter()
         async with self.create_session() as self.session:
             try:
-                async with self.session.ws_connect(self.config.websocket_url) as self.ws:
+                async with self.session.ws_connect(
+                    url=self.config.websocket_url,
+                    max_msg_size=self.config.ws_max_msg_size,
+                ) as self.ws:
+                    if (exc := self.ws.exception()) is not None:
+                        raise HassConnectionError("Failed to connect to Home Assistant websocket") from exc
+
                     async for msg in self.ws:
-                        self.updates_recv += 1
-                        self.bytes_recv += len(msg.data)
                         yield msg
             finally:
                 self.connect_event.clear()
 
-    async def match_ws_msg(self, msg: aiohttp.WSMessage) -> dict:
+    async def match_ws_msg(self, msg: aiohttp.WSMessage) -> None:
         """Uses a :py:ref:`match <class-patterns>` statement on :py:class:`~aiohttp.WSMessage`.
 
         Uses :py:meth:`~HassPlugin.process_websocket_json` on :py:attr:`~aiohttp.WSMsgType.TEXT` messages.
         """
         match msg:
-            case aiohttp.WSMessage(type=WSMsgType.TEXT):
+            case aiohttp.WSMessage(type=WSMsgType.TEXT, data=str(data)):
                 # create a separate task for processing messages to keep the message reading task unblocked
-                self.AD.loop.create_task(self.process_websocket_json(msg.json()))
-            case aiohttp.WSMessage(type=WSMsgType.ERROR):
-                self.logger.error("Error from aiohttp websocket: %s", msg.json())
+                self.updates_recv += 1
+                self.bytes_recv += len(data)
+                # Intentionally not using self._create_maintenance_task here
+                self.AD.loop.create_task(self.process_websocket_json(msg.json()), name="process_ws_msg")
+            case aiohttp.WSMessage(type=WSMsgType.ERROR, data=WebSocketError() as err):
+                self.logger.error("Error from aiohttp websocket: %s", err)
             case aiohttp.WSMessage(type=WSMsgType.CLOSE):
                 self.logger.debug("Received %s message", msg.type)
             case _:
                 self.logger.warning("Unhandled websocket message type: %s", msg.type)
-        return msg.json()
 
     @utils.warning_decorator(error_text="Error during processing jSON", reraise=True)
     async def process_websocket_json(self, resp: dict[str, Any]) -> None:
@@ -182,7 +198,7 @@ class HassPlugin(PluginBase):
             case {"type": "auth_ok", "ha_version": ha_version}:
                 self.logger.info("Authenticated to Home Assistant %s", ha_version)
                 # Creating a task here allows the plugin to still receive events as it waits for the startup conditions
-                self.AD.loop.create_task(self.__post_auth__())
+                self._create_maintenance_task(self.__post_auth__(), name="post_auth")
             case {"type": "auth_invalid", "message": message}:
                 self.logger.error("Failed to authenticate to Home Assistant: %s", message)
                 await self.ws.close()
@@ -218,11 +234,8 @@ class HassPlugin(PluginBase):
             case _:
                 raise HAEventsSubError(-1, f"Unknown response from subscribe_events: {res}")
 
-        config_coro = looped_coro(self.get_hass_config, self.config.config_sleep_time.total_seconds())
-        self.AD.loop.create_task(config_coro(self))
-
-        service_coro = looped_coro(self.get_hass_services, self.config.services_sleep_time.total_seconds())
-        self.AD.loop.create_task(service_coro(self))
+        self._create_maintenance_task(self.looped_coro(self.get_hass_config, self.config.config_sleep_time.total_seconds()), name="get_hass_config loop")
+        self._create_maintenance_task(self.looped_coro(self.get_hass_services, self.config.services_sleep_time.total_seconds()), name="get_hass_services loop")
 
         if self.first_time:
             conditions = self.config.appdaemon_startup_conditions
@@ -254,6 +267,7 @@ class HassPlugin(PluginBase):
     @utils.warning_decorator(error_text="Unexpected error during receive_result")
     async def receive_result(self, resp: dict):
         silent = self._silent_results.pop(resp["id"], False) or self.AD.config.suppress_log_messages
+        request_context = self._request_context.pop(resp["id"], {})
 
         if (future := self._result_futures.pop(resp["id"], None)) is not None:
             if not future.done():
@@ -270,9 +284,9 @@ class HassPlugin(PluginBase):
                 case True:
                     self.logger.debug(f"Received successful result from ID {resp['id']}")
                 case False:
-                    self.logger.warning("Error with websocket result: %s: %s", resp["error"]["code"], resp["error"]["message"])
+                    self.logger.warning("Error with websocket result: %s: %s: request=%s", resp["error"]["code"], resp["error"]["message"], str(request_context))
                 case None:
-                    self.logger.error(f"Invalid response success value: {resp['success']}")
+                    self.logger.error(f"Invalid response success value: {resp['success']} for request: {str(request_context)}")
 
     @utils.warning_decorator(error_text="Unexpected error during receive_event")
     async def receive_event(self, event: dict[str, Any]) -> None:
@@ -339,7 +353,7 @@ class HassPlugin(PluginBase):
     @utils.warning_decorator(error_text="Unexpected error during websocket send")
     async def websocket_send_json(
         self,
-        timeout: str | int | float | timedelta | None = None,
+        timeout: TimeDeltaLike | None = None,
         *,  # Arguments after this are keyword-only
         silent: bool = False,
         **request: Any,
@@ -350,7 +364,7 @@ class HassPlugin(PluginBase):
         The `id` parameter is handled automatically and is used to match the response to the request.
 
         Args:
-            timeout (str | int | float | timedelta, optional): Length of time to wait for a response from Home
+            timeout (TimeDeltaLike, optional): Length of time to wait for a response from Home
                 Assistant with a matching `id`. Defaults to the value of the `ws_timeout` setting in the plugin config.
             silent (bool, optional): If set to `True`, the method will not log the request or response. Defaults to
                 `False`.
@@ -400,6 +414,7 @@ class HassPlugin(PluginBase):
         future = self.AD.loop.create_future()
         self._result_futures[self.id] = future
         self._silent_results[self.id] = silent
+        self._request_context[self.id] = request
 
         try:
             timeout = utils.parse_timedelta(self.config.ws_timeout if timeout is None else timeout)
@@ -413,7 +428,7 @@ class HassPlugin(PluginBase):
             ad_status = ServiceCallStatus.TERMINATING
             result = {"success": False}
             if not silent:
-                self.logger.warning(f"AppDaemon cancelled waiting for the response from the request: {request}")
+                self.logger.debug(f"AppDaemon cancelled waiting for the response from the request: {request}")
         else:
             ad_status = ServiceCallStatus.OK
 
@@ -426,7 +441,7 @@ class HassPlugin(PluginBase):
         self,
         method: Literal["get", "post", "delete"],
         endpoint: str,
-        timeout: str | int | float | timedelta | None = 10,
+        timeout: TimeDeltaLike | None = 10,
         **kwargs: Any,
     ) -> str | dict[str, Any] | list[Any] | aiohttp.ClientResponseError | None:
         """Wrapper for making HTTP requests to Home Assistant's
@@ -435,16 +450,16 @@ class HassPlugin(PluginBase):
         Args:
             method (Literal['get', 'post', 'delete']): HTTP method to use.
             endpoint (str): Home Assistant REST endpoint to use. For example '/api/states'
-            timeout (float, optional): Timeout for the method in seconds. Defaults to 10s.
+            timeout (TimeDeltaLike, optional): Timeout for the method in seconds. Defaults to 10s.
             **kwargs (optional): Zero or more keyword arguments. These get used as the data for the method, as
                 appropriate.
         """
         kwargs = utils.clean_http_kwargs(kwargs)
-        url = utils.make_endpoint(self.config.ha_url, endpoint)
+        url = self.config.ha_url / endpoint.lstrip("/")
 
         try:
             self.update_perf(
-                bytes_sent=len(url) + len(json.dumps(kwargs).encode("utf-8")),
+                bytes_sent=len(str(url)) + len(json.dumps(kwargs).encode("utf-8")),
                 requests_sent=1,
             )
 
@@ -455,7 +470,7 @@ class HassPlugin(PluginBase):
                 case "post":
                     http_method = functools.partial(self.session.post, json=kwargs)
                 case "delete":
-                    http_method = functools.partial(self.session.delete, json=kwargs)
+                    http_method = functools.partial(self.session.delete, params=kwargs)
                 case _:
                     raise ValueError(f"Invalid method: {method}")
 
@@ -470,19 +485,15 @@ class HassPlugin(PluginBase):
                     self.logger.error("[%d] HTTP %s: %s %s", cre.status, method.upper(), cre.message, kwargs)
                     return cre
                 else:
-                    match resp:
-                        case ClientResponse(
-                            content_type=content_type,
-                            request_info=RequestInfo(url=url, method=str(meth))
-                        ):
-                            self.logger.debug("%s success from %s", meth, url)
-                            match content_type:
-                                case "application/json":
-                                    return await resp.json()
-                                case "text/plain":
-                                    return await resp.text()
-                                case _:
-                                    self.logger.warning("Unhandled content type: %s", content_type)
+                    self.logger.debug("%s success from %s", resp.method, resp.url)
+                    match resp.content_type:
+                        case "application/json":
+                            return await resp.json()
+                        case "text/plain":
+                            return await resp.text()
+                        case _:
+                            self.logger.warning("Unhandled content type: %s", resp.content_type)
+                            return None
         except asyncio.TimeoutError:
             self.logger.error("Timed out waiting for %s", url)
         except asyncio.CancelledError:
@@ -527,14 +538,13 @@ class HassPlugin(PluginBase):
                     )
 
         tasks: list[asyncio.Task[Literal[True] | None]] = [
-            self.AD.loop.create_task(cond.event.wait())
+            self._create_maintenance_task(cond.event.wait(), name=f"startup condition: {cond}")
             for cond in self.startup_conditions
         ]  # fmt: skip
 
         if delay := conditions.delay:
             self.logger.info(f"Adding a {delay:.0f}s delay to the {self.name} startup")
-            sleep = self.AD.utility.sleep(delay, timeout_ok=True)
-            task = self.AD.loop.create_task(sleep)
+            task = self._create_maintenance_task(self.AD.utility.sleep(delay, timeout_ok=True), name="startup delay")
             tasks.append(task)
 
         self.logger.info(f"Waiting for {len(tasks)} startup condition tasks after {self.time_str()}")
@@ -555,7 +565,7 @@ class HassPlugin(PluginBase):
                 async for msg in self.websocket_msg_factory():
                     await self.match_ws_msg(msg)
                     continue
-                raise ValueError
+                raise HassConnectionError("Websocket connection lost")
             except Exception as exc:
                 if not self.AD.stopping:
                     self.error.error(exc)
@@ -568,7 +578,18 @@ class HassPlugin(PluginBase):
 
             # always do this block, no matter what
             finally:
+                for task in self.maintenance_tasks:
+                    if not task.done():
+                        task.cancel()
+
                 if not self.AD.stopping:
+                    for fut in self._result_futures.values():
+                        if not fut.done():
+                            fut.cancel()
+                    self._result_futures.clear()
+                    self._silent_results.clear()
+                    self._request_context.clear()
+
                     # remove callback from getting local events
                     await self.AD.callbacks.clear_callbacks(self.name)
 
@@ -604,6 +625,22 @@ class HassPlugin(PluginBase):
     # def utility(self):
     # self.logger.debug("Utility (currently unused)")
     # return None
+
+    async def looped_coro(self, coro: Callable[..., Coroutine], sleep: float):
+        """Run a coroutine in a loop with a sleep interval.
+
+        This is a utility function that can be used to run a coroutine in a loop with a sleep interval. It is used
+        internally to run the `get_hass_config` and
+        """
+        while not self.AD.stopping:
+            try:
+                await coro()
+            except asyncio.CancelledError:
+                pass
+            except Exception as e:
+                self.logger.error("Error in looped coroutine: %s", e)
+            finally:
+                await self.AD.utility.sleep(sleep, timeout_ok=True)
 
     @utils.warning_decorator(error_text="Unexpected error while getting hass config")
     async def get_hass_config(self) -> dict[str, Any] | None:
@@ -687,6 +724,7 @@ class HassPlugin(PluginBase):
         target: str | dict | None = None,
         entity_id: str | list[str] | None = None,  # Maintained for legacy compatibility
         hass_timeout: str | int | float | None = None,
+        return_response: bool | None = None,
         suppress_log_messages: bool = False,
         **data,
     ):
@@ -701,14 +739,18 @@ class HassPlugin(PluginBase):
             service (str): Name of the service to call
             target (str | dict | None, optional): Target of the service. Defaults to None. If the ``entity_id`` argument
                 is not used, then the value of the ``target`` argument is used directly.
-            entity_id (str | list[str] | None, optional): Entity ID to target with the service call. Seems to be a
-                legacy way . Defaults to None.
+            entity_id (str | list[str] | None, optional): Entity ID to target with the service call. This argument is
+                maintained for legacy compatibility. Defaults to None.
             hass_timeout (str | int | float, optional): Sets the amount of time to wait for a response from Home
                 Assistant. If no value is specified, the default timeout is 10s. The default value can be changed using
                 the ``ws_timeout`` setting the in the Hass plugin configuration in ``appdaemon.yaml``. Even if no data
                 is returned from the service call, Home Assistant will still send an acknowledgement back to AppDaemon,
                 which this timeout applies to. Note that this is separate from the ``timeout``. If ``timeout`` is
                 shorter than this one, it will trigger before this one does.
+            return_response (bool, optional): Indicates whether Home Assistant should return a response to the service
+                call. This is only supported for some services and Home Assistant will return an error if used with a
+                service that doesn't support it. If returning a response is required or optional (based on the service
+                definitions given by Home Assistant), this will automatically be set to ``True``.
             suppress_log_messages (bool, optional): If this is set to ``True``, Appdaemon will suppress logging of
                 warnings for service calls to Home Assistant, specifically timeouts and non OK statuses. Use this flag
                 and set it to ``True`` to suppress these log messages if you are performing your own error checking as
@@ -733,6 +775,9 @@ class HassPlugin(PluginBase):
         # https://developers.home-assistant.io/docs/api/websocket#calling-a-service-action
         req: dict[str, Any] = {"type": "call_service", "domain": domain, "service": service}
 
+        if return_response is not None:
+            req["return_response"] = return_response
+
         service_data = data.pop("service_data", {})
         service_data.update(data)
         if service_data:
@@ -747,9 +792,12 @@ class HassPlugin(PluginBase):
             for prop, val in info.items()  # get each of the properties
         }
 
-        # Set the return_response flag if doing so is not optional
         match service_properties:
             case {"response": {"optional": False}}:
+                # Force the return_response flag if doing so is not optional
+                req["return_response"] = True
+            case {"response": {"optional": True}} if "return_response" not in req:
+                # If the response is optional, but not set above, default to return_response=True.
                 req["return_response"] = True
 
         if target is None and entity_id is not None:
@@ -772,7 +820,7 @@ class HassPlugin(PluginBase):
         self,
         event: str,
         namespace: str,
-        timeout: str | int | float | timedelta | None = None,
+        timeout: TimeDeltaLike | None = None,
         **kwargs: Any,
     ) -> dict[str, Any] | None:  # fmt: skip
         # if we get a request for not our namespace something has gone very wrong
@@ -832,7 +880,7 @@ class HassPlugin(PluginBase):
         entity_id: str,
         state: Any | None = None,
         attributes: Any | None = None,
-    ):
+    ) -> dict[str, Any] | None:
         self.logger.debug("set_plugin_state() %s %s %s %s", namespace, entity_id, state, attributes)
 
         # if we get a request for not our namespace something has gone very wrong
@@ -840,22 +888,29 @@ class HassPlugin(PluginBase):
 
         @utils.warning_decorator(error_text=f"Error setting state for {entity_id}")
         async def safe_set_state(self: "HassPlugin"):
-            api_url = self.config.get_entity_api(entity_id)
-            return await self.http_method("post", api_url, state=state, attributes=attributes)
+            return await self.http_method("post", f"api/states/{entity_id}", state=state, attributes=attributes)
 
-        return await safe_set_state(self)
+        resp = await safe_set_state(self)
+        match resp:
+            case ClientResponseError(message=str(msg)):
+                self.logger.error("Error setting state: %s", msg)
+                return None
+            case dict():
+                return resp
+            case _:
+                return None
 
     @utils.warning_decorator(error_text="Unexpected error getting state")
     async def get_plugin_state(
         self,
         entity_id: str,
-        timeout: str | int | float | timedelta | None = 5,
+        timeout: TimeDeltaLike | None = 5,
     ) -> dict | None:
         resp = await self.http_method("get", f"/api/states/{entity_id}", timeout)
         match resp:
             case ClientResponseError(message=str(msg)):
                 self.logger.error("Error getting state: %s", msg)
-            case (dict() | None):
+            case dict() | None:
                 return resp
             case _:
                 raise ValueError(f"Unexpected result from get_plugin_state: {resp}")
@@ -864,7 +919,7 @@ class HassPlugin(PluginBase):
     async def check_for_entity(
         self,
         entity_id: str,
-        timeout: str | int | float | timedelta | None = 5,
+        timeout: TimeDeltaLike | None = 5,
         *,  # Arguments after this are keyword-only
         local: bool = False,
     ) -> dict | Literal[False]:

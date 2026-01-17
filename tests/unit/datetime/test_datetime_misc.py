@@ -11,7 +11,14 @@ pytestmark = [
 
 
 def test_resolve_offset() -> None:
-    offsets = sorted(utils.resolve_offset(10, random_start=-5, random_end=5) for _ in range(100))
+    offsets = sorted(
+        utils.resolve_offset(
+            timedelta(seconds=10),
+            random_start=timedelta(seconds=-5),
+            random_end=timedelta(seconds=5)
+        )
+        for _ in range(100)
+    )
     assert len(set(offsets)) >= 90, "Offsets should be sufficiently random"
     assert offsets[0] > timedelta(seconds=5)
     assert offsets[-1] < timedelta(seconds=15)

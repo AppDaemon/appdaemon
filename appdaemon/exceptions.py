@@ -1,6 +1,5 @@
 """
-Exceptions used by appdaemon
-
+Custom exceptions used by AppDaemon and helper functions to format them in the logs.
 """
 
 import asyncio
@@ -14,12 +13,14 @@ from abc import ABC
 from collections.abc import Iterable
 from contextlib import contextmanager
 from dataclasses import dataclass
+from datetime import timedelta
 from logging import Logger
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Type
 
 from aiohttp.client_exceptions import ClientConnectorError, ConnectionTimeoutError
 from pydantic import ValidationError
+from pytz import UnknownTimeZoneError
 
 if TYPE_CHECKING:
     from .appdaemon import AppDaemon
@@ -79,19 +80,11 @@ def user_exception_block(logger: Logger, exception: Exception, app_dir: Path | N
             case AssertionError():
                 logger.error(f"{indent}{exc.__class__.__name__}: {exc}")
                 continue
+            case UnknownTimeZoneError() if exc == chain[0]:
+                logger.error(f"{indent}{exc.__class__.__name__}: {exc}")
+                logger.error(f"{indent}  The specified time zone is not recognized. Check your 'time_zone' setting.")
             case ValidationError():
-                for error in exc.errors():
-                    match error:
-                        case {"type": "missing", "msg": msg, "loc": loc}:
-                            app_name = loc[0]
-                            field = loc[-1]
-                            logger.error(f"{indent}App '{app_name}' has an assertion error in field '{field}': {msg}")
-                        case {"type": "assertion_error", "msg": msg, "loc": loc}:
-                            app_name = loc[0]
-                            field = loc[-1]
-                            logger.error(f"{indent}Assertion error in app '{app_name}' field '{field}': {msg}")
-                        case _:
-                            pass
+                validation_block(chain[0], exc, logger, indent)
             case AppDaemonException():
                 assert app_dir is not None, "app_dir is required to format exception block"
                 for i, line in enumerate(str(exc).splitlines()):
@@ -113,11 +106,14 @@ def user_exception_block(logger: Logger, exception: Exception, app_dir: Path | N
                 logger.error(f"{indent}{exc.__class__.__name__}: {exc}")
                 if tb := traceback.extract_tb(exc.__traceback__):
                     frame = tb[-1]
-                    file = Path(frame.filename).relative_to(app_dir.parent)
-                    logger.error(f"{indent}  line {frame.lineno} in {file.name}")
-                    logger.error(f"{indent}  {frame._line.rstrip()}")
-                    error_len = frame.end_colno - frame.colno
-                    logger.error(f"{indent}  {' ' * (frame.colno - 1)}{'^' * error_len}")
+                    file_path = Path(frame.filename)
+                    # Only show file details if it's in the user's app directory
+                    if file_path.is_relative_to(app_dir.parent):
+                        file = file_path.relative_to(app_dir.parent)
+                        logger.error(f"{indent}  line {frame.lineno} in {file.name}")
+                        logger.error(f"{indent}  {frame._line.rstrip()}")
+                        error_len = frame.end_colno - frame.colno
+                        logger.error(f"{indent}  {' ' * (frame.colno - 1)}{'^' * error_len}")
             case SyntaxError():
                 logger.error(f"{indent}{exc.__class__.__name__}: {exc}")
                 logger.error(f"{indent}  {exc.text.rstrip()}")
@@ -138,6 +134,39 @@ def user_exception_block(logger: Logger, exception: Exception, app_dir: Path | N
                         logger.error(f"{indent}{line}")
 
     logger.error("=" * width)
+
+
+def validation_block(root: BaseException, exc: ValidationError, logger: Logger, indent: str = "    ") -> None:
+    """Generate a user-friendly block of text for a ValidationError."""
+    for error in exc.errors():
+        match error:
+            case {"msg": str(msg), "type": str(type_), "loc": loc}:
+                match root:
+                    case BadAppConfigFile():
+                        app_name, *_, field = loc
+                        if type_ == "missing" and field in ("module", "class"):
+                            logger.error(f"{indent}App config error in '{app_name}', missing field '{field}'")
+                        # There's a bunch of other types of validation errors that could come up here, but
+                        # most of them are just confusing to the user, so we skip them.
+                    case _:
+                        # This is an error with appdaemon config, not app config
+                        field_name = '.'.join(map(str, loc))
+                        input_ = error.get("input")
+                        match type_:
+                            case "missing":
+                                logger.error(f"{indent}Missing required field: {field_name}")
+                            case "extra_forbidden":
+                                logger.error(f"{indent}Unknown field: {field_name}")
+                            case "float_parsing" | "int_parsing":
+                                logger.error(f"{indent}Invalid value for {field_name}: {input_}")
+                            case "value_error":
+                                logger.error(f"{indent}{msg}")
+                            case "url_parsing" | "url_scheme":
+                                logger.error(f"{indent}Invalid URL for {field_name}: {input_}")
+                            case _:
+                                logger.error(f"{indent}'{type_}' error from {loc}")
+            case _:
+                logger.error(f"{indent}{error}")
 
 
 def unexpected_block(logger: Logger, exception: Exception):
@@ -559,6 +588,27 @@ class SequenceExecutionFail(AppDaemonException):
 
 class BadSchedulerCallback(AppDaemonException):
     pass
+
+
+@dataclass
+class OffsetExceedsIntervalError(AppDaemonException):
+    """Raised when a scheduler offset (including random range) exceeds the event interval."""
+
+    offset: timedelta
+    interval: timedelta
+    event_type: str
+    random_start: timedelta | None = None
+    random_end: timedelta | None = None
+
+    def __str__(self):
+        parts = [f"offset={self.offset}"]
+        if self.random_start is not None or self.random_end is not None:
+            parts.append(f"random_start={self.random_start}")
+            parts.append(f"random_end={self.random_end}")
+        return (
+            f"Offset exceeds event interval for {self.event_type} schedule: "
+            f"{', '.join(parts)}, but interval is {self.interval}"
+        )
 
 
 @dataclass
