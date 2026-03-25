@@ -488,7 +488,7 @@ css = [
 
 [[package]]
 name = "build"
-version = "1.4.0"
+version = "1.4.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "colorama", marker = "os_name == 'nt'" },
@@ -497,9 +497,9 @@ dependencies = [
     { name = "pyproject-hooks" },
     { name = "tomli", marker = "python_full_version < '3.11'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/42/18/94eaffda7b329535d91f00fe605ab1f1e5cd68b2074d03f255c7d250687d/build-1.4.0.tar.gz", hash = "sha256:f1b91b925aa322be454f8330c6fb48b465da993d1e7e7e6fa35027ec49f3c936", size = 50054, upload-time = "2026-01-08T16:41:47.696Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a7/12/fa7bd9f677a2dcc58a395217c221e2a5e5cebd59ddc9756bc4f5fede8719/build-1.4.1.tar.gz", hash = "sha256:30adeb28821e573a49b556030d8c84186d112f6a38b12fa5476092c4544ae55a", size = 83276, upload-time = "2026-03-24T23:09:00.209Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c5/0d/84a4380f930db0010168e0aa7b7a8fed9ba1835a8fbb1472bc6d0201d529/build-1.4.0-py3-none-any.whl", hash = "sha256:6a07c1b8eb6f2b311b96fcbdbce5dab5fe637ffda0fd83c9cac622e927501596", size = 24141, upload-time = "2026-01-08T16:41:46.453Z" },
+    { url = "https://files.pythonhosted.org/packages/f9/54/8d858f562f598897a7e5e89a8da4f54de06bcd85a98add1275c84efc9ce4/build-1.4.1-py3-none-any.whl", hash = "sha256:21c81f7a0fa423f0da229335c5c2a605967fbfc9af3c4b6ecd368265ed59c6bc", size = 24633, upload-time = "2026-03-24T23:08:58.677Z" },
 ]
 
 [[package]]
