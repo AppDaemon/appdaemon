@@ -1189,49 +1189,55 @@ def time_str(start: float, now: float | None = None) -> str:
     return format_timedelta((now or perf_counter()) - start)
 
 
-def clean_kwargs(val: Any, *, http: bool = False) -> Any:
-    """Recursively clean a dict of kwargs.
-
-    Conversions:
-        - datetime values are converted to ISO format strings
-        - Mapping values (like dicts) are converted to dicts of cleaned key-value pairs
-        - Iterable values (like lists and tuples) are converted to lists of cleaned values
-        - Other values are converted to strings
-    """
-
-    match val:
-        case True if http:
-            return "true"
-        case str() | int() | float() | bool() | None:
-            return val
-        case datetime():
-            return val.isoformat()
-        case Mapping():
-            return {k: clean_kwargs(v, http=http) for k, v in val.items()}
-        case Iterable():
-            return [clean_kwargs(v, http=http) for v in val]
-        case _:
-            return str(val)
-
-
 def remove_literals(val: Any, literal: Sequence[Any]) -> Any:
-    """Remove instances of literals from a nested data structure."""
+    """Remove instances of literals from a nested data structure.
+
+    Uses identity comparison (``is``) rather than equality (``==``)
+    to avoid ``0 == False`` and ``0.0 == False`` pitfalls.
+    """
+    def _is_literal(v: Any) -> bool:
+        return any(v is lit for lit in literal)
+
     match val:
         case str():
             return val
         case Mapping():
-            return {k: remove_literals(v, literal) for k, v in val.items() if v not in literal}
+            return {k: remove_literals(v, literal) for k, v in val.items() if not _is_literal(v)}
         case Iterable():
-            return [remove_literals(v, literal) for v in val if v not in literal]
+            return [remove_literals(v, literal) for v in val if not _is_literal(v)]
         case _:
             return val
 
 
-def clean_http_kwargs(val: Any) -> Any:
-    """Recursively cleans the kwarg dict to prepare it for use in HTTP requests."""
-    cleaned = clean_kwargs(val, http=True)
-    pruned = remove_literals(cleaned, (None, False))
-    return pruned
+def clean_http_params_for_urlencode(val: Any) -> Any:
+    """Recursively cleans kwargs for use as URL query parameters.
+
+    - None and False are excluded (HA treats param presence as enabled)
+    - True is converted to "true"
+    - datetime objects are converted to ISO format
+    - Other values are kept as-is
+    """
+    match val:
+        case True:
+            return "true"
+        case str() | int() | float():
+            return val
+        case datetime():
+            return val.isoformat()
+        case Mapping():
+            return {
+                k: clean_http_params_for_urlencode(v)
+                for k, v in val.items()
+                if v is not None and v is not False
+            }
+        case Iterable():
+            return [
+                clean_http_params_for_urlencode(v)
+                for v in val
+                if v is not None and v is not False
+            ]
+        case _:
+            return str(val)
 
 
 def unwrapped(func: Callable) -> Callable:
