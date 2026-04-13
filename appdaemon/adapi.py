@@ -101,14 +101,21 @@ class ADAPI:
     @staticmethod
     def _sub_stack(msg):
         # If msg is a data structure of some type, don't sub
-        if isinstance(msg, str):
-            stack = inspect.stack()
-            if msg.find("__module__") != -1:
-                msg = msg.replace("__module__", stack[2][1])
-            if msg.find("__line__") != -1:
-                msg = msg.replace("__line__", str(stack[2][2]))
-            if msg.find("__function__") != -1:
-                msg = msg.replace("__function__", stack[2][3])
+        if not isinstance(msg, str):
+            return msg
+        # Fast path: avoid the expensive inspect.stack() call (which walks
+        # every frame and reads source lines via linecache) when no
+        # placeholders are present. The vast majority of log calls do not
+        # use __module__/__line__/__function__ substitution.
+        if "__module__" not in msg and "__line__" not in msg and "__function__" not in msg:
+            return msg
+        stack = inspect.stack()
+        if "__module__" in msg:
+            msg = msg.replace("__module__", stack[2][1])
+        if "__line__" in msg:
+            msg = msg.replace("__line__", str(stack[2][2]))
+        if "__function__" in msg:
+            msg = msg.replace("__function__", stack[2][3])
         return msg
 
     def _get_namespace(self, **kwargs):
