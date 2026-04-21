@@ -264,6 +264,15 @@ class Events:
             #
 
             if self.AD.http is not None:
+                # Short-circuit when nobody is subscribed to /stream. The
+                # deepcopy below exists only to feed stream_update, and
+                # ADStream.process_event is itself a no-op when handlers
+                # is empty. When no clients are connected this branch was
+                # the dominant CPU cost in our deployment.
+                stream = getattr(self.AD.http, "stream", None)
+                if stream is not None and not stream.handlers:
+                    return
+
                 if data["event_type"] == "state_changed":
                     if data["data"]["new_state"] == data["data"]["old_state"]:
                         # Nothing changed so don't send
