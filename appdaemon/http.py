@@ -965,7 +965,7 @@ class HTTP:
 
             if request.method == "POST":
                 try:
-                    args = await request.json()
+                    args = await request.json() if request.can_read_body else null
                 except json.decoder.JSONDecodeError:
                     return self.get_response(request, 400, "JSON Decode Error")
             else:
