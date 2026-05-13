@@ -609,6 +609,53 @@ Home Assistant has a powerful `templating <https://www.home-assistant.io/docs/co
 can be used to render templates in your apps. The `Hass` API provides access to this with the
 :py:meth:`render_template <appdaemon.plugins.hass.hassapi.Hass.render_template>` method.
 
+Arbitrary WebSocket Messages
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Home Assistant exposes a large number of
+`WebSocket API <https://developers.home-assistant.io/docs/api/websocket>`__ message types beyond service calls. These
+include querying history, accessing long-term statistics, reading logbook events, and interacting with per-user
+server-side storage. The :py:meth:`call_ws <appdaemon.plugins.hass.hassapi.Hass.call_ws>` method provides a general
+purpose escape hatch to send any arbitrary WebSocket message to Home Assistant.
+
+Unlike :py:meth:`call_service <appdaemon.plugins.hass.hassapi.Hass.call_service>`, which is specific to HA service
+actions, ``call_ws`` accepts a raw message dict with a ``type`` key and forwards it directly over the WebSocket
+connection. The ``id`` field is managed automatically by AppDaemon.
+
+.. code-block:: python
+
+    from appdaemon.plugins.hass import Hass
+
+
+    class MyApp(Hass):
+        async def initialize(self):
+            # Read per-user data from HA's server-side storage
+            result = self.call_ws({
+                "type": "frontend/get_user_data",
+                "key": "my_app",
+            })
+            match result:
+                case {"success": True, "result": {"value": value}}:
+                    self.log(f"Loaded stored data: {value}")
+                case {"success": True}:
+                    self.log("No data stored yet, initializing...")
+                    self.call_ws({
+                        "type": "frontend/set_user_data",
+                        "key": "my_app",
+                        "value": {"version": 1, "entries": []},
+                    })
+
+The response format is consistent with
+:py:meth:`call_service <appdaemon.plugins.hass.hassapi.Hass.call_service>` — the returned dict includes ``success``,
+``result``, ``ad_status``, and ``ad_duration`` fields. Error handling follows the same patterns described in the
+`Error Handling`_ section above.
+
+.. note::
+
+    The ``call_ws`` method is a general purpose tool — it does not validate the message contents beyond requiring a
+    ``type`` key. Refer to the `Home Assistant WebSocket API documentation
+    <https://developers.home-assistant.io/docs/api/websocket>`__ for the expected message format for each message type.
+
 API Reference
 -------------
 

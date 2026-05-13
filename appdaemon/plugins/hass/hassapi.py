@@ -69,6 +69,61 @@ class Hass(ADBase, ADAPI):
                     return None
 
     @sync_decorator
+    async def call_ws(self, namespace: str | None = None, **message) -> dict:
+        """Sends an arbitrary WebSocket message to Home Assistant and returns the full response.
+
+        This is a low-level escape hatch for accessing any Home Assistant WebSocket API command,
+        including those that do not have a dedicated helper method in AppDaemon.
+
+        The ``type`` key is required in the message.
+        The ``id`` key must **not** be included — it is assigned automatically by the plugin.
+
+        Args:
+            namespace (str, optional): Namespace to use for the call. See the section on
+                `namespaces <APPGUIDE.html#namespaces>`__ for a detailed description.
+                In most cases it is safe to ignore this parameter.
+            **message: Keyword arguments that form the JSON body of the WebSocket message.
+
+        Returns:
+            dict: The full response dictionary from Home Assistant, containing keys such as
+            ``success``, ``result``, and ``error``.
+
+        Examples:
+            Get a list of all registered panels:
+
+            >>> result = self.call_ws(type="get_panels")
+
+            Subscribe to an event type:
+
+            >>> result = self.call_ws(type="subscribe_events", event_type="state_changed")
+
+            Call a service via raw WebSocket:
+
+            >>> result = self.call_ws(
+            ...     type="call_service",
+            ...     domain="light",
+            ...     service="turn_on",
+            ...     target={"entity_id": "light.living_room"},
+            ... )
+        """
+        if 'type' not in message:
+            self.logger.warning("call_ws: 'type' key is required in the message")
+            return {"error": "'type' key is required"}
+
+        if 'id' in message:
+            self.logger.warning("call_ws: 'id' key must not be included — it is assigned automatically")
+            return {"error": "'id' key must not be included"}
+
+        namespace = namespace if namespace is not None else self.namespace
+
+        match self.AD.plugins.get_plugin_object(namespace):
+            case HassPlugin() as plugin:
+                return await plugin.websocket_send_json(**message)
+            case _:
+                self.logger.warning("call_ws: namespace '%s' is not a Home Assistant namespace", namespace)
+                return {"error": f"namespace '{namespace}' is not a Home Assistant namespace"}
+
+    @sync_decorator
     async def check_for_entity(self, entity_id: str, namespace: str | None = None) -> bool:
         """Uses the REST API to check if an entity exists instead of checking AppDaemon's internal state.
 
