@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from time import perf_counter
 from typing import Any, Literal, Optional
+from urllib.parse import urlencode
 
 import aiohttp
 from aiohttp import ClientResponseError, WebSocketError, WSMsgType
@@ -21,7 +22,7 @@ from appdaemon.appdaemon import AppDaemon
 from appdaemon.models.config.plugin import HASSConfig, StartupConditions
 from appdaemon.plugin_management import PluginBase
 from appdaemon.types import TimeDeltaLike
-from appdaemon.utils.functools import clean_http_kwargs, clean_kwargs, convert_json, remove_literals, warning_decorator
+from appdaemon.utils.functools import clean_http_params_for_urlencode, convert_json, warning_decorator
 from appdaemon.utils.misc import deep_compare
 from appdaemon.utils.parse import parse_timedelta
 from appdaemon.utils.str import format_timedelta, time_str
@@ -376,9 +377,6 @@ class HassPlugin(PluginBase):
         Returns:
             A dict containing the response from Home Assistant.
         """
-        request = clean_kwargs(request)
-        request = remove_literals(request, (None,))
-
         if not self.connect_event.is_set():
             self.logger.debug("Not connected to websocket, skipping JSON send.")
             return
@@ -390,7 +388,7 @@ class HassPlugin(PluginBase):
 
             if not silent:
                 # include this in the "not auth" section so we don't accidentally put the token in the logs
-                req_json = json.dumps(request, indent=4)
+                req_json = convert_json(request, indent=4)
                 for i, line in enumerate(req_json.splitlines()):
                     if i == 0:
                         self.logger.debug(f"Sending JSON: {line}")
@@ -399,7 +397,7 @@ class HassPlugin(PluginBase):
 
         send_time = perf_counter()
         try:
-            await self.ws.send_json(request)
+            await self.ws.send_json(request, dumps=convert_json)
         # happens when the connection closes in the middle, which could be during shutdown
         except ConnectionResetError:
             if self.AD.stopping:
@@ -408,7 +406,7 @@ class HassPlugin(PluginBase):
             else:
                 raise  # Something bad actually happened, so raise the exception
 
-        self.update_perf(bytes_sent=len(json.dumps(request)), requests_sent=1)
+        self.update_perf(bytes_sent=len(convert_json(request)), requests_sent=1)
 
         match request:
             case {"type": "auth"}:
@@ -457,25 +455,25 @@ class HassPlugin(PluginBase):
             **kwargs (optional): Zero or more keyword arguments. These get used as the data for the method, as
                 appropriate.
         """
-        kwargs = clean_http_kwargs(kwargs)
         url = self.config.ha_url / endpoint.lstrip("/")
 
         try:
-            self.update_perf(
-                bytes_sent=len(str(url)) + len(json.dumps(kwargs).encode("utf-8")),
-                requests_sent=1,
-            )
-
             self.logger.debug(f"Hass {method.upper()} {endpoint}: {kwargs}")
             match method.lower():
                 case "get":
-                    http_method = functools.partial(self.session.get, params=kwargs)
+                    cleaned = clean_http_params_for_urlencode(kwargs)
+                    payload_size = len(urlencode(cleaned).encode("utf-8"))
+                    http_method = functools.partial(self.session.get, params=cleaned)
                 case "post":
+                    payload_size = len(convert_json(kwargs).encode("utf-8"))
                     http_method = functools.partial(self.session.post, json=kwargs)
                 case "delete":
-                    http_method = functools.partial(self.session.delete, params=kwargs)
+                    cleaned = clean_http_params_for_urlencode(kwargs)
+                    payload_size = len(urlencode(cleaned).encode("utf-8"))
+                    http_method = functools.partial(self.session.delete, params=cleaned)
                 case _:
                     raise ValueError(f"Invalid method: {method}")
+            self.update_perf(bytes_sent=len(str(url)) + payload_size, requests_sent=1)
 
             timeout = parse_timedelta(timeout)
             client_timeout = aiohttp.ClientTimeout(total=timeout.total_seconds())
