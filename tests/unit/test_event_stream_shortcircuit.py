@@ -8,7 +8,6 @@ when ``handlers`` is empty. The fix returns before the deepcopy runs.
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-
 from appdaemon.events import Events
 
 pytestmark = [
