@@ -9,17 +9,19 @@ from logging import Logger, LogRecord, StreamHandler
 from logging.handlers import RotatingFileHandler
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 
-import appdaemon.utils as utils
-from appdaemon.appdaemon import AppDaemon
+from .appdaemon import AppDaemon
+from .utils.functools import _sanitize_kwargs
+from .utils.misc import Singleton
+from .utils.threading import run_in_executor
 
 if TYPE_CHECKING:
-    from appdaemon.adapi import ADAPI
+    from .adapi import ADAPI
 
 
 class DuplicateFilter(logging.Filter):
     """:class:`logging.Filter` that filters duplicate messages"""
 
-    threshold: int
+    threshold: float
     timeout: float
     delay: float
     filtering: bool
@@ -175,7 +177,7 @@ class LogSubscriptionHandler(StreamHandler):
             logger.warning("-" * 60)
 
 
-class Logging(metaclass=utils.Singleton):
+class Logging(metaclass=Singleton):
     """Creates and configures the Python logging. The top-level logger is called ``AppDaemon``. Child loggers are created with :meth:`~Logging.get_child`."""
 
     AD: "AppDaemon"
@@ -464,7 +466,7 @@ class Logging(metaclass=utils.Singleton):
         return logger
 
     async def get_admin_logs(self, maxlines=100):
-        return await utils.run_in_executor(self, self._get_admin_logs, maxlines)
+        return await run_in_executor(self, self._get_admin_logs, maxlines)
 
     def _get_admin_logs(self, maxlines):
         # Force main logs to be first in a specific order
@@ -662,4 +664,4 @@ class Logging(metaclass=utils.Singleton):
     @staticmethod
     def sanitize_log_kwargs(app, kwargs):
         kwargs_copy = kwargs.copy()
-        return utils._sanitize_kwargs(kwargs_copy, ["__silent", "level"])
+        return _sanitize_kwargs(kwargs_copy, ["__silent", "level"])

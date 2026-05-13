@@ -18,6 +18,7 @@ from appdaemon.plugins.hass.exceptions import ScriptNotFound
 from appdaemon.plugins.hass.hassplugin import HassPlugin
 from appdaemon.plugins.hass.notifications import AndroidNotification
 from appdaemon.services import ServiceCallback
+from appdaemon.utils.threading import sync_decorator
 
 # Check if the module is being imported using the legacy method
 if __name__ == Path(__file__).name:
@@ -57,7 +58,7 @@ class Hass(ADBase, ADAPI):
         self.register_constraint("constrain_input_boolean")
         self.register_constraint("constrain_input_select")
 
-    @utils.sync_decorator
+    @sync_decorator
     async def ping(self) -> float | None:
         """Gets the number of seconds """
         if (plugin := self._plugin) is not None:
@@ -67,7 +68,7 @@ class Hass(ADBase, ADAPI):
                 case _:
                     return None
 
-    @utils.sync_decorator
+    @sync_decorator
     async def check_for_entity(self, entity_id: str, namespace: str | None = None) -> bool:
         """Uses the REST API to check if an entity exists instead of checking AppDaemon's internal state.
 
@@ -277,7 +278,7 @@ class Hass(ADBase, ADAPI):
         """
         return self.get_state(*args, **kwargs)
 
-    @utils.sync_decorator
+    @sync_decorator
     async def anyone_home(self, person: bool = True, namespace: str | None = None) -> bool:
         """Determines if the house/apartment is occupied.
 
@@ -306,7 +307,7 @@ class Hass(ADBase, ADAPI):
         details = await self.get_tracker_details(person, namespace, copy=False)
         return any(state['state'] == 'home' for state in details.values())
 
-    @utils.sync_decorator
+    @sync_decorator
     async def everyone_home(self, person: bool = True, namespace: str | None = None) -> bool:
         """Determine if all family's members at home.
 
@@ -334,7 +335,7 @@ class Hass(ADBase, ADAPI):
         details = await self.get_tracker_details(person, namespace, copy=False)
         return all(state['state'] == 'home' for state in details.values())
 
-    @utils.sync_decorator
+    @sync_decorator
     async def noone_home(self, person: bool = True, namespace: str | None = None) -> bool:
         """Determines if the house/apartment is empty.
 
@@ -447,7 +448,7 @@ class Hass(ADBase, ADAPI):
     #
 
     @overload
-    @utils.sync_decorator
+    @sync_decorator
     async def call_service(
         self,
         service: str,
@@ -460,7 +461,7 @@ class Hass(ADBase, ADAPI):
         **data,
     ) -> Any: ...
 
-    @utils.sync_decorator
+    @sync_decorator
     async def call_service(
         self,
         service: str,
@@ -585,7 +586,7 @@ class Hass(ADBase, ADAPI):
 
     # Home Assistant General
 
-    @utils.sync_decorator
+    @sync_decorator
     async def turn_on(self, entity_id: str, namespace: str | None = None, **kwargs) -> dict:
         """Turns `on` a Home Assistant entity.
 
@@ -629,7 +630,7 @@ class Hass(ADBase, ADAPI):
             **kwargs
         )
 
-    @utils.sync_decorator
+    @sync_decorator
     async def turn_off(self, entity_id: str, namespace: str | None = None, **kwargs) -> dict:
         """Turns `off` a Home Assistant entity.
 
@@ -667,7 +668,7 @@ class Hass(ADBase, ADAPI):
             **kwargs
         )
 
-    @utils.sync_decorator
+    @sync_decorator
     async def toggle(self, entity_id: str, namespace: str | None = None, **kwargs) -> dict:
         """Toggles between ``on`` and ``off`` for the selected entity.
 
@@ -699,7 +700,7 @@ class Hass(ADBase, ADAPI):
             **kwargs
         )
 
-    @utils.sync_decorator
+    @sync_decorator
     async def get_history(
         self,
         entity_id: str | list[str],
@@ -802,7 +803,7 @@ class Hass(ADBase, ADAPI):
             case _:
                 self.logger.warning("HASS plugin not found in namespace '%s'", namespace)
 
-    @utils.sync_decorator
+    @sync_decorator
     async def get_logbook(
         self,
         entity: str | None = None,
@@ -870,7 +871,7 @@ class Hass(ADBase, ADAPI):
 
     # Input Helpers
 
-    @utils.sync_decorator
+    @sync_decorator
     async def set_value(self, entity_id: str, value: int | float, namespace: str | None = None) -> None:
         """Sets the value of an `input_number`.
 
@@ -901,7 +902,7 @@ class Hass(ADBase, ADAPI):
             namespace=namespace
         )
 
-    @utils.sync_decorator
+    @sync_decorator
     async def set_textvalue(self, entity_id: str, value: str, namespace: str | None = None) -> None:
         """Sets the value of an `input_text`.
 
@@ -931,7 +932,7 @@ class Hass(ADBase, ADAPI):
             namespace=namespace
         )
 
-    @utils.sync_decorator
+    @sync_decorator
     async def set_options(self, entity_id: str, options: list[str], namespace: str | None = None) -> dict:
         # https://www.home-assistant.io/integrations/input_select/#actions
         return await self._domain_service_call(
@@ -941,7 +942,7 @@ class Hass(ADBase, ADAPI):
             namespace=namespace,
         )
 
-    @utils.sync_decorator
+    @sync_decorator
     async def select_option(self, entity_id: str, option: str, namespace: str | None = None) -> None:
         """Sets the value of an `input_option`.
 
@@ -972,7 +973,7 @@ class Hass(ADBase, ADAPI):
             namespace=namespace,
         )
 
-    @utils.sync_decorator
+    @sync_decorator
     async def select_next(self, entity_id: str, cycle: bool = True, namespace: str | None = None) -> dict:
         # https://www.home-assistant.io/integrations/input_select/#action-input_selectselect_next
         return await self._domain_service_call(
@@ -982,7 +983,7 @@ class Hass(ADBase, ADAPI):
             namespace=namespace,
         )
 
-    @utils.sync_decorator
+    @sync_decorator
     async def select_previous(self, entity_id: str, cycle: bool = True, namespace: str | None = None) -> dict:
         # https://www.home-assistant.io/integrations/input_select/#action-input_selectselect_previous
         return await self._domain_service_call(
@@ -992,7 +993,7 @@ class Hass(ADBase, ADAPI):
             namespace=namespace,
         )
 
-    @utils.sync_decorator
+    @sync_decorator
     async def select_first(self, entity_id: str, namespace: str | None = None) -> dict:
         return await self._domain_service_call(
             service="input_select/select_first",
@@ -1000,7 +1001,7 @@ class Hass(ADBase, ADAPI):
             namespace=namespace,
         )
 
-    @utils.sync_decorator
+    @sync_decorator
     async def select_last(self, entity_id: str, namespace: str | None = None) -> dict:
         return await self._domain_service_call(
             service="input_select/select_last",
@@ -1008,7 +1009,7 @@ class Hass(ADBase, ADAPI):
             namespace=namespace,
         )
 
-    @utils.sync_decorator
+    @sync_decorator
     async def press_button(self, button_id: str, namespace: str | None = None) -> dict:
         # https://www.home-assistant.io/integrations/input_button/#actions
         return await self._domain_service_call(
@@ -1040,7 +1041,7 @@ class Hass(ADBase, ADAPI):
     #
     # Notifications
     #
-    @utils.sync_decorator
+    @sync_decorator
     async def notify(
         self,
         message: str,
@@ -1082,7 +1083,7 @@ class Hass(ADBase, ADAPI):
             **kwargs,
         )
 
-    @utils.sync_decorator
+    @sync_decorator
     async def persistent_notification(self, message: str, title: str | None = None, id: int | None = None) -> None:
         kwargs: dict[str, Any] = {"message": message}
         if title is not None:
@@ -1167,7 +1168,7 @@ class Hass(ADBase, ADAPI):
 
     # Backup/Restore
 
-    @utils.sync_decorator
+    @sync_decorator
     async def backup_full(
         self,
         name: str | None = None,
@@ -1206,7 +1207,7 @@ class Hass(ADBase, ADAPI):
             hass_timeout=max(timeout, hass_timeout),
         )
 
-    @utils.sync_decorator
+    @sync_decorator
     async def backup_partial(
         self,
         addons: Iterable[str] | None = None,
@@ -1255,7 +1256,7 @@ class Hass(ADBase, ADAPI):
             hass_timeout=max(timeout, hass_timeout),
         )
 
-    @utils.sync_decorator
+    @sync_decorator
     async def restore_full(
         self,
         slug: str,
@@ -1282,7 +1283,7 @@ class Hass(ADBase, ADAPI):
             hass_timeout=max(timeout, hass_timeout),
         )
 
-    @utils.sync_decorator
+    @sync_decorator
     async def restore_partial(
         self,
         slug: str,
@@ -1323,24 +1324,24 @@ class Hass(ADBase, ADAPI):
 
     # Media
 
-    @utils.sync_decorator
+    @sync_decorator
     async def media_play(self, entity_id: str | Iterable[str]) -> dict:
         return await self._domain_service_call('media_player/media_play', entity_id)
 
-    @utils.sync_decorator
+    @sync_decorator
     async def media_pause(self, entity_id: str | Iterable[str]) -> dict:
         return await self._domain_service_call('media_player/media_pause', entity_id)
 
-    @utils.sync_decorator
+    @sync_decorator
     async def media_play_pause(self, entity_id: str | Iterable[str]) -> dict:
         return await self._domain_service_call('media_player/media_play_pause', entity_id)
 
-    @utils.sync_decorator
+    @sync_decorator
     async def media_mute(self, entity_id: str | Iterable[str]) -> dict:
         # https://www.home-assistant.io/integrations/media_player/#action-media_playervolume_mute
         return await self._domain_service_call('media_player/volume_mute', entity_id)
 
-    @utils.sync_decorator
+    @sync_decorator
     async def media_set_volume(self, entity_id: str | Iterable[str], volume: float = 0.5) -> dict:
         # https://www.home-assistant.io/integrations/media_player/#action-media_playervolume_set
         return await self._domain_service_call(
@@ -1349,7 +1350,7 @@ class Hass(ADBase, ADAPI):
             volume_level=volume,
         )
 
-    @utils.sync_decorator
+    @sync_decorator
     async def media_seek(self, entity_id: str | Iterable[str], seek_position: float | timedelta) -> dict:
         if isinstance(seek_position, timedelta):
             seek_position = seek_position.total_seconds()
@@ -1474,7 +1475,7 @@ class Hass(ADBase, ADAPI):
     # Template functions
     # Functions that use self.render_template
 
-    @utils.sync_decorator
+    @sync_decorator
     async def render_template(self, template: str, namespace: str | None = None, **kwargs) -> Any:
         """Renders a Home Assistant Template.
 
@@ -1695,8 +1696,9 @@ class Hass(ADBase, ADAPI):
 
         This action is able to return
         `response data <https://www.home-assistant.io/docs/scripts/perform-actions/#use-templates-to-handle-response-data>`_.
-        The response is the same as the one returned by the `/api/conversation/process` API; see
-        `<https://developers.home-assistant.io/docs/intent_conversation_api#conversation-response>`_ for details.
+        The response is the same as the one returned by the ``/api/conversation/process`` API; see
+        `conversation response <https://developers.home-assistant.io/docs/intent_conversation_api#conversation-response>`_
+        for details.
 
         See the docs on the `conversation integration <https://www.home-assistant.io/integrations/conversation/>`__ for
         more information.
@@ -1773,7 +1775,7 @@ class Hass(ADBase, ADAPI):
     ) -> dict[str, Any]:
         """Reload the intent cache for a conversation agent.
 
-        See the docs on the `conversation integration <https://www.home-assistant.io/integrations/conversation/>`__ for
+        See the docs on the `conversation integration <https://www.home-assistant.io/integrations/conversation/>`_ for
         more information.
 
         Args:

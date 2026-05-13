@@ -4,10 +4,10 @@ from typing import TYPE_CHECKING
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-import appdaemon.utils as utils
+from .utils.threading import run_in_executor
 
 if TYPE_CHECKING:
-    from appdaemon.appdaemon import AppDaemon
+    from .appdaemon import AppDaemon
 
 
 class Admin:
@@ -73,7 +73,7 @@ class Admin:
             )
 
             template = env.get_template("admin.jinja2")
-            rendered_template = await utils.run_in_executor(self, template.render, params)
+            rendered_template = await run_in_executor(self, template.render, params)
 
             return rendered_template
 

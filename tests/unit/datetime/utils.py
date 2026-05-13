@@ -2,7 +2,7 @@ import itertools
 from datetime import timedelta
 from typing import Any
 
-from appdaemon import utils
+from appdaemon.utils.parse import parse_timedelta
 
 
 def _process_params(params: dict[str, list[Any]]) -> tuple[tuple[str, ...], list[tuple[Any, ...]]]:
@@ -41,7 +41,7 @@ class ParameterBuilder:
     @staticmethod
     def sun_params() -> tuple[tuple[str, ...], list[tuple[Any, ...]]]:
         """Creates sets of kwargs for ``now_str``, ``when``, and ``input_`` for ``test_parse_sun_offsets``."""
-        offsets = [str(utils.parse_timedelta(t)) for t in [1, timedelta(minutes=30), timedelta(hours=1)]]
+        offsets = [str(parse_timedelta(t)) for t in [1, timedelta(minutes=30), timedelta(hours=1)]]
         src = {
             "str_offset": offsets,
             "sign": [True, False],
@@ -65,7 +65,7 @@ class ParameterBuilder:
             "now_str": ["early", "midday", "late"],
             "when": ["today", "next"],
             "input_": [
-                f'{type_} {"+" if str_offset > 0 else "-"} {utils.parse_timedelta(abs(str_offset))}'
+                f'{type_} {"+" if str_offset > 0 else "-"} {parse_timedelta(abs(str_offset))}'
                 for type_, str_offset in sun_params
             ],
         }

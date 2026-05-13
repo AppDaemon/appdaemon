@@ -13,7 +13,8 @@ from collections import OrderedDict
 import yaml
 from jinja2 import BaseLoader, Environment, FileSystemLoader, select_autoescape
 
-import appdaemon.utils as ha
+from .utils.file import check_path
+from .utils.file import yaml as ad_yaml
 
 
 class Dashboard:
@@ -82,8 +83,8 @@ class Dashboard:
             if not os.path.isdir(os.path.join(self.compile_dir, "css")):
                 os.makedirs(css)
 
-            ha.check_path("css", self.logger, css, permissions="rwx")
-            ha.check_path("javascript", self.logger, js, permissions="rwx")
+            check_path("css", self.logger, css, permissions="rwx")
+            check_path("javascript", self.logger, js, permissions="rwx")
 
         except Exception:
             self.logger.warning("-" * 60)
@@ -471,7 +472,7 @@ class Dashboard:
 
     def _load_yaml(self, stream):
         myyaml = None
-        yaml.add_constructor("!secret", ha._secret_yaml, Loader=yaml.SafeLoader)
+        yaml.add_constructor("!secret", ad_yaml._secret_yaml, Loader=yaml.SafeLoader)
         try:
             myyaml = yaml.load(stream, Loader=yaml.SafeLoader)
         except ValueError as v:

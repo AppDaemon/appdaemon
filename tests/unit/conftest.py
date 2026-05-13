@@ -5,7 +5,7 @@ from datetime import date, datetime, time
 from functools import partial
 
 import pytest
-from appdaemon import parse
+from appdaemon.utils import parse
 from astral import LocationInfo
 from astral.location import Location
 from pytz import BaseTzInfo, timezone

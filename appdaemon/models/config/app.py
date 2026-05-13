@@ -9,9 +9,10 @@ from typing import Annotated, Any, Literal
 from pydantic import BaseModel, Discriminator, Field, RootModel, Tag, field_validator
 from pydantic_core import PydanticUndefinedType
 
-from ... import exceptions as ade
-from ...dependency import reverse_graph
-from ...utils import read_config_file
+from appdaemon import exceptions as ade
+from appdaemon.dependency import reverse_graph
+from appdaemon.utils.file import read_config_file
+
 from .sequence import SequenceConfig
 
 

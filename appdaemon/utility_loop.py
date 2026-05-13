@@ -12,7 +12,9 @@ from time import perf_counter
 from typing import TYPE_CHECKING
 
 from . import exceptions as ade
-from . import utils
+from .utils import parse
+from .utils.str import format_timedelta
+from .version import __version__
 
 if TYPE_CHECKING:
     from .appdaemon import AppDaemon
@@ -31,7 +33,7 @@ class LoopTiming:
 
     def timedelta(self, name: str) -> timedelta:
         """Get the recorded time as a timedelta."""
-        return utils.parse_timedelta(self.times.get(name, 0.0))
+        return parse.parse_timedelta(self.times.get(name, 0.0))
 
     def get_time_strs(self) -> tuple[str, str, str]:
         assert "total" in self.times, "Total time must be recorded first"
@@ -39,9 +41,9 @@ class LoopTiming:
         check_app_updates = self.times.get("check_app_updates", 0.0)
         other = total - check_app_updates
         return (
-            utils.format_timedelta(total),
-            utils.format_timedelta(check_app_updates),
-            utils.format_timedelta(other),
+            format_timedelta(total),
+            format_timedelta(check_app_updates),
+            format_timedelta(other),
         )
 
 
@@ -93,7 +95,7 @@ class Utility:
         """Get the uptime of AppDaemon as a timedelta."""
         if self.booted is not None:
             uptime = (await self.AD.sched.get_now()) - self.booted
-            uptime = utils.parse_timedelta(round(uptime.total_seconds()))
+            uptime = parse.parse_timedelta(round(uptime.total_seconds()))
             return uptime
         else:
             return timedelta()
@@ -111,7 +113,7 @@ class Utility:
 
         self.booted = await self.AD.sched.get_now()
         boot_time_str = self.booted.replace(microsecond=0).isoformat()
-        await self.AD.state.add_entity("admin", "sensor.appdaemon_version", utils.__version__)
+        await self.AD.state.add_entity("admin", "sensor.appdaemon_version", __version__)
         await self.AD.state.add_entity("admin", "sensor.appdaemon_uptime", str(datetime.timedelta(0)))
         await self.AD.state.add_entity("admin", "sensor.appdaemon_booted", boot_time_str)
 

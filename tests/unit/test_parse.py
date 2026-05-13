@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 import pytest
-from appdaemon import parse
+from appdaemon.utils import parse
 from astral.location import Location
 
 pytestmark = [

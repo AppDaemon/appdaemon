@@ -4,7 +4,7 @@ from typing import Annotated, Literal
 
 from pydantic import BeforeValidator, PlainSerializer
 
-from appdaemon.utils import parse_timedelta
+from appdaemon.utils.parse import parse_timedelta
 
 LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 

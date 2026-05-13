@@ -8,24 +8,24 @@ from pathlib import Path
 from threading import RLock
 from typing import TYPE_CHECKING, Any
 
-from appdaemon.admin_loop import AdminLoop
-from appdaemon.app_management import AppManagement
-from appdaemon.callbacks import Callbacks
-from appdaemon.events import Events
-from appdaemon.futures import Futures
-from appdaemon.models.config import AppDaemonConfig
-from appdaemon.plugin_management import PluginManagement
-from appdaemon.scheduler import Scheduler
-from appdaemon.sequences import Sequences
-from appdaemon.services import Services
-from appdaemon.state import State
-from appdaemon.thread_async import ThreadAsync
-from appdaemon.threads import Threading
-from appdaemon.utility_loop import Utility
+from .admin_loop import AdminLoop
+from .app_management import AppManagement
+from .callbacks import Callbacks
+from .events import Events
+from .futures import Futures
+from .models.config import AppDaemonConfig
+from .plugin_management import PluginManagement
+from .scheduler import Scheduler
+from .sequences import Sequences
+from .services import Services
+from .state import State
+from .thread_async import ThreadAsync
+from .threads import Threading
+from .utility_loop import Utility
 
 if TYPE_CHECKING:
-    from appdaemon.http import HTTP
-    from appdaemon.logging import Logging
+    from .http import HTTP
+    from .logging import Logging
 
 
 class AppDaemon:

@@ -1,11 +1,10 @@
 import asyncio
 import logging
-import logging.config
 from logging import LogRecord
 from random import randint
 
 import pytest
-from appdaemon.parse import parse_timedelta
+from appdaemon.utils.parse import parse_timedelta
 
 from tests.conftest import ConfiguredAppDaemonFunc
 

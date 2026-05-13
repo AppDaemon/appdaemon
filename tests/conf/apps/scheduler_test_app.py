@@ -1,5 +1,5 @@
 from appdaemon.adapi import ADAPI
-from appdaemon.utils import format_timedelta
+from appdaemon.utils.str import format_timedelta
 
 
 class RunInTestApp(ADAPI):

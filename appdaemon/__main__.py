@@ -23,17 +23,18 @@ from logging import Logger
 from pathlib import Path
 from time import perf_counter
 
-import appdaemon.appdaemon as ad
-import appdaemon.utils as utils
-from appdaemon import exceptions as ade
-from appdaemon.app_management import UpdateMode
-from appdaemon.appdaemon import AppDaemon
-from appdaemon.exceptions import NoADConfig
-from appdaemon.http import HTTP
-from appdaemon.logging import Logging
-
+from . import exceptions as ade
+from .app_management import UpdateMode
+from .appdaemon import AppDaemon
 from .dependency_manager import DependencyManager
+from .exceptions import NoADConfig
+from .http import HTTP
+from .logging import Logging
 from .models.config.yaml import MainConfig
+from .utils.file import read_config_file
+from .utils.misc import deprecation_warnings
+from .utils.str import format_timedelta
+from .version import __version__, __version_comments__
 
 logger = logging.getLogger(__name__)
 err_logger = logging.getLogger("bare")
@@ -131,7 +132,7 @@ def parse_arguments() -> argparse.Namespace:
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
     )
     parser.add_argument("-m", "--moduledebug", nargs=2, action="append")
-    parser.add_argument("-v", "--version", action="version", version="%(prog)s " + utils.__version__)
+    parser.add_argument("-v", "--version", action="version", version="%(prog)s " + __version__)
     parser.add_argument("--profiledash", help=argparse.SUPPRESS, action="store_true")
     parser.add_argument("--write_toml", help="use TOML for creating new app configuration files", action="store_true")
     # TODO Implement --write_toml
@@ -210,7 +211,7 @@ def parse_config(args: argparse.Namespace) -> MainConfig:
         err_logger.error(f"Error accessing configuration: {e}")
         sys.exit(1)
 
-    config = utils.read_config_file(config_file)
+    config = read_config_file(config_file)
     assert isinstance(config, dict), "Configuration file must be a dictionary"
 
     # Only process sections that actually have None values
@@ -290,7 +291,7 @@ class ADMain:
         try:
             self.model = parse_config(self.args)
             self.setup_logging()
-            utils.deprecation_warnings(self.model.appdaemon, self.logger)
+            deprecation_warnings(self.model.appdaemon, self.logger)
 
             # Create the dependency manager here so that all the initial file reading happens in here
             self.dep_manager = DependencyManager.from_app_directory(
@@ -424,7 +425,7 @@ class ADMain:
         """Context manager for the main run logic with exception handling."""
         try:
             # Initialize AppDaemon
-            self.AD = ad.AppDaemon(self.logging, loop, self.model.appdaemon, self._cleanup_stack)
+            self.AD = AppDaemon(self.logging, loop, self.model.appdaemon, self._cleanup_stack)
             self.AD.app_management.dependency_manager = self.dep_manager
             exception_handler = functools.partial(ade.exception_handler, self.AD)
             self.loop.set_exception_handler(exception_handler)
@@ -473,10 +474,10 @@ class ADMain:
         try:
             # Startup message
             self.logger.info("-" * 60)
-            self.logger.info("AppDaemon Version %s starting", utils.__version__)
+            self.logger.info("AppDaemon Version %s starting", __version__)
 
-            if utils.__version_comments__ is not None and utils.__version_comments__ != "":
-                self.logger.info("Additional version info: %s", utils.__version_comments__)
+            if __version_comments__ is not None and __version_comments__ != "":
+                self.logger.info("Additional version info: %s", __version_comments__)
 
             self.logger.info("-" * 60)
             self.logger.info("Python version is %s.%s.%s", *sys.version_info[:3])
@@ -486,7 +487,7 @@ class ADMain:
             yield
         finally:
             stop_duration = perf_counter() - self.AD.stop_time
-            self.logger.info("AppDaemon main() stopped gracefully in %s", utils.format_timedelta(stop_duration))
+            self.logger.info("AppDaemon main() stopped gracefully in %s", format_timedelta(stop_duration))
 
 
 def main() -> None:

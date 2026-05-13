@@ -5,11 +5,12 @@ from collections import defaultdict
 from logging import Logger
 from typing import TYPE_CHECKING, Any, Callable, Protocol
 
-from appdaemon import utils
-from appdaemon.exceptions import DomainException, NamespaceException, ServiceException
+from .exceptions import DomainException, NamespaceException, ServiceException
+from .utils.functools import has_expanded_kwargs, unwrapped, warning_decorator
+from .utils.threading import run_in_executor
 
 if TYPE_CHECKING:
-    from appdaemon.appdaemon import AppDaemon
+    from .appdaemon import AppDaemon
 
 
 class ServiceCallback(Protocol):
@@ -251,13 +252,13 @@ class Services:
             match isasync := service_def.pop("__async", 'auto'):
                 case 'auto':
                     # Remove any wrappers from the funcref before determining if it's async or not
-                    isasync = asyncio.iscoroutinefunction(utils.unwrapped(funcref))
+                    isasync = asyncio.iscoroutinefunction(unwrapped(funcref))
                 case bool():
                     pass  # isasync already set as a bool from above
                 case _:
                     raise TypeError(f'Invalid __async type: {isasync}')
 
-            use_dictionary_unpacking = utils.has_expanded_kwargs(funcref)
+            use_dictionary_unpacking = has_expanded_kwargs(funcref)
             funcref = functools.partial(funcref, ns, domain, service)
 
             if isasync:
@@ -269,11 +270,11 @@ class Services:
             else:
                 # It's not a coroutine, run it in an executor
                 if use_dictionary_unpacking:
-                    coro = utils.run_in_executor(self, funcref, **data)
+                    coro = run_in_executor(self, funcref, **data)
                 else:
-                    coro = utils.run_in_executor(self, funcref, data)
+                    coro = run_in_executor(self, funcref, data)
 
-            @utils.warning_decorator(error_text=f"Unexpected error calling service {ns}/{domain}/{service}")
+            @warning_decorator(error_text=f"Unexpected error calling service {ns}/{domain}/{service}")
             async def safe_service(self: 'Services'):
                 return await coro
 

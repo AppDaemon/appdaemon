@@ -7,12 +7,12 @@ from copy import deepcopy
 from logging import Logger
 from typing import TYPE_CHECKING, Any, Protocol
 
-import appdaemon.utils as utils
-
 from .plugin_management import PluginBase
+from .utils import parse
+from .utils.functools import _sanitize_kwargs
 
 if TYPE_CHECKING:
-    from appdaemon.appdaemon import AppDaemon
+    from .appdaemon import AppDaemon
 
 
 class EventCallback(Protocol):
@@ -95,7 +95,7 @@ class Events:
 
         # Automatically cancel the callback after a timeout
         if timeout is not None:
-            exec_time = await self.AD.sched.get_now() + utils.parse_timedelta(timeout)
+            exec_time = await self.AD.sched.get_now() + parse.parse_timedelta(timeout)
             kwargs["__timeout"] = await self.AD.sched.insert_schedule(
                 name=name,
                 aware_dt=exec_time,
@@ -410,4 +410,4 @@ class Events:
     @staticmethod
     def sanitize_event_kwargs(app, kwargs):
         kwargs_copy = kwargs.copy()
-        return utils._sanitize_kwargs(kwargs_copy, ["__silent", "pin_app"])
+        return _sanitize_kwargs(kwargs_copy, ["__silent", "pin_app"])

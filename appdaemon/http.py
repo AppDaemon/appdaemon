@@ -6,26 +6,27 @@ import re
 import ssl
 import time
 import traceback
-from urllib.parse import urlparse
 import uuid
 from socket import gaierror
 from typing import TYPE_CHECKING, Callable, Optional
+from urllib.parse import urlparse
 
 import bcrypt
 import feedparser
 from aiohttp import web
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-import appdaemon.admin as adadmin
-import appdaemon.dashboard as addashboard
-import appdaemon.stream.adstream as stream
-import appdaemon.utils as utils
-from appdaemon.models.config import MainConfig
-
 from . import exceptions as ade
+from .admin import Admin
+from .dashboard import Dashboard
+from .models.config import MainConfig
+from .stream.adstream import ADStream
+from .utils.file import find_path
+from .utils.functools import convert_json, has_expanded_kwargs
+from .utils.threading import run_in_executor
 
 if TYPE_CHECKING:
-    from appdaemon.appdaemon import AppDaemon
+    from .appdaemon import AppDaemon
 
 def securedata(myfunc):
     """
@@ -38,7 +39,7 @@ def securedata(myfunc):
         if self.password is None:
             return await myfunc(*args)
         elif "adcreds" in request.cookies:
-            match = await utils.run_in_executor(
+            match = await run_in_executor(
                 self,
                 bcrypt.checkpw,
                 str.encode(self.password),
@@ -68,7 +69,7 @@ def secure(myfunc):
             return await myfunc(*args)
         else:
             if "adcreds" in request.cookies:
-                match = await utils.run_in_executor(
+                match = await run_in_executor(
                     self,
                     bcrypt.checkpw,
                     str.encode(self.password),
@@ -96,7 +97,7 @@ def route_secure(myfunc):
             return await myfunc(*args)
 
         elif "adcreds" in request.cookies:
-            match = await utils.run_in_executor(self, bcrypt.checkpw, str.encode(self.password), str.encode(request.cookies["adcreds"]))
+            match = await run_in_executor(self, bcrypt.checkpw, str.encode(self.password), str.encode(request.cookies["adcreds"]))
             if match:
                 return await myfunc(*args)
 
@@ -204,7 +205,7 @@ class HTTP:
 
             # Setup event stream
 
-            self.stream = stream.ADStream(self.AD, self.app, self.transport)
+            self.stream = ADStream(self.AD, self.app, self.transport)
             self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
 
             if self.ssl_certificate is not None and self.ssl_key is not None:
@@ -244,7 +245,7 @@ class HTTP:
                 admin_args = self.old_admin
 
             if self.old_admin is not None or self.admin is not None:
-                self.admin_obj = adadmin.Admin(
+                self.admin_obj = Admin(
                     self.config_dir,
                     self.logging,
                     self.AD,
@@ -350,7 +351,7 @@ class HTTP:
 
         if self.dashboard_dir is None:
             if self.config_dir is None:
-                self.dashboard_dir = utils.find_path("dashboards")
+                self.dashboard_dir = find_path("dashboards")
             else:
                 self.dashboard_dir = os.path.join(self.config_dir, "dashboards")
 
@@ -365,11 +366,11 @@ class HTTP:
         # Setup compile directories
         #
         if self.config_dir is None:
-            self.compile_dir = utils.find_path("compiled")
+            self.compile_dir = find_path("compiled")
         else:
             self.compile_dir = os.path.join(self.config_dir, "compiled")
 
-        self.dashboard_obj = addashboard.Dashboard(
+        self.dashboard_obj = Dashboard(
             self.config_dir,
             self.logging,
             dash_compile_on_start=self.compile_on_start,
@@ -478,7 +479,7 @@ class HTTP:
         return await self._list_dash(request)
 
     async def _list_dash(self, request):
-        response = await utils.run_in_executor(self, self.dashboard_obj.get_dashboard_list)
+        response = await run_in_executor(self, self.dashboard_obj.get_dashboard_list)
         return web.Response(text=response, content_type="text/html")
 
     @secure
@@ -490,7 +491,7 @@ class HTTP:
         if recompile == "1":
             recompile = True
 
-        response = await utils.run_in_executor(self, self.dashboard_obj.get_dashboard, name, skin, recompile)
+        response = await run_in_executor(self, self.dashboard_obj.get_dashboard, name, skin, recompile)
 
         return web.Response(text=response, content_type="text/html")
 
@@ -503,7 +504,7 @@ class HTTP:
                         self.rss_last_update = time.time()
 
                         for feed_data in self.rss_feeds:
-                            feed = await utils.run_in_executor(self, feedparser.parse, feed_data["feed"])
+                            feed = await run_in_executor(self, feedparser.parse, feed_data["feed"])
                             if "bozo_exception" in feed:
                                 self.logger.warning(
                                     "Error in RSS feed %s: %s",
@@ -530,7 +531,7 @@ class HTTP:
 
     @securedata
     async def get_ad(self, request):
-        return web.json_response({"state": {"status": "active"}}, dumps=utils.convert_json)
+        return web.json_response({"state": {"status": "active"}}, dumps=convert_json)
 
     @securedata
     async def get_entity(self, request):
@@ -545,7 +546,7 @@ class HTTP:
 
             self.logger.debug("result = %s", state)
 
-            return web.json_response({"state": state}, dumps=utils.convert_json)
+            return web.json_response({"state": state}, dumps=convert_json)
         except Exception:
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error in get_entity()")
@@ -569,7 +570,7 @@ class HTTP:
             if state is None:
                 return self.get_response(request, 404, "Namespace Not Found")
 
-            return web.json_response({"state": state}, dumps=utils.convert_json)
+            return web.json_response({"state": state}, dumps=convert_json)
         except Exception:
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error in get_namespace()")
@@ -593,7 +594,7 @@ class HTTP:
             if state is None:
                 return self.get_response(request, 404, "Namespace Not Found")
 
-            return web.json_response({"state": state}, dumps=utils.convert_json)
+            return web.json_response({"state": state}, dumps=convert_json)
         except Exception:
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error in get_namespace_entities()")
@@ -610,7 +611,7 @@ class HTTP:
             state = self.AD.state.list_namespaces()
             self.logger.debug("result = %s", state)
 
-            return web.json_response({"state": state}, dumps=utils.convert_json)
+            return web.json_response({"state": state}, dumps=convert_json)
         except Exception:
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error in get_namespaces()")
@@ -626,7 +627,7 @@ class HTTP:
             state = self.AD.services.list_services()
             self.logger.debug("result = %s", state)
 
-            return web.json_response({"state": state}, dumps=utils.convert_json)
+            return web.json_response({"state": state}, dumps=convert_json)
         except Exception:
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error in get_services()")
@@ -646,7 +647,7 @@ class HTTP:
 
             self.logger.debug("result = %s", state)
 
-            return web.json_response({"state": state}, dumps=utils.convert_json)
+            return web.json_response({"state": state}, dumps=convert_json)
         except Exception:
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error in get_state()")
@@ -660,9 +661,9 @@ class HTTP:
         try:
             self.logger.debug("get_logs() called")
 
-            logs = await utils.run_in_executor(self, self.AD.logging.get_admin_logs)
+            logs = await run_in_executor(self, self.AD.logging.get_admin_logs)
 
-            return web.json_response({"logs": logs}, dumps=utils.convert_json)
+            return web.json_response({"logs": logs}, dumps=convert_json)
         except Exception:
             self.logger.warning("-" * 60)
             self.logger.warning("Unexpected error in get_logs()")
@@ -718,7 +719,7 @@ class HTTP:
                 service=service,
                 data=args
             )  # fmt: skip
-            return web.json_response({"response": res}, status=200, dumps=utils.convert_json)
+            return web.json_response({"response": res}, status=200, dumps=convert_json)
 
         except Exception:
             self.logger.warning("-" * 60)
@@ -919,7 +920,7 @@ class HTTP:
         response = "OK"
         self.access.info("API Call to %s: status: %s %s", endpoint, code, response)
 
-        return web.json_response(ret, status=code, dumps=utils.convert_json)
+        return web.json_response(ret, status=code, dumps=convert_json)
 
     # Routes, Status and Templates
 
@@ -961,7 +962,7 @@ class HTTP:
                     break
 
         if callback is not None:
-            use_dictionary_unpacking = utils.has_expanded_kwargs(callback)
+            use_dictionary_unpacking = has_expanded_kwargs(callback)
 
             if request.method == "POST":
                 try:
@@ -978,9 +979,9 @@ class HTTP:
                     return await callback(args, rargs)
             else:
                 if use_dictionary_unpacking is True:
-                    return await utils.run_in_executor(self, callback, args, **rargs)
+                    return await run_in_executor(self, callback, args, **rargs)
                 else:
-                    return await utils.run_in_executor(self, callback, args, rargs)
+                    return await run_in_executor(self, callback, args, rargs)
         else:
             return "", 404
 
@@ -1079,11 +1080,11 @@ class HTTP:
         return web.Response(text=response, content_type="text/html")
 
     async def logon_page(self, request):
-        response = await utils.run_in_executor(self, self.generate_logon_page, request.scheme, request.host)
+        response = await run_in_executor(self, self.generate_logon_page, request.scheme, request.host)
         return web.Response(text=response, content_type="text/html")
 
     async def error_page(self, request):
-        response = await utils.run_in_executor(self, self.generate_error_page, request.scheme, request.host)
+        response = await run_in_executor(self, self.generate_error_page, request.scheme, request.host)
         return web.Response(text=response, content_type="text/html")
 
     def generate_logon_page(self, scheme, url):

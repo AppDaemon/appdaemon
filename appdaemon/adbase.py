@@ -4,8 +4,10 @@ from logging import Logger
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from appdaemon import adapi, utils
-from appdaemon.models.config.app import AllAppConfig, AppConfig
+from .adapi import ADAPI
+from .models.config.app import AllAppConfig, AppConfig
+from .utils.state import StateAttrs
+from .utils.threading import sync_decorator
 
 # Check if the module is being imported using the legacy method
 if __name__ == Path(__file__).name:
@@ -30,7 +32,7 @@ class Entities:  # @todo
         pass
 
     def __get__(self, instance, owner):
-        stateattrs = utils.StateAttrs(instance.get_state())
+        stateattrs = StateAttrs(instance.get_state())
         return stateattrs
 
 
@@ -174,10 +176,10 @@ class ADBase:
     # API/Plugin
     #
 
-    def get_ad_api(self) -> adapi.ADAPI:
-        return adapi.ADAPI(self.AD, self.config_model)
+    def get_ad_api(self) -> ADAPI:
+        return ADAPI(self.AD, self.config_model)
 
-    @utils.sync_decorator
+    @sync_decorator
     async def get_plugin_api(self, plugin_name: str):
         """Get the plugin API for a specific plugin."""
         if isinstance(cfg := self.app_config.root.get(self.name), AppConfig):

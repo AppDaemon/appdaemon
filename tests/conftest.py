@@ -12,7 +12,8 @@ from appdaemon.dependency_manager import DependencyManager
 from appdaemon.logging import Logging
 from appdaemon.models.config.app import AllAppConfig, AppConfig
 from appdaemon.models.config.appdaemon import AppDaemonConfig
-from appdaemon.utils import format_timedelta, recursive_get_files
+from appdaemon.utils.file import recursive_get_files
+from appdaemon.utils.str import format_timedelta
 
 logger = logging.getLogger("AppDaemon._test")
 

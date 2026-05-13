@@ -3,7 +3,7 @@ from datetime import datetime
 
 import pytest
 import pytz
-from appdaemon.utils import clean_http_params_for_urlencode, convert_json, remove_literals
+from appdaemon.utils.functools import clean_http_params_for_urlencode, convert_json, remove_literals
 
 pytestmark = [
     pytest.mark.ci,

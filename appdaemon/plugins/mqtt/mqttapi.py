@@ -3,9 +3,8 @@ from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 import appdaemon.adapi as adapi
 import appdaemon.adbase as adbase
-import appdaemon.utils as utils
-
 from appdaemon.appdaemon import AppDaemon
+from appdaemon.utils.threading import sync_decorator
 
 if TYPE_CHECKING:
     from ...models.config import AppConfig
@@ -82,7 +81,7 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
     # Override listen_event()
     #
 
-    @utils.sync_decorator
+    @sync_decorator
     async def listen_event(self, callback: Callable, event: str = None, **kwargs: Optional[Any]) -> str:
         """Listens for changes within the MQTT plugin.
 
@@ -319,7 +318,7 @@ class Mqtt(adbase.ADBase, adapi.ADAPI):
 
         return self._run_service_call("unsubscribe", topic, **kwargs)
 
-    @utils.sync_decorator
+    @sync_decorator
     async def is_client_connected(self, **kwargs: Optional[Any]) -> bool:
         """Returns ``TRUE`` if the MQTT plugin is connected to its broker, ``FALSE`` otherwise.
 

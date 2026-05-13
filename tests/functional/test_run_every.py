@@ -10,7 +10,7 @@ from itertools import product
 
 import pytest
 from appdaemon.types import TimeDeltaLike
-from appdaemon.utils import parse_timedelta
+from appdaemon.utils.parse import parse_timedelta
 
 from tests.conftest import ConfiguredAppDaemonFunc
 

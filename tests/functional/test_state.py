@@ -7,7 +7,7 @@ from typing import cast
 
 import pytest
 from appdaemon.app_management import ManagedObject
-from appdaemon.utils import format_timedelta
+from appdaemon.utils.str import format_timedelta
 
 from tests.conftest import ConfiguredAppDaemonFunc
 
