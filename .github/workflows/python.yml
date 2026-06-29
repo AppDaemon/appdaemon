@@ -27,7 +27,7 @@ jobs:
       UV_NO_SYNC: true
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Install uv
         id: setup-uv
         uses: astral-sh/setup-uv@v7
@@ -84,7 +84,7 @@ jobs:
       UV_NO_PROGRESS: true
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Install uv and set the python version
         id: setup-uv
         uses: astral-sh/setup-uv@v7
@@ -124,7 +124,7 @@ jobs:
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Install uv and set the python version
         id: setup-uv
         uses: astral-sh/setup-uv@v7
