@@ -406,7 +406,7 @@ class HTTP:
 
     async def start_server(self) -> None:
         self.logger.debug("Starting webserver on %s:%s", self.host, self.port)
-        self.runner = web.AppRunner(self.app)
+        self.runner = web.AppRunner(self.app, access_log=self.access)
         await self.runner.setup()
         self.site = web.TCPSite(self.runner, self.host, int(self.port), ssl_context=self.context)
         try:
