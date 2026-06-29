@@ -631,11 +631,7 @@ class ADAPI:
             >>> self.set_namespace("in_memory", persist=False)
         """
         if not self.namespace_exists(namespace):
-            self.add_namespace(
-                namespace=namespace,
-                writeback=ADWritebackType(writeback),
-                persist=persist
-            )
+            self.add_namespace(namespace=namespace, writeback=ADWritebackType(writeback), persist=persist)
         self.namespace = namespace
 
     def get_namespace(self) -> str:
@@ -691,12 +687,7 @@ class ADAPI:
 
             >>> self.add_namespace("in_memory", persist=False)
         """
-        match await self.AD.state.add_namespace(
-            namespace,
-            ADWritebackType(writeback),
-            persist,
-            self.name
-        ):
+        match await self.AD.state.add_namespace(namespace, ADWritebackType(writeback), persist, self.name):
             case Path() as ns_path:
                 return str(ns_path)
             case False | None:
@@ -2326,7 +2317,7 @@ class ADAPI:
 
         """
         # The event might need the timeout argument passed through
-        if timeout != -1: # Only pass through valid values, which includes None
+        if timeout != -1:  # Only pass through valid values, which includes None
             # Convert to float if it's not None
             timeout = parse.parse_timedelta(timeout).total_seconds() if timeout is not None else timeout
             kwargs["timeout"] = timeout
@@ -2350,9 +2341,7 @@ class ADAPI:
         nums = list(
             map(
                 int,
-                re.split(r"[^\d]", utc_string)[
-                    :-1
-                ],  # split by anything that's not a number and skip the last part for AM/PM
+                re.split(r"[^\d]", utc_string)[:-1],  # split by anything that's not a number and skip the last part for AM/PM
             ),
         )[:7]  # Use a max of 7 parts
         return dt.datetime(*nums).timestamp() + self.get_tz_offset() * 60
@@ -2988,7 +2977,7 @@ class ADAPI:
                 else:
                     raise ValueError(f"Invalid sun event: {start_str}")
 
-                now = await self.get_now() # type: ignore
+                now = await self.get_now()  # type: ignore
                 _, offset = parse.resolve_time_str(start_str, now=now, location=self.AD.sched.location)
                 func = functools.partial(func, *args, repeat=True, offset=offset)
             case _:
@@ -3082,7 +3071,7 @@ class ADAPI:
                 else:
                     raise ValueError(f"Invalid sun event: {start_str}")
 
-                now = await self.get_now() # type: ignore
+                now = await self.get_now()  # type: ignore
                 _, offset = parse.resolve_time_str(start_str, now=now, location=self.AD.sched.location)
                 func = functools.partial(func, callback, *args, repeat=True, offset=offset)
             case _:
@@ -3103,7 +3092,7 @@ class ADAPI:
             pin_thread=pin_thread,
             **kwargs
         )  # fmt: skip
-        return await func() # type: ignore
+        return await func()  # type: ignore
 
     @sync_decorator
     async def run_hourly(
@@ -3508,7 +3497,8 @@ class ADAPI:
         sticky: int = 0,
         deviceid: str | None = None,
         dashid: str | None = None,
-        skin: str | None = None) -> None:
+        skin: str | None = None,
+    ) -> None:
         """Forces all connected Dashboards to navigate to a new URL.
 
         Args:

@@ -106,4 +106,4 @@ markers = [
 skip = ".git*,*.svg,*.css,*.min.*,*.map,assets,.venv*,.docs_build,*.js"
 check-hidden = true
 # ignore-regex = ""
-ignore-words-list = "hass,noone,dependee,dependees,whet,controle"
+ignore-words-list = "hass,noone,dependee,dependees,whet,controle,caf"

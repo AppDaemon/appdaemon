@@ -13,15 +13,7 @@ pytestmark = [
 ]
 
 
-BASE = {
-    "a": 1,
-    "b": 2.0,
-    "c": "three",
-    "d": True,
-    "e": False,
-    "f": datetime(2025, 9, 22, 12, 0, 0, tzinfo=pytz.utc),
-    "g": None
-}
+BASE = {"a": 1, "b": 2.0, "c": "three", "d": True, "e": False, "f": datetime(2025, 9, 22, 12, 0, 0, tzinfo=pytz.utc), "g": None}
 
 
 def test_clean_http_params_for_urlencode():
@@ -61,20 +53,20 @@ def test_clean_http_params_for_urlencode_nested():
 
 
 SERVICE_CALL = {
-    'type': 'call_service',
-    'domain': 'notify',
-    'service': 'mobile_app_pixel_9a',
-    'service_data': {
-        'message': 'Phobos Initialized',
-        'data': {
-            'push': {'sound': {'name': 'Alert_Health_Haptic.caf', 'volume': 0.6, 'critical': 1}},
-            'tag': 'phobos-alert',
-            'actions': [
-                {'action': 'stop_alarms', 'title': 'Stop alarms'},
-                {'action': 'silence', 'title': 'Silence'},
-            ]
+    "type": "call_service",
+    "domain": "notify",
+    "service": "mobile_app_pixel_9a",
+    "service_data": {
+        "message": "Phobos Initialized",
+        "data": {
+            "push": {"sound": {"name": "Alert_Health_Haptic.caf", "volume": 0.6, "critical": 1}},
+            "tag": "phobos-alert",
+            "actions": [
+                {"action": "stop_alarms", "title": "Stop alarms"},
+                {"action": "silence", "title": "Silence"},
+            ],
         },
-    }
+    },
 }
 
 
@@ -83,13 +75,13 @@ def test_clean_http_params_for_urlencode_complex_nested():
     cleaned = clean_http_params_for_urlencode(SERVICE_CALL)
     match cleaned:
         case {
-            "service_data":
-                {"data":
-                    {"actions": list(actions),
-                        "push": {"sound": {"volume": float(vol)}},
-                    },
+            "service_data": {
+                "data": {
+                    "actions": list(actions),
+                    "push": {"sound": {"volume": float(vol)}},
                 },
-            }:
+            },
+        }:
             assert vol == 0.6
             for action in actions:
                 match action:
