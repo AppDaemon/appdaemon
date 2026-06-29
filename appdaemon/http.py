@@ -28,6 +28,7 @@ from .utils.threading import run_in_executor
 if TYPE_CHECKING:
     from .appdaemon import AppDaemon
 
+
 def securedata(myfunc):
     """
     Take care of streams and service calls
@@ -886,7 +887,7 @@ class HTTP:
         return web.Response(body=res, status=code)
 
     def get_web_response(self, request, code, error):
-        res = "<html><head><title>{} {}</title></head><body><h1>{} {}</h1>Error in Web Service" " Call</body></html>".format(code, error, code, error)
+        res = "<html><head><title>{} {}</title></head><body><h1>{} {}</h1>Error in Web Service Call</body></html>".format(code, error, code, error)
         app = request.match_info.get("app", "system")
         if code == 200:
             self.access.info("Web Call to %s: status: %s", app, code)
@@ -991,7 +992,7 @@ class HTTP:
     async def register_route(self, cb: Callable, route: str, name: str, **kwargs: Optional[dict]) -> str:
         if not asyncio.iscoroutinefunction(cb):  # must be async function
             self.logger.warning(
-                ("Could not Register Callback for %s, using Route %s as Web Server Route. Callback must be" " Async"),
+                ("Could not Register Callback for %s, using Route %s as Web Server Route. Callback must be Async"),
                 name,
                 route,
             )
