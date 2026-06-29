@@ -18,6 +18,7 @@
             - Runs the `functional` test group before uploading
     - Stale issues no longer close after 15 days
 - Broke up the doc page on the AppDaemon internals into multiple pages and expanded content.
+- Added support for Python 3.14
 
 **Fixes**
 
