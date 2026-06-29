@@ -1,8 +1,8 @@
-from importlib.metadata import version
+from importlib.metadata import PackageNotFoundError, version
 
 try:
     __version__ = version("appdaemon")
-except ImportError:
+except PackageNotFoundError:
     # Fallback for development/editable installs or if package not installed
     __version__ = "unknown"
 

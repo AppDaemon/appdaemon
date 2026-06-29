@@ -87,8 +87,10 @@ def sync_decorator(coro_func: Callable[P, Awaitable[R]]) -> Callable[P, R]:
         # Checks to see if it's being called from the main thread, which has the event loop in it
         in_main_thread = ad.main_thread_id == threading.current_thread().ident
 
-        # pass through the timeout argument if the function accepts it
-        if "timeout" in inspect.signature(coro_func).parameters:
+        # Pass through timeout only when explicitly set by the caller.
+        # This avoids leaking timeout=None into downstream kwargs that may
+        # be forwarded to external service payloads.
+        if timeout is not None and "timeout" in inspect.signature(coro_func).parameters:
             kwargs["timeout"] = timeout
 
         coro = coro_func(self, *args, **kwargs)

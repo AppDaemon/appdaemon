@@ -1,8 +1,10 @@
 import json
 from datetime import datetime
+from types import SimpleNamespace
 
 import pytest
 import pytz
+from appdaemon.adapi import ADAPI
 from appdaemon.utils.functools import clean_http_params_for_urlencode, convert_json, remove_literals
 
 pytestmark = [
@@ -149,6 +151,47 @@ class TestConvertJson:
         result = convert_json({"obj": Custom()})
         parsed = json.loads(result)
         assert parsed["obj"] == "custom_value"
+
+
+@pytest.mark.asyncio
+async def test_call_service_does_not_forward_none_timeout():
+    captured: dict[str, object] = {}
+
+    class DummyServices:
+        async def call_service(self, namespace, domain, service, data):
+            captured["namespace"] = namespace
+            captured["domain"] = domain
+            captured["service"] = service
+            captured["data"] = data
+            return {"ok": True}
+
+    class DummyLogger:
+        def debug(self, *args, **kwargs):
+            pass
+
+    dummy = SimpleNamespace(
+        namespace="default",
+        name="dummy",
+        logger=DummyLogger(),
+        AD=SimpleNamespace(services=DummyServices()),
+    )
+    dummy._check_service = lambda _service: None
+    dummy._check_entity = lambda _namespace, _entity_id: None
+
+    result = await ADAPI.call_service.__wrapped__(
+        dummy,
+        "climate/set_temperature",
+        timeout=None,
+        entity_id="climate.test",
+        temperature=72,
+    )
+
+    assert result == {"ok": True}
+    assert captured["domain"] == "climate"
+    assert captured["service"] == "set_temperature"
+    assert captured["data"]["entity_id"] == "climate.test"
+    assert captured["data"]["temperature"] == 72
+    assert "timeout" not in captured["data"]
 
 
 class TestSetStateRegression:

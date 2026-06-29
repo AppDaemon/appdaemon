@@ -2025,7 +2025,7 @@ class ADAPI:
                     for e in eid:
                         self._check_entity(namespace, e)
 
-        if timeout != -1:
+        if timeout not in (-1, None):
             data["timeout"] = timeout
 
         domain, service_name = service.split("/", 2)
