@@ -191,17 +191,11 @@ class Scheduler:
         if repeat:
             match type_:
                 case "next_rising":
-                    validate_offset_within_interval(
-                        offset, SUN_EVENT_INTERVAL, "sunrise", random_start, random_end
-                    )
+                    validate_offset_within_interval(offset, SUN_EVENT_INTERVAL, "sunrise", random_start, random_end)
                 case "next_setting":
-                    validate_offset_within_interval(
-                        offset, SUN_EVENT_INTERVAL, "sunset", random_start, random_end
-                    )
+                    validate_offset_within_interval(offset, SUN_EVENT_INTERVAL, "sunset", random_start, random_end)
                 case _ if interval.total_seconds() > 0:
-                    validate_offset_within_interval(
-                        offset, interval, "interval", random_start, random_end
-                    )
+                    validate_offset_within_interval(offset, interval, "interval", random_start, random_end)
 
         c_offset = resolve_offset(offset=offset, random_start=random_start, random_end=random_end)
         timestamp = basetime + c_offset
@@ -504,8 +498,7 @@ class Scheduler:
                 while aware_next <= now:
                     aware_next += interval
 
-        assert isinstance(aware_next, datetime) and aware_next.tzinfo is not None, \
-            "aware_start must be a timezone aware datetime"
+        assert isinstance(aware_next, datetime) and aware_next.tzinfo is not None, "aware_start must be a timezone aware datetime"
         return aware_next
 
     async def terminate_app(self, name: str):
