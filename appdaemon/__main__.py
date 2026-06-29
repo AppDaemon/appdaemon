@@ -404,6 +404,11 @@ class ADMain:
 
     def stop(self):
         """Stop AppDaemon and stop the event loop afterwards."""
+        if getattr(self, "_stop_requested", False):
+            self.logger.debug("Stop already requested, ignoring duplicate call")
+            return
+        self._stop_requested = True
+
         self.AD.stop_time = perf_counter()
         task = self.loop.create_task(self.AD.stop())
         task.add_done_callback(lambda _: self.loop.stop())

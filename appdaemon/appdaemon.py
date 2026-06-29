@@ -387,6 +387,10 @@ class AppDaemon:
         - :meth:`Scheduler <appdaemon.scheduler.Scheduler.stop>`
         - :meth:`State <appdaemon.state.State.stop>`
         """
+        if self.stopping:
+            self._shutdown_logger.debug("AppDaemon.stop() already running, skipping duplicate call")
+            return
+
         self._shutdown_logger.info("Stopping AppDaemon")
         self.stopping = True
 

@@ -586,9 +586,10 @@ class Scheduler:
             try:
                 if self.endtime is not None and self.now >= self.endtime:
                     self.logger.info("End time reached, exiting")
-                    self.AD.stop_time = perf_counter()
-                    task = self.AD.loop.create_task(self.AD.stop())
-                    task.add_done_callback(lambda _: self.AD.loop.stop())
+                    if not self.AD.stopping:
+                        self.AD.stop_time = perf_counter()
+                        task = self.AD.loop.create_task(self.AD.stop())
+                        task.add_done_callback(lambda _: self.AD.loop.stop())
 
                 loop_now = datetime.now(pytz.utc)
                 if self.realtime:

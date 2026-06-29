@@ -62,7 +62,15 @@ async def run_in_executor(self: Subsystem, fn: Callable[..., R], *args, **kwargs
     self.AD.threading.logger.debug(f"Running {function_name} in the {executor_name}")
 
     preloaded_function = functools.partial(fn, *args, **kwargs)
-    future = self.AD.loop.run_in_executor(executor=self.AD.executor, func=preloaded_function)
+    try:
+        future = self.AD.loop.run_in_executor(executor=self.AD.executor, func=preloaded_function)
+    except RuntimeError as err:
+        # During shutdown, late submissions can race with executor teardown.
+        if self.AD.stopping and "cannot schedule new futures after shutdown" in str(err):
+            self.logger.debug("Skipping %s: executor already shut down", function_name)
+            raise asyncio.CancelledError from err
+        raise
+
     self.AD.futures.add_future(self.name, future)
     return await future
 
