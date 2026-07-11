@@ -17,12 +17,13 @@ def deep_compare(check: dict, data: dict) -> bool:
     data = data or {}  # Replaces a None value with an empty dict
 
     for k, v in tuple(check.items()):
-        if isinstance(v, dict) and isinstance(data[k], dict):
-            if deep_compare(v, data[k]):
+        current = data.get(k)
+        if isinstance(v, dict) and isinstance(current, dict):
+            if deep_compare(v, current):
                 continue
             else:
                 return False
-        elif v != data.get(k):
+        elif v != current:
             return False
     else:
         return True
