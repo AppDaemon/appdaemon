@@ -496,7 +496,7 @@ class AppManagement:
             bool: Whether stopping was successful or not
         """
         try:
-            if isinstance(self.app_config[app_name], AppConfig):
+            if isinstance(self.app_config.root.get(app_name), AppConfig):
                 self.logger.debug("Stopping app '%s'", app_name)
             await self.terminate_app(app_name, delete=delete)
         except Exception:
@@ -780,7 +780,7 @@ class AppManagement:
             )  # fmt: skip
             update_actions.apps.term |= deleted_apps
             for name in deleted_apps:
-                # del self.app_config.root[name]
+                self.app_config.root.pop(name, None)
                 self.logger.info("App config deleted: %s", name)
 
             self.app_config.root.update(freshly_read_cfg.root)
@@ -1208,7 +1208,7 @@ class AppManagement:
 
         failed_to_stop = set()  # stores apps that had a problem terminating
         for app_name in stop_order:
-            successfully_stopped = await self.stop_app(app_name)
+            successfully_stopped = await self.stop_app(app_name, delete=True)
             if successfully_stopped:
                 self.logger.info("Stopped app '%s'", app_name)
                 if app_name in indirect_stops:
