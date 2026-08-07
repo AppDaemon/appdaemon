@@ -128,8 +128,11 @@ class HassPlugin(PluginBase):
         """Handles creating an :py:class:`~aiohttp.ClientSession` with the cert information from the plugin config
         and the authorization headers for the `REST API <https://developers.home-assistant.io/docs/api/rest>`_.
         """
-        ssl_context = ssl.create_default_context(capath=self.config.cert_path)
-        conn = aiohttp.TCPConnector(ssl_context=ssl_context)
+        if self.config.cert_path is not None:
+            ssl_context = ssl.create_default_context(capath=self.config.cert_path)
+            conn = aiohttp.TCPConnector(ssl_context=ssl_context, verify_ssl=self.config.cert_verify)
+        else:
+            conn = aiohttp.TCPConnector(ssl=False)
 
         connect_timeout_secs = self.config.connect_timeout.total_seconds()
         return aiohttp.ClientSession(
