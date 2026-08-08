@@ -73,9 +73,6 @@ This is the full list of configuration options available for the `Hass` plugin.
    * - ``cert_verify``
      - optional
      - Flag for adding an SSL context around the ``aiohttp.ClientSession``. Set to ``False`` to disable (e.g., with internal IPs)
-   * - ``cert_path``
-     - optional
-     - Path to the SSL certificate file. This is only used if ``cert_verify`` is set to ``True``.
    * - ``api_port``
      - optional
      - Port the AppDaemon RESTful API will listen on. If not specified, API is disabled
