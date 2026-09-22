@@ -24,6 +24,7 @@
 
 - Remove outdated references to `app_init_delay`
 - Reworked how the `pin_app` and `pin_thread` settings work their way through the internals, and added corresponding tests.
+- Removed the unused `deepdiff` dependency (declared but never imported by AppDaemon).
 
 **Breaking Changes**
 
