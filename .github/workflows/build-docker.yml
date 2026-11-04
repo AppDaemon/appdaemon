@@ -45,7 +45,7 @@ jobs:
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Setup Docker buildx
-        uses: docker/setup-buildx-action@v4.0.0
+        uses: docker/setup-buildx-action@v4.1.0
       # Login against a Docker registry (only with a tag or push on `dev` branch)
       # https://github.com/docker/login-action
       - name: Log into Docker Hub
