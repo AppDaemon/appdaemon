@@ -259,6 +259,8 @@ class HassPlugin(PluginBase):
         if not self.is_ready:
             self.logger.info("Waiting for Home Assistant to start")
             await self.ready_event.wait()
+            # Services registered while Home Assistant was starting are missing from the list fetched on connect
+            await self.get_hass_services()
 
         await self.notify_plugin_started(meta=await self.get_hass_config(), state=await self.get_complete_state())
         self.first_time = False
