@@ -1,5 +1,5 @@
 # Builds and publishes multi-platform Docker images after Python Build completes successfully.
-# Pushes to Docker Hub on version tags (v*) or dev branch.
+# Pushes to Docker Hub on release tags (e.g. 4.5.14, 4.6.0b1) or dev branch.
 name: Build and Deploy Docker Image
 
 on:
@@ -19,24 +19,49 @@ env:
   IMAGE_NAME: acockburn/appdaemon
 
 jobs:
+  # Only build if tests passed on a push to the dev branch or of a release tag
+  # (for a tag push, Python CI's head_branch is the tag name)
+  check_ref:
+    name: Check ref
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+    permissions:
+      contents: read
+    outputs:
+      build: ${{ steps.check.outputs.build }}
+      tag: ${{ steps.check.outputs.tag }}
+    steps:
+      - name: Check for dev branch or release tag
+        id: check
+        env:
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "$HEAD_BRANCH" = dev ]; then
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          elif [[ "$HEAD_BRANCH" =~ ^[0-9]+\.[0-9]+\.[0-9]+((a|b|rc)[0-9]+)?$ ]] &&
+            [ "$(gh api "repos/$GITHUB_REPOSITORY/commits/refs/tags/$HEAD_BRANCH" --jq .sha)" = "$HEAD_SHA" ]; then
+            echo "build=true" >> "$GITHUB_OUTPUT"
+            echo "tag=$HEAD_BRANCH" >> "$GITHUB_OUTPUT"
+          fi
+
   # After building the Python package, build the Docker image
   build_image:
     name: Docker image
     runs-on: ubuntu-latest
-    # Only run if tests passed and it's dev branch or a version tag
-    if: |
-      github.event.workflow_run.conclusion == 'success' &&
-      (
-        github.event.workflow_run.head_branch == 'dev' ||
-        startsWith(github.event.workflow_run.head_branch, 'v')
-      )
+    needs: check_ref
+    if: needs.check_ref.outputs.build == 'true'
     permissions:
       contents: read
       packages: write
 
     steps:
+      # A release builds from its own tag; otherwise this is the default branch (dev)
       - name: Checkout repository
         uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.check_ref.outputs.tag && format('refs/tags/{0}', needs.check_ref.outputs.tag) || '' }}
       - name: Download Python package
         uses: actions/download-artifact@v8
         with:
@@ -59,17 +84,13 @@ jobs:
         id: meta
         uses: docker/metadata-action@v6.1.0
         with:
+          # Derive tags from the checked out ref: under workflow_run, the workflow context is always the default branch
+          context: git
           images: ${{ env.IMAGE_NAME }}
-          # Customize the generation of Docker `latest` tag
-          # Tag with `latest` the git tags that do not have a "pre-release" component in the end (e.g. `3.0.0`)
-          # Avoid tagging with `latest` the git tag that have a "pre-release" component in the end (e.g. `3.0.0b1`)
-          # If no git tag, fallback to branch or PR name
           tags: |
             # If the git tag follows PEP440 conventions, use it as the resulting docker tag (both releases and pre-releases)
+            # A release without a pre-release ending (e.g. `3.0.0`, not `3.0.0b1`) is also tagged `latest`
             type=pep440,pattern={{version}}
-
-            # If the git tag does NOT have a pre-release ending (e.g. `3.0.0`), it is a release version to be tagged as `latest`
-            type=match,value=latest,pattern=pattern=^\d\.\d+\.\d+$
 
             # If no git tag is used, fallback to tagging with branch or PR name
             type=ref,event=branch
