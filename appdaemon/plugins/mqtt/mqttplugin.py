@@ -130,7 +130,7 @@ class MqttPlugin(PluginBase):
                     "event_type": self.config.event_name,
                     "data": {"state": "Connected", "topic": None, "wildcard": None},
                 }
-                self.loop.create_task(self.send_ad_event(data))
+                asyncio.run_coroutine_threadsafe(self.send_ad_event(data), self.loop)
 
             elif rc == 1:
                 err_msg = "Connection was refused due to Incorrect Protocol Version"
@@ -172,7 +172,7 @@ class MqttPlugin(PluginBase):
                     "event_type": self.config.event_name,
                     "data": {"state": "Disconnected", "topic": None, "wildcard": None},
                 }
-                self.loop.create_task(self.send_ad_event(data))
+                asyncio.run_coroutine_threadsafe(self.send_ad_event(data), self.loop)
             return
         except Exception:
             self.logger.critical("There was an error while disconnecting from the Mqtt Service")
@@ -213,7 +213,7 @@ class MqttPlugin(PluginBase):
                 "data": data,
             }
 
-            self.loop.create_task(self.send_ad_event(event_data))
+            asyncio.run_coroutine_threadsafe(self.send_ad_event(event_data), self.loop)
         except Exception as e:
             self.logger.critical(f"There was an error while processing MQTT message: {type(e)} {e}")
             self.logger.error(f"There was an error while processing MQTT message, with Traceback: {traceback.format_exc()}")

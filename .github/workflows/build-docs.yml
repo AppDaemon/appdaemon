@@ -45,7 +45,7 @@ jobs:
       UV_NO_PROGRESS: true
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       # https://github.com/actions/setup-python
       - name: Install uv and set the python version
         id: setup-uv

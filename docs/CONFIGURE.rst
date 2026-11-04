@@ -554,7 +554,6 @@ An example of the HASS plugin configured with YAML could look like the following
           type: hass
           ha_url: <some_url>
           token: <token>
-          cert_path: <path/to/root/CA/cert>
           cert_verify: True
           namespace: default
 
@@ -583,7 +582,6 @@ Or in TOML:
   type = "hass"
   ha_url = "<some_url>"
   token = "<token>"
-  cert_path = "<path/to/root/CA/cert>"
   cert_verify = true
   namespace = "default"
 
