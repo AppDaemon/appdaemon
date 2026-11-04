@@ -17,7 +17,7 @@ Here is a list of other tutorials that have been created by AppDaemon users:
 - `App #6: Window Alert <https://community.home-assistant.io/t/app-6-window-alert/129266>`__
 - `App #7: Boiler Temperature Alert <https://community.home-assistant.io/t/app-7-boiler-temperature-alert/129300>`__
 - `App #8: Detect a particular sequence of events <https://community.home-assistant.io/t/app-8-detect-a-particular-sequence-of-events/129631>`__
-
+- My first AppDaemon dashboards (touchscreen panels, day/night emoji widget): https://community.home-assistant.io/t/my-first-appdaemon-dasboards/1027408
 Do you have other tutorials? Make a PR :)
 
 -- AppDaemon Team
