@@ -26,3 +26,7 @@ updates:
     # Check for updates once a week
     schedule:
       interval: "weekly"
+    ignore:
+      # The Python version must match Alpine's python3 package (see Dockerfile), so only take digest updates
+      - dependency-name: "python"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
