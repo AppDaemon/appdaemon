@@ -67,10 +67,10 @@ class StartupWaitCondition:
 class HassPlugin(PluginBase):
     config: HASSConfig
     id: int
-    session: aiohttp.ClientSession
-    """http connection pool for general use"""
-    ws: aiohttp.ClientWebSocketResponse
-    """websocket dedicated for event loop"""
+    session: aiohttp.ClientSession | None
+    """http connection pool for general use, ``None`` until a websocket connect succeeds."""
+    ws: aiohttp.ClientWebSocketResponse | None
+    """websocket dedicated for event loop, ``None`` until a websocket connect succeeds"""
     metadata: dict[str, Any]
     services: dict[
         str,  # Domain
@@ -108,15 +108,19 @@ class HassPlugin(PluginBase):
         self.startup_conditions = []
         self.maintenance_tasks = []
 
+        self.ws = None
+        self.session = None
+
         self.service_logger = self.diag.getChild("services")
         self.logger.info("HASS Plugin initialization complete")
 
     async def stop(self):
-        await self.ws.close()
-        self.logger.debug("Websocket closed for '%s'", self.name)
-
-        await self.session.close()
-        self.logger.debug("aiohttp session closed for '%s'", self.name)
+        if self.ws is not None:
+            await self.ws.close()
+            self.logger.debug("Websocket closed for '%s'", self.name)
+        if self.session is not None:
+            await self.session.close()
+            self.logger.debug("aiohttp session closed for '%s'", self.name)
 
     def _create_maintenance_task(self, coro: Coroutine, name: str) -> asyncio.Task:
         task = self.AD.loop.create_task(coro, name=name)

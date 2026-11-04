@@ -90,6 +90,8 @@ class AppManagement:
         self.diag = ad.logging.get_diag()
         self.filter_files = {}
         self.objects = {}
+        # Namespace -> apps that were stopped when the plugin failed.
+        self.stopped_plugin_apps: dict[str, set[str]] = {}
 
         # Add Path for adbase
         sys.path.insert(0, os.path.dirname(__file__))
@@ -496,7 +498,7 @@ class AppManagement:
             bool: Whether stopping was successful or not
         """
         try:
-            if isinstance(self.app_config[app_name], AppConfig):
+            if isinstance(self.app_config.root.get(app_name), AppConfig):
                 self.logger.debug("Stopping app '%s'", app_name)
             await self.terminate_app(app_name, delete=delete)
         except Exception:
@@ -780,7 +782,7 @@ class AppManagement:
             )  # fmt: skip
             update_actions.apps.term |= deleted_apps
             for name in deleted_apps:
-                # del self.app_config.root[name]
+                self.app_config.root.pop(name, None)
                 self.logger.info("App config deleted: %s", name)
 
             self.app_config.root.update(freshly_read_cfg.root)
@@ -789,13 +791,16 @@ class AppManagement:
             # If there are any new/modified apps, the dependency graph needs to be updated
             self.dependency_manager.app_deps.refresh_dep_graph()
 
-        update_actions.apps.init |= {
-            name for name, cfg in self.app_config.root.items()
-            if name not in self.objects
-            and isinstance(cfg, AppConfig)
-            and not cfg.disable
-            and await self.get_state(name) != "compile_error"
-        }  # fmt: skip
+        if self.AD.plugins.any_plugin_inactive():
+            self.logger.debug("Skipping init repopulation because a plugin is inactive")
+        else:
+            update_actions.apps.init |= {
+                name for name, cfg in self.app_config.root.items()
+                if name not in self.objects
+                and isinstance(cfg, AppConfig)
+                and not cfg.disable
+                and await self.get_state(name) != "compile_error"
+            }  # fmt: skip
 
     @executor_decorator
     def read_config_file(self, file: Path) -> AllAppConfig:
@@ -1177,9 +1182,13 @@ class AppManagement:
         )  # fmt: skip
 
     async def _stop_plugin_apps(self, plugin_ns: str | None, update_actions: UpdateActions):
+        """Stops the apps running in the namespace of a plugin that just failed, so they can be
+        restored by :py:meth:`~_start_plugin_apps` when the plugin reconnects."""
         if plugin_ns is not None:
             self.logger.info(f"Stopping apps from namespace '{plugin_ns}' because the plugin failed")
             app_names = self.get_namespace_apps(plugin_ns)
+            snapshot = self.stopped_plugin_apps.setdefault(plugin_ns, set())
+            snapshot |= app_names
             deps = self.dependency_manager.app_deps.get_dependents(app_names)
             update_actions.apps.term |= deps
 
@@ -1187,10 +1196,19 @@ class AppManagement:
         """If a plugin ever re-connects after the initial startup, the apps that use it's plugin
         all need to be started. They should already have been stopped by the plugin disconnecting.
         The apps that belong to the plugin are determined by namespace.
+
+        Apps whose ManagedObjects were deleted by the plugin failure are recovered from the
+        snapshot recorded in _stop_plugin_apps.
         """
         if plugin_ns is not None:
             self.logger.info(f"Processing restart for plugin namespace '{plugin_ns}'")
             app_names = self.get_namespace_apps(plugin_ns)
+            if popped := self.stopped_plugin_apps.pop(plugin_ns, set()):
+                # Filter out apps whose config is gone, disabled, or not an app anymore
+                app_names |= {
+                    name for name in popped
+                    if isinstance(cfg := self.app_config.root.get(name), AppConfig) and not cfg.disable
+                }  # fmt: skip
             deps = self.dependency_manager.app_deps.get_dependents(app_names)
             update_actions.apps.init |= deps
 
@@ -1208,7 +1226,7 @@ class AppManagement:
 
         failed_to_stop = set()  # stores apps that had a problem terminating
         for app_name in stop_order:
-            successfully_stopped = await self.stop_app(app_name)
+            successfully_stopped = await self.stop_app(app_name, delete=True)
             if successfully_stopped:
                 self.logger.info("Stopped app '%s'", app_name)
                 if app_name in indirect_stops:
