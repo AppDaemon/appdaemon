@@ -1,5 +1,6 @@
 # Builds and publishes multi-platform Docker images after Python Build completes successfully.
 # Pushes to Docker Hub on version tags (v*) or dev branch.
+# Also rebuilds `dev` and the latest release weekly, so published images pick up base image (OS) security fixes.
 name: Build and Deploy Docker Image
 
 on:
@@ -8,6 +9,9 @@ on:
     branches: ['**']
     types:
       - completed
+  schedule:
+    - cron: "0 4 * * 1" # Mondays 04:00 UTC
+  workflow_dispatch:
 
 # Cancel a currently running workflow from the same PR, branch or tag when a new workflow is triggered:
 concurrency:
@@ -21,23 +25,50 @@ env:
 jobs:
   # After building the Python package, build the Docker image
   build_image:
-    name: Docker image
+    name: Docker image${{ matrix.ref && format(' ({0})', matrix.ref) || '' }}
     runs-on: ubuntu-latest
-    # Only run if tests passed and it's dev branch or a version tag
+    # Only run if tests passed and it's dev branch or a version tag (or it's a scheduled/manual rebuild)
     if: |
-      github.event.workflow_run.conclusion == 'success' &&
+      github.event_name != 'workflow_run' ||
       (
-        github.event.workflow_run.head_branch == 'dev' ||
-        startsWith(github.event.workflow_run.head_branch, 'v')
+        github.event.workflow_run.conclusion == 'success' &&
+        (
+          github.event.workflow_run.head_branch == 'dev' ||
+          startsWith(github.event.workflow_run.head_branch, 'v')
+        )
       )
     permissions:
       contents: read
       packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        # Rebuilds cover `dev` and the latest release; a workflow_run builds the default checkout once ('')
+        ref: ${{ fromJSON(github.event_name == 'workflow_run' && '[""]' || '["dev", "latest-release"]') }}
 
     steps:
+      - name: Resolve latest release tag
+        id: release
+        if: matrix.ref == 'latest-release'
+        run: echo "tag=$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName)" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ github.token }}
       - name: Checkout repository
         uses: actions/checkout@v7
+        with:
+          ref: ${{ steps.release.outputs.tag || matrix.ref }}
+      # Rebuilds have no Python CI run to take the package from, so build it from the checked out ref
+      - name: Install uv
+        if: github.event_name != 'workflow_run'
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.9.26"
+          enable-cache: false
+      - name: Build Python package
+        if: github.event_name != 'workflow_run'
+        run: uv build --wheel
       - name: Download Python package
+        if: github.event_name == 'workflow_run'
         uses: actions/download-artifact@v8
         with:
           name: python-package
@@ -59,6 +90,9 @@ jobs:
         id: meta
         uses: docker/metadata-action@v6.1.0
         with:
+          # Derive tags from the checked out ref (identical to the workflow context on workflow_run, which checks out
+          # the default branch), so a rebuilt release keeps its version + `latest` tags instead of becoming `dev`
+          context: git
           images: ${{ env.IMAGE_NAME }}
           # Customize the generation of Docker `latest` tag
           # Tag with `latest` the git tags that do not have a "pre-release" component in the end (e.g. `3.0.0`)
