@@ -7,14 +7,34 @@ on:
       - completed
 
 jobs:
+  # Only publish on successful CI runs for pushes of a release tag (e.g. 4.5.14, 4.6.0b1)
+  # (for a tag push, Python CI's head_branch is the tag name)
+  check_tag:
+    name: Check tag
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+    permissions:
+      contents: read
+    outputs:
+      tag: ${{ steps.check.outputs.tag }}
+    steps:
+      - name: Check for release tag
+        id: check
+        env:
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [[ "$HEAD_BRANCH" =~ ^[0-9]+\.[0-9]+\.[0-9]+((a|b|rc)[0-9]+)?$ ]] &&
+            [ "$(gh api "repos/$GITHUB_REPOSITORY/commits/refs/tags/$HEAD_BRANCH" --jq .sha)" = "$HEAD_SHA" ]; then
+            echo "tag=$HEAD_BRANCH" >> "$GITHUB_OUTPUT"
+          fi
+
   publish:
     name: Publish to PyPI
     runs-on: ubuntu-latest
-    # Only publish on successful CI runs for tags starting with 'v' (e.g., v1.2.3)
-    if: |
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'push' &&
-      startsWith(github.event.workflow_run.head_branch, 'v')
+    needs: check_tag
+    if: needs.check_tag.outputs.tag != ''
     permissions:
       contents: read
       id-token: write
@@ -27,8 +47,11 @@ jobs:
       UV_NO_SYNC: true
 
     steps:
+      # Run the release's own functional tests, not the default branch's
       - name: Checkout repository
         uses: actions/checkout@v7
+        with:
+          ref: refs/tags/${{ needs.check_tag.outputs.tag }}
 
       - name: Install uv and set the python version
         id: setup-uv
