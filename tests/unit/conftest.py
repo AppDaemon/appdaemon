@@ -1,10 +1,13 @@
 """This module contains the conftest.py file for unit tests."""
 
-from collections.abc import Callable
+import logging
+import uuid
+from collections.abc import Callable, Iterator
 from datetime import date, datetime, time
 from functools import partial
 
 import pytest
+from appdaemon.logging import Logging
 from appdaemon.utils import parse
 from astral import LocationInfo
 from astral.location import Location
@@ -82,3 +85,31 @@ def location() -> Location:
             longitude=-74.0060,
         )
     )
+
+
+@pytest.fixture
+def make_logging() -> Iterator[Callable[[dict], Logging]]:
+    """Builds fresh, non-singleton Logging objects whose loggers have unique names, and detaches their handlers afterwards.
+
+    Call it from the test body when using capsys: stream handlers bind sys.stdout/sys.stderr when they are created, and capsys
+    only swaps in the streams it reads during the call phase.
+    """
+    created: list[Logging] = []
+
+    def _make(config: dict) -> Logging:
+        suffix = uuid.uuid4().hex
+        config = {log: {**cfg, "name": f"{cfg.get('name', log)}_{suffix}"} for log, cfg in config.items()}
+        for log in ("main_log", "error_log"):
+            config.setdefault(log, {"name": f"{log}_{suffix}"})
+        obj = object.__new__(Logging)
+        created.append(obj)
+        obj.__init__(config)
+        return obj
+
+    yield _make
+
+    for obj in created:
+        for cfg in obj.config.values():
+            if handler := cfg.get("handler"):
+                logging.getLogger(cfg["name"]).removeHandler(handler)
+                handler.close()

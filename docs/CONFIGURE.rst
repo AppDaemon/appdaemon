@@ -407,6 +407,7 @@ The directives are as follows:
    will default to 3 files.
 - ``format`` (optional) Format string for the log file - standard `str.format() logger format <https://docs.python.org/3.6/library/string.html#format-string-syntax>`__
 - ``date_format`` (optional) - Format string to specify how the date is rendered in standard `datetime strftime() format <https://docs.python.org/3.6/library/datetime.html#strftime-strptime-behavior>`__
+- ``output_format`` (optional) - ``text`` (the default) writes each line using ``format``. ``json`` writes one JSON object per line instead, for log collectors that parse structured logs; ``format`` and ``date_format`` don't apply to it. See below for the fields.
 - ``filter_threshold`` (optional) - number of repetitions of a log line allowed before filtering starts (default is 1). Setting ``filter_threshold`` to zero will turn off log filtering entirely - since AppDaemon relies on this mechanism internally to prevent certain types of log loops, this is not recommended.
 - ``filter_timeout`` (optional) - timeout for log filtering. Duplicate log entries that are output less frequently than this value will not have filtering applied (default is 0.9 seconds)
 - ``filter_repeat_delay`` (optional) - when filtering, repeating messages will be printed out periodically every ``filter_repeat_delay`` seconds (default is 5 seconds)
@@ -431,6 +432,16 @@ Note that the AppDaemon logs use an enhanced formatter that allows interpolation
   {asctime} {levelname} {appname:<20}: {message}
 
 AppDaemon's default time format is ``%Y-%m-%d %H:%M:%S.%f%z``.
+
+With ``output_format: json``, each line is a JSON object like this:
+
+.. code:: json
+
+    {"timestamp": "2025-06-20T08:30:15.123456-04:00", "level": "INFO", "app": "hello_world", "logger": "AppDaemon.hello_world", "message": "Hello from AppDaemon"}
+
+``timestamp`` is ISO 8601 with a UTC offset and, like ``{asctime}``, follows AppDaemon's time zone and time travel. ``app`` is the same value as ``{appname}``.
+When an exception is logged, its traceback is added as ``exception``, and a requested stack trace as ``stack_info``, so a record never spans more than one line.
+Logs that alias ``main_log`` by default (``access_log`` and ``diag_log``) use its output format unless they are configured themselves, and the ``formatted_message`` passed to log callbacks is the JSON line.
 
 -  ``total_threads`` (optional) - the number of dedicated worker threads to create for
    running the apps. Normally, AppDaemon will create enough threads to provide one per app, or default to 10 if app pinning is turned off. Setting this to a value will turn off automatic thread management.

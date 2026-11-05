@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, RootModel
 
@@ -21,6 +21,7 @@ class AppDaemonLogConfig(BaseModel):
     log_size: int = 1000000
     format_: str = Field(default="{asctime} {levelname} {appname}: {message}", alias="format")
     date_format: str = "%Y-%m-%d %H:%M:%S.%f"
+    output_format: Literal["text", "json"] = "text"
     filter_threshold: int = 1
     filter_timeout: ParsedTimedelta = timedelta(seconds=0.9)
     filter_repeat_delay: ParsedTimedelta = timedelta(seconds=5.0)
