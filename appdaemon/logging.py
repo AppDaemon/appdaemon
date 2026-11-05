@@ -88,6 +88,32 @@ class DuplicateFilter(logging.Filter):
         return result
 
 
+class SyslogLevelPrefixFormatter(logging.Formatter):
+    """Prefixes each line from another formatter with its syslog priority (``<N>``), as read by systemd-journald and similar collectors."""
+
+    def __init__(self, formatter: logging.Formatter):
+        super().__init__()
+        self.formatter = formatter
+
+    @staticmethod
+    def priority(levelno: int) -> int:
+        """Returns the syslog priority for a logging level; levels between the standard ones round down to the less severe."""
+        if levelno >= logging.CRITICAL:
+            return 2
+        if levelno >= logging.ERROR:
+            return 3
+        if levelno >= logging.WARNING:
+            return 4
+        if levelno >= logging.INFO:
+            return 6
+        return 7
+
+    def format(self, record):
+        # Every line is prefixed, because journald treats each line of a multi-line record (e.g. a traceback) as its own entry
+        prefix = f"<{self.priority(record.levelno)}>"
+        return "\n".join(prefix + line for line in self.formatter.format(record).split("\n"))
+
+
 class AppNameFormatter(logging.Formatter):
     """Logger formatter to add 'appname' as an interpolatable field."""
 
@@ -303,6 +329,11 @@ class Logging(metaclass=Singleton):
                 args["logger"] = logger
                 logger.setLevel(args.get("level", log_level if log_level is not None else "INFO"))
                 logger.propagate = False
+                level_prefix = args.get("level_prefix")
+                if level_prefix not in (None, "syslog"):
+                    raise ValueError(f"Invalid level_prefix '{level_prefix}' for log '{log}', expected 'syslog'")
+                if level_prefix is not None and args["filename"] not in ("STDOUT", "STDERR"):
+                    raise ValueError(f"level_prefix is only supported for logs written to STDOUT or STDERR, not log '{log}'")
                 if args["filename"] == "STDOUT":
                     handler = logging.StreamHandler(stream=sys.stdout)
                 elif args["filename"] == "STDERR":
@@ -314,7 +345,7 @@ class Logging(metaclass=Singleton):
                         backupCount=args["log_generations"],
                     )
                 self.config[log]["handler"] = handler
-                handler.setFormatter(formatter)
+                handler.setFormatter(formatter if level_prefix is None else SyslogLevelPrefixFormatter(formatter))
                 logger.addFilter(
                     DuplicateFilter(
                         logger,
