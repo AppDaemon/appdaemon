@@ -46,7 +46,7 @@ jobs:
         run: echo "setup uv cache was restored"
 
       - name: Restore cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         id: cache-pre-commit
         with:
           # This covers the tool installed by uvx as well as the pre-commit environment
