@@ -16,6 +16,11 @@ on:
       - '.github/workflows/build-docs.yml'
       - 'docs/**'
       - 'pyproject.toml'
+  pull_request:
+    paths:
+      - '.github/workflows/build-docs.yml'
+      - 'docs/**'
+      - 'pyproject.toml'
 
 # Cancel a currently running workflow from the same PR, branch or tag when a new workflow is triggered:
 concurrency:
@@ -27,9 +32,9 @@ jobs:
     name: Documentation
     runs-on: ubuntu-latest
     # For workflow_run: only run if tests passed and it's dev or a version tag
-    # For push: always run
+    # For push and pull_request: always run
     if: |
-      github.event_name == 'push' || (
+      github.event_name == 'push' || github.event_name == 'pull_request' || (
         github.event.workflow_run.conclusion == 'success' &&
         (
           github.event.workflow_run.head_branch == 'dev' ||
