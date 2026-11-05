@@ -42,7 +42,7 @@ jobs:
         )
       )
     permissions:
-      packages: write
+      contents: read
     env:
       UV_LOCKED: true
       UV_COMPILE_BYTECODE: true
