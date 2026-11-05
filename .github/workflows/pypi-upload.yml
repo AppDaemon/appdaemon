@@ -72,6 +72,9 @@ jobs:
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Install python dependencies
+        run: uv sync --locked --no-install-project --no-editable --no-dev --group test
+
       - name: Install package from wheel
         run: uv pip install dist/*.whl
 

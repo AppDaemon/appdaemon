@@ -40,10 +40,11 @@ ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
 # If on ARM architecture install system packages to build native dependencies:
 # - git and rust: build the `orsjson` package (required by `deepdiff`)
 # - cython and build-base: build the `uvloop` package (build-base contains the set of basic tools to compile with gcc)
+# - linux-headers: the libuv bundled with `uvloop` needs the kernel headers (e.g. `linux/errqueue.h`)
 # Install system dependencies, saving the apk cache with docker mount: https://docs.docker.com/build/cache/#keep-layers-small
 # Specify the architecture in the cache id, otherwise the apk cache of different architectures will conflict
 RUN --mount=type=cache,id=apk-${TARGETARCH}-${TARGETVARIANT},sharing=locked,target=/var/cache/apk/ \
-    if [ "$TARGETARCH" = "arm" ]; then apk add git build-base cython rust cargo; fi
+    if [ "$TARGETARCH" = "arm" ]; then apk add git build-base cython linux-headers rust cargo; fi
 
 # Install the Python dependencies of AppDaemon
 # Save the pip cache with docker mount: https://docs.docker.com/build/cache/#keep-layers-small
