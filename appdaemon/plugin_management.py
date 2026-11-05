@@ -10,10 +10,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Type
 
 from . import exceptions as ade
-from . import utils
 from .app_management import UpdateMode
 from .models.config import AppConfig
 from .models.config.plugin import PluginConfig
+from .utils.functools import warning_decorator
 
 if TYPE_CHECKING:
     from .adapi import ADAPI
@@ -144,7 +144,7 @@ class PluginBase(abc.ABC):
     ) -> dict[str, Any] | None:  # fmt: skip
         raise NotImplementedError
 
-    @utils.warning_decorator(error_text="Unexpected error during notify_plugin_started()")
+    @warning_decorator(error_text="Unexpected error during notify_plugin_started()")
     async def notify_plugin_started(self, meta: dict, state: dict):
         """Notifys the AD internals that the plugin has started
 

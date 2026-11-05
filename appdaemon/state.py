@@ -11,9 +11,11 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, Optional, Protocol, overload
 
 from . import exceptions as ade
-from . import utils
 from .types import TimeDeltaLike
-from .utils import ADWritebackType
+from .utils import parse
+from .utils.functools import _sanitize_kwargs
+from .utils.state import ADWritebackType, PersistentDict
+from .utils.str import dt_to_str
 
 if TYPE_CHECKING:
     from .adbase import ADBase
@@ -49,7 +51,7 @@ class State:
     AD: "AppDaemon"
     logger: Logger
     name: str = "_state"
-    state: dict[str, dict[str, Any] | utils.PersistentDict]
+    state: dict[str, dict[str, Any] | PersistentDict]
 
     app_added_namespaces: set[str]
 
@@ -148,7 +150,7 @@ class State:
 
         return nspath_file
 
-    async def remove_namespace(self, namespace: str) -> utils.PersistentDict | dict[str, Any] | None:
+    async def remove_namespace(self, namespace: str) -> PersistentDict | dict[str, Any] | None:
         """Remove a state namespace. Must not be configured by the appdaemon.yaml file, and must have been added by an
         app.
 
@@ -163,7 +165,7 @@ class State:
             return
 
         match state := self.state.pop(namespace, False):
-            case utils.PersistentDict():
+            case PersistentDict():
                 nspath_file = await self.remove_persistent_namespace(namespace, state)
             case dict():
                 nspath_file = None
@@ -193,7 +195,7 @@ class State:
         background.
         """
         match self.state.get(namespace):
-            case utils.PersistentDict():
+            case PersistentDict():
                 self.logger.info(f"Persistent namespace '{namespace}' already initialized")
                 return
 
@@ -206,7 +208,7 @@ class State:
             wb.name
         )  # fmt: skip
         try:
-            self.state[namespace] = utils.PersistentDict(ns_db_path, writeback_type=wb)
+            self.state[namespace] = PersistentDict(ns_db_path, writeback_type=wb)
         except Exception as exc:
             raise ade.PersistentNamespaceFailed(namespace, ns_db_path) from exc
         else:
@@ -214,7 +216,7 @@ class State:
             self.logger.info("Persistent namespace '%s' initialized from %s", namespace, current_thread)
             return ns_db_path
 
-    async def remove_persistent_namespace(self, namespace: str, state: utils.PersistentDict) -> Path | None:
+    async def remove_persistent_namespace(self, namespace: str, state: PersistentDict) -> Path | None:
         """Used to remove the file for a created namespace"""
         try:
             state.close()
@@ -277,8 +279,8 @@ class State:
             A string made from ``uuid4().hex`` that is used to identify the callback. This can be used to cancel the
             callback later.
         """
-        if kwargs is None:
-            kwargs = {}
+        # Create the default kwargs dict
+        kwargs = {} if kwargs is None else kwargs
 
         if oneshot:  # this is still a little awkward, but it works until this can be refactored
             # This needs to be in the kwargs dict here that gets passed around later, so that the dispatcher knows to
@@ -312,7 +314,7 @@ class State:
         # If we have a timeout parameter, add a scheduler entry to delete the callback later
         #
         if timeout is not None:
-            exec_time = (await self.AD.sched.get_now()) + utils.parse_timedelta(timeout)
+            exec_time = (await self.AD.sched.get_now()) + parse.parse_timedelta(timeout)
             kwargs["__timeout"] = await self.AD.sched.insert_schedule(
                 name=name,
                 aware_dt=exec_time,
@@ -354,7 +356,7 @@ class State:
                         elif __attribute == "all":
                             __new_state = self.state[namespace][entity]
 
-                __duration = utils.parse_timedelta(kwargs.get("duration", 0))
+                __duration = parse.parse_timedelta(kwargs.get("duration", 0))
             if run:
                 exec_time = await self.AD.sched.get_now() + __duration
 
@@ -644,7 +646,7 @@ class State:
         attribute: str | None = None,
         default: Any | None = None,
         copy: bool = True,
-    ):
+    ) -> Any:
         self.logger.debug("get_state: %s.%s %s %s", entity_id, attribute, default, copy)
 
         def maybe_copy(data):
@@ -711,16 +713,15 @@ class State:
 
         return new_state
 
-    async def add_to_state(self, name: str, namespace: str, entity_id: str, i):
-        value = await self.get_state(name, namespace, entity_id)
-        if value is not None:
-            value += i
-            await self.set_state(name, namespace, entity_id, state=value)
+    async def add_to_state(self, name: str, namespace: str, entity_id: str, i: int = 1):
+        match (await self.get_state(name, namespace, entity_id)):
+            case (int() | float()) as value:
+                await self.set_state(name, namespace, entity_id, state=value + i)
 
     async def add_to_attr(self, name: str, namespace: str, entity_id: str, attr, i):
         state = await self.get_state(name, namespace, entity_id, attribute="all")
         if state is not None:
-            state["attributes"][attr] = copy(state["attributes"][attr]) + i
+            state["attributes"][attr] = copy(state["attributes"].get(attr, 0)) + i
             await self.set_state(name, namespace, entity_id, attributes=state["attributes"])
 
     def register_state_services(self, namespace: str) -> None:
@@ -736,7 +737,7 @@ class State:
         *,
         entity_id: str | None = None,
         persist: bool = False,
-        writeback: Literal["safe", "hybrid"] = "safe",
+        writeback: ADWritebackType = ADWritebackType.safe,
         **kwargs: Any
     ) -> Any | None:
         self.logger.debug("state_services: %s, %s, %s, %s", namespace, domain, service, kwargs)
@@ -823,7 +824,7 @@ class State:
             old_state = {"state": None, "attributes": {}}
         new_state = self.parse_state(namespace, entity, **kwargs)
         now = await self.AD.sched.get_now()
-        new_state["last_changed"] = utils.dt_to_str(now, self.AD.tz, round=True)
+        new_state["last_changed"] = dt_to_str(now, self.AD.tz, round=True)
         self.logger.debug("Old state: %s", old_state)
         self.logger.debug("New state: %s", new_state)
 
@@ -879,12 +880,13 @@ class State:
 
     async def set_namespace_state(self, namespace: str, state: dict[str, Any], persist: bool = False):
         if persist:
-            await self.add_persistent_namespace(namespace, writeback="safe")
+            await self.add_persistent_namespace(namespace, writeback=ADWritebackType.safe)
             self.state[namespace].update(state)
         else:
             # first in case it had been created before, it should be deleted
-            if isinstance(self.state.get(namespace), utils.PersistentDict):
-                await self.remove_persistent_namespace(namespace, self.state[namespace])
+            match self.state.get(namespace):
+                case PersistentDict() as ns:
+                    await self.remove_persistent_namespace(namespace, ns)
             self.state[namespace] = state
 
     def update_namespace_state(self, namespace: str | list[str], state: dict):
@@ -906,7 +908,7 @@ class State:
             case None:
                 self.logger.warning("Namespace: %s does not exist", namespace)
                 return False
-            case utils.PersistentDict() as ns:
+            case PersistentDict() as ns:
                 self.logger.debug("Saving persistent namespace: %s", namespace)
                 try:
                     # This could take a while if there's been a lot of changes since the last save, so run it in a separate
@@ -927,7 +929,7 @@ class State:
         for ns, state in self.state.items():
             try:
                 match state:
-                    case utils.PersistentDict():
+                    case PersistentDict():
                         self.logger.info("Closing persistent namespace: %s", ns)
                         state.close()
             except Exception:
@@ -936,7 +938,7 @@ class State:
 
     async def periodic_save(self, interval: TimeDeltaLike) -> None:
         """Periodically save all namespaces that are persistent with writeback_type 'hybrid'"""
-        interval = utils.parse_timedelta(interval).total_seconds()
+        interval = parse.parse_timedelta(interval).total_seconds()
         while not self.AD.stopping:
             self.save_hybrid_namespaces()
             await self.AD.utility.sleep(interval, timeout_ok=True)
@@ -946,7 +948,7 @@ class State:
         for ns_name, ns_state in self.state.items():
             try:
                 match ns_state:
-                    case utils.PersistentDict(writeback_type=ADWritebackType.hybrid) as persistent_state:
+                    case PersistentDict(writeback_type=ADWritebackType.hybrid) as persistent_state:
                         self.logger.debug("Saving hybrid persistent namespace: %s", ns_name)
                         persistent_state.sync()
             except Exception:
@@ -959,7 +961,7 @@ class State:
     @staticmethod
     def sanitize_state_kwargs(app: "ADBase", kwargs):
         kwargs_copy = kwargs.copy()
-        return utils._sanitize_kwargs(
+        return _sanitize_kwargs(
             kwargs_copy,
             [
                 "old",

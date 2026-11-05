@@ -1,10 +1,14 @@
+import asyncio
 import logging
 from collections.abc import Generator, Iterable
 from datetime import datetime, timedelta
 from itertools import pairwise
 from logging import LogRecord
+from typing import cast
 
 import pytest
+from appdaemon.appdaemon import AppDaemon
+from appdaemon.models.internal.app_management import ManagedObject
 
 logger = logging.getLogger("AppDaemon._test")
 
@@ -41,3 +45,24 @@ def assert_timedelta(
             raise
 
     # assert all((diff - expected) <= buffer for diff in time_diffs(records))
+
+
+async def wait_for_event(ad: AppDaemon, app_name: str, event_attr: str, timeout: float = 0.5):
+    """Wait for an app event to be set.
+
+    Encapsulates a chunk of logic for the pattern of waiting for an app to set an async event during a test.
+    """
+    match ad.app_management.objects.get(app_name):
+        case ManagedObject(object=app_obj):
+            event = cast(asyncio.Event, getattr(app_obj, event_attr))
+            return await asyncio.wait_for(event.wait(), timeout=timeout)
+        case None:
+            pytest.fail(f"App {app_name} not found")
+
+
+def get_app_log_records(caplog: pytest.LogCaptureFixture, app_name: str) -> Generator[LogRecord]:
+    """Get log records for a specific app containing a search string."""
+    for record in caplog.records:
+        match record:
+            case LogRecord(appname=str(appname)) if appname == app_name:
+                yield record

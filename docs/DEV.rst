@@ -61,15 +61,15 @@ Pre-requisites
 ^^^^^^^^^^^^^^
 For the easiest setup, `install uv <https://docs.astral.sh/uv/getting-started/installation/>`_ first.
 
-.. tabs::
+.. code-block:: console
+   :caption: Linux/macOS
 
-   .. code-tab:: console
+   $ curl -LsSf https://astral.sh/uv/install.sh | sh
 
-        $ curl -LsSf https://astral.sh/uv/install.sh | sh
+.. code-block:: powershell
+   :caption: Windows
 
-   .. code-tab:: powershell
-
-        powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+   powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 
 Clone the repository
 ^^^^^^^^^^^^^^^^^^^^
@@ -244,8 +244,11 @@ Install Dependencies
 Ruff Statistics
   Displays the statistics of all the linting violations
 
-Docker build process
---------------------
+.. _docker:
+
+Docker
+------
+
 The general idea is that the wheel for AppDaemon should be built before the Docker image is, because AppDaemon gets installed from that wheel during the process to build the Docker image.
 
 Building the container locally requires *Docker Engine 23.0+* (released in 2023), since it enables the `Docker BuildKit <https://docs.docker.com/build/buildkit>`_ by default.
@@ -267,28 +270,91 @@ Multi-Platform
 ^^^^^^^^^^^^^^
 The general idea is that the Docker buildkit creates and sets up a Docker container that has all the necessary stuff to build on different platforms. There's a way to specify multiple platforms and use this container to build images for all of the simultaneously. A VSCode task is provided that runs a script that handles all of this automatically. This allows developers to easily test builds across the supported platforms.
 
+The supported platforms are:
+
+``linux/amd64``
+  Covers most consumer systems as well as many cloud systems
+``linux/arm64/v8``
+  Covers systems that use Apple Silicon or more modern Raspberry Pis (v3+)
+``linux/arm/v7``
+  Covers older Raspberry Pis (v2)
+``linux/arm/v6``
+  Covers the original Raspberry Pi and Pi Zero
+
+.. admonition:: Helper Script
+  :class: info
+
+    There's a `script <https://github.com/AppDaemon/appdaemon/blob/dev/scripts/multiplatform-docker-build.sh>`_ that will set up buildx for the different platforms before building the Docker image for all of them.
+
+    This can be used for testing the full build process without having to push to GitHub.
+
 GitHub Actions
 --------------
-AppDaemon makes use of several GitHub actions for its CI pipeline.
+AppDaemon makes use of several `GitHub Actions <https://github.com/features/actions>`_ for its CI pipeline, which make use of `astral-sh/setup-uv <https://github.com/astral-sh/setup-uv>`_
 
-`Dependabot <https://docs.github.com/en/code-security/dependabot>`_
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Monitor vulnerabilities in dependencies used in your project and keep your dependencies up-to-date with Dependabot.
+UV_LOCKED
+  Forces uv to use the lockfile (uv.lock) as-is for dependency resolution. This ensures reproducible installs and prevents changes to dependencies unless the lockfile is updated.
 
-Dependabot supports updates to ``pyproject.toml`` files if they follow the `PEP 621 standard <https://peps.python.org/pep-0621/#dependencies-optional-dependencies>`_.
+UV_COMPILE_BYTECODE
+  Tells uv to compile Python files to bytecode (.pyc) after installation. This improves startup performance when using the cache.
 
-Dependabot also `supports <https://docs.astral.sh/uv/guides/integration/dependency-bots/#dependabot>`_ updating ``uv.lock`` files.
+UV_NO_EDITABLE
+  Disables editable installs, so all packages are installed as regular, non-editable distributions.
+
+UV_NO_PROGRESS
+  Suppresses progress bars and other interactive output, making logs cleaner and more suitable for CI environments.
 
 Lint and Test
 ^^^^^^^^^^^^^
-The linter runs as part of the pre-commit hooks, and if it succeeds, the pytest tests marked as ``ci`` are run for each supported Python version.
 
-Also includes codespell for spelling checks.
+The linting stage sets up the pre-commit hooks and runs them, which includes running the linter. If that succeeds, then the testing stage runs pytest with the tests marked as ``ci`` for each version of python.
 
-Python Wheel
-^^^^^^^^^^^^
-The Python wheel is built and uploaded to a ``./dist`` directory in the GitHub runner.
+Build and Deploy
+^^^^^^^^^^^^^^^^
+
+The CI pipeline automates building and publishing the Python package, Docker image, and documentation. When changes are pushed to the `dev` branch or a git tag, the workflow:
+
+- Builds the documentation using Sphinx and uploads it as a GitHub artifact in ``docs/_build/``
+- Builds the Python wheel and uploads it as an artifact in ``dist/``. On tagged releases, the package is published to PyPI.
+- Builds a multi-platform Docker image using Buildx. On tagged releases or pushes to `dev`, the image is published to `Docker Hub <https://hub.docker.com/r/acockburn/appdaemon>`_.
+- Uses caching to speed up builds.
+- Tags Docker images according to release versions, pre-releases, branches, or PRs.
 
 Docker Build and Push
 ^^^^^^^^^^^^^^^^^^^^^
 The Docker image is built for each platform (linux/amd64, linux/arm64/v8, linux/arm/v7, linux/arm/v6) and published to Docker Hub on ``dev`` branch pushes and git tags.
+
+See the :ref:`Docker section <docker>` for more information about the image.
+
+Dependencies
+------------
+
+Dependencies are broadly specified in the ``pyproject.toml``, usually by a minimum version number. The exact versions
+used in development and the CI pipeline are pinned in the `uv.lock <https://docs.astral.sh/uv/concepts/projects/layout/#the-lockfile>`__ file, which is managed by `uv <https://docs.astral.sh/uv/>`_.
+
+AppDaemon uses a `pre-commit hook <https://docs.astral.sh/uv/guides/integration/pre-commit/>`_ that checks whether the
+lockfile is up-to-date with whatever is specified in ``pyproject.toml``. If it's not, the commit will be rejected and
+the lockfile will be updated. The commit will succeed after adding the updated lockfile to the commit.
+
+`Dependency Groups <https://docs.astral.sh/uv/concepts/projects/dependencies/#dependency-groups>`_
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+There's 2 additional dependency groups that can be installed: ``dev`` and ``doc``.
+
+dev
+  The ``dev`` group is automatically installed when using `uv sync <https://docs.astral.sh/uv/reference/cli/#uv-sync>`_
+  during development, and includes the tools for linting and testing.
+doc
+  The ``doc`` group includes the tools needed to build the documentation.
+
+`Dependabot <https://docs.github.com/en/code-security/dependabot>`_
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Dependabot is a GitHub tool that checks for outdated dependencies and opens PRs to individually bump the versions.
+
+pip/uv
+  This combination will open PRs to bump the versions of all the python packages in the ``uv.lock`` file.
+GitHub Actions
+  This will open PRs to bump the versions of any GitHub actions used in the workflows.
+Docker
+  This will open PRs to bump the versions of any base Docker images used in the Dockerfile.

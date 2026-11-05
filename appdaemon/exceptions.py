@@ -385,6 +385,15 @@ class BadAppConfigFile(AppDaemonException):
 
 
 @dataclass
+class AppConfigWriteFail(AppDaemonException):
+    app_name: str
+    path: Path
+
+    def __str__(self):
+        return f"Failed to write app '{self.app_name}' config to '{self.path}'"
+
+
+@dataclass
 class TimeOutException(AppDaemonException):
     msg: str
 
@@ -440,7 +449,19 @@ class PinOutofRange(AppDaemonException):
     total_threads: int
 
     def __str__(self):
-        return f"Pin thread {self.pin_thread} out of range. Must be between 0 and {self.total_threads - 1}"
+        if self.total_threads == 0:
+            max_thread_id = self.total_threads - 1
+            return f"Pin thread {self.pin_thread} out of range. Must be between 0 and {max_thread_id}"
+        else:
+            return f"No pin threads are allowed in this configuration: {self.pin_thread}"
+
+
+@dataclass
+class NegativePinThread(AppDaemonException):
+    pin_thread: int
+
+    def __str__(self):
+        return f"Pin threads can't be negative: {self.pin_thread}"
 
 
 @dataclass

@@ -5,7 +5,7 @@ import uuid
 import pytest
 from appdaemon.app_management import ManagedObject
 
-from .utils import AsyncTempTest
+from tests.conftest import ConfiguredAppDaemonFunc
 
 logger = logging.getLogger("AppDaemon._test")
 
@@ -15,15 +15,15 @@ logger = logging.getLogger("AppDaemon._test")
 class TestEventCallback:
     """Class to group the various tests for event callbacks."""
 
-    app_name: str = "test_event_app"
+    app_name: str = "event_test_app"
 
     @pytest.mark.asyncio(loop_scope="session")
-    async def test_event_callback(self, run_app_for_time: AsyncTempTest) -> None:
+    async def test_event_callback(self, configured_appdaemon: ConfiguredAppDaemonFunc) -> None:
         """Tests the event callback functionality and the passing of kwargs through events.
 
         Process:
             - Unique values are generated for the event and its kwargs
-            - The run_app_for_time context manager is used to run the test_event_app temporarily
+            - The configured_appdaemon context manager is used to run the event_test_app temporarily
             - Event test app listens for an event and fires the same event shortly after
             - Wait for :py:class:`~asyncio.Event` to be set by the callback in the app
             - Clear the :py:class:`~asyncio.Event`
@@ -38,8 +38,16 @@ class TestEventCallback:
         """
         listen_id = str(uuid.uuid4())
         fire_id = str(uuid.uuid4())
-        app_args = {"listen_kwargs": {"test_kwarg": listen_id}, "fire_kwargs": {"test_fire_kwarg": fire_id}}
-        async with run_app_for_time(self.app_name, **app_args) as (ad, caplog):
+        app_cfgs = {
+            self.app_name: {
+                "module": "event_test_app",
+                "class": "TestEventCallback",
+                "listen_kwargs": {"test_kwarg": listen_id},
+                "fire_kwargs": {"test_fire_kwarg": fire_id},
+            }
+        }
+        async with configured_appdaemon(app_cfgs=app_cfgs, loggers=[self.app_name]) as (ad, caplog):
+            await ad.utility.app_update_event.wait()
             match ad.app_management.objects.get(self.app_name):
                 case ManagedObject(object=app_obj):
                     await asyncio.wait_for(app_obj.execute_event.wait(), timeout=0.5)
@@ -69,7 +77,7 @@ class TestEventCallback:
 
     @pytest.mark.parametrize("sign", [True, False])
     @pytest.mark.asyncio(loop_scope="session")
-    async def test_event_callback_filtered(self, run_app_for_time: AsyncTempTest, sign: bool) -> None:
+    async def test_event_callback_filtered(self, configured_appdaemon: ConfiguredAppDaemonFunc, sign: bool) -> None:
         """Test the event callback filtering based on keyword arguments.
 
         If the event data has a key that matches one of the kwargs provided in the ``listen_event`` call, then the values
@@ -80,7 +88,7 @@ class TestEventCallback:
               then the same value is used for listening to the event. Otherwise (negative case), a different, unique
               value is used to listen for the event, which will prevent the callback from executing.
             - The unique fire and listen values are passed to the app as args.
-            - The ``test_event_app`` app is run until a python :py:class:`~asyncio.Event` is set.
+            - The ``event_test_app`` app is run until a python :py:class:`~asyncio.Event` is set.
             - The :py:class:`~asyncio.Event` is created when the app initializes.
             - The app listens for the event and then fires it after a short delay, using the relevant kwargs for each.
             - If the callback is executed, :py:class:`~asyncio.Event` is set, and the unique values are printed in the logs.
@@ -94,12 +102,17 @@ class TestEventCallback:
         fire_id = str(uuid.uuid4())
         listen_id = fire_id if sign else str(uuid.uuid4())
         test_kwarg_name = "test_kwarg"
-        app_args = {
-            "listen_kwargs": {test_kwarg_name: listen_id},
-            "fire_kwargs": {test_kwarg_name: fire_id},
+        app_cfgs = {
+            self.app_name: {
+                "module": "event_test_app",
+                "class": "TestEventCallback",
+                "listen_kwargs": {test_kwarg_name: listen_id},
+                "fire_kwargs": {test_kwarg_name: fire_id},
+            }
         }
 
-        async with run_app_for_time(self.app_name, **app_args) as (ad, caplog):
+        async with configured_appdaemon(app_cfgs=app_cfgs, loggers=[self.app_name]) as (ad, caplog):
+            await ad.utility.app_update_event.wait()
             match ad.app_management.objects.get(self.app_name):
                 case ManagedObject(object=app_obj):
                     wait_coro = asyncio.wait_for(app_obj.execute_event.wait(), timeout=0.5)
@@ -117,7 +130,7 @@ class TestEventCallback:
 
     @pytest.mark.parametrize("sign", [True, False])
     @pytest.mark.asyncio(loop_scope="session")
-    async def test_event_callback_namespace(self, run_app_for_time: AsyncTempTest, sign: bool) -> None:
+    async def test_event_callback_namespace(self, configured_appdaemon: ConfiguredAppDaemonFunc, sign: bool) -> None:
         """Test the event callback functionality with different namespaces.
 
         Event callbacks should only be fired for events in the correct namespace.
@@ -133,17 +146,30 @@ class TestEventCallback:
                 The listen and fire namespaces do not match, so the callback is not executed.
         """
         namespace = "test"
+        base_app_cfg = {
+            "module": "event_test_app",
+            "class": "TestEventCallback",
+        }
         if sign:
             # The listen and fire namespaces have to match for the callback to work
-            app_args = {
-                "listen_kwargs": {"namespace": namespace},
-                "fire_kwargs": {"namespace": namespace},
+            app_cfgs = {
+                self.app_name: {
+                    **base_app_cfg,
+                    "listen_kwargs": {"namespace": namespace},
+                    "fire_kwargs": {"namespace": namespace},
+                }
             }
         else:
             # If the event is listened in a different namespace, then it won't be triggered
-            app_args = {"listen_kwargs": {"namespace": namespace}}
+            app_cfgs = {
+                self.app_name: {
+                    **base_app_cfg,
+                    "listen_kwargs": {"namespace": namespace},
+                }
+            }
 
-        async with run_app_for_time(self.app_name, **app_args) as (ad, caplog):
+        async with configured_appdaemon(app_cfgs=app_cfgs, loggers=[self.app_name]) as (ad, caplog):
+            await ad.utility.app_update_event.wait()
             match ad.app_management.objects.get(self.app_name):
                 case ManagedObject(object=app_obj):
                     wait_coro = asyncio.wait_for(app_obj.execute_event.wait(), timeout=0.5)
@@ -160,7 +186,7 @@ class TestEventCallback:
                 assert "Event callback executed" in caplog.text
 
     @pytest.mark.asyncio(loop_scope="session")
-    async def test_event_callback_oneshot(self, run_app_for_time: AsyncTempTest) -> None:
+    async def test_event_callback_oneshot(self, configured_appdaemon: ConfiguredAppDaemonFunc) -> None:
         """Test the oneshot functionality of the event callback.
 
         Event callbacks that are registered with the oneshot flag should only be fired once.
@@ -172,8 +198,15 @@ class TestEventCallback:
         Coverage:
             - Event callbacks that are registered with the oneshot flag should only be fired once.
         """
-        app_args = {"listen_kwargs": {"oneshot": True}}
-        async with run_app_for_time(self.app_name, **app_args) as (ad, caplog):
+        app_cfgs = {
+            self.app_name: {
+                "module": "event_test_app",
+                "class": "TestEventCallback",
+                "listen_kwargs": {"oneshot": True},
+            }
+        }
+        async with configured_appdaemon(app_cfgs=app_cfgs, loggers=[self.app_name]) as (ad, caplog):
+            await ad.utility.app_update_event.wait()
             match ad.app_management.objects.get(self.app_name):
                 case ManagedObject(object=app_obj):
                     await asyncio.wait_for(app_obj.execute_event.wait(), timeout=0.5)

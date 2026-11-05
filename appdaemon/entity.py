@@ -7,15 +7,15 @@ from datetime import datetime, timedelta
 from logging import Logger
 from typing import TYPE_CHECKING, Any, overload
 
-from appdaemon import utils
-from .types import TimeDeltaLike
-
 from .exceptions import TimeOutException
 from .state import StateCallbackType
+from .types import TimeDeltaLike
+from .utils.str import format_timedelta
+from .utils.threading import sync_decorator
 
 if TYPE_CHECKING:
-    from appdaemon import ADAPI
-    from appdaemon.appdaemon import AppDaemon
+    from .adapi import ADAPI
+    from .appdaemon import AppDaemon
 
 
 @dataclass
@@ -77,7 +77,7 @@ class Entity:
         """
         self.namespace = namespace
 
-    @utils.sync_decorator
+    @sync_decorator
     async def set_state(
         self,
         state: Any | None = None,
@@ -127,7 +127,7 @@ class Entity:
             **kwargs
         )
 
-    @utils.sync_decorator
+    @sync_decorator
     async def get_state(
         self,
         attribute: str | None = None,
@@ -187,7 +187,7 @@ class Entity:
         )
 
     @overload
-    @utils.sync_decorator
+    @sync_decorator
     async def listen_state(
         self,
         callback: StateCallbackType,
@@ -203,7 +203,7 @@ class Entity:
         **kwargs: Any,
     ) -> str: ...
 
-    @utils.sync_decorator
+    @sync_decorator
     async def listen_state(self, callback: StateCallbackType, **kwargs: Any) -> str:
         """Registers a callback to react to state changes.
 
@@ -312,7 +312,7 @@ class Entity:
             **kwargs,
         )
 
-    @utils.sync_decorator
+    @sync_decorator
     async def add(self, state: str | int | float | None = None, attributes: dict[str, Any] | None = None) -> None:
         """Adds a non-existent entity, by creating it within a namespaces.
 
@@ -345,11 +345,11 @@ class Entity:
         """Checks the existence of the entity in AD."""
         return self.adapi.entity_exists(self.entity_id, namespace=self.namespace)
 
-    @utils.sync_decorator
+    @sync_decorator
     async def call_service(
         self,
         service: str,
-        timeout: str | int | float | None = None,  # Used by utils.sync_decorator
+        timeout: str | int | float | None = None,  # Used by sync_decorator
         callback: Callable[[Any], Any] | None = None,
         **data: Any,
     ) -> Any:
@@ -451,7 +451,7 @@ class Entity:
     # helper functions
     #
 
-    @utils.sync_decorator
+    @sync_decorator
     async def copy(self, copy: bool = True) -> dict:
         """Gets the complete state of the entity within AD.
 
@@ -489,7 +489,7 @@ class Entity:
     def is_on(self) -> bool:
         return self.is_state("on")
 
-    @utils.sync_decorator
+    @sync_decorator
     async def turn_on(self, **kwargs) -> Any:
         """Generic helper function, used to turn the entity ON if supported.
         This function will attempt to call the `turn_on` service if registered,
@@ -508,7 +508,7 @@ class Entity:
 
         return await self.call_service("turn_on", **kwargs)
 
-    @utils.sync_decorator
+    @sync_decorator
     async def turn_off(self, **kwargs: Any | None) -> Any:
         """Generic function, used to turn the entity OFF if supported.
         This function will attempt to call the `turn_off` service if registered,
@@ -527,7 +527,7 @@ class Entity:
 
         return await self.call_service("turn_off", **kwargs)
 
-    @utils.sync_decorator
+    @sync_decorator
     async def toggle(self, **kwargs: Any | None) -> Any:
         """Generic function, used to toggle the entity ON/OFF if supported.
         This function will attempt to call the `toggle` service if registered,
@@ -601,7 +601,7 @@ class Entity:
     @property
     def last_changed_delta_str(self) -> str:
         """A string representing the time since the entity was last changed"""
-        return utils.format_timedelta(self.last_changed_delta)
+        return format_timedelta(self.last_changed_delta)
 
     @property
     def last_changed_seconds(self) -> float:

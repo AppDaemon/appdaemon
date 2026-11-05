@@ -2,7 +2,7 @@ import asyncio
 from logging import Logger
 from typing import TYPE_CHECKING, Any
 
-import appdaemon.utils as utils
+from .utils.functools import get_kwargs
 
 if TYPE_CHECKING:
     from .appdaemon import AppDaemon
@@ -71,7 +71,7 @@ class Callbacks:
                             callbacks[name][str(uuid_)]["event"] = "None"
                         callbacks[name][str(uuid_)]["type"] = self.callbacks[name][uuid_]["type"]
                         callbacks[name][str(uuid_)]["kwargs"] = ""
-                        callbacks[name][str(uuid_)]["kwargs"] = utils.get_kwargs(self.callbacks[name][uuid_]["kwargs"])
+                        callbacks[name][str(uuid_)]["kwargs"] = get_kwargs(self.callbacks[name][uuid_]["kwargs"])
 
                         callbacks[name][str(uuid_)]["function"] = self.callbacks[name][uuid_]["function"].__name__
                         callbacks[name][str(uuid_)]["name"] = self.callbacks[name][uuid_]["name"]

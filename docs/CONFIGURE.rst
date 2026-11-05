@@ -520,7 +520,6 @@ To configure the HASS plugin, in addition to the required parameters above, you 
    set to ``False`` to disable verification on self-signed certs, or certs for which the address used doesn't match the cert address (e.g., using an internal IP address)
 -  ``api_port`` (optional) - Port the AppDaemon RESTFul API will listen
    on. If not specified, the RESTFul API will be turned off.
--  ``app_init_delay`` (optional) - If specified, when AppDaemon connects to HASS each time, it will wait for this number of seconds before initializing apps and listening for events. This is useful for HASS instances that have subsystems that take time to initialize (e.g., zwave).
 -  ``retry_secs`` (optional) - If specified, AD will wait for this many seconds in between retries to connect to HASS (default 5 seconds)
 -  ``plugin_startup_conditions`` - see `HASS Plugin Startup Conditions <#startup-conditions>`__
 -  ``q_timeout`` (optional, 30 seconds) - amount of time to wait for a response from Home Assistant before returning an error
@@ -555,7 +554,6 @@ An example of the HASS plugin configured with YAML could look like the following
           type: hass
           ha_url: <some_url>
           token: <token>
-          cert_path: <path/to/root/CA/cert>
           cert_verify: True
           namespace: default
 
@@ -584,7 +582,6 @@ Or in TOML:
   type = "hass"
   ha_url = "<some_url>"
   token = "<token>"
-  cert_path = "<path/to/root/CA/cert>"
   cert_verify = true
   namespace = "default"
 

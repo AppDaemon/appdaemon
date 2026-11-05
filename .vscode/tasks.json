@@ -6,7 +6,7 @@
             "label": "Run Dev",
             "command": "${command:python.interpreterPath}",
             "args": ["-m", "appdaemon", "-c", "/conf/ad_config/production"],
-            "type": "shell",
+            "type": "process",
             "presentation":
                 {
                     "echo": true,
@@ -24,6 +24,7 @@
             "problemMatcher": [],
             "command": "uv",
             "args": ["build", "--wheel"],
+            "group": "build",
             "presentation":
                 {
                     "reveal": "always",
@@ -38,18 +39,13 @@
             "dependsOn": "Build Package",
             "type": "shell",
             "problemMatcher": [],
-            "command": "docker",
-            "args": [
-                "build",
-                "-t", "acockburn/appdaemon:local-dev",
-                // "-f", "Dockerfile.uv",
-                "${workspaceFolder}"
-            ],
+            "command": "${workspaceFolder}/scripts/docker-build.sh",
+            "group": "build",
             "presentation":
                 {
                     "reveal": "always",
                     "clear": true,
-                    "focus": false,
+                    "focus": true,
                     "panel": "shared",
                 },
         },
@@ -75,7 +71,9 @@
             "problemMatcher": [],
             "command": "uv",
             "args": [
-                "run", "--extra", "doc",
+                "run",
+                "--locked",
+                "--group", "doc",
                 "sphinx-build", "-T", "-E",
                 "${workspaceFolder}/docs",
                 "${workspaceFolder}/.docs_build"
@@ -97,13 +95,17 @@
             "problemMatcher": [],
             "command": "uv",
             "args": [
-                "run", "--extra", "doc",
-                "sphinx-autobuild", "-T", "-E",
-                "${workspaceFolder}/docs",
-                "${workspaceFolder}/.docs_build",
+                "run",
+                "--locked",
+                "--group", "doc",
+                "sphinx-autobuild",
+                "--show-traceback", "--fresh-env",
+                "--host", "0.0.0.0",
                 "--port", "9999",
                 "--watch", "${workspaceFolder}/appdaemon",
                 "--watch", "${workspaceFolder}/tests",
+                "${workspaceFolder}/docs",
+                "${workspaceFolder}/build/docs",
             ],
             "presentation":
                 {
@@ -114,86 +116,100 @@
                     "showReuseMessage": true,
                     "clear": true
                 },
-        },
-        {
-            "label": "Build Runtime Requirements",
-            "type": "shell",
-            "problemMatcher": [],
-            "command": "uv",
-            "args": ["pip", "compile", "--upgrade", "pyproject.toml"],
-            "presentation":
-                {
-                    "echo": true,
-                    "reveal": "always",
-                    "focus": false,
-                    "panel": "shared",
-                    "group": "requirements",
-                    "showReuseMessage": true,
-                    "clear": true
-                },
-        },
-        {
-            "label": "Build Dev Requirements",
-            "type": "shell",
-            "problemMatcher": [],
-            "command": "uv",
-            "args": [
-                "pip", "compile",
-                "--extra=dev",
-                "--output-file=dev-requirements.txt",
-                "--upgrade", "pyproject.toml"
-            ],
-            "presentation":
-                {
-                    "echo": true,
-                    "reveal": "always",
-                    "focus": false,
-                    "panel": "shared",
-                    "group": "requirements",
-                    "showReuseMessage": true,
-                    "clear": true
-                },
-        },
-        {
-            "label": "Build Doc Requirements",
-            "type": "shell",
-            "problemMatcher": [],
-            "command": "uv",
-            "args": [
-                "pip", "compile",
-                "--extra=doc",
-                "--output-file=doc-requirements.txt",
-                "--upgrade", "pyproject.toml"
-            ],
-            "presentation":
-                {
-                    "echo": true,
-                    "reveal": "always",
-                    "focus": false,
-                    "panel": "shared",
-                    "group": "requirements",
-                    "showReuseMessage": true,
-                    "clear": true
-                },
-        },
-        {
-            "label": "Build All Requirements Files",
-            "detail": "Resolves all the dependencies into requirements files.",
-            "dependsOn": ["Build Runtime Requirements", "Build Dev Requirements", "Build Doc Requirements"],
-            "problemMatcher": [],
         },
         {
             "label": "Install Dependencies",
-            "detail": "Installs all the dependencies, including dev and doc extras",
+            "detail": "Installs all the dependencies, including dev and doc groups",
             "type": "shell",
             "problemMatcher": [],
             "command": "uv",
-            "args": ["sync", "--all-extras"],
+            "args": ["sync", "--locked", "--all-groups"],
             "presentation":
                 {
                     "echo": true,
                     "reveal": "always",
                     "focus": false,
+                    "panel": "shared",
+                    "showReuseMessage": true,
+                    "clear": true
+                },
+        },
+        {
+            "label": "Ruff Statistics",
+            "detail": "Displays the statistics of all the linting violations",
+            "type": "shell",
+            "problemMatcher": [],
+            "command": "uv",
+            "args": ["run", "ruff", "check", "--statistics"],
+            "presentation":
+                {
+                    "echo": true,
+                    "reveal": "always",
+                    "focus": false,
+                    "panel": "shared",
+                    "showReuseMessage": true,
+                    "clear": true
+                },
+        },
+        {
+            "label": "Ruff Lint Watch",
+            "detail": "Runs the auto linter when files change",
+            "type": "process",
+            "problemMatcher": [],
+            "command": "uv",
+            "args": ["run", "ruff", "check", "--watch"],
+            "presentation":
+                {
+                    "echo": true,
+                    "reveal": "always",
+                    "focus": false,
+                    "panel": "shared",
+                    "showReuseMessage": true,
+                    "clear": true
+                },
+        },
+        {
+            "label": "Install Pre-commit Hooks",
+            "detail": "Runs the pre-commit hooks.",
+            "type": "process",
+            "problemMatcher": [],
+            "command": "uv",
+            "args": [
+                "run",
+                "--locked",
+                "--group", "dev",
+                "pre-commit", "install", "-f",
+            ],
+            "presentation":
+                {
+                    "echo": true,
+                    "reveal": "always",
+                    "focus": true,
+                    "panel": "shared",
+                    "showReuseMessage": true,
+                    "clear": true
+                },
+        },
+        {
+            "label": "Run Pre-commit Hooks",
+            "detail": "Runs the pre-commit hooks.",
+            "type": "process",
+            "problemMatcher": [],
+            "command": "uv",
+            "args": [
+                "run",
+                "--locked",
+                "--group", "dev",
+                "pre-commit", "run",
+                "--all-files",
+                "--show-diff-on-failure",
+                "--color=always",
+            ],
+            "presentation":
+                {
+                    "echo": true,
+                    "reveal": "always",
+                    "focus": true,
                     "panel": "shared",
                     "showReuseMessage": true,
                     "clear": true

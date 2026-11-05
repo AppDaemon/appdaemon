@@ -1,11 +1,13 @@
 
+import asyncio
 import logging
 import uuid
 
 import pytest
-from appdaemon.utils import PersistentDict
+from appdaemon.utils.state import PersistentDict
 
-from .utils import AsyncTempTest
+from tests.conftest import ConfiguredAppDaemonFunc
+from tests.utils import wait_for_event
 
 logger = logging.getLogger("AppDaemon._test")
 
@@ -16,86 +18,133 @@ pytestmark = [
 ]
 
 
-def assert_current_namespace(caplog: pytest.LogCaptureFixture, expected_namespace: str) -> None:
-    """Assert that the expected namespace is in the current namespaces log."""
-    for record in caplog.records:
-        match record:
-            case logging.LogRecord(levelno=logging.INFO, msg=str(msg), args=[list(namespaces), *_]):
-                if msg == 'Current namespaces: %s':
-                    assert expected_namespace in namespaces, f'Expected {expected_namespace} in current namespaces'
-                    return
-    assert False, f"Did not find log record for current namespaces including {expected_namespace}"
-
-
-def assert_non_existence_warning(caplog: pytest.LogCaptureFixture, correct: int = 1) -> None:
-    """Assert that a warning about non-existence of an entity in a namespace was logged."""
-    non_existence_warnings = [
-        r for r in caplog.records
-        if r.levelno >= logging.WARNING and
-        r.msg == "Entity %s not found in namespace %s"
-    ]
-    assert len(non_existence_warnings) == correct, f"Expected {correct} warning(s) about non-existence should be logged"
-
-
 @pytest.mark.asyncio(loop_scope="session")
-async def test_simple_namespaces(run_app_for_time: AsyncTempTest) -> None:
+async def test_simple_namespaces(configured_appdaemon: ConfiguredAppDaemonFunc) -> None:
     """Test simple namespace functionality."""
     test_val = str(uuid.uuid4())
     test_ns = "test_namespace"
-    app_kwargs = {
-        "custom_namespace": test_ns,
-        'start_delay': 0.1,
-        "test_val": test_val,
+    app_name = "basic_namespace_app"
+    app_cfgs = {
+        app_name: {
+            "module": "namespace_app",
+            "class": "BasicNamespaceTester",
+            'start_delay': 0.1,
+            "custom_namespace": test_ns,
+            "test_val": test_val,
+        }
     }
-    async with run_app_for_time("basic_namespace_app", 0.5, **app_kwargs) as (ad, caplog):
-        assert "Persistent namespace 'test_namespace' initialized from MainThread" in caplog.text
 
-        # In order for this to be in the log, the state change callback must have fired, which means that the entity
-        # was created in the correct namespace and the state change was detected.
-        assert test_val in caplog.text
+    async with configured_appdaemon(app_cfgs=app_cfgs) as (ad, caplog):
+        for p in ad.state.namespace_path.iterdir():
+            p.unlink()
 
-        # The current namespaces should include the custom test namespace
-        assert_current_namespace(caplog, test_ns)
+        await ad.utility.app_update_event.wait()
+        await wait_for_event(ad, app_name, "changed_event", timeout=1.0)
 
-        # There should only be one warning about non-existence of the entity in the custom namespace
-        assert_non_existence_warning(caplog)
+        init_ts = None
+        changed_delta = None
+        non_existence_warning = False
+        for record in caplog.records:
+            match record:
+                case logging.LogRecord(
+                    levelno=logging.INFO,
+                    msg='Initial namespaces: %s',
+                    args=[list() as init_namespaces, *_],
+                ):
+                    assert test_ns in init_namespaces, f'Expected {test_ns} in initial namespaces'
+                case logging.LogRecord(
+                    levelno=logging.INFO,
+                    msg="Initialized %s",
+                    created=float(init_ts),
+                    args=[str(app_name_), *_],
+                ):
+                    assert app_name_ == app_name, f"Expected app name to be {app_name}"
+                case logging.LogRecord(levelno=logging.WARNING, msg="Entity %s not found in namespace %s"):
+                    non_existence_warning = True
+                case logging.LogRecord(
+                    levelno=logging.INFO,
+                    msg="Change called from thread %s",
+                    created=float(changed_ts)
+                ):
+                    assert init_ts is not None, "Initialization timestamp should be set before change timestamp"
+                    changed_delta = changed_ts - init_ts
+
+        assert non_existence_warning, "Expected non-existence warning was not logged"
+        assert changed_delta is not None, "Changed delta should have been calculated"
+        logger.info("Changed delta: %s", changed_delta)
 
 
 @pytest.mark.asyncio(loop_scope="session")
-async def test_hybrid_writeback(run_app_for_time: AsyncTempTest) -> None:
+async def test_hybrid_writeback(configured_appdaemon: ConfiguredAppDaemonFunc) -> None:
     """Test hybrid namespace functionality.
 
     The general idea is to create a namespace with hybrid writeback and ensure that it saves correctly.
     """
     test_val = str(uuid.uuid4())
     test_ns = "hybrid_test_ns"
-    app_kwargs = {
-        "custom_namespace": test_ns,
-        "test_val": test_val,
-        "start_delay": 0.5,
-        "test_n": 10**3,
+    app_name = "hybrid_namespace_app"
+    app_cfgs = {
+        app_name: {
+            "module": "namespace_app",
+            "class": "HybridWritebackTester",
+            "start_delay": 0.1,
+            "custom_namespace": test_ns,
+            "test_val": test_val,
+            "test_n": 10,
+        }
     }
-    async with run_app_for_time("hybrid_namespace_app", 2.2, **app_kwargs) as (ad, caplog):
+
+    async with configured_appdaemon(app_cfgs=app_cfgs, loggers=["_state"]) as (ad, caplog):
+        for p in ad.state.namespace_path.iterdir():
+            p.unlink()
+
+        await ad.utility.app_update_event.wait()
+        await asyncio.sleep(2.5)
+
+        state = None
+        app_initialized = False
+        namespace_initialized = False
+        save_count = 0
+        dbm_error = False
+
+        for record in caplog.records:
+            match record:
+                case logging.LogRecord(
+                    levelno=logging.INFO,
+                    msg="Initialized %s",
+                    args=[str(app_name_), *_],
+                ):
+                    assert app_name_ == app_name, f"Expected app name to be {app_name}"
+                    app_initialized = True
+                case logging.LogRecord(
+                    levelno=logging.INFO,
+                    msg="Persistent namespace '%s' initialized from %s",
+                    args=[str(ns), str(thread)],
+                ):
+                    assert ns == test_ns, f"Expected namespace to be {test_ns}, got {ns}"
+                    assert thread == "MainThread", f"Expected namespace to be initialized from MainThread, got {thread}"
+                    namespace_initialized = True
+                case logging.LogRecord(
+                    levelno=logging.DEBUG,
+                    msg="Saving hybrid persistent namespace: %s",
+                    args=[str(ns), *_],
+                ):
+                    if ns == test_ns:
+                        save_count += 1
+                case logging.LogRecord(msg=str(msg)) if "dbm.sqlite3.error" in msg:
+                    dbm_error = True
+
+        assert app_initialized, f"App {app_name} should have been initialized"
+        assert namespace_initialized, f"Persistent namespace '{test_ns}' should have been initialized"
+        assert save_count >= 2, f"Expected exactly two saves of hybrid persistent namespace, got {save_count}"
+
         match ad.state.state.get(test_ns):
             case PersistentDict() as state:
-                def get_files():
-                    return list(state.filepath.parent.glob(f"{test_ns}*"))
-                files = get_files()
-                assert len(files) > 0, f'Namespace files for {test_ns} should exist, but it does not.'
+                files = list(state.filepath.parent.glob(f"{test_ns}*"))
+                assert len(files) > 0, f'Namespace files for {test_ns} should exist, but they do not.'
             case _:
                 assert False, f"Expected a PersistentDict for namespace '{test_ns}'"
-        assert f"Persistent namespace '{test_ns}' initialized from MainThread" in caplog.text
 
-        saves = [
-            record
-            for record in caplog.records
-            if record.levelno == logging.DEBUG and
-            record.msg == "Saving hybrid persistent namespace: %s"
-        ]
-        assert len(saves) == 2, "Expected exactly two saves of hybrid persistent namespace"
-
-    files = get_files()
     namespace_files = [f.name for f in state.filepath.parent.iterdir() if f.is_file()]
     assert not namespace_files, f"Namespace files for {test_ns} should not exist after test, but they do: {namespace_files}"
-
-    assert "dbm.sqlite3.error" not in caplog.text
+    assert not dbm_error, "dbm.sqlite3.error should not appear in logs"

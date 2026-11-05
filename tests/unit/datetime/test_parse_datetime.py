@@ -3,12 +3,12 @@ from datetime import date, datetime, timedelta
 from functools import partial
 from typing import Literal
 
-import appdaemon.parse
 import pytest
 import pytz
 from appdaemon.exceptions import OffsetExceedsIntervalError
-from appdaemon.parse import resolve_time_str
-from appdaemon.utils import SUN_EVENT_INTERVAL, validate_offset_within_interval
+from appdaemon.utils.datetime import SUN_EVENT_INTERVAL
+from appdaemon.utils.functools import validate_offset_within_interval
+from appdaemon.utils.parse import parse_datetime, resolve_time_str
 from astral import SunDirection
 from astral.location import Location
 from pytz import BaseTzInfo
@@ -321,7 +321,7 @@ def test_elevation_setting(parser: partial[datetime], time_at_elevation: partial
 
 def test_exact_sun_event(default_date: date, location: Location, tz: BaseTzInfo) -> None:
     """Test the exact sunrise/sunset event parsing."""
-    parser = partial(appdaemon.parse.parse_datetime, location=location, today=False)
+    parser = partial(parse_datetime, location=location, today=False)
     today_sunrise = location.sunrise(date=default_date, local=True)
     next_sunrise = parser("sunrise", now=today_sunrise)
     assert next_sunrise.date() != default_date, "Next sunrise should be tomorrow"

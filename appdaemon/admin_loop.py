@@ -2,7 +2,7 @@ from logging import Logger
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from appdaemon.appdaemon import AppDaemon
+    from .appdaemon import AppDaemon
 
 
 class AdminLoop:

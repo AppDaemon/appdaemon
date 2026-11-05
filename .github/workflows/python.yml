@@ -1,0 +1,152 @@
+# Runs pre-commit linting hooks, builds the Python wheel package, and tests across multiple Python versions.
+# Uploads the wheel artifact for use by downstream workflows.
+name: Python CI
+
+on:
+  pull_request: # Run on every pull request
+  push: # Run on pushes that affect the python code
+    paths:
+      - '.github/workflows/python.yml'
+      - '**/*.py'
+
+# Cancel a currently running workflow from the same PR, branch, or tag when a new workflow is triggered:
+# Taken from https://stackoverflow.com/a/72408109
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pre-commit:
+    name: Pre-commit hooks
+    runs-on: ubuntu-latest
+    env:
+      UV_LOCKED: true
+      UV_COMPILE_BYTECODE: true
+      UV_NO_EDITABLE: true
+      UV_NO_PROGRESS: true
+      UV_NO_SYNC: true
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+      - name: Install uv
+        id: setup-uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          # https://docs.astral.sh/uv/guides/integration/github/#using-uv-in-github-actions
+          # It is considered best practice to pin to a specific uv version
+          version: "0.9.26"
+          # https://github.com/astral-sh/setup-uv?tab=readme-ov-file#enable-caching
+          enable-cache: true
+          prune-cache: false
+          cache-python: true
+          cache-dependency-glob: uv.lock
+          tool-dir: /home/runner/.cache/uv
+      - name: setup-uv cache indicator
+        if: steps.setup-uv.outputs.cache-hit == 'true'
+        run: echo "setup uv cache was restored"
+
+      - name: Restore cache
+        uses: actions/cache@v5
+        id: cache-pre-commit
+        with:
+          # This covers the tool installed by uvx as well as the pre-commit environment
+          path: /home/runner/.cache
+          key: pre-commit-${{ github.head_ref || github.ref_name }}-${{ hashFiles('uv.lock') }}-${{ hashFiles('.pre-commit-config.yaml') }}
+      - name: Cache indicator
+        if: steps.cache-pre-commit.outputs.cache-hit == 'true'
+        run: echo "cache was restored"
+
+      - name: Install pre-commit
+        if: steps.cache-pre-commit.outputs.cache-hit != 'true'
+        run: uv tool install pre-commit
+
+      - name: Run pre-commit hooks
+        run: >
+          uv tool run
+          pre-commit run
+          --verbose
+          --all-files
+          --show-diff-on-failure
+          --color=always
+
+  # The Python package is required in the subsequent Docker image build
+  build_package:
+    name: Build Python wheel
+    needs: pre-commit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    env:
+      UV_LOCKED: true
+      UV_COMPILE_BYTECODE: true
+      UV_NO_EDITABLE: true
+      UV_NO_PROGRESS: true
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+      - name: Install uv and set the python version
+        id: setup-uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          # https://docs.astral.sh/uv/guides/integration/github/#using-uv-in-github-actions
+          # It is considered best practice to pin to a specific uv version
+          version: "0.9.26"
+          # https://github.com/astral-sh/setup-uv?tab=readme-ov-file#enable-caching
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+          cache-python: true
+      - name: Cache indicator
+        if: steps.setup-uv.outputs.cache-hit == 'true'
+        run: echo "uv cache was restored"
+      - name: Build Python package
+        run: uv build --wheel --refresh
+      - name: Upload Python package
+        uses: actions/upload-artifact@v7
+        with:
+          name: python-package
+          path: dist/
+          retention-days: 1
+
+  test:
+    name: Python tests
+    needs: [pre-commit, build_package]
+    runs-on: ubuntu-latest
+    env:
+      UV_LOCKED: true
+      UV_COMPILE_BYTECODE: true
+      UV_NO_EDITABLE: true
+      UV_NO_PROGRESS: true
+      UV_NO_SYNC: true
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+      - name: Install uv and set the python version
+        id: setup-uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+          # https://docs.astral.sh/uv/guides/integration/github/#using-uv-in-github-actions
+          # It is considered best practice to pin to a specific uv version
+          version: "0.9.26"
+          # https://github.com/astral-sh/setup-uv?tab=readme-ov-file#enable-caching
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Cache indicator
+        if: steps.setup-uv.outputs.cache-hit == 'true'
+        run: echo "uv cache was restored"
+      - name: Download Python package artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: python-package
+          path: dist/
+      - name: Install python dependencies
+        run: uv sync --locked --no-install-project --no-editable --no-dev --group test
+      - name: Install python package from wheel
+        run: uv pip install dist/*.whl
+      - name: Run tests
+        run: uv run --verbose pytest -m ci

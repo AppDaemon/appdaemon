@@ -1,6 +1,8 @@
 import asyncio
 import contextlib
+import copy
 import cProfile
+import functools
 import importlib
 import inspect
 import io
@@ -12,8 +14,7 @@ import sys
 import threading
 import traceback
 from collections import OrderedDict
-from collections.abc import AsyncGenerator, Iterable
-import copy
+from collections.abc import AsyncGenerator, Generator, Iterable
 from functools import partial, reduce, wraps
 from logging import Logger
 from pathlib import Path
@@ -21,15 +22,17 @@ from typing import TYPE_CHECKING, Any, Literal, TypeVar
 
 from pydantic import ValidationError
 
-from appdaemon.dependency import DependencyResolutionFail, find_all_dependents, get_full_module_name
-from appdaemon.dependency_manager import DependencyManager
-from appdaemon.models.config import AllAppConfig, AppConfig, GlobalModule
-from appdaemon.models.config.app import SequenceConfig
-from appdaemon.models.internal.file_check import FileCheck
-
 from . import exceptions as ade
-from . import utils
+from .dependency import DependencyResolutionFail, find_all_dependents, get_full_module_name
+from .dependency_manager import DependencyManager
+from .models.config import AllAppConfig, AppConfig, GlobalModule
+from .models.config.app import SequenceConfig
 from .models.internal.app_management import LoadingActions, ManagedObject, UpdateActions, UpdateMode
+from .models.internal.file_check import FileCheck
+from .utils.file import read_config_file, recursive_get_files, write_config_file
+from .utils.functools import format_exception, warning_decorator
+from .utils.misc import deep_compare, rreplace
+from .utils.threading import executor_decorator, run_in_executor
 
 if TYPE_CHECKING:
     from .adapi import ADAPI
@@ -76,10 +79,6 @@ class AppManagement:
     """Dictionary that maps full module names to sets of those that depend on them
     """
 
-    app_config: AllAppConfig
-    """Keeps track of which module and class each app comes from, along with any associated global modules. Gets set at the end of :meth:`~appdaemon.app_management.AppManagement.check_config`.
-    """
-
     active_apps_sensor: str = "sensor.active_apps"
     inactive_apps_sensor: str = "sensor.inactive_apps"
     total_apps_sensor: str = "sensor.total_apps"
@@ -111,8 +110,6 @@ class AppManagement:
         for service in services:
             register(service=service)
 
-        self.mtimes_python = FileCheck()
-
         self.active_apps = set()
         self.inactive_apps = set()
 
@@ -136,6 +133,7 @@ class AppManagement:
 
     @property
     def app_config(self) -> AllAppConfig:
+        """Keeps track of which module and class each app comes from, along with any associated global modules."""
         return self.dependency_manager.app_deps.app_config
 
     @property
@@ -143,7 +141,10 @@ class AppManagement:
         return set(app_name for app_name, mo in self.objects.items() if mo.running)
 
     def is_app_running(self, app_name: str) -> bool:
-        return (mo := self.objects.get(app_name, False)) and mo.running
+        match self.objects.get(app_name):
+            case ManagedObject(type="app", running=bool(running)):
+                return running
+        return False
 
     @property
     def loaded_globals(self) -> set[str]:
@@ -155,7 +156,10 @@ class AppManagement:
 
     @property
     def sequence_config(self) -> SequenceConfig | None:
-        return self.app_config.root.get("sequence")
+        match self.app_config.root.get("sequence"):
+            case SequenceConfig() as seq_cfg:
+                return seq_cfg
+        raise KeyError("No sequence configuration found")
 
     @property
     def valid_apps(self) -> set[str]:
@@ -236,14 +240,26 @@ class AppManagement:
     async def remove_entity(self, name: str):
         await self.AD.state.remove_entity("admin", f"app.{name}")
 
-    def app_rel_path(self, app_name: str) -> Path:
-        return self.app_config.root[app_name].config_path.relative_to(self.AD.app_dir.parent)
+    def app_cfg_rel_path(self, app_name: str) -> Path:
+        """Get a Path object to the config file for the app, relative to the apps directory."""
+        match self.app_config.root.get(app_name):
+            case AppConfig(config_path=Path() as cfg_path):
+                if cfg_path.is_relative_to(self.AD.app_dir.parent):
+                    return cfg_path.relative_to(self.AD.app_dir.parent)
+                return cfg_path
+        raise KeyError("No config path for app %s", app_name)
 
-    def err_app_path(self, app_obj: object) -> Path:
-        module_path = Path(sys.modules[app_obj.__module__].__file__)
-        if module_path.is_relative_to(self.AD.app_dir.parent):
-            return module_path.relative_to(self.AD.app_dir.parent)
-        return module_path
+    def app_module_rel_path(self, app_obj: object) -> Path:
+        """Get a Path object to the module file for the app, relative to the apps directory.
+
+        This uses the loaded python modules form the ``sys.modules`` dict."""
+        match sys.modules[app_obj.__module__].__file__:
+            case str(file):
+                module_path = Path(file)
+                if module_path.is_relative_to(self.AD.app_dir.parent):
+                    return module_path.relative_to(self.AD.app_dir.parent)
+                return module_path
+        raise KeyError("No module path for app object %s", app_obj)
 
     async def init_admin_stats(self):
         # create sensors
@@ -288,22 +304,36 @@ class AppManagement:
     def get_app_info(self, name: str):
         return self.objects.get(name)
 
-    def get_app_instance(self, name: str, id):
-        if (obj := self.objects.get(name)) and obj.id == id:
-            return obj.object
+    def get_app_instance(self, name: str, id: str):
+        match self.objects.get(name):
+            case ManagedObject(type="app", object=obj, id=str(oid)) if oid == id:
+                return obj
 
     def get_app_pin(self, name: str) -> bool:
-        return self.objects[name].pin_app
+        match self.objects.get(name):
+            case ManagedObject(type="app", pin_app=bool(pin)):
+                return pin
+        return False
 
-    def set_app_pin(self, name: str, pin: bool):
+    def set_app_pin(self, name: str, pin: bool) -> None:
         self.objects[name].pin_app = pin
-        utils.run_coroutine_threadsafe(
-            self,
-            self.AD.threading.calculate_pin_threads(),
-        )
 
-    def get_pin_thread(self, name: str) -> int:
-        return self.objects[name].pin_thread
+    def get_pin_thread(self, name: str) -> int | None:
+        match self.objects.get(name):
+            case ManagedObject(type="app", pin_app=True, pin_thread=int(pin_thread)):
+                return pin_thread
+        return None
+
+    def pinned_apps(self) -> Generator[str]:
+        """Returns the number of pinned apps currently managed."""
+        for app_name, obj in self.objects.items():
+            match obj:
+                case ManagedObject(type="app", pin_app=True):
+                    yield app_name
+
+    def pinned_app_count(self) -> int:
+        """Returns the number of pinned apps currently managed."""
+        return len(list(self.pinned_apps()))
 
     def set_pin_thread(self, name: str, thread: int):
         self.objects[name].pin_thread = thread
@@ -313,7 +343,7 @@ class AppManagement:
         app_obj = self.objects[app_name].object
 
         # Get the path that will be used for the exception
-        err_path = self.err_app_path(app_obj)
+        err_path = self.app_module_rel_path(app_obj)
 
         try:
             init_func = app_obj.initialize
@@ -330,7 +360,7 @@ class AppManagement:
         if asyncio.iscoroutinefunction(init_func):
             await init_func()
         else:
-            await utils.run_in_executor(self, init_func)
+            await run_in_executor(self, init_func)
 
     async def terminate_app(self, app_name: str, *, delete: bool = True) -> bool:
         try:
@@ -339,7 +369,7 @@ class AppManagement:
                 if asyncio.iscoroutinefunction(terminate):
                     await terminate()
                 else:
-                    await utils.run_in_executor(self, terminate)
+                    await run_in_executor(self, terminate)
             return True
 
         except TypeError:
@@ -415,7 +445,7 @@ class AppManagement:
         # assert dependencies
         dependencies = app_cfg.dependencies
         for dep_name in dependencies:
-            rel_path = self.app_rel_path(app_name)
+            rel_path = self.app_cfg_rel_path(app_name)
             exc_args = (
                 app_name,
                 rel_path,
@@ -525,20 +555,48 @@ class AppManagement:
                     module_name,
                 )
 
-                if (pin := cfg.pin_thread) is not None and pin >= self.AD.threading.total_threads:
-                    raise ade.PinOutofRange(pin_thread=pin, total_threads=self.AD.threading.total_threads)
-                if (obj := self.objects.get(app_name)) and obj.pin_thread is not None:
-                    pin = obj.pin_thread
-                # else pin is already None from cfg.pin_thread
+                # Deal with the thread pinning settings
+                if self.AD.config.fully_async:
+                    pin_thread = None
+                    should_be_pinned = False
+                else:
+                    should_be_pinned = cfg.pin_app if cfg.pin_app is not None else self.AD.config.pin_apps
+
+                    # This happens if you try to pin an app to a thread number that's too high
+                    if should_be_pinned and cfg.pin_thread is not None:
+                        if cfg.pin_thread < 0:
+                            raise ade.NegativePinThread(cfg.pin_thread)
+                        if cfg.pin_thread > self.AD.threading.thread_count:
+                            raise ade.PinOutofRange(
+                                pin_thread=cfg.pin_thread,
+                                total_threads=self.AD.threading.thread_count
+                            )
+
+                    # Assign a thread ID if necessary
+                    if should_be_pinned and cfg.pin_thread is None:
+                        await self.AD.threading.create_initial_threads()
+                        counts = self.AD.threading.thread_app_counts()
+                        _, min_tid = min((v, k) for k, v in counts.items())
+                        pin_thread = min_tid
+                    else:
+                        pin_thread = cfg.pin_thread
 
                 # This module should already be loaded and stored in sys.modules
-                mod_obj = await utils.run_in_executor(self, importlib.import_module, module_name)
+                mod_obj = await run_in_executor(self, importlib.import_module, module_name)
+                mod_name = mod_obj.__name__
+                match mod_obj.__file__:
+                    case str(mod_file):
+                        mod_path = Path(mod_file)
+                        if mod_path.is_relative_to(self.AD.app_dir.parent):
+                            mod_path = mod_path.relative_to(self.AD.app_dir.parent)
+                    case _:
+                        mod_path = Path("<unknown>")
+                mod_obj = await run_in_executor(self, importlib.import_module, module_name)
 
                 try:
                     app_class: type[ADBase | ADAPI] = getattr(mod_obj, class_name)
                 except AttributeError:
-                    path = mod_obj.__file__ or mod_obj.__path__._path[0]
-                    raise ade.MissingAppClass(app_name, mod_obj.__name__, Path(path).relative_to(self.AD.app_dir.parent), class_name)
+                    raise ade.MissingAppClass(app_name, mod_name, mod_path, class_name)
 
                 new_obj = app_class(self.AD, cfg)
                 assert isinstance(getattr(new_obj, "AD", None), type(self.AD)), "App objects need to have a reference to the AppDaemon object"
@@ -547,15 +605,24 @@ class AppManagement:
                 self.objects[app_name] = ManagedObject(
                     type="app",
                     object=new_obj,
-                    pin_app=self.AD.threading.app_should_be_pinned(app_name),
-                    pin_thread=pin,
+                    pin_app=should_be_pinned,
+                    pin_thread=pin_thread,
                     running=False,
-                    module_path=Path(mod_obj.__file__),
+                    module_path=mod_path,
                 )
 
                 # load the module path into app entity
-                module_path = await utils.run_in_executor(self, os.path.abspath, mod_obj.__file__)
+                module_path = await run_in_executor(self, os.path.abspath, mod_path)
                 await self.set_state(app_name, state="created", module_path=module_path)
+                if should_be_pinned and pin_thread is not None:
+                    thread_entity = f"thread.thread-{pin_thread}"
+                    counts = self.AD.threading.thread_app_counts()
+                    await self.AD.state.set_state(
+                        "_threading",
+                        "admin",
+                        thread_entity,
+                        pinned_apps=counts[pin_thread],
+                    )
                 return new_obj
             except Exception as exc:
                 await self.set_state(app_name, state="compile_error")
@@ -587,16 +654,22 @@ class AppManagement:
         )
 
     async def terminate_sequence(self, name: str) -> bool:
-        """Terminate the sequence"""
-        assert self.objects.get(name, {}).get("type") == "sequence", f"'{name}' is not a sequence"
+        """Terminate the sequence.
 
-        if name in self.objects:
-            del self.objects[name]
-
-        await self.AD.callbacks.clear_callbacks(name)
-        self.AD.futures.cancel_futures(name)
-
-        return True
+        Returns:
+            bool: Whether the sequence was found and terminated
+        """
+        match self.objects.get(name):
+            case ManagedObject(type="sequence"):
+                del self.objects[name]
+                await self.AD.callbacks.clear_callbacks(name)
+                self.AD.futures.cancel_futures(name)
+                return True
+            case None:
+                self.logger.warning("Nothing found for name '%s'", name)
+            case _ as obj:
+                self.logger.warning("Object found for '%s', but it's not a sequence: %s", name, obj)
+        return False
 
     async def read_all(self, config_files: Iterable[Path] | None) -> AllAppConfig:
         config_files = config_files if config_files is not None else self.dependency_manager.app_config_files
@@ -651,7 +724,7 @@ class AppManagement:
 
     async def check_app_config_files(self, update_actions: UpdateActions):
         """Updates self.mtimes_config and self.app_config"""
-        # get_files_in_other_thread = utils.executor_decorator(self.get_app_config_files)
+        # get_files_in_other_thread = executor_decorator(self.get_app_config_files)
         files = await self.get_app_config_files_async()
         self.dependency_manager.app_deps.update(files)
 
@@ -667,8 +740,10 @@ class AppManagement:
             # TODO: Move this behavior to the model validation step eventually
             # It has to be here for now because the files get read in multiple places
             for gm in freshly_read_cfg.global_modules():
-                rel_path = gm.config_path.relative_to(self.AD.app_dir)
-                self.logger.warning(f"Global modules are deprecated: '{gm.name}' defined in {rel_path}")
+                cfg_path = gm.config_path
+                if cfg_path is not None and cfg_path.is_relative_to(self.AD.app_dir):
+                    rel_path = cfg_path.relative_to(self.AD.app_dir)
+                    self.logger.warning(f"Global modules are deprecated: '{gm.name}' defined in {rel_path}")
 
             if gm := freshly_read_cfg.root.get("global_modules"):
                 gm = ", ".join(f"'{g}'" for g in gm)
@@ -694,7 +769,7 @@ class AppManagement:
                     # If an app exists, compare to the current config
                     prev_app = self.app_config.root[name].model_dump()
                     current_app = cfg.model_dump()
-                    if not utils.deep_compare(current_app, prev_app):
+                    if not deep_compare(current_app, prev_app):
                         self.logger.info("App config modified: %s", name)
                         update_actions.apps.reload.add(name)
 
@@ -722,29 +797,21 @@ class AppManagement:
             and await self.get_state(name) != "compile_error"
         }  # fmt: skip
 
-        if self.AD.threading.pin_apps:
-            active_apps = self.app_config.active_app_count
-            if active_apps > self.AD.threading.thread_count:
-                threads_to_add = active_apps - self.AD.threading.thread_count
-                self.logger.debug(f"Adding {threads_to_add} threads based on the active app count")
-                for _ in range(threads_to_add):
-                    await self.AD.threading.add_thread(silent=False)
-
-    @utils.executor_decorator
+    @executor_decorator
     def read_config_file(self, file: Path) -> AllAppConfig:
         """Reads a single YAML or TOML file into a pydantic model. This also sets the ``config_path`` attribute of any AppConfigs.
 
         This function is primarily used by the create/edit/remove app methods that write yaml files.
         """
         assert threading.current_thread().name.startswith("ThreadPool")
-        raw_cfg = utils.read_config_file(file, app_config=True)
+        raw_cfg = read_config_file(file, app_config=True)
         if not bool(raw_cfg):
             self.logger.warning(f"Loaded an empty config file: {file.relative_to(self.AD.app_dir.parent)}")
         config_model = AllAppConfig.model_validate(raw_cfg)
         return config_model
 
-    @utils.executor_decorator
-    def import_module(self, module_name: str) -> int:
+    @executor_decorator
+    def import_module(self, module_name: str):
         """Reads an app into memory by importing or reloading the module it needs"""
         try:
             if mod := sys.modules.get(module_name):
@@ -756,18 +823,29 @@ class AppManagement:
                     self.logger.debug("Importing '%s'", module_name)
                     importlib.import_module(module_name)
         except Exception as exc:
+            # Try to extract the path from the exception
+            path = None
             match exc:
-                case SyntaxError():
-                    path = Path(exc.filename)
-                case NameError():
-                    path = Path(traceback.extract_tb(exc.__traceback__)[-1].filename)
+                case ImportError(path=str(filename)):
+                    path = Path(filename)
+                case SyntaxError(filename=str(filename)):
+                    path = Path(filename)
                 case _:
-                    raise exc
-            mtime = self.dependency_manager.python_deps.files.mtimes.get(path)
-            self.dependency_manager.python_deps.bad_files.add((path, mtime))
+                    tb = traceback.extract_tb(exc.__traceback__)
+                    match tb[-1]:
+                        case traceback.FrameSummary(filename=str(filename)):
+                            path = Path(filename)
+
+            # If there was a path found and it was a tracked file, mark it as bad
+            match path:
+                case Path() as path if path in self.dependency_manager.python_deps.files.mtimes:
+                    match self.dependency_manager.python_deps.files.mtimes.get(path):
+                        case float(mtime):
+                            self.dependency_manager.python_deps.bad_files.add((path, mtime))
+
             raise exc
 
-    @utils.executor_decorator
+    @executor_decorator
     def _process_filters(self):
         for filter in self.AD.config.filters:
             input_files = self.AD.app_dir.rglob(f"*{filter.input_ext}")
@@ -787,7 +865,7 @@ class AppManagement:
                     self.filter_files[file] = modified
 
                     # Run the filter
-                    outfile = utils.rreplace(file, filter.input_ext, filter.output_ext, 1)
+                    outfile = rreplace(file, filter.input_ext, filter.output_ext, 1)
                     command_line = filter.command_line.replace("$1", file)
                     command_line = command_line.replace("$2", outfile)
                     try:
@@ -895,7 +973,7 @@ class AppManagement:
             try:
                 await self.check_app_python_files(update_actions)
             except DependencyResolutionFail as exc:
-                exception_text = utils.format_exception(exc.base_exception)
+                exception_text = format_exception(exc.base_exception)
                 self.logger.error(f"Error reading python files: {exception_text}")
                 return
 
@@ -922,7 +1000,7 @@ class AppManagement:
             else:
                 await self._create_and_start_apps(update_actions)
 
-    @utils.executor_decorator
+    @executor_decorator
     def _process_import_paths(self):
         """Process one time static additions to sys.path"""
 
@@ -998,7 +1076,7 @@ class AppManagement:
                         self.add_to_import_path(root)
 
     async def _init_dep_manager(self):
-        @utils.warning_decorator(error_text="Error while creating dependency manager")
+        @warning_decorator(error_text="Error while creating dependency manager")
         async def safe_dep_create(self: "AppManagement"):
             try:
                 self.dependency_manager = DependencyManager(
@@ -1021,14 +1099,14 @@ class AppManagement:
         """
         assert threading.current_thread().name.startswith("ThreadPool")
         return set(
-            utils.recursive_get_files(
+            recursive_get_files(
                 base=self.AD.app_dir.resolve(),
                 suffix=".py",
                 exclude=set(self.AD.exclude_dirs),
             )
         )
 
-    @utils.executor_decorator
+    @executor_decorator
     def get_python_files_async(self) -> set[Path]:
         """Get a set of valid app config files in the app directory.
 
@@ -1042,14 +1120,14 @@ class AppManagement:
         Valid files are ones that are readable, not inside an excluded directory, and not starting with a "." character.
         """
         return set(
-            utils.recursive_get_files(
+            recursive_get_files(
                 base=self.AD.app_dir.resolve(),
                 suffix={".yaml", ".toml"},
                 exclude=set(self.AD.exclude_dirs) | {"ruff.toml", "pyproject.toml", "secrets.yaml"},
             )
         )
 
-    @utils.executor_decorator
+    @executor_decorator
     def get_app_config_files_async(self) -> set[Path]:
         """Get a set of valid app config files in the app directory.
 
@@ -1188,7 +1266,7 @@ class AppManagement:
                     self.logger.warning(f"App '{app_name}' not found in app config")
 
         # Need to have already created the ManagedObjects for the threads to get assigned
-        await self.AD.threading.calculate_pin_threads()
+        await self.AD.threading.assign_app_threads()
 
         # Account for failures and apps that depend on them
         failed = update_actions.apps.failed
@@ -1273,7 +1351,7 @@ class AppManagement:
         for seq_name in overlaped_sequences:
             current_seq = self.sequence_config.root[seq_name]
             new_seq = cfg.root[seq_name]
-            if not utils.deep_compare(new_seq.model_dump(), current_seq.model_dump()):
+            if not deep_compare(new_seq.model_dump(), current_seq.model_dump()):
                 self.logger.info(f"Sequence config modified: {seq_name}")
                 update_actions.sequences.reload.add(seq_name)
                 seq_eid = self.AD.sequences.normalized(seq_name)
@@ -1288,77 +1366,70 @@ class AppManagement:
         if update_actions.sequences.changes or update_mode == UpdateMode.INIT:
             await self.AD.sequences.update_sequence_entities(self.sequence_config)
 
-    @utils.executor_decorator
-    def create_app(self, app: str = None, **kwargs):
-        """Used to create an app, which is written to a config file"""
+    async def create_app(self, app: str, **app_config) -> None:
+        """Create an app
 
-        executed = True
-        app_config = {}
+        Args:
+            app (str): The name of the app to create.
+
+        App Config Kwargs:
+            class (str): The class name of the app to create.
+            module (str): The module where the app class is located.
+            write_app_file(bool, optional): Whether to write the app config to a file. Defaults to True.
+            app_dir (str, optional): The directory to write the app file to, relative to the appdaemon apps directory. Defaults to "ad_apps".
+            app_file (str, optional): The name of the app file to write, including extension. Defaults to "{app_name}.yaml".
+        """
+
+        match app_config:
+            case {"module": str(app_module), "class": str(app_class)}:
+                self.logger.info("Creating app %s (module: %s, class: %s)", app, app_module, app_class)
+            case _:
+                self.logger.error("Could not create app %s, as module and class is required", app)
+                return
+
         new_config = OrderedDict()
 
-        app_module = kwargs.get("module")
-        app_class = kwargs.get("class")
+        write_app_file: bool = app_config.pop("write_app_file", True)
+        if write_app_file:
+            app_directory: Path = self.AD.app_dir / app_config.pop("app_dir", "ad_apps")
+            app_file: Path = app_directory / app_config.pop("app_file", f"{app}{self.AD.config.ext}")
+            if app_file.exists() and app_file.is_file():
+                # the file exists so there might be apps there already so read to update
+                # now open the file and edit the yaml
+                new_cfg = await self.read_config_file(app_file)
+                new_config.update(new_cfg.model_dump(mode="python", by_alias=True))
 
-        if app is None:  # app name not given
-            # use the module name as the app's name
-            app = app_module
+            # now load up the new config
+            new_config.update({app: app_config})
+            new_config.move_to_end(app)
 
-            app_config[app] = kwargs
-
-        else:
-            if app_module is None and app in kwargs:
-                app_module = kwargs[app].get("module")
-                app_class = kwargs[app].get("class")
-
-                app_config[app] = kwargs[app]
-
+            try:
+                # Make sure the writing doesn't get done in the MainThread
+                await self.AD.loop.run_in_executor(
+                    executor=self.AD.executor,
+                    func=functools.partial(
+                        write_config_file,
+                        app_file,
+                        **new_config
+                    )
+                )
+            except Exception as exc:
+                raise ade.AppConfigWriteFail(app_name=app, path=app_file) from exc
             else:
-                app_config[app] = kwargs
+                data = {
+                    "event_type": "app_created",
+                    "data": {"app": app, **app_config},
+                }
+                self.AD.loop.create_task(self.AD.events.process_event("admin", data))
+        else:
+            # just update the in memory config
+            app_config['name'] = app
+            self.app_config.root[app] = AppConfig.model_validate(app_config)
+            await self.create_app_object(app)
+            await self.start_app(app)
+            return
 
-        if app_module is None or app_class is None:
-            self.logger.error("Could not create app %s, as module and class is required", app)
-            return False
-
-        app_directory: Path = self.AD.app_dir / kwargs.pop("app_dir", "ad_apps")
-        app_file: Path = app_directory / kwargs.pop("app_file", f"{app}{self.AD.config.ext}")
-        app_directory = app_file.parent  # in case the given app_file is multi level
-
-        try:
-            app_directory.mkdir(parents=True, exist_ok=True)
-        except Exception:
-            self.logger.error("Could not create directory %s", app_directory)
-            return False
-
-        if app_file.is_file():
-            # the file exists so there might be apps there already so read to update
-            # now open the file and edit the yaml
-            new_config.update(self.read_config_file(app_file))
-
-        # now load up the new config
-        new_config.update(app_config)
-        new_config.move_to_end(app)
-
-        # at this point now to create write to file
-        try:
-            utils.write_config_file(app_file, **new_config)
-
-            data = {
-                "event_type": "app_created",
-                "data": {"app": app, **app_config[app]},
-            }
-            self.AD.loop.create_task(self.AD.events.process_event("admin", data))
-
-        except Exception:
-            self.error.warning("-" * 60)
-            self.error.warning("Unexpected error while writing to file: %s", app_file)
-            self.error.warning("-" * 60)
-            self.error.warning(traceback.format_exc())
-            self.error.warning("-" * 60)
-            executed = False
-
-        return executed
-
-    @utils.executor_decorator
+    @executor_decorator
     def edit_app(self, app: str, **kwargs):
         """Used to edit an app, which is already in Yaml. It is expecting the app's name"""
 
@@ -1383,7 +1454,7 @@ class AppManagement:
 
         # now update the file with the new data
         try:
-            utils.write_config_file(app_file, **new_config)
+            write_config_file(app_file, **new_config)
 
             data = {
                 "event_type": "app_edited",
@@ -1451,15 +1522,11 @@ class AppManagement:
                 self.update_app(app, **kwargs)
                 self.logger.debug("Temporarily updated app '%s' with: %s", app, kwargs)
 
-            # Ensure there's at least one thread available
-            if not self.AD.threading.thread_count:
-                await self.AD.threading.create_initial_threads()
-
             created_app_object = False
             if app not in self.objects:
                 self.logger.debug("Creating ManagedObject for app '%s'", app)
                 await self.create_app_object(app)
-                await self.AD.threading.calculate_pin_threads()
+                await self.AD.threading.assign_app_threads()
                 created_app_object = True
 
             await self.start_app(app)
@@ -1474,7 +1541,7 @@ class AppManagement:
             if created_app_object:
                 self.objects.pop(app)
 
-    @utils.executor_decorator
+    @executor_decorator
     def remove_app(self, app: str, **kwargs):
         """Used to remove an app"""
 
@@ -1498,7 +1565,7 @@ class AppManagement:
                 os.remove(app_file)
 
             else:
-                utils.write_config_file(app_file, **file_config)
+                write_config_file(app_file, **file_config)
 
             data = {
                 "event_type": "app_removed",
@@ -1548,11 +1615,11 @@ class AppManagement:
                 asyncio.create_task(self.check_app_updates(mode=UpdateMode.RELOAD_APPS))
             case (_, str()):
                 # first the check app updates needs to be stopped if on
-                mode = copy.deepcopy(self.AD.production_mode)
+                # mode = copy.deepcopy(self.AD.production_mode)
 
-                if mode is False:  # it was off
-                    self.AD.production_mode = True
-                    await self.AD.utility.sleep(0.5, timeout_ok=True)
+                # if mode is False:  # it was off
+                #     self.AD.production_mode = True
+                #     await self.AD.utility.sleep(0.5, timeout_ok=True)
 
                 match service:
                     case "enable":
@@ -1566,9 +1633,9 @@ class AppManagement:
                     case "remove":
                         result = await self.remove_app(app, **kwargs)
 
-                if mode is False:  # meaning it was not in production mode
-                    await self.AD.utility.sleep(1, timeout_ok=True)
-                    self.AD.production_mode = mode
+                # if mode is False:  # meaning it was not in production mode
+                #     await self.AD.utility.sleep(1, timeout_ok=True)
+                #     self.AD.production_mode = mode
 
                 return result
             case _:

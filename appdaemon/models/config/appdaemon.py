@@ -108,7 +108,7 @@ class AppDaemonConfig(BaseModel, extra="allow"):
     ascii_encode: bool = True
     """Set to false to disable ascii encoding of log messages. This is useful for non-English languages."""
 
-    load_distribution: str = "roundrobbin"
+    load_distribution: Literal["load", "random", "roundrobin"] = "roundrobin"
     threads: (
         Annotated[
             int | None,
@@ -124,8 +124,13 @@ class AppDaemonConfig(BaseModel, extra="allow"):
     """If ``True``, AppDaemon apps will be each pinned to a particular thread. This avoids complications around
     re-entrant code and locking of instance variables."""
     pin_threads: int | None = None
-    """Number of threads to use for pinned apps, allowing the user to section off a sub-pool just for pinned apps. By
-    default all threads are used for pinned apps."""
+    """Number of threads to use for pinned apps.
+
+    AppDaemon will use the threads with ID 0 through (`pin_threads` - 1) for pinned apps. This allows the user to section off
+    a sub-pool just for pinned apps. By default all threads are used for pinned apps.
+
+    This value initially comes from the user configuration, but is sometimes later modified.
+    """
     thread_duration_warning_threshold: float = 10
     threadpool_workers: int = 10
     """Number of threads in AppDaemon's internal thread pool, which can be used to execute functions asynchronously in
@@ -191,11 +196,12 @@ class AppDaemonConfig(BaseModel, extra="allow"):
 
         self.ext = ".toml" if self.write_toml else ".yaml"
 
-        if self.total_threads is not None:
-            self.pin_apps = False
-
         if self.pin_threads is not None and self.total_threads is not None:
             # assert self.total_threads is not None, "Using pin_threads requires total_threads to be set."
             assert self.pin_threads <= self.total_threads, (
                 "Number of pin threads has to be less than or equal to total threads."
             )
+
+    @property
+    def fully_async(self) -> bool:
+        return self.total_threads == 0

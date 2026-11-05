@@ -12,16 +12,20 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from time import perf_counter
 from typing import Any, Literal, Optional
+from urllib.parse import urlencode
 
 import aiohttp
 from aiohttp import ClientResponseError, WebSocketError, WSMsgType
 from pydantic import BaseModel
 
-import appdaemon.utils as utils
 from appdaemon.appdaemon import AppDaemon
 from appdaemon.models.config.plugin import HASSConfig, StartupConditions
 from appdaemon.plugin_management import PluginBase
 from appdaemon.types import TimeDeltaLike
+from appdaemon.utils.functools import clean_http_params_for_urlencode, convert_json, warning_decorator
+from appdaemon.utils.misc import deep_compare
+from appdaemon.utils.parse import parse_timedelta
+from appdaemon.utils.str import format_timedelta, time_str
 
 from .exceptions import HAEventsSubError, HassConnectionError
 from .utils import ServiceCallStatus, hass_check
@@ -56,7 +60,7 @@ class StartupWaitCondition:
         return self.event.is_set()
 
     def check_received_event(self, event: dict):
-        if not self.conditions_met and utils.deep_compare(self.conditions, event):
+        if not self.conditions_met and deep_compare(self.conditions, event):
             self.event.set()
 
 
@@ -124,14 +128,17 @@ class HassPlugin(PluginBase):
         """Handles creating an :py:class:`~aiohttp.ClientSession` with the cert information from the plugin config
         and the authorization headers for the `REST API <https://developers.home-assistant.io/docs/api/rest>`_.
         """
-        ssl_context = ssl.create_default_context(capath=self.config.cert_path)
-        conn = aiohttp.TCPConnector(ssl_context=ssl_context)
+        if self.config.cert_path is not None or self.config.cert_verify is not False:
+            ssl_context = ssl.create_default_context(capath=self.config.cert_path)
+            conn = aiohttp.TCPConnector(ssl_context=ssl_context, ssl=True)
+        else:
+            conn = aiohttp.TCPConnector(ssl=False)
 
         connect_timeout_secs = self.config.connect_timeout.total_seconds()
         return aiohttp.ClientSession(
             connector=conn,
             headers=self.config.auth_headers,
-            json_serialize=utils.convert_json,
+            json_serialize=convert_json,
             timeout=aiohttp.ClientTimeout(
                 connect=connect_timeout_secs,
                 sock_connect=connect_timeout_secs,
@@ -183,7 +190,7 @@ class HassPlugin(PluginBase):
             case _:
                 self.logger.warning("Unhandled websocket message type: %s", msg.type)
 
-    @utils.warning_decorator(error_text="Error during processing jSON", reraise=True)
+    @warning_decorator(error_text="Error during processing jSON", reraise=True)
     async def process_websocket_json(self, resp: dict[str, Any]) -> None:
         """Uses a :py:ref:`match <mapping-patterns>` statement around the JSON received from the websocket.
 
@@ -227,7 +234,7 @@ class HassPlugin(PluginBase):
             case {"success": True, "ad_duration": ad_duration}:
                 self.logger.debug(
                     "Subscribed to Home Assistant events from the websocket in %s",
-                    utils.format_timedelta(ad_duration),
+                    format_timedelta(ad_duration),
                 )
             case {"success": False, "error": {"code": code, "message": msg}}:
                 raise HAEventsSubError(code, msg)
@@ -252,6 +259,8 @@ class HassPlugin(PluginBase):
         if not self.is_ready:
             self.logger.info("Waiting for Home Assistant to start")
             await self.ready_event.wait()
+            # Services registered while Home Assistant was starting are missing from the list fetched on connect
+            await self.get_hass_services()
 
         await self.notify_plugin_started(meta=await self.get_hass_config(), state=await self.get_complete_state())
         self.first_time = False
@@ -264,7 +273,7 @@ class HassPlugin(PluginBase):
         # https://developers.home-assistant.io/docs/api/websocket/#pings-and-pongs
         return await self.websocket_send_json(timeout=timeout, type="ping")
 
-    @utils.warning_decorator(error_text="Unexpected error during receive_result")
+    @warning_decorator(error_text="Unexpected error during receive_result")
     async def receive_result(self, resp: dict):
         silent = self._silent_results.pop(resp["id"], False) or self.AD.config.suppress_log_messages
         request_context = self._request_context.pop(resp["id"], {})
@@ -288,7 +297,7 @@ class HassPlugin(PluginBase):
                 case None:
                     self.logger.error(f"Invalid response success value: {resp['success']} for request: {str(request_context)}")
 
-    @utils.warning_decorator(error_text="Unexpected error during receive_event")
+    @warning_decorator(error_text="Unexpected error during receive_event")
     async def receive_event(self, event: dict[str, Any]) -> None:
         self.logger.debug(f"Received event type: {event['event_type']}")
 
@@ -307,7 +316,7 @@ class HassPlugin(PluginBase):
 
         match event:
             case {"event_type": "homeassistant_started"}:
-                self.logger.info(f"Home Assistant fully started after {utils.time_str(self.start)}")
+                self.logger.info(f"Home Assistant fully started after {time_str(self.start)}")
                 self.ready_event.set()
             case {"event_type": "service_registered", "data": {"domain": domain, "service": service}}:
                 # https://data.home-assistant.io/docs/events/#service_registered
@@ -350,7 +359,7 @@ class HassPlugin(PluginBase):
                     self.logger.debug("State changed event received, but not handled")
                 self.logger.debug("Unrecognized event %s", other_event)
 
-    @utils.warning_decorator(error_text="Unexpected error during websocket send")
+    @warning_decorator(error_text="Unexpected error during websocket send")
     async def websocket_send_json(
         self,
         timeout: TimeDeltaLike | None = None,
@@ -373,9 +382,6 @@ class HassPlugin(PluginBase):
         Returns:
             A dict containing the response from Home Assistant.
         """
-        request = utils.clean_kwargs(request)
-        request = utils.remove_literals(request, (None,))
-
         if not self.connect_event.is_set():
             self.logger.debug("Not connected to websocket, skipping JSON send.")
             return
@@ -387,7 +393,7 @@ class HassPlugin(PluginBase):
 
             if not silent:
                 # include this in the "not auth" section so we don't accidentally put the token in the logs
-                req_json = json.dumps(request, indent=4)
+                req_json = convert_json(request, indent=4)
                 for i, line in enumerate(req_json.splitlines()):
                     if i == 0:
                         self.logger.debug(f"Sending JSON: {line}")
@@ -396,7 +402,7 @@ class HassPlugin(PluginBase):
 
         send_time = perf_counter()
         try:
-            await self.ws.send_json(request)
+            await self.ws.send_json(request, dumps=convert_json)
         # happens when the connection closes in the middle, which could be during shutdown
         except ConnectionResetError:
             if self.AD.stopping:
@@ -405,7 +411,7 @@ class HassPlugin(PluginBase):
             else:
                 raise  # Something bad actually happened, so raise the exception
 
-        self.update_perf(bytes_sent=len(json.dumps(request)), requests_sent=1)
+        self.update_perf(bytes_sent=len(convert_json(request)), requests_sent=1)
 
         match request:
             case {"type": "auth"}:
@@ -417,7 +423,7 @@ class HassPlugin(PluginBase):
         self._request_context[self.id] = request
 
         try:
-            timeout = utils.parse_timedelta(self.config.ws_timeout if timeout is None else timeout)
+            timeout = parse_timedelta(self.config.ws_timeout if timeout is None else timeout)
             result: dict = await asyncio.wait_for(future, timeout=timeout.total_seconds())
         except asyncio.TimeoutError:
             ad_status = ServiceCallStatus.TIMEOUT
@@ -454,27 +460,27 @@ class HassPlugin(PluginBase):
             **kwargs (optional): Zero or more keyword arguments. These get used as the data for the method, as
                 appropriate.
         """
-        kwargs = utils.clean_http_kwargs(kwargs)
         url = self.config.ha_url / endpoint.lstrip("/")
 
         try:
-            self.update_perf(
-                bytes_sent=len(str(url)) + len(json.dumps(kwargs).encode("utf-8")),
-                requests_sent=1,
-            )
-
             self.logger.debug(f"Hass {method.upper()} {endpoint}: {kwargs}")
             match method.lower():
                 case "get":
-                    http_method = functools.partial(self.session.get, params=kwargs)
+                    cleaned = clean_http_params_for_urlencode(kwargs)
+                    payload_size = len(urlencode(cleaned).encode("utf-8"))
+                    http_method = functools.partial(self.session.get, params=cleaned)
                 case "post":
+                    payload_size = len(convert_json(kwargs).encode("utf-8"))
                     http_method = functools.partial(self.session.post, json=kwargs)
                 case "delete":
-                    http_method = functools.partial(self.session.delete, params=kwargs)
+                    cleaned = clean_http_params_for_urlencode(kwargs)
+                    payload_size = len(urlencode(cleaned).encode("utf-8"))
+                    http_method = functools.partial(self.session.delete, params=cleaned)
                 case _:
                     raise ValueError(f"Invalid method: {method}")
+            self.update_perf(bytes_sent=len(str(url)) + payload_size, requests_sent=1)
 
-            timeout = utils.parse_timedelta(timeout)
+            timeout = parse_timedelta(timeout)
             client_timeout = aiohttp.ClientTimeout(total=timeout.total_seconds())
             async with http_method(url=url, timeout=client_timeout) as resp:
                 self.logger.debug(f"HTTP {method.upper()} {resp.url}")
@@ -527,7 +533,7 @@ class HassPlugin(PluginBase):
                         )
             else:
                 data = cond.model_dump(exclude_unset=True)
-                if isinstance(current_state, dict) and utils.deep_compare(data["value"], current_state):
+                if isinstance(current_state, dict) and deep_compare(data["value"], current_state):
                     self.logger.info(f"Startup state condition already met: {data}")
                 else:
                     self.logger.info(f"Adding startup state condition: {data}")
@@ -569,7 +575,7 @@ class HassPlugin(PluginBase):
             except Exception as exc:
                 if not self.AD.stopping:
                     self.error.error(exc)
-                    self.logger.info("Attempting reconnection in %s", utils.format_timedelta(self.config.retry_secs))
+                    self.logger.info("Attempting reconnection in %s", format_timedelta(self.config.retry_secs))
                     if self.is_ready:
                         # Will only run the first time through the loop after a failure
                         await self.AD.plugins.notify_plugin_stopped(self.name, self.namespace)
@@ -642,7 +648,7 @@ class HassPlugin(PluginBase):
             finally:
                 await self.AD.utility.sleep(sleep, timeout_ok=True)
 
-    @utils.warning_decorator(error_text="Unexpected error while getting hass config")
+    @warning_decorator(error_text="Unexpected error while getting hass config")
     async def get_hass_config(self) -> dict[str, Any] | None:
         resp = await self.websocket_send_json(type="get_config")
         match resp:
@@ -654,7 +660,7 @@ class HassPlugin(PluginBase):
             case _:
                 return  # websocket_send_json will log warnings if something happens on the AD side
 
-    @utils.warning_decorator(error_text="Unexpected error while getting hass services")
+    @warning_decorator(error_text="Unexpected error while getting hass services")
     async def get_hass_services(self) -> dict[str, Any] | None:
         """Use the `get_services` feature of the Home Assistant websocket API.
 
@@ -709,7 +715,7 @@ class HassPlugin(PluginBase):
         await self.check_register_service(domain="render", service="template", silent=True)
 
     def time_str(self, now: float | None = None) -> str:
-        return utils.time_str(self.start, now)
+        return time_str(self.start, now)
 
     #
     # Services
@@ -828,7 +834,7 @@ class HassPlugin(PluginBase):
 
         req = {"type": "fire_event", "event_type": event, "event_data": kwargs}
 
-        @utils.warning_decorator("Error error firing event")
+        @warning_decorator("Error error firing event")
         async def safe_event(self: "HassPlugin", timeout, req):
             return await self.websocket_send_json(timeout, **req)
 
@@ -844,7 +850,7 @@ class HassPlugin(PluginBase):
         # if we get a request for not our namespace something has gone very wrong
         assert namespace == self.namespace
 
-        @utils.warning_decorator(error_text=f"Error deleting entity {entity_id}")
+        @warning_decorator(error_text=f"Error deleting entity {entity_id}")
         async def safe_delete(self: "HassPlugin"):
             return await self.http_method("delete", f"/api/states/{entity_id}")
 
@@ -854,7 +860,7 @@ class HassPlugin(PluginBase):
     # State
     #
 
-    @utils.warning_decorator(error_text="Unexpected error while getting hass state")
+    @warning_decorator(error_text="Unexpected error while getting hass state")
     async def get_complete_state(self) -> dict[str, dict[str, Any]] | None:
         """Required method for all AppDaemon plugins.
 
@@ -873,7 +879,7 @@ class HassPlugin(PluginBase):
             case _:
                 return  # websocket_send_json will log warnings if something happens on the AD side
 
-    @utils.warning_decorator(error_text="Unexpected error setting state")
+    @warning_decorator(error_text="Unexpected error setting state")
     async def set_plugin_state(
         self,
         namespace: str,
@@ -886,7 +892,7 @@ class HassPlugin(PluginBase):
         # if we get a request for not our namespace something has gone very wrong
         assert namespace == self.namespace
 
-        @utils.warning_decorator(error_text=f"Error setting state for {entity_id}")
+        @warning_decorator(error_text=f"Error setting state for {entity_id}")
         async def safe_set_state(self: "HassPlugin"):
             return await self.http_method("post", f"api/states/{entity_id}", state=state, attributes=attributes)
 
@@ -900,7 +906,7 @@ class HassPlugin(PluginBase):
             case _:
                 return None
 
-    @utils.warning_decorator(error_text="Unexpected error getting state")
+    @warning_decorator(error_text="Unexpected error getting state")
     async def get_plugin_state(
         self,
         entity_id: str,
@@ -915,7 +921,7 @@ class HassPlugin(PluginBase):
             case _:
                 raise ValueError(f"Unexpected result from get_plugin_state: {resp}")
 
-    @utils.warning_decorator(error_text="Unexpected error checking for entity")
+    @warning_decorator(error_text="Unexpected error checking for entity")
     async def check_for_entity(
         self,
         entity_id: str,
@@ -944,7 +950,7 @@ class HassPlugin(PluginBase):
             case _:
                 return False
 
-    @utils.warning_decorator(error_text="Unexpected error getting history")
+    @warning_decorator(error_text="Unexpected error getting history")
     async def get_history(
         self,
         filter_entity_id: str | Iterable[str],
@@ -1011,7 +1017,7 @@ class HassPlugin(PluginBase):
             case _:
                 raise ValueError(f"Unexpected result from history: {result}")
 
-    @utils.warning_decorator(error_text="Unexpected error getting logbook")
+    @warning_decorator(error_text="Unexpected error getting logbook")
     async def get_logbook(
         self,
         entity: str | None = None,
@@ -1052,7 +1058,7 @@ class HassPlugin(PluginBase):
             case _:
                 self.logger.error("Unexpected error getting logbook: %s", resp)
 
-    @utils.warning_decorator(error_text="Unexpected error rendering template")
+    @warning_decorator(error_text="Unexpected error rendering template")
     async def render_template(self, namespace: str, template: str, **kwargs) -> str | None:
         """Render the template using the ``/api/template`` endpoint of the
         `REST API <https://developers.home-assistant.io/docs/api/rest>`_.

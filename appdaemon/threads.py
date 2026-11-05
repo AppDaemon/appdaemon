@@ -4,21 +4,27 @@ import functools
 import inspect
 import logging
 import re
-import sys
 import threading
 import traceback
-from collections.abc import Callable
+from collections import deque
+from collections.abc import Callable, Generator, Iterable
+from itertools import cycle
 from logging import Logger
 from queue import Queue
 from random import randint
 from threading import Thread
-from typing import TYPE_CHECKING, Any, ClassVar
-
-import iso8601
+from typing import TYPE_CHECKING, Any
 
 from . import exceptions as ade
-from . import utils
 from .models.config.app import AppConfig
+from .models.internal.app_management import ManagedObject
+from .utils import parse
+from .utils.datetime import day_of_week
+from .utils.functools import has_expanded_kwargs
+from .utils.misc import deepcopy as ad_deepcopy
+from .utils.state import check_state
+from .utils.str import dt_to_str, format_timedelta, str_to_dt
+from .utils.threading import run_async_sync_func, run_coroutine_threadsafe, run_in_executor
 
 if TYPE_CHECKING:
     from .adbase import ADBase
@@ -47,10 +53,12 @@ class Threading:
     :class:`~threading.Thread` and :class:`~queue.Queue` objects respectively.
     """
 
-    last_stats_time: ClassVar[datetime.datetime] = datetime.datetime.fromtimestamp(0)
-    callback_list: list[dict]
+    last_stats_time: datetime.datetime = datetime.datetime.min
+    last_callbacks: deque[dict[str, Any]]
 
-    next_thread: int = 0
+    _roundrobin_cycle: Iterable[str]
+    """Iterator that produces the name of the next thread when using the round robin load distribition method."""
+
     current_callbacks_executed: int = 0
     current_callbacks_fired: int = 0
 
@@ -63,59 +71,19 @@ class Threading:
         self.threads = {}
 
         # A few shortcuts
-        self.add_entity = ad.state.add_entity
-        self.get_state = ad.state.get_state
-        self.set_state = ad.state.set_state
-        self.add_to_state = ad.state.add_to_state
-        self.add_to_attr = ad.state.add_to_attr
+        self.add_entity = functools.partial(ad.state.add_entity, "admin")
+        self.get_state = functools.partial(ad.state.get_state, self.name, "admin")
+        self.set_state = functools.partial(ad.state.set_state, self.name, "admin")
+        self.add_to_state = functools.partial(ad.state.add_to_state, self.name, "admin")
+        self.add_to_attr = functools.partial(ad.state.add_to_attr, self.name, "admin")
 
-        self.callback_list = []
-
-    @property
-    def auto_pin(self) -> bool:
-        """This is derived from pin_apps and total_threads, and is True by default."""
-        return self.pin_apps and self.total_threads is None
-
-    @property
-    def pin_apps(self) -> bool:
-        "Config flag for whether each app should be pinned to a thread"
-        return self.AD.config.pin_apps
-
-    @pin_apps.setter
-    def pin_apps(self, new: bool) -> None:
-        """Set the config flag for whether each app should be pinned to a thread"""
-        self.AD.config.pin_apps = bool(new)
-
-    @property
-    def pin_threads(self) -> int | None:
-        """The number of threads that are dedicated to pinned apps. This should be the actual number of pin threads
-        that have been created and not the number of pin threads there are supposed to be."""
-        return self.AD.config.pin_threads
-
-    @pin_threads.setter
-    def pin_threads(self, new: int | None) -> None:
-        """Set the number of threads that are dedicated to pinned apps."""
-        assert isinstance(new, int) or new is None, "pin_threads must be an integer or None"
-        self.AD.config.pin_threads = new
+        self.last_callbacks = deque(maxlen=10)
 
     @property
     def thread_count(self) -> int:
         """The number of threads that have actually been created. This is calculated from the length of the internal
         `threads` dictionary, so it can't be set directly."""
         return len(self.threads)
-
-    @property
-    def total_threads(self) -> int | None:
-        """Number of threads to create for apps.
-
-        By default this is automatically calculated, but can also be manually configured by the user in
-        ``appdaemon.yaml``.
-        """
-        return self.AD.config.total_threads
-
-    @total_threads.setter
-    def total_threads(self, new: int):
-        self.AD.config.total_threads = new
 
     def stop(self):
         """Stop all threads."""
@@ -124,14 +92,23 @@ class Threading:
                 case {"queue": Queue() as q, "thread": Thread() as t}:
                     self.logger.debug("Stopping %s", thread_name)
                     q.put_nowait(None)
-                    t.join(timeout=1)
-                    self.logger.debug("Joined %s", thread_name)
+                    try:
+                        t.join(timeout=1)
+                        self.logger.debug("Joined %s", thread_name)
+                    except RuntimeError as exc:
+                        self.logger.error("Error joining thread %s: %s", thread_name, exc)
+
+    def _pin_settings(self):
+        return {
+            name: {'pinned': obj.pin_app, 'pin_thread': obj.pin_thread}
+            for name, obj in self.AD.app_management.objects.items()
+        }
 
     async def get_q_update(self):
         """Updates queue sizes"""
         for thread in self.threads:
             qsize = self.get_q(thread).qsize()
-            await self.set_state("_threading", "admin", "thread.{}".format(thread), q=qsize)
+            await self.set_state(f"thread.{thread}", q=qsize)
 
     async def get_callback_update(self):
         """Updates the sensors with information about how many callbacks have been fired. Called by the :class:`~appdaemon.admin_loop.AdminLoop`
@@ -139,31 +116,24 @@ class Threading:
         - ``sensor.callbacks_average_fired``
         - ``sensor.callbacks_average_executed``
         """
-        now = datetime.datetime.now()
-        self.callback_list.append({"fired": self.current_callbacks_fired, "executed": self.current_callbacks_executed, "ts": now})
+        now = await self.AD.sched.get_now()
+        self.last_callbacks.append(
+            {"fired": self.current_callbacks_fired, "executed": self.current_callbacks_executed, "ts": now}
+        )
 
-        if len(self.callback_list) > 10:
-            self.callback_list.pop(0)
-
-        fired_sum = 0
-        executed_sum = 0
-        for item in self.callback_list:
-            fired_sum += item["fired"]
-            executed_sum += item["executed"]
-
-        total_duration = (self.callback_list[len(self.callback_list) - 1]["ts"] - self.callback_list[0]["ts"]).total_seconds()
+        fired_total = sum(item["fired"] for item in self.last_callbacks)
+        executed_total = sum(item["executed"] for item in self.last_callbacks)
+        total_duration = (self.last_callbacks[-1]["ts"] - self.last_callbacks[0]["ts"]).total_seconds()
 
         if total_duration == 0:
             fired_avg = 0
             executed_avg = 0
         else:
-            fired_avg = round(fired_sum / total_duration, 1)
-            executed_avg = round(executed_sum / total_duration, 1)
+            fired_avg = round(fired_total / total_duration, 1)
+            executed_avg = round(executed_total / total_duration, 1)
 
-        await self.set_state("_threading", "admin", "sensor.callbacks_average_fired", state=fired_avg, _silent=True)
+        await self.set_state("sensor.callbacks_average_fired", state=fired_avg, _silent=True)
         await self.set_state(
-            "_threading",
-            "admin",
             "sensor.callbacks_average_executed",
             state=executed_avg,
             _silent=True,
@@ -174,24 +144,76 @@ class Threading:
         self.current_callbacks_fired = 0
 
     async def init_admin_stats(self):
-        # Initialize admin stats
+        await self.add_entity("sensor.callbacks_total_fired", 0)
+        await self.add_entity("sensor.callbacks_average_fired", 0)
+        await self.add_entity("sensor.callbacks_total_executed", 0)
+        await self.add_entity("sensor.callbacks_average_executed", 0)
+        await self.add_entity("sensor.threads_current_busy", 0)
+        await self.add_entity("sensor.threads_max_busy", 0)
+        await self.add_entity("sensor.threads_max_busy_time", "never")
+        await self.add_entity("sensor.threads_last_action_time", "never")
 
-        await self.add_entity("admin", "sensor.callbacks_total_fired", 0)
-        await self.add_entity("admin", "sensor.callbacks_average_fired", 0)
-        await self.add_entity("admin", "sensor.callbacks_total_executed", 0)
-        await self.add_entity("admin", "sensor.callbacks_average_executed", 0)
-        await self.add_entity("admin", "sensor.threads_current_busy", 0)
-        await self.add_entity("admin", "sensor.threads_max_busy", 0)
-        await self.add_entity(
-            "admin",
-            "sensor.threads_max_busy_time",
-            utils.dt_to_str(datetime.datetime(1970, 1, 1, 0, 0, 0, 0)),
-        )
-        await self.add_entity(
-            "admin",
-            "sensor.threads_last_action_time",
-            utils.dt_to_str(datetime.datetime(1970, 1, 1, 0, 0, 0, 0)),
-        )
+    def resolve_thread_counts(self) -> tuple[int, int]:
+        """Resolve thread configuration into a concrete count of the total number of threads to create and the number of
+        them to reserve for pinning."""
+        pin_threads = self.AD.config.pin_threads
+        total_threads = self.AD.config.total_threads
+
+        # Handle determining the counts. Each logical path has an associated log message
+        match total_threads, pin_threads:
+            case 0, _: # Special case of 0 threads
+                # Force pin_threads to 0
+                pin_threads = 0
+                self.logger.info("Starting apps with no worker threads.")
+            case int(), int(): # Both are set in the configuration file
+                assert total_threads > 0, "specified total_threads has to be above 0"
+                assert pin_threads > 0, "specified pin_threads has to be above 0"
+                assert pin_threads < total_threads, \
+                    "pin_threads has to be less than total_threads if both are specified"
+                self.logger.info(
+                    "Starting apps with %d worker threads, with threads 0-%d reserved for pinned apps",
+                    total_threads,
+                    pin_threads - 1,
+                )
+            case int(), None: # Only total_threads was specified
+                assert total_threads > 0, "specified total_threads has to be above 0"
+                self.logger.info("Starting %d worker threads for apps", total_threads)
+                if self.AD.config.pin_apps:
+                    # If the global setting for apps is to pin them, use all the threads for pinning
+                    pin_threads = total_threads
+                    self.logger.info("All %d threads can be used for pinning.")
+            case None, None: # AppDaemon will automatically determine thread counts
+                if self.AD.config.pin_apps:
+                    # If the global setting is to pin apps, then the thread counts are determined by the number of apps
+                    total_threads = self.AD.app_management.dependency_manager.app_deps.app_config.active_app_count()
+                    pin_threads = self.AD.app_management.pinned_app_count()
+                    if total_threads == pin_threads:
+                        self.logger.info("Starting each app with a dedicated thread (%d total)", total_threads)
+                    else:
+                        assert total_threads >= pin_threads
+                        self.logger.info(
+                            "Starting %d total threads, %d threads for pinning",
+                            total_threads,
+                            pin_threads
+                        )
+                else:
+                    # Otherwise the thread counts default to 10
+                    total_threads = pin_threads = 10
+                    self.logger.info("Startinging with a default of 10 worker threads.")
+
+        # Runtime checks to ensure that nothing weird happened
+        match total_threads, pin_threads:
+            case int(), int(): # Confirm thread counts at the end
+                assert total_threads >= 0
+                assert pin_threads <= total_threads, \
+                    "pin_threads must be lower than total_threads"
+                return total_threads, pin_threads
+            case _: # Raise an error with the config if anything is weird
+                raise ade.InvalidThreadConfiguration(
+                    self.AD.config.total_threads,
+                    self.AD.config.pin_apps,
+                    self.AD.config.pin_threads,
+                )
 
     async def create_initial_threads(self) -> None:
         """
@@ -203,51 +225,37 @@ class Threading:
         Also by default, all of the threads created will be for pinned apps, but this can be overridden to be just a
         subset of the `total_threads` with the `pin_threads` setting.
         """
-        match self.total_threads, self.pin_apps:
-            case None, True:
-                self.total_threads = self.pin_threads = self.AD.app_management.dependency_manager.app_deps.app_config.active_app_count or 1
-                self.logger.info(
-                    "Starting apps with %s worker threads. Apps will all be assigned threads and pinned to them.",
-                    self.total_threads,
-                )
-            case 0, False:  # fully async
-                self.logger.info("Starting apps with no worker threads.")
-                self.pin_threads = 0
-            case int(), False:
-                self.logger.info(
-                    "Starting apps with %s worker threads, with %s reserved for pinned apps",
-                    self.total_threads,
-                    self.pin_threads,
-                )
-                self.pin_threads = 0
-            case _:
-                self.logger.error("Invalid thread configuration.")
-                raise ade.InvalidThreadConfiguration(
-                    self.total_threads,
-                    self.pin_apps,
-                    self.pin_threads,
-                )
-
-        assert self.pin_threads is not None
-        assert self.total_threads is not None
-        for _ in range(self.total_threads):
+        total_threads, pin_threads = self.resolve_thread_counts()
+        for _ in range(total_threads - self.thread_count):
             await self.add_thread(silent=True)
 
+        free_threads = list(self.threads.keys())[pin_threads:]
+        self._roundrobin_cycle = cycle(free_threads)
+
         # Add thread object to track async
-        await self.add_entity(
-            "admin",
-            "thread.async",
-            "idle",
-            {
-                "q": 0,
-                "is_alive": True,
-                "time_called": utils.dt_to_str(datetime.datetime(1970, 1, 1, 0, 0, 0, 0)),
-                "pinned_apps": [],
-            },
-        )
+        if not self.AD.state.entity_exists("admin", "thread.async"):
+            await self.add_entity(
+                "thread.async",
+                "idle",
+                {
+                    "q": 0,
+                    "is_alive": True,
+                    "time_called": "never",
+                    "pinned_apps": [],
+                },
+            )
 
     def get_q(self, thread_id: str) -> Queue[dict[str, Any] | None]:
-        return self.threads[thread_id]["queue"]
+        match self.threads.get(thread_id):
+            case {"queue": Queue() as q}:
+                return q
+        raise KeyError(f"Invalid thread_id: {thread_id}")
+
+    def get_thread(self, thread_id: str) -> Thread:
+        match self.threads.get(thread_id):
+            case {"thread": Thread() as thread}:
+                return thread
+        raise KeyError(f"Invalid thread_id: {thread_id}")
 
     @staticmethod
     def atoi(text):
@@ -258,34 +266,34 @@ class Threading:
 
     # Diagnostics
 
-    def total_q_size(self):
-        qsize = 0
-        for thread in self.threads:
-            qsize += self.threads[thread]["queue"].qsize()
-        return qsize
+    def _q_iter(self) -> Generator[tuple[str, Queue]]:
+        for thread_name, info in self.threads.items():
+                match info:
+                    case {"queue": Queue() as q}:
+                        yield thread_name, q
 
-    def min_q_id(self):
-        id = 0
-        i = 0
-        qsize = sys.maxsize
-        for thread in self.threads:
-            if self.threads[thread]["queue"].qsize() < qsize:
-                qsize = self.threads[thread]["queue"].qsize()
-                id = i
-            i += 1
-        return id
+    def total_q_size(self) -> int:
+        return sum(q.qsize() for _, q in self._q_iter())
+
+    def min_q_id(self) -> str:
+        _, min_thread_name = min((q.qsize(), name) for name, q in self._q_iter())
+        return min_thread_name
 
     async def get_thread_info(self):
-        info = {}
-        info["max_busy_time"] = await self.get_state("_threading", "admin", "sensor.threads_max_busy_time")
-        info["last_action_time"] = await self.get_state("_threading", "admin", "sensor.threads_last_action_time")
-        info["current_busy"] = await self.get_state("_threading", "admin", "sensor.threads_current_busy")
-        info["max_busy"] = await self.get_state("_threading", "admin", "sensor.threads_max_busy")
+        info = {
+            attr: await self.get_state(f"sensor.threads_{attr}")
+            for attr in (
+                "max_busy_time",
+                "last_action_time",
+                "current_busy",
+                "max_busy"
+            )
+        }
         info["threads"] = {}
         for thread in sorted(self.threads, key=self.natural_keys):
             if thread not in info["threads"]:
                 info["threads"][thread] = {}
-            t = await self.get_state("_threading", "admin", "thread.{}".format(thread), attribute="all")
+            t = await self.get_state(f"thread.{thread}", attribute="all")
             info["threads"][thread]["time_called"] = t["attributes"]["time_called"]
             info["threads"][thread]["callback"] = t["state"]
             info["threads"][thread]["is_alive"] = t["attributes"]["is_alive"]
@@ -295,17 +303,17 @@ class Threading:
         self.diag.info("--------------------------------------------------")
         self.diag.info("Threads")
         self.diag.info("--------------------------------------------------")
-        current_busy = await self.get_state("_threading", "admin", "sensor.threads_current_busy")
-        max_busy = await self.get_state("_threading", "admin", "sensor.threads_max_busy")
-        max_busy_time = utils.str_to_dt(await self.get_state("_threading", "admin", "sensor.threads_max_busy_time"))
-        last_action_time = await self.get_state("_threading", "admin", "sensor.threads_last_action_time")
+        current_busy = await self.get_state("sensor.threads_current_busy")
+        max_busy = await self.get_state("sensor.threads_max_busy")
+        max_busy_time = str_to_dt(await self.get_state("sensor.threads_max_busy_time"))
+        last_action_time = await self.get_state("sensor.threads_last_action_time")
         self.diag.info("Currently busy threads: %s", current_busy)
         self.diag.info("Most used threads: %s at %s", max_busy, max_busy_time)
         self.diag.info("Last activity: %s", last_action_time)
         self.diag.info("Total Q Entries: %s", self.total_q_size())
         self.diag.info("--------------------------------------------------")
         for thread in sorted(self.threads, key=self.natural_keys):
-            t = await self.get_state("_threading", "admin", "thread.{}".format(thread), attribute="all")
+            t = await self.get_state(f"thread.{thread}", attribute="all")
             # print("thread.{}".format(thread), t)
             self.diag.info(
                 "%s - qsize: %s | current callback: %s | since %s, | alive: %s, | pinned apps: %s",
@@ -322,100 +330,86 @@ class Threading:
     # Thread Management
     #
 
-    def select_q(self, args):
-        #
-        # Select Q based on distribution method:
-        #   Round Robin
-        #   Random
-        #   Load distribution
-        #
+    def select_q(self, args: dict[str, Any]):
+        """Selects the queue for the thread and calls put_nowait on it to dispatch the callback to the worker thread."""
 
-        # Check for pinned app and if so figure correct thread for app
-
-        if args["pin_app"] is True:
-            thread = args["pin_thread"]
-            # Handle the case where an App is unpinned but selects a pinned callback without specifying a thread
-            # If this happens a lot, thread 0 might get congested but the alternatives are worse!
-            if thread is None:
-                self.logger.warning(
-                    "Invalid thread ID for pinned thread in app: %s - assigning to thread 0",
-                    args["name"],
+        match args:
+            case {"pin_app": True, "pin_thread": tid, "name": str(name)}:
+                if tid is None:
+                    tid = 0
+                    self.logger.warning(
+                        "Invalid thread ID for pinned thread in app: %s - assigning to thread 0", name
+                    )
+                thread_name = f'thread-{tid}'
+            case {"pin_app": False}:
+                # Putting this here to help with "find references"
+                pin_threads = self.AD.config.pin_threads
+                assert pin_threads is not None, (
+                    "pin_threads has to be defined so AppDaemon knows which threads can be used for unpinned callbacks"
                 )
-                thread = 0
-        else:
-            if self.thread_count == self.pin_threads:
-                raise ValueError("pin_threads must be set lower than threads if unpinned_apps are in use")
-            if self.AD.load_distribution == "load":
-                thread = self.min_q_id()
-            elif self.AD.load_distribution == "random":
-                thread = randint(self.pin_threads, self.thread_count - 1)
-            else:
-                # Round Robin is the catch all
-                thread = self.next_thread
-                self.next_thread += 1
-                if self.next_thread == self.thread_count:
-                    self.next_thread = self.pin_threads
+                assert pin_threads < self.thread_count, (
+                    "AppDaemon needs unreserved threads for unpinned callbacks"
+                )
 
-        if thread < 0 or thread >= self.thread_count:
-            raise ValueError(f"invalid thread id: {thread} in app {args['name']}")
+                match self.AD.config.load_distribution:
+                    case "load":
+                        thread_name = self.min_q_id()
+                    case "random":
+                        tid = randint(pin_threads, self.thread_count - 1)
+                        thread_name = f'thread-{tid}'
+                    case "roundrobin", _:
+                        thread_name = next(self._roundrobin_cycle)
+            case _:
+                raise RuntimeError(f'Invalid queue args: {args}')
 
-        q = self.threads[f"thread-{thread}"]["queue"]
-        q.put_nowait(args)
+        match self.threads.get(thread_name):
+            case {"queue": Queue() as q}:
+                q.put_nowait(args)
+            case _:
+                raise RuntimeError(f"Invalid thread id {tid} for app '{args['name']}'")
 
     async def check_overdue_and_dead_threads(self):
         if self.AD.real_time is True and self.AD.thread_duration_warning_threshold != 0:
             for thread_id in self.threads:
-                if self.threads[thread_id]["thread"].is_alive() is not True:
+                if not self.get_thread(thread_id).is_alive():
                     self.logger.critical("Thread %s has died", thread_id)
                     self.logger.critical("Pinned apps were: %s", self.get_pinned_apps(thread_id))
                     self.logger.critical("Thread will be restarted")
                     id = thread_id.split("-")[1]
                     await self.add_thread(silent=False, id=id)
-                if await self.get_state("_threading", "admin", "thread.{}".format(thread_id)) != "idle":
-                    start = utils.str_to_dt(
-                        await self.get_state(
-                            "_threading",
-                            "admin",
-                            "thread.{}".format(thread_id),
-                            attribute="time_called",
-                        )
+                if await self.get_state(f"thread.{thread_id}") != "idle":
+                    start = datetime.datetime.fromisoformat(
+                        await self.get_state(f"thread.{thread_id}", attribute="time_called")
                     )
                     dur = (await self.AD.sched.get_now() - start).total_seconds()
                     if dur >= self.AD.thread_duration_warning_threshold and dur % self.AD.thread_duration_warning_threshold == 0:
                         self.logger.warning(
                             "Excessive time spent in callback: %s - %s",
-                            await self.get_state(
-                                "_threading",
-                                "admin",
-                                "thread.{}".format(thread_id),
-                                attribute="callback",
-                            ),
+                            await self.get_state(f"thread.{thread_id}", attribute="callback"),
                             dur,
                         )
 
     async def check_q_size(self, warning_step, warning_iterations):
-        totalqsize = 0
-        for thread in self.threads:
-            totalqsize += self.threads[thread]["queue"].qsize()
-
+        totalqsize = self.total_q_size()
         if totalqsize > self.AD.qsize_warning_threshold:
             if (warning_step == 0 and warning_iterations >= self.AD.qsize_warning_iterations) or warning_iterations == self.AD.qsize_warning_iterations:
                 for thread in self.threads:
-                    qsize = self.threads[thread]["queue"].qsize()
+                    qsize = self.get_q(thread).qsize()
                     if qsize > 0:
+                        time_called = await self.get_state(
+                            "_threading",
+                            "admin",
+                            f"thread.{thread}",
+                            attribute="time_called",
+                        )
+                        assert isinstance(time_called, str), "time_called is not a string"
+
                         self.logger.warning(
                             "Queue size for thread %s is %s, callback is '%s' called at %s - possible thread starvation",
                             thread,
                             qsize,
-                            await self.get_state("_threading", "admin", "thread.{}".format(thread)),
-                            iso8601.parse_date(
-                                await self.get_state(
-                                    "_threading",
-                                    "admin",
-                                    "thread.{}".format(thread),
-                                    attribute="time_called",
-                                )
-                            ),
+                            await self.get_state(f"thread.{thread}"),
+                            await self.get_state(f"thread.{thread}", attribute="time_called"),
                         )
 
                 await self.dump_threads()
@@ -447,16 +441,12 @@ class Threading:
             return
 
         appentity = f"{appinfo.type}.{app}"
-
         now = await self.AD.sched.get_now()
+        now_str = dt_to_str(now, self.AD.tz, round=True)
+
         if callback == "idle":
-            start = utils.str_to_dt(
-                await self.get_state(
-                    "_threading",
-                    "admin",
-                    "thread.{}".format(thread_id),
-                    attribute="time_called",
-                )
+            start = str_to_dt(
+                await self.get_state(f"thread.{thread_id}", attribute="time_called")
             )
             if start == "never":
                 duration = 0.0
@@ -465,79 +455,63 @@ class Threading:
 
             if self.AD.real_time and duration >= self.AD.thread_duration_warning_threshold:
                 thread_name = f"thread.{thread_id}"
-                callback = await self.get_state("_threading", "admin", thread_name)
+                callback = await self.get_state(thread_name)
                 self.logger.warning(
                     f"Excessive time spent in callback {callback}. "
-                    f"Thread entity: '{thread_name}' - now complete after {utils.format_timedelta(duration)} "
-                    f"(limit={utils.format_timedelta(self.AD.thread_duration_warning_threshold)})"
+                    f"Thread entity: '{thread_name}' - now complete after {format_timedelta(duration)} "
+                    f"(limit={format_timedelta(self.AD.thread_duration_warning_threshold)})"
                 )
-            await self.add_to_state("_threading", "admin", "sensor.threads_current_busy", -1)
+            await self.add_to_state("sensor.threads_current_busy", -1)
 
-            await self.add_to_attr("_threading", "admin", appentity, "totalcallbacks", 1)
-            await self.add_to_attr("_threading", "admin", appentity, "instancecallbacks", 1)
+            await self.add_to_attr(appentity, "totalcallbacks", 1)
+            await self.add_to_attr(appentity, "instancecallbacks", 1)
 
-            await self.add_to_attr(
-                "_threading",
-                "admin",
-                "{}_callback.{}".format(type, uuid),
-                "executed",
-                1,
-            )
-            await self.add_to_state("_threading", "admin", "sensor.callbacks_total_executed", 1)
+            await self.add_to_attr(f"{type}_callback.{uuid}", "executed", 1)
+            await self.add_to_state("sensor.callbacks_total_executed", 1)
             self.current_callbacks_executed += 1
         else:
-            await self.add_to_state("_threading", "admin", "sensor.threads_current_busy", 1)
+            await self.add_to_state("sensor.threads_current_busy", 1)
             self.current_callbacks_fired += 1
 
-        current_busy = await self.get_state("_threading", "admin", "sensor.threads_current_busy")
-        max_busy = await self.get_state("_threading", "admin", "sensor.threads_max_busy")
+        current_busy: int = await self.get_state("sensor.threads_current_busy")
+        max_busy: int = await self.get_state("sensor.threads_max_busy")
         if current_busy > max_busy:
-            await self.set_state("_threading", "admin", "sensor.threads_max_busy", state=current_busy)
-            await self.set_state(
-                "_threading",
-                "admin",
-                "sensor.threads_max_busy_time",
-                state=utils.dt_to_str((await self.AD.sched.get_now()).replace(microsecond=0), self.AD.tz),
-            )
-
-            await self.set_state(
-                "_threading",
-                "admin",
-                "sensor.threads_last_action_time",
-                state=utils.dt_to_str((await self.AD.sched.get_now()).replace(microsecond=0), self.AD.tz),
-            )
+            await self.set_state("sensor.threads_max_busy", state=current_busy)
+            await self.set_state("sensor.threads_max_busy_time", state=now_str)
+            await self.set_state("sensor.threads_last_action_time", state=now_str)
 
         # Update thread info
 
         if thread_id == "async":
             await self.set_state(
-                "_threading",
-                "admin",
-                "thread.{}".format(thread_id),
+                f"thread.{thread_id}",
                 q=0,
                 state=callback,
-                time_called=utils.dt_to_str(now.replace(microsecond=0), self.AD.tz),
+                time_called=now_str,
                 is_alive=True,
                 pinned_apps=[],
             )
         else:
             await self.set_state(
-                "_threading",
-                "admin",
-                "thread.{}".format(thread_id),
-                q=self.threads[thread_id]["queue"].qsize(),
+                f"thread.{thread_id}",
+                q=self.get_q(thread_id).qsize(),
                 state=callback,
-                time_called=utils.dt_to_str(now.replace(microsecond=0), self.AD.tz),
-                is_alive=self.threads[thread_id]["thread"].is_alive(),
+                time_called=now_str,
+                is_alive=self.get_thread(thread_id).is_alive(),
                 pinned_apps=self.get_pinned_apps(thread_id),
             )
-        await self.set_state("_threading", "admin", appentity, state=callback)
+        await self.set_state(appentity, state=callback)
 
     #
     # Pinning
     #
 
-    async def add_thread(self, silent: bool = False, id: int | str | None = None) -> None:
+    async def add_thread(self, silent: bool = False, id: int | None = None) -> None:
+        """Create a new worker thread.
+
+        This is where the Thread object is actually created and started. The thread will begin running the `worker`
+        method as its target, and a new entity will be added to the `thread` domain in the `admin` namespace to track it.
+        """
         if id is None:
             thread_id = self.thread_count
         else:
@@ -548,18 +522,14 @@ class Threading:
         thread_entity = f"thread.{thread.name}"
         if id is None:
             await self.add_entity(
-                "admin",
                 thread_entity,
                 "idle",
-                {"q": 0, "is_alive": True, "time_called": utils.dt_to_str(datetime.datetime(1970, 1, 1, 0, 0, 0, 0))},
+                {"q": 0, "is_alive": True, "time_called": "never"},
             )
-            self.threads[thread.name] = {}
-            self.threads[thread.name]["queue"] = Queue(maxsize=0)
+            self.threads[thread.name] = {"queue": Queue(maxsize=0)}
             thread.start()
         else:
             await self.set_state(
-                "_threading",
-                "admin",
                 thread_entity,
                 state="idle",
                 is_alive=True,
@@ -567,84 +537,100 @@ class Threading:
 
         self.threads[thread.name]["thread"] = thread
 
-    async def calculate_pin_threads(self):
-        """Assigns thread numbers to apps that are supposed to be pinned"""
-        if self.pin_threads == 0:
+    async def assign_app_threads(self):
+        """Assigns thread numbers to apps that are supposed to be pinned.
+
+        Apps are assigned to threads based on how many other apps have been assigned to each thread. This depends on the
+        `ManagedObject` instances having been already created.
+
+        Updates the state of entities in the `thread` domain in the `admin` namespace. For example `thread.thread-0`.
+        """
+        _, pin_threads = self.resolve_thread_counts()
+
+        if not pin_threads > 0:
             return
 
-        thread_pins = [0] * self.pin_threads
-        for name, obj in self.AD.app_management.objects.items():
-            # Looking for apps that already have a thread pin value
-            if obj.pin_app and (thread := obj.pin_thread) is not None:
-                if thread >= self.thread_count:
-                    raise ValueError("Pinned thread out of range - check apps.yaml for 'pin_thread' or app code for 'set_pin_thread()'")
-                # Ignore anything outside the pin range as it will have been set by the user
-                if thread < self.pin_threads:
-                    thread_pins[thread] += 1
+        if not self.AD.app_management.objects:
+            self.logger.warning('No managed app objects to assign threads to.')
 
-        # Now we know the numbers, go fill in the gaps
-        for name, obj in self.AD.app_management.objects.items():
-            if obj.pin_app and obj.pin_thread is None:
-                thread = thread_pins.index(min(thread_pins))
-                self.AD.app_management.set_pin_thread(name, thread)
-                thread_pins[thread] += 1
+        # Get the apps that need to have threads assigned
+        apps_to_assign = [
+            name
+            for name, mo in self.AD.app_management.objects.items()
+            if mo.pin_app and mo.pin_thread is None
+        ]  # fmt: skip
 
-        for thread in self.threads:
-            pinned_apps = self.get_pinned_apps(thread)
-            await self.set_state(
+        counts = self.thread_app_counts()
+
+        # Iterate through the names of all the apps that need threads assigned
+        for app_name in apps_to_assign:
+            # Get the name of the thread that has the fewest apps pinned to it
+            _, min_tid = min((v, k) for k, v in counts.items())
+            counts[min_tid] += 1
+            self.AD.app_management.set_pin_thread(app_name, min_tid)
+
+        for tid, pin_cnt in counts.items():
+            await self.AD.state.set_state(
                 "_threading",
                 "admin",
-                "thread.{}".format(thread),
-                pinned_apps=pinned_apps,
+                f"thread.thread-{tid}",
+                pinned_apps=pin_cnt,
             )
 
-    def app_should_be_pinned(self, app_name: str) -> bool:
-        # Check apps.yaml first - allow override
-        cfg = self.AD.app_management.app_config.root[app_name]
-        assert isinstance(cfg, AppConfig)
-        return cfg.pin_app or self.pin_apps
+    def thread_app_counts(self) -> dict[int, int]:
+        """Get a dict that maps thread ID nums to how many apps are pinned to each one."""
+        counts = {int(k.split('-')[-1]): 0 for k in self.threads}
+        for obj in self.AD.app_management.objects.values():
+            match obj:
+                case ManagedObject(type="app", pin_thread=int(tid)):
+                    try:
+                        counts[tid] += 1
+                    except KeyError:
+                        # raise ade.PinThreadNotFound(pin_thread=tid) from exc
+                        continue
+        return counts
 
-    def validate_pin(self, name: str, pin_thread: int | None) -> None:
-        """Check to see if the ID for the pin thread is valid.
-
-        Raises:
-            PinOutofRange: if the pin_thread is not valid.
-
-        Returns:
-            None
-        """
-        if pin_thread is not None and (pin_thread < 0 or pin_thread >= self.thread_count):
-            self.logger.warning(
-                "Invalid value for pin_thread (%s) in app: %s - discarding callback",
-                pin_thread,
-                name,
-            )
-            raise ade.PinOutofRange(pin_thread, self.thread_count)
-
-    def get_pinned_apps(self, thread: str):
+    def get_pinned_apps(self, thread: str | int) -> list[str]:
         """Gets the names of apps that are pinned to a particular thread"""
-        id = int(thread.split("-")[1])
-        return [app_name for app_name, obj in self.AD.app_management.objects.items() if obj.pin_thread == id]
+        match thread:
+            case str():
+                thread_id = int(thread.split("-")[1])
+            case int(thread_id):
+                pass
+            case _:
+                raise ValueError(f"Invalid thread: {thread}")
+        return [app_name for app_name, obj in self.AD.app_management.objects.items() if obj.pin_thread == thread_id]
 
-    def determine_thread(self, name: str, pin: bool | None, pin_thread: int | None) -> tuple[bool, int | None]:
-        """Determine whether the app should be pinned to a thread and which one.
+    def determine_thread(
+        self,
+        name: str,
+        cb_pin: bool | None,
+        cb_pin_thread: int | None
+    ) -> tuple[bool, int | None]:
+        """Determine pin settings for a callback using inputs from the callback registration with settings from the app
+        management as defaults.
 
-        Applies defaults from app management
+        If the callback thread is not specified, then which thread it gets called in should be calculated at call time
+        to get good results from the different load distribution strategies. The length of the various thread queues can
+        be wildly different at call time from when the callback was first registered.
+
+        Dev Note:
+            This method is a good place to handle things related to thread/pinning at callback registration.
 
         Returns:
-            A tuple of (pin, pin_thread) where pin is ``True`` if the app should be pinned and pin_thread is the
-            thread ID number
+            tuple[bool, int | None]: Whether to pin the callback and if so, what thread it should be pinned to.
         """
-
-        if pin_thread is None:
-            pin = self.AD.app_management.objects[name].pin_app if pin is None else pin
-            pin_thread = self.AD.app_management.objects[name].pin_thread
+        # Manually specifying a pin_thread implies pin_app=True
+        if cb_pin_thread is not None:
+            # Validity check for the pin settings specified at the callback registration
+            if cb_pin_thread < 0 or cb_pin_thread > self.AD.threading.thread_count:
+                raise ade.PinOutofRange(cb_pin_thread, self.AD.threading.thread_count)
+            pin_callback = True
         else:
-            assert isinstance(pin_thread, int)
-            pin = True
+            pin_callback = cb_pin if cb_pin is not None else self.AD.app_management.get_app_pin(name)
 
-        self.validate_pin(name, pin_thread)
-        return pin, pin_thread
+        callback_thread = cb_pin_thread if cb_pin_thread is not None else self.AD.app_management.get_pin_thread(name)
+        return pin_callback, callback_thread
 
     #
     # Constraints
@@ -656,7 +642,7 @@ class Threading:
         unconstrained = True
         if hasattr(app, "constraints") and key in app.constraints:
             method = getattr(app, key)
-            unconstrained = await utils.run_async_sync_func(self, method, value)
+            unconstrained = await run_async_sync_func(self, method, value)
 
         return unconstrained
 
@@ -688,7 +674,7 @@ class Threading:
             now = (await self.AD.sched.get_now()).astimezone(self.AD.tz)
             daylist = []
             for day in days.split(","):
-                daylist.append(await utils.run_in_executor(self, utils.day_of_week, day))
+                daylist.append(await run_in_executor(self, day_of_week, day))
 
             if now.weekday() not in daylist:
                 unconstrained = False
@@ -700,7 +686,7 @@ class Threading:
 
         unconstrained = True
         if "constrain_state" in args:
-            unconstrained = utils.check_state(self.logger, new_state, args["constrain_state"], name)
+            unconstrained = check_state(self.logger, new_state, args["constrain_state"], name)
 
         return unconstrained
 
@@ -802,7 +788,7 @@ class Threading:
                         #
                         # Set a timer
                         #
-                        exec_time = await self.AD.sched.get_now() + utils.parse_timedelta(kwargs["duration"])
+                        exec_time = await self.AD.sched.get_now() + parse.parse_timedelta(kwargs["duration"])
 
                         #
                         # If it's a oneshot, scheduler will delete the callback once it has executed,
@@ -853,8 +839,11 @@ class Threading:
         return executed
 
     async def dispatch_worker(self, name: str, args: dict[str, Any]):
+        """Apply any constraints and if they pass, dispatch the callback to the worker thread by using the ``select_q``
+        method."""
+
         # Give user the option to discard events during the app initialize methods to prevent race conditions
-        state = await self.AD.state.get_state("_threading", "admin", f"app.{name}")
+        state = await self.get_state(f"app.{name}")
         if state == "initializing" and self.AD.config.discard_init_events:
             self.logger.info("Incoming event while initializing - discarding")
             return
@@ -864,24 +853,25 @@ class Threading:
         # Argument Constraints
         # (plugins have no args so skip if necessary)
         #
-        if app_cfg := self.AD.app_management.app_config.root.get(name):
-            for arg, val in app_cfg.args.items():
-                constrained = await self.check_constraint(
-                    arg,
-                    val,
-                    self.AD.app_management.objects[name].object,
-                )
-                if not constrained:
+        match self.AD.app_management.app_config.root.get(name):
+            case AppConfig(disable=False) as app_cfg:
+                for arg, val in app_cfg.args.items():
+                    constrained = await self.check_constraint(
+                        arg,
+                        val,
+                        self.AD.app_management.objects[name].object,
+                    )
+                    if not constrained:
+                        unconstrained = False
+                if not await self.check_time_constraint(app_cfg.args, name):
                     unconstrained = False
-            if not await self.check_time_constraint(self.AD.app_management.app_config[name].args, name):
-                unconstrained = False
-            elif not await self.check_days_constraint(self.AD.app_management.app_config[name].args, name):
-                unconstrained = False
+                elif not await self.check_days_constraint(app_cfg.args, name):
+                    unconstrained = False
 
         #
         # Callback level constraints
         #
-        myargs = utils.deepcopy(args)
+        myargs = ad_deepcopy(args)
         if "kwargs" in myargs:
             for arg in myargs["kwargs"].keys():
                 constrained = await self.check_constraint(
@@ -910,14 +900,8 @@ class Threading:
             if "__silent" in args["kwargs"] and args["kwargs"]["__silent"] is True:
                 pass
             else:
-                await self.add_to_state("_threading", "admin", "sensor.callbacks_total_fired", 1)
-                await self.add_to_attr(
-                    "_threading",
-                    "admin",
-                    "{}_callback.{}".format(myargs["type"], myargs["id"]),
-                    "fired",
-                    1,
-                )
+                await self.add_to_state("sensor.callbacks_total_fired", 1)
+                await self.add_to_attr(f"{myargs['type']}_callback.{myargs['id']}", "fired", 1)
             #
             # And Q
             #
@@ -979,7 +963,7 @@ class Threading:
                         pos_args = (args["event"], data)
                         kwargs = self.AD.events.sanitize_event_kwargs(app, args["kwargs"])
 
-                use_dictionary_unpacking = utils.has_expanded_kwargs(funcref)
+                use_dictionary_unpacking = has_expanded_kwargs(funcref)
                 if use_dictionary_unpacking:
                     funcref = functools.partial(funcref, *pos_args, **kwargs)
                 else:
@@ -1071,7 +1055,7 @@ class Threading:
                             pos_args = (args["event"], args["data"])
                             kwargs = self.AD.events.sanitize_event_kwargs(app, args["kwargs"])
 
-                    use_dictionary_unpacking = utils.has_expanded_kwargs(funcref)
+                    use_dictionary_unpacking = has_expanded_kwargs(funcref)
                     if use_dictionary_unpacking:
                         funcref = functools.partial(funcref, *pos_args, **kwargs)
                     else:
@@ -1084,7 +1068,7 @@ class Threading:
 
                     callback = f"{funcref.func.__qualname__} for {name}"
                     update_coro = self.update_thread_info(thread_id, callback, name, _type, _id, silent)
-                    utils.run_coroutine_threadsafe(self, update_coro)
+                    run_coroutine_threadsafe(self, update_coro)
 
                     @ade.wrap_sync(error_logger, self.AD.app_dir, callback)
                     def safe_callback():
@@ -1110,7 +1094,7 @@ class Threading:
 
                 finally:
                     update_coro = self.update_thread_info(thread_id, "idle", name, _type, _id, silent)
-                    utils.run_coroutine_threadsafe(self, update_coro)
+                    run_coroutine_threadsafe(self, update_coro)
                     q.task_done()  # Have this in multiple places to ensure it gets called even if an exception is raised
             else:
                 if not self.AD.stopping:
@@ -1146,7 +1130,7 @@ class Threading:
             "terminate": {"count": 0, "signature": {True: "terminate()", False: "terminate()"}},
         }
 
-        use_dictionary_unpacking = utils.has_expanded_kwargs(funcref)
+        use_dictionary_unpacking = has_expanded_kwargs(funcref)
 
         try:
             if isinstance(funcref, functools.partial):

@@ -1,6 +1,43 @@
 # Change Log
 
-## 4.5.13
+## 4.5.14
+
+**Features**
+
+- Transitioned project tooling to use [uv](https://docs.astral.sh/uv/)
+    - Dependency management with ``uv.lock`` instead of requirements.txt files.
+    - Dockerfile uses uv to install dependencies and run AppDaemon
+    - CI pipelines using GitHub Actions now use [`astral-sh/setup-uv`](https://github.com/astral-sh/setup-uv)
+    - VSCode tasks use uv to launch things.
+- Reworked CI pipeline
+    - `Build Documentation` runs directly whenever only docs files are changed.
+    - `Python CI` runs against all PRs and whenever python files get changed. Upon success completion:
+        - `Build Documentation` runs for tagged version commits, as well as `dev` branch
+        - `Build and Deploy Docker Image` runs for tagged version commits, as well as `dev` branch
+        - `PyPI Upload` runs for tagged version commits
+            - Runs the `functional` test group before uploading
+    - Stale issues no longer close after 15 days
+- Broke up the doc page on the AppDaemon internals into multiple pages and expanded content.
+- Added support for Python 3.14
+
+**Fixes**
+
+- Remove outdated references to `app_init_delay`
+- MQTT plugin: hand events from the paho thread to the event loop thread-safely, so they are no longer delayed until the loop next wakes
+- Reworked how the `pin_app` and `pin_thread` settings work their way through the internals, and added corresponding tests.
+- Add handling for empty POST request
+- Removed the unused `deepdiff` dependency (declared but never imported by AppDaemon).
+- The HASS plugin refreshes the service list once Home Assistant has started, so services registered during startup, such as `weather/get_forecasts`, work right away.
+
+**Breaking Changes**
+
+None
+
+**Changes in Behavior**
+
+None
+
+## 4.5.13 (2026-01-17)
 
 **Features**
 

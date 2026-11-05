@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING
 from pydantic import ValidationError
 
 from . import exceptions as ade
-from . import utils
 from .models.config.sequence import Sequence, SequenceConfig, SequenceStep, ServiceCallStep, SleepStep, SubSequenceStep, WaitStateStep
+from .utils.functools import warning_decorator
 
 if TYPE_CHECKING:
     from .appdaemon import AppDaemon
@@ -152,7 +152,7 @@ class Sequences:
                 if isinstance(future, asyncio.Task) and future.get_name() == sequence:
                     self.AD.futures.cancel_future(future)
 
-    @utils.warning_decorator(error_text="Unexpected error executing sequence")
+    @warning_decorator(error_text="Unexpected error executing sequence")
     async def _exec_seq(self, calling_app: str, namespace: str, entity_id: str, steps: list[SequenceStep], loop: bool = False):
         await self.set_state(entity_id, "active", _silent=True)
         try:

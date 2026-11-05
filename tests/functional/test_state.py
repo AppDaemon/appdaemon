@@ -1,35 +1,109 @@
 import asyncio
 import logging
 import uuid
-from time import perf_counter
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+from typing import cast
 
 import pytest
 from appdaemon.app_management import ManagedObject
+from appdaemon.utils.str import format_timedelta
 
-from .utils import AsyncTempTest
+from tests.conftest import ConfiguredAppDaemonFunc
 
 logger = logging.getLogger("AppDaemon._test")
+
+
+@dataclass
+class StateTestResult:
+    init_time: datetime
+    state_change_time: datetime | None
+    callback_time: datetime
+
+    @classmethod
+    def from_caplog(cls, caplog: pytest.LogCaptureFixture) -> "StateTestResult":
+        init_time, state_change_time, callback_time = None, None, None
+        for record in caplog.records:
+            match record:
+                case logging.LogRecord(created=float(created), msg="%s initialized"):
+                    init_time = datetime.fromtimestamp(created)
+                case logging.LogRecord(created=float(created), msg="Changing state of %s with kwargs: %s"):
+                    state_change_time = datetime.fromtimestamp(created)
+                case logging.LogRecord(created=float(created), msg="State callback executed successfully"):
+                    callback_time = datetime.fromtimestamp(created)
+
+        assert init_time is not None, "Initialization log time not found"
+        assert callback_time is not None, "Callback execution log time not found"
+
+        return cls(
+            init_time=init_time,
+            state_change_time=state_change_time,
+            callback_time=callback_time,
+        )
+
+    @property
+    def state_change_delay(self) -> timedelta | None:
+        match self.state_change_time:
+            case timedelta() as sct:
+                return sct - self.init_time
+
+    @property
+    def change_callback_delay(self) -> timedelta | None:
+        """Time between changing the state and the callback execution."""
+        match self.state_change_time:
+            case datetime() as sct:
+                return self.callback_time - sct
+
+    @property
+    def init_callback_delay(self) -> timedelta | None:
+        """Time between initializing the app and the callback execution."""
+        return self.callback_time - self.init_time
 
 
 @pytest.mark.ci
 @pytest.mark.functional
 class TestStateCallback:
-    """Class to group the various tests for state callbacks."""
+    """Class to group the various tests for state callbacks.
+
+    - Tests use state_test_app.StateTestApp as the app under test
+        App Args:
+            listen_kwargs: Keyword arguments for the state listener (e.g., filters)
+            state_kwargs: Keyword arguments for setting the state (e.g., new state value)
+            delay: Delay before changing the state (default: 0.1 seconds)
+    - Tests use `self._run_callback_test` for common logic
+        - Registers a callback for a certain state change
+        - Changes the state after a short delay
+        - Waits for the callback to set the async Event with a timeout
+    """
 
     app_name: str = "state_test_app"
-    timeout: int | float = 0.6
+    timeout: float = 0.6
 
-    async def _run_callback_test(self, run_app_for_time: AsyncTempTest, app_args: dict, sign: bool) -> None:
+    async def _run_callback_test(
+        self,
+        configured_appdaemon: ConfiguredAppDaemonFunc,
+        app_args: dict,
+        sign: bool
+    ) -> pytest.LogCaptureFixture:
         """Helper method to run callback tests with common logic.
 
         This method provides a shared test pattern for state callback testing where a callback
         is expected to either fire (sign=True) or not fire (sign=False) based on state matching.
         """
-        start = perf_counter()
-        async with run_app_for_time(self.app_name, **app_args) as (ad, caplog):
+        app_cfgs = {
+            self.app_name: {
+                "module": "state_test_app",
+                "class": "StateTestApp",
+                **app_args,
+            }
+        }
+
+        async with configured_appdaemon(app_cfgs=app_cfgs) as (ad, caplog):
+            await ad.utility.app_update_event.wait()
             match ad.app_management.objects.get(self.app_name):
                 case ManagedObject(object=app_obj):
-                    wait_coro = asyncio.wait_for(app_obj.execute_event.wait(), timeout=self.timeout)
+                    execute_event = cast(asyncio.Event, app_obj.execute_event)
+                    wait_coro = asyncio.wait_for(execute_event.wait(), timeout=self.timeout)
                     if sign:
                         await wait_coro
                         logger.debug("Callback execute event was set")
@@ -40,30 +114,32 @@ class TestStateCallback:
                         logger.debug("Callback execute event was not set")
                 case _:
                     raise ValueError("App object not found in app management")
-        logger.debug(f"Test completed in {perf_counter() - start:.3f} seconds")
+        return caplog
 
     @pytest.mark.parametrize("sign", [True, False])
     @pytest.mark.asyncio(loop_scope="session")
-    async def test_new_state_callback(self, run_app_for_time: AsyncTempTest, sign: bool) -> None:
+    async def test_new_state_callback(
+        self,
+        configured_appdaemon: ConfiguredAppDaemonFunc,
+        sign: bool
+    ) -> None:
         """Test the state callback filtering based on new state values.
 
         State callbacks should only be fired when the new state matches the filter criteria.
 
+        Args:
+            configured_appdaemon: Factory fixture for creating configured AppDaemon instances
+            sign: If True, the callback should fire (positive case); if False, it should not (negative case)
+
         Process:
-            - A unique value is generated for the new state. If the callback is supposed to fire (positive case),
-              then the same value is used for listening to the state change. Otherwise (negative case), a different, unique
-              value is used to listen for the state change, which will prevent the callback from executing.
-            - The unique state and listen values are passed to the app as args.
-            - The ``state_test_app`` app is run until a python :py:class:`~asyncio.Event` is set.
-            - The :py:class:`~asyncio.Event` is created when the app initializes.
-            - The app listens for the state change and then triggers it after a short delay, using the relevant kwargs for each.
-            - If the callback is executed, :py:class:`~asyncio.Event` is set.
+            - A unique value is generated for the new state
+            - If positive case, the same value is used for listening; if negative, a different value is used
+            - The app listens for the state change and triggers it after a short delay
+            - An Event is set if the callback executes
 
         Coverage:
-            - Positive
-                The new state value matches the listen filter, so the callback is executed.
-            - Negative
-                The new state value does not match the listen filter, so the callback is not executed.
+            - Positive: new state value matches the listen filter, callback executes
+            - Negative: new state value doesn't match the listen filter, callback doesn't execute
         """
         new_state = str(uuid.uuid4())
         listen_state = new_state if sign else str(uuid.uuid4())
@@ -71,92 +147,93 @@ class TestStateCallback:
             "listen_kwargs": {"new": listen_state},
             "state_kwargs": {"state": new_state},
         }
-        await self._run_callback_test(run_app_for_time, app_args, sign)
+        caplog = await self._run_callback_test(configured_appdaemon, app_args, sign)
+        if sign:
+            result = StateTestResult.from_caplog(caplog)
+            logger.info(format_timedelta(result.change_callback_delay))
 
     @pytest.mark.parametrize("sign", [True, False])
     @pytest.mark.asyncio(loop_scope="session")
-    async def test_old_state_callback(self, run_app_for_time: AsyncTempTest, sign: bool) -> None:
+    async def test_old_state_callback(
+        self,
+        configured_appdaemon: ConfiguredAppDaemonFunc,
+        sign: bool
+    ) -> None:
         """Test the state callback filtering based on old state values.
 
         State callbacks should only be fired when the old state matches the filter criteria.
 
+        Args:
+            configured_appdaemon: Factory fixture for creating configured AppDaemon instances
+            sign: If True, the callback should fire (positive case); if False, it should not (negative case)
+
         Process:
-            - A unique value is generated for the state. If the callback is supposed to fire (positive case),
-              then the same value is used for listening to the old state. Otherwise (negative case), a different, unique
-              value is used to listen for the old state, which will prevent the callback from executing.
-            - The unique state and listen values are passed to the app as args.
-            - The ``state_test_app`` app is run and the state is changed twice to trigger an old state condition.
-            - The app listens for the old state change and waits for the callback execution.
-            - If the callback is executed, :py:class:`~asyncio.Event` is set.
+            - A unique value is generated for the state
+            - If positive case, the same value is used for listening to old state; if negative, a different value is used
+            - The app changes state twice to trigger an old state condition
+            - An Event is set if the callback executes
 
         Coverage:
-            - Positive
-                The old state value matches the listen filter, so the callback is executed.
-            - Negative
-                The old state value does not match the listen filter, so the callback is not executed.
+            - Positive: old state value matches the listen filter, callback executes
+            - Negative: old state value doesn't match the listen filter, callback doesn't execute
         """
         new_state = str(uuid.uuid4())
-        listen_state = new_state if sign else str(uuid.uuid4())
+        listen_state = "initialized" if sign else str(uuid.uuid4())
         app_args = {
             "listen_kwargs": {"old": listen_state},
             "state_kwargs": {"state": new_state},
         }
-        async with run_app_for_time(self.app_name, **app_args) as (ad, caplog):
-            match ad.app_management.objects.get(self.app_name):
-                case ManagedObject(object=app_obj):
-                    app_obj.run_in(app_obj.test_change_state, delay=app_obj.delay * 2, state="abc")
-                    wait_coro = asyncio.wait_for(app_obj.execute_event.wait(), timeout=self.timeout * 2)
-                    if sign:
-                        await wait_coro
-                        logger.debug("Callback execute event was set")
-                    else:
-                        # We expect the timeout because the new state filter doesn't match
-                        with pytest.raises(asyncio.TimeoutError):
-                            await wait_coro
-                        logger.debug("Callback execute event was not set")
-                case _:
-                    raise ValueError("App object not found in app management")
+        caplog = await self._run_callback_test(configured_appdaemon, app_args, sign)
+        if sign:
+            result = StateTestResult.from_caplog(caplog)
+            logger.info(format_timedelta(result.change_callback_delay))
 
     @pytest.mark.parametrize("sign", [True, False])
     @pytest.mark.asyncio(loop_scope="session")
-    async def test_attribute_callback(self, run_app_for_time: AsyncTempTest, sign: bool) -> None:
+    async def test_attribute_callback(
+        self,
+        configured_appdaemon: ConfiguredAppDaemonFunc,
+        sign: bool
+    ) -> None:
         """Test the state callback filtering based on attribute values.
 
         State callbacks should only be fired when the specified attribute's new value matches the filter criteria.
 
+        Args:
+            configured_appdaemon: Factory fixture for creating configured AppDaemon instances
+            sign: If True, the callback should fire (positive case); if False, it should not (negative case)
+
         Process:
-            - A unique value is generated for the attribute. If the callback is supposed to fire (positive case),
-              then the same value is used for listening to the attribute change. Otherwise (negative case), a different,
-              unique value is used to listen for the attribute change, which will prevent the callback from executing.
-            - The unique attribute and listen values are passed to the app as args.
-            - The ``state_test_app`` app is run until a python :py:class:`~asyncio.Event` is set.
-            - The :py:class:`~asyncio.Event` is created when the app initializes.
-            - The app listens for the attribute change and then triggers a state change with the relevant attribute value.
-            - If the callback is executed, :py:class:`~asyncio.Event` is set.
+            - A unique value is generated for the attribute
+            - If positive case, the same value is used for listening to the attribute change; if negative, a different value is used
+            - The app listens for the attribute change and triggers a state change with the relevant attribute value
+            - An Event is set if the callback executes
 
         Coverage:
-            - Positive
-                The attribute's new value matches the listen filter, so the callback is executed.
-            - Negative
-                The attribute's new value does not match the listen filter, so the callback is not executed.
+            - Positive: attribute's new value matches the listen filter, callback executes
+            - Negative: attribute's new value doesn't match the listen filter, callback doesn't execute
         """
         new_state = str(uuid.uuid4())
         listen_state = new_state if sign else str(uuid.uuid4())
-        app_args = {"listen_kwargs": {"attribute": "test_attr", "new": listen_state}, "state_kwargs": {"state": "changed", "test_attr": new_state}}
-        await self._run_callback_test(run_app_for_time, app_args, sign)
+        app_args = {
+            "listen_kwargs": {"attribute": "test_attr", "new": listen_state},
+            "state_kwargs": {"state": "changed", "test_attr": new_state}
+        }
+        caplog = await self._run_callback_test(configured_appdaemon, app_args, sign)
+        if sign:
+            result = StateTestResult.from_caplog(caplog)
+            logger.info(format_timedelta(result.change_callback_delay))
 
     @pytest.mark.asyncio(loop_scope="session")
-    async def test_immediate_callback(self, run_app_for_time: AsyncTempTest) -> None:
+    async def test_immediate_callback(self, configured_appdaemon: ConfiguredAppDaemonFunc) -> None:
+        """Test that the immediate flag on state listeners triggers the callback upon registration.
+        """
+        # new_state = str(uuid.uuid4())
         app_args = {
-            "listen_kwargs": {
-                "new": "on",
-                "immediate": True,
-            },
+            "listen_kwargs": {"new": "initialized", "immediate": True},
+            # "state_kwargs": {"state": new_state},
         }
-        app_name = "test_immediate_state"
-        async with run_app_for_time(app_name, **app_args) as (ad, caplog):
-            match ad.app_management.objects.get(app_name):
-                case ManagedObject(object=app_obj):
-                    wait_coro = asyncio.wait_for(app_obj.execute_event.wait(), timeout=self.timeout)
-                    await wait_coro
-                    logger.debug("Callback execute event was set")
+        caplog = await self._run_callback_test(configured_appdaemon, app_args, sign=True)
+        result = StateTestResult.from_caplog(caplog)
+
+        assert result.init_callback_delay is not None

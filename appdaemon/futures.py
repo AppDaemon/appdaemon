@@ -1,10 +1,13 @@
+from __future__ import annotations
+
 import asyncio
 from collections import defaultdict
 from typing import TYPE_CHECKING
-from concurrent.futures import Future
 
 if TYPE_CHECKING:
-    from appdaemon.appdaemon import AppDaemon
+    from concurrent.futures import Future
+
+    from .appdaemon import AppDaemon
 
 
 class Futures:
@@ -13,7 +16,7 @@ class Futures:
 
     AD: "AppDaemon"
     """Reference to the top-level AppDaemon container object"""
-    futures: dict[str , list[asyncio.Future]]
+    futures: dict[str , list[asyncio.Future | Future]]
     """Dictionary of futures registered by app name"""
 
     def __init__(self, ad: "AppDaemon"):
@@ -37,7 +40,7 @@ class Futures:
             case _:
                 self.logger.debug(f"Registered a future for {app_name}: {future}")
 
-    def cancel_future(self, future: asyncio.Future):
+    def cancel_future(self, future: asyncio.Future | Future):
         if not future.done() and not future.cancelled():
             if isinstance(future, asyncio.Task):
                 self.logger.debug(f"Cancelling task {future.get_name()}")

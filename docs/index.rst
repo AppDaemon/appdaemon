@@ -74,7 +74,7 @@ Contents:
    DASHBOARD_CREATION
    WIDGETDEV
    DEV
-   INTERNALS
+   internals/index
    TESTING
    REST_STREAM_API
    UPGRADE_FROM_3.x

@@ -10,7 +10,7 @@ import astral
 import pytz
 from astral.location import Location
 
-from .types import TimeDeltaLike
+from appdaemon.types import TimeDeltaLike
 
 
 def normalize_tz(tz: tzinfo) -> tzinfo:
@@ -230,6 +230,12 @@ TIME_FORMATS = [
 ]
 
 DATACLASSES: list[type[ParsedTimeString]] = [Now, SunEvent, ElevationEvent]
+
+
+# Legacy function for backward compatibility
+def parse_timedelta_or_none(input_: str | int | float | timedelta | None) -> timedelta | None:
+    """Parse to timedelta, but return None if input is None."""
+    return parse_timedelta(input_) if input_ is not None else None
 
 
 def parse_timedelta(input_: TimeDeltaLike | None, total: timedelta | None = None) -> timedelta:

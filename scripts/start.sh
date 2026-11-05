@@ -1,9 +1,10 @@
-#!/bin/sh
+#!/usr/bin/env sh
 
 # Default configuration directory used at runtime
 CONF=/conf
 # Directory containing sample config files to copy from
-CONF_SRC=/usr/src/app/conf
+CONF_SRC=/opt/conf
+
 
 # if configuration file doesn't exist, copy the default
 if [ ! -f $CONF/appdaemon.yaml -a ! -f $CONF/appdaemon.toml ]; then
@@ -88,8 +89,12 @@ fi
 # - Pipe to xargs, printing the executed command (-t), invoking `apk add` with the list of required packages. Do nothing if no system_packages.txt files is present (--no-run-if-empty)
 find $CONF -name system_packages.txt -type f -not -empty -exec cat {} \; -exec echo -n " " \; | tr '\n' ' ' | xargs -t --no-run-if-empty apk add
 
+# Add all site-packages directories to PYTHONPATH to ensure Alpine packages are discoverable
+export PYTHONPATH="${PYTHONPATH}:$(find /usr/lib -name "site-packages" -type d | grep site-packages | sort -V | tr '\n' ':' | sed 's/:$//')"
+
 # Check recursively under $CONF directory for additional python dependencies defined by the end-user via requirements.txt
-find $CONF -name requirements.txt -type f -not -empty -exec pip3 install --upgrade -r {} \;
+# find $CONF -name requirements.txt -type f -not -empty -exec pip3 install --disable-pip-version-check --root-user-action ignore --upgrade -r {} \;
+find $CONF -name requirements.txt -type f -not -empty -exec uv pip install --upgrade -r {} \;
 
 # Lets run it!
-exec python3 -m appdaemon -c $CONF "$@"
+exec uv run --frozen appdaemon -c $CONF "$@"

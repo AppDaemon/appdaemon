@@ -1,14 +1,17 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
       - id: end-of-file-fixer
       - id: trailing-whitespace
-  - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: 'v0.6.4'
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.13
     hooks:
-      - id: ruff
-        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-check
+        types_or: [ python, pyi ]
+        args: [--fix-only, --exit-non-zero-on-fix]
+      # - id: ruff-format
+      #   types_or: [ python, pyi ]
   - repo: https://github.com/codespell-project/codespell
     # Configuration for codespell is in pyproject.toml
     rev: v2.4.1
@@ -16,3 +19,9 @@ repos:
     - id: codespell
       additional_dependencies:
       - tomli
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    # uv version.
+    rev: 0.9.26
+    hooks:
+      # Update the uv lockfile
+      - id: uv-lock

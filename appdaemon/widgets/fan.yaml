@@ -1,7 +1,7 @@
 widget_type: basefan
 entity: "{{entity}}"
 post_service_speed:
-    service: fan/set_speed
+    service: fan/set_percentage
     entity_id: "{{entity}}"
 post_service_active:
     service: fan/turn_on
@@ -19,9 +19,9 @@ fields:
   icon1: ""
   icon2: ""
   icon3: ""
-  low_speed: "low"
-  medium_speed: "medium"
-  high_speed: "high"
+  low_speed: 33
+  medium_speed: 66
+  high_speed: 100
 icons:
   icon_active: $fan_icon_on
   icon_inactive: $fan_icon_off

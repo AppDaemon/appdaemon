@@ -7,12 +7,12 @@ from copy import deepcopy
 from logging import Logger
 from typing import TYPE_CHECKING, Any, Protocol
 
-import appdaemon.utils as utils
-
 from .plugin_management import PluginBase
+from .utils import parse
+from .utils.functools import _sanitize_kwargs
 
 if TYPE_CHECKING:
-    from appdaemon.appdaemon import AppDaemon
+    from .appdaemon import AppDaemon
 
 
 class EventCallback(Protocol):
@@ -43,7 +43,7 @@ class Events:
         oneshot: bool = False,
         pin: bool | None = None,
         pin_thread: int | None = None,
-        kwargs: dict[str, Any] = None, # Intentionally not expanding the kwargs here so that there are no name clashes
+        kwargs: dict[str, Any] | None = None, # Intentionally not expanding the kwargs here so that there are no name clashes
     ) -> str | list[str] | None:
         """Add an event callback to AppDaemon's internal dicts.
 
@@ -67,6 +67,9 @@ class Events:
         Returns:
             ``None`` or the reference to the callback handle.
         """
+        # Create the default kwargs dict
+        kwargs = {} if kwargs is None else kwargs
+
         if oneshot: # this is still a little awkward, but it works until this can be refactored
             # This needs to be in the kwargs dict here that gets passed around later, so that the dispatcher knows to
             # cancel the callback after the first run.
@@ -92,7 +95,7 @@ class Events:
 
         # Automatically cancel the callback after a timeout
         if timeout is not None:
-            exec_time = await self.AD.sched.get_now() + utils.parse_timedelta(timeout)
+            exec_time = await self.AD.sched.get_now() + parse.parse_timedelta(timeout)
             kwargs["__timeout"] = await self.AD.sched.insert_schedule(
                 name=name,
                 aware_dt=exec_time,
@@ -261,6 +264,15 @@ class Events:
             #
 
             if self.AD.http is not None:
+                # Short-circuit when nobody is subscribed to /stream. The
+                # deepcopy below exists only to feed stream_update, and
+                # ADStream.process_event is itself a no-op when handlers
+                # is empty. When no clients are connected this branch was
+                # the dominant CPU cost in our deployment.
+                stream = getattr(self.AD.http, "stream", None)
+                if stream is not None and not stream.handlers:
+                    return
+
                 if data["event_type"] == "state_changed":
                     if data["data"]["new_state"] == data["data"]["old_state"]:
                         # Nothing changed so don't send
@@ -407,4 +419,4 @@ class Events:
     @staticmethod
     def sanitize_event_kwargs(app, kwargs):
         kwargs_copy = kwargs.copy()
-        return utils._sanitize_kwargs(kwargs_copy, ["__silent", "pin_app"])
+        return _sanitize_kwargs(kwargs_copy, ["__silent", "pin_app"])

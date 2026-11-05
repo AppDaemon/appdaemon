@@ -130,9 +130,9 @@ class UpdateActions:
 class ManagedObject:
     type: Literal["app", "plugin", "sequence"]
     object: Any
+    pin_app: bool
     id: str = field(default_factory=lambda: uuid.uuid4().hex)
     module_path: Path | None = None
-    pin_app: bool | None = None
     pin_thread: int | None = None
     running: bool = False
     callback_counter: int = 0

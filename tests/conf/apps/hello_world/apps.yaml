@@ -1,8 +1,0 @@
-hello_world:
-  module: hello
-  class: HelloWorld
-
-another_app:
-  module: hello
-  class: HelloWorld
-  my_kwarg: "asdf"

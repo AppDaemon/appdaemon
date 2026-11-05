@@ -1,61 +1,8 @@
-from enum import Enum
-
 from appdaemon.adapi import ADAPI
+from appdaemon.utils.str import format_timedelta
 
 
-class SchedulerTestAppMode(str, Enum):
-    """Enum for different modes of the SchedulerTestApp."""
-
-    RUN_EVERY = "run_every"
-    RUN_IN = "run_in"
-
-
-class SchedulerTestApp(ADAPI):
-    """
-    A test app to verify scheduler functionality.
-
-    Configuration Args:
-        mode (str, optional): The mode of operation. Defaults to 'run_every'.
-        register_delay (float, optional): Delay before setup in seconds. Defaults to 0.5.
-
-    RUN_EVERY:
-        interval (int): Interval in seconds for run_every. Required.
-        msg (str): Message to pass to callback. Required.
-        start (str, optional): Start time description. Defaults to "now".
-    """
-    def initialize(self):
-        self.set_log_level("DEBUG")
-        self.log("SchedulerTestApp initialized")
-        self.set_namespace("test")
-        self.run_in(self.setup_callback, delay=self.register_delay)
-
-    def setup_callback(self, **kwargs) -> None:
-        self.log(f"Running in {self.mode} mode")
-        match self.mode:
-            case SchedulerTestAppMode.RUN_EVERY:
-                match self.args:
-                    case {"interval": interval, "msg": str(msg)}:
-                        start = self.args.get("start", "now")
-                        self.run_every(self.run_every_callback, start=start, interval=interval, msg=msg)
-                        return
-            case SchedulerTestAppMode.RUN_IN:
-                pass
-        raise ValueError(f"Invalid arguments for {self.mode}")
-
-    @property
-    def mode(self) -> SchedulerTestAppMode:
-        return SchedulerTestAppMode(self.args.get("mode", SchedulerTestAppMode.RUN_EVERY))
-
-    @property
-    def register_delay(self) -> float:
-        return self.args.get("register_delay", 0.5)
-
-    def run_every_callback(self, **kwargs) -> None:
-        """Callback function for run_every."""
-        self.log(f"Run every callback executed with kwargs: {kwargs}")
-
-
-class TestSchedulerRunIn(ADAPI):
+class RunInTestApp(ADAPI):
     """A test app to verify run_in functionality."""
 
     def initialize(self):
@@ -86,12 +33,44 @@ class TestSchedulerRunIn(ADAPI):
         self.logger.info("Run in callback executed with kwargs: %s", kwargs)
 
 
+class RunEveryTestApp(ADAPI):
+    """
+    A test app to verify scheduler functionality.
+
+    Configuration Args:
+        start (str, optional): Start time description. Defaults to "now".
+        interval (int): Interval in seconds for run_every. Required.
+        msg (str): Message to pass to callback. Required.
+    """
+    def initialize(self):
+        self.set_log_level("DEBUG")
+        self.logger.info("%s initialized",self.__class__.__name__)
+        self.set_namespace("test")
+
+        match self.args:
+            case {"interval": interval, "msg": str(msg)}:
+                self.logger.info("Registering callbacks every %s", format_timedelta(interval))
+                self.run_every(
+                    self.run_every_callback,
+                    interval=interval,
+                    msg=msg,
+                    start=self.args.get("start", "now"),
+                    pin=self.args.get('cb_pin_app'),
+                    pin_thread=self.args.get('cb_pin_thread')
+                )
+                return
+        raise ValueError("Invalid arguments for run_every")
+
+    def run_every_callback(self, **kwargs) -> None:
+        """Callback function for run_every."""
+        self.logger.info("Run every callback executed with kwargs: %s", kwargs)
+
+
 class TestSchedulerRunDaily(ADAPI):
     """A test app to verify run_daily functionality."""
 
     def initialize(self):
         self.set_log_level("DEBUG")
-        self.set_namespace("test")
         self.run_daily(self.scheduled_callback, self.timing)
         self.logger.info(f"{self.__class__.__name__} initialized")
 
@@ -102,4 +81,5 @@ class TestSchedulerRunDaily(ADAPI):
 
     def scheduled_callback(self, **kwargs) -> None:
         """Callback function for run_daily."""
+        self.logger.info("Executed scheduled callback")
         self.logger.info("Run daily callback executed with kwargs: %s", kwargs)

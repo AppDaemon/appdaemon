@@ -14,17 +14,20 @@ from logging import Logger
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, TypeVar, overload
 
-from appdaemon import dependency, utils
-from appdaemon import exceptions as ade
-from appdaemon.appdaemon import AppDaemon
-from appdaemon.entity import Entity
-from appdaemon.events import EventCallback
-from appdaemon.logging import Logging
-from appdaemon.models.config.app import AppConfig
-from appdaemon.parse import resolve_time_str
-from appdaemon.state import StateCallbackType
-
+from . import dependency
+from . import exceptions as ade
+from .appdaemon import AppDaemon
+from .entity import Entity
+from .events import EventCallback
+from .logging import Logging
+from .models.config.app import AppConfig
+from .state import StateCallbackType
 from .types import TimeDeltaLike
+from .utils import parse
+from .utils.state import ADWritebackType
+from .utils.str import format_seconds, format_timedelta
+from .utils.threading import sync_decorator
+from .version import __version__
 
 T = TypeVar("T")
 
@@ -101,14 +104,21 @@ class ADAPI:
     @staticmethod
     def _sub_stack(msg):
         # If msg is a data structure of some type, don't sub
-        if isinstance(msg, str):
-            stack = inspect.stack()
-            if msg.find("__module__") != -1:
-                msg = msg.replace("__module__", stack[2][1])
-            if msg.find("__line__") != -1:
-                msg = msg.replace("__line__", str(stack[2][2]))
-            if msg.find("__function__") != -1:
-                msg = msg.replace("__function__", stack[2][3])
+        if not isinstance(msg, str):
+            return msg
+        # Fast path: avoid the expensive inspect.stack() call (which walks
+        # every frame and reads source lines via linecache) when no
+        # placeholders are present. The vast majority of log calls do not
+        # use __module__/__line__/__function__ substitution.
+        if "__module__" not in msg and "__line__" not in msg and "__function__" not in msg:
+            return msg
+        stack = inspect.stack()
+        if "__module__" in msg:
+            msg = msg.replace("__module__", stack[2][1])
+        if "__line__" in msg:
+            msg = msg.replace("__line__", str(stack[2][2]))
+        if "__function__" in msg:
+            msg = msg.replace("__function__", stack[2][3])
         return msg
 
     def _get_namespace(self, **kwargs):
@@ -347,7 +357,7 @@ class ADAPI:
             **kwargs,
         )
 
-    @utils.sync_decorator
+    @sync_decorator
     async def listen_log(
         self,
         callback: Callable,
@@ -407,7 +417,7 @@ class ADAPI:
             **kwargs,
         )
 
-    @utils.sync_decorator
+    @sync_decorator
     async def cancel_listen_log(self, handle: str) -> None:
         """Cancels the log callback for the App.
 
@@ -519,7 +529,7 @@ class ADAPI:
     # Threading
     #
 
-    @utils.sync_decorator
+    @sync_decorator
     async def set_app_pin(self, pin: bool) -> None:
         """Sets an App to be pinned or unpinned.
 
@@ -537,7 +547,7 @@ class ADAPI:
         """
         self.AD.app_management.set_app_pin(self.name, pin)
 
-    @utils.sync_decorator
+    @sync_decorator
     async def get_app_pin(self) -> bool:
         """Finds out if the current App is currently pinned or not.
 
@@ -551,7 +561,7 @@ class ADAPI:
         """
         return self.AD.app_management.get_app_pin(self.name)
 
-    @utils.sync_decorator
+    @sync_decorator
     async def set_pin_thread(self, thread: int) -> None:
         """Sets the thread that the App will be pinned to.
 
@@ -570,7 +580,7 @@ class ADAPI:
         """
         self.AD.app_management.set_pin_thread(self.name, thread)
 
-    @utils.sync_decorator
+    @sync_decorator
     async def get_pin_thread(self) -> int:
         """Finds out which thread the App is pinned to.
 
@@ -591,7 +601,7 @@ class ADAPI:
     def set_namespace(
         self,
         namespace: str,
-        writeback: Literal["safe", "hybrid"] | utils.ADWritebackType = "safe",
+        writeback: Literal["safe", "hybrid"] | ADWritebackType = "safe",
         persist: bool = True,
     ) -> None:
         """Set the current namespace of the app.
@@ -621,11 +631,7 @@ class ADAPI:
             >>> self.set_namespace("in_memory", persist=False)
         """
         if not self.namespace_exists(namespace):
-            self.add_namespace(
-                namespace=namespace,
-                writeback=utils.ADWritebackType(writeback),
-                persist=persist
-            )
+            self.add_namespace(namespace=namespace, writeback=ADWritebackType(writeback), persist=persist)
         self.namespace = namespace
 
     def get_namespace(self) -> str:
@@ -636,7 +642,7 @@ class ADAPI:
         # Keeping namespace get/set functions for legacy compatibility
         return self.namespace
 
-    @utils.sync_decorator
+    @sync_decorator
     async def namespace_exists(self, namespace: str) -> bool:
         """Check for the existence of a namespace.
 
@@ -650,11 +656,11 @@ class ADAPI:
         """
         return self.AD.state.namespace_exists(namespace)
 
-    @utils.sync_decorator
+    @sync_decorator
     async def add_namespace(
         self,
         namespace: str,
-        writeback: Literal["safe", "hybrid"] | utils.ADWritebackType = "safe",
+        writeback: Literal["safe", "hybrid"] | ADWritebackType = "safe",
         persist: bool = True,
     ) -> str | None:
         """Add a user-defined namespace.
@@ -681,18 +687,13 @@ class ADAPI:
 
             >>> self.add_namespace("in_memory", persist=False)
         """
-        match await self.AD.state.add_namespace(
-            namespace,
-            utils.ADWritebackType(writeback),
-            persist,
-            self.name
-        ):
+        match await self.AD.state.add_namespace(namespace, ADWritebackType(writeback), persist, self.name):
             case Path() as ns_path:
                 return str(ns_path)
             case False | None:
                 return None
 
-    @utils.sync_decorator
+    @sync_decorator
     async def remove_namespace(self, namespace: str) -> dict[str, Any] | None:
         """Remove a user-defined namespace, which has a database file associated with it.
 
@@ -715,7 +716,7 @@ class ADAPI:
 
         return await self.AD.state.remove_namespace(namespace)
 
-    @utils.sync_decorator
+    @sync_decorator
     async def list_namespaces(self) -> list[str]:
         """Get a list of all the namespaces in AppDaemon.
 
@@ -725,7 +726,7 @@ class ADAPI:
         """
         return self.AD.state.list_namespaces()
 
-    @utils.sync_decorator
+    @sync_decorator
     async def save_namespace(self, namespace: str | None = None) -> bool:
         """Saves the given state namespace to its corresponding file.
 
@@ -747,7 +748,7 @@ class ADAPI:
     # Utility
     #
 
-    @utils.sync_decorator
+    @sync_decorator
     async def get_app(self, name: str) -> "ADAPI":
         """Gets the instantiated object of another app running within the system.
 
@@ -784,13 +785,13 @@ class ADAPI:
             >>> version = self.get_ad_version()
 
         """
-        return utils.__version__
+        return __version__
 
     #
     # Entity
     #
 
-    @utils.sync_decorator
+    @sync_decorator
     async def add_entity(
         self,
         entity_id: str,
@@ -827,7 +828,7 @@ class ADAPI:
         namespace = namespace if namespace is not None else self.namespace
         return await self.AD.state.add_entity(namespace, entity_id, state, attributes)
 
-    @utils.sync_decorator
+    @sync_decorator
     async def entity_exists(self, entity_id: str, namespace: str | None = None) -> bool:
         """Checks the existence of an entity in AD.
 
@@ -860,7 +861,7 @@ class ADAPI:
         namespace = namespace if namespace is not None else self.namespace
         return self.AD.state.entity_exists(namespace, entity_id)
 
-    @utils.sync_decorator
+    @sync_decorator
     async def split_entity(self, entity_id: str, namespace: str | None = None) -> list:
         """Splits an entity into parts.
 
@@ -888,7 +889,7 @@ class ADAPI:
         self._check_entity(namespace, entity_id)
         return entity_id.split(".")
 
-    @utils.sync_decorator
+    @sync_decorator
     async def remove_entity(self, entity_id: str, namespace: str | None = None) -> None:
         """Deletes an entity created within a namespaces.
 
@@ -939,7 +940,7 @@ class ADAPI:
         """
         return devices.split(",")
 
-    @utils.sync_decorator
+    @sync_decorator
     async def get_plugin_config(self, namespace: str | None = None) -> Any:
         """Gets any useful metadata that the plugin may have available.
 
@@ -962,7 +963,7 @@ class ADAPI:
         namespace = namespace if namespace is not None else self.namespace
         return self.AD.plugins.get_plugin_meta(namespace)
 
-    @utils.sync_decorator
+    @sync_decorator
     async def friendly_name(self, entity_id: str, namespace: str | None = None) -> str | None:
         """Gets the Friendly Name of an entity.
 
@@ -993,7 +994,7 @@ class ADAPI:
             copy=False,
         )  # fmt: skip
 
-    @utils.sync_decorator
+    @sync_decorator
     async def set_production_mode(self, mode: bool = True) -> bool | None:
         """Deactivates or activates the production mode in AppDaemon.
 
@@ -1272,7 +1273,7 @@ class ADAPI:
     # API
     #
 
-    @utils.sync_decorator
+    @sync_decorator
     async def register_endpoint(
         self,
         callback: Callable[[Any, dict], Any],
@@ -1320,7 +1321,7 @@ class ADAPI:
             )
             return None
 
-    @utils.sync_decorator
+    @sync_decorator
     async def deregister_endpoint(self, handle: str) -> None:
         """Removes a previously registered endpoint.
 
@@ -1340,7 +1341,7 @@ class ADAPI:
     # Web Route
     #
 
-    @utils.sync_decorator
+    @sync_decorator
     async def register_route(
         self,
         callback: Callable[[Any, dict], Any],
@@ -1385,7 +1386,7 @@ class ADAPI:
             self.logger.warning("register_route for %s filed - HTTP component is not configured", route)
             return None
 
-    @utils.sync_decorator
+    @sync_decorator
     async def deregister_route(self, handle: str) -> None:
         """Removes a previously registered app route.
 
@@ -1406,7 +1407,7 @@ class ADAPI:
     #
 
     @overload  # single entity
-    @utils.sync_decorator
+    @sync_decorator
     async def listen_state(
         self,
         callback: StateCallbackType,
@@ -1425,7 +1426,7 @@ class ADAPI:
     ) -> str: ...
 
     @overload  # multiple entities
-    @utils.sync_decorator
+    @sync_decorator
     async def listen_state(
         self,
         callback: StateCallbackType,
@@ -1443,7 +1444,7 @@ class ADAPI:
         **kwargs: Any,
     ) -> list[str]: ...
 
-    @utils.sync_decorator
+    @sync_decorator
     async def listen_state(
         self,
         callback: StateCallbackType,
@@ -1616,7 +1617,7 @@ class ADAPI:
                     self._check_entity(namespace, e)
                 return [await add_callback(entity=e) for e in entity_id]
 
-    @utils.sync_decorator
+    @sync_decorator
     async def cancel_listen_state(self, handle: str, name: str | None = None, silent: bool = False) -> bool:
         """Cancel a ``listen_state()`` callback.
 
@@ -1643,7 +1644,7 @@ class ADAPI:
         self.logger.debug("Canceling listen_state for %s", name)
         return bool(await self.AD.state.cancel_state_callback(handle=handle, name=name, silent=silent))
 
-    @utils.sync_decorator
+    @sync_decorator
     async def info_listen_state(self, handle: str, name: str | None = None) -> tuple[str, str, Any, dict[str, Any]]:
         """Get information on state a callback from its handle.
 
@@ -1664,7 +1665,7 @@ class ADAPI:
         self.logger.debug("Calling info_listen_state for %s", name)
         return await self.AD.state.info_state_callback(handle=handle, name=name)
 
-    @utils.sync_decorator
+    @sync_decorator
     async def get_state(
         self,
         entity_id: str | None = None,
@@ -1741,7 +1742,7 @@ class ADAPI:
             copy=copy,
         )
 
-    @utils.sync_decorator
+    @sync_decorator
     async def set_state(
         self,
         entity_id: str,
@@ -1922,12 +1923,12 @@ class ADAPI:
         self.logger.debug("list_services: %s", namespace)
         return self.AD.services.list_services(namespace)
 
-    @utils.sync_decorator
+    @sync_decorator
     async def call_service(
         self,
         service: str,
         namespace: str | None = None,
-        timeout: str | int | float | None = -1,  # Used by utils.sync_decorator
+        timeout: str | int | float | None = -1,  # Used by sync_decorator
         callback: Callable[[Any], Any] | None = None,
         **data: Any,
     ) -> Any:
@@ -2015,7 +2016,7 @@ class ADAPI:
                     for e in eid:
                         self._check_entity(namespace, e)
 
-        if timeout != -1:
+        if timeout not in (-1, None):
             data["timeout"] = timeout
 
         domain, service_name = service.split("/", 2)
@@ -2028,7 +2029,7 @@ class ADAPI:
 
     # Sequences
 
-    @utils.sync_decorator
+    @sync_decorator
     async def run_sequence(self, sequence: str | list[dict[str, dict[str, str]]], namespace: str | None = None) -> Any:
         """Run an AppDaemon Sequence.
 
@@ -2072,7 +2073,7 @@ class ADAPI:
             new_exc = ade.SequenceExecutionFail(f"run_sequence() failed from app '{self.name}'")
             raise new_exc from e
 
-    @utils.sync_decorator
+    @sync_decorator
     async def cancel_sequence(self, sequence: str | list[str] | Future) -> None:
         """Cancel an already running AppDaemon Sequence.
 
@@ -2096,7 +2097,7 @@ class ADAPI:
     #
 
     @overload
-    @utils.sync_decorator
+    @sync_decorator
     async def listen_event(
         self,
         callback: EventCallback,
@@ -2111,7 +2112,7 @@ class ADAPI:
     ) -> str: ...
 
     @overload
-    @utils.sync_decorator
+    @sync_decorator
     async def listen_event(
         self,
         callback: EventCallback,
@@ -2125,7 +2126,7 @@ class ADAPI:
         **kwargs: Any | Callable[[Any], bool],
     ) -> list[str]: ...
 
-    @utils.sync_decorator
+    @sync_decorator
     async def listen_event(
         self,
         callback: EventCallback,
@@ -2228,14 +2229,14 @@ class ADAPI:
                 self.logger.warning(f"Invalid event: {event}")
 
     @overload
-    @utils.sync_decorator
+    @sync_decorator
     async def cancel_listen_event(self, handle: str, *, silent: bool = False) -> bool: ...
 
     @overload
-    @utils.sync_decorator
+    @sync_decorator
     async def cancel_listen_event(self, handle: Iterable[str], *, silent: bool = False) -> dict[str, bool]: ...
 
-    @utils.sync_decorator
+    @sync_decorator
     async def cancel_listen_event(self, handle: str | Iterable[str], *, silent: bool = False) -> bool | dict[str, bool]:
         """Cancel a callback for a specific event.
 
@@ -2273,7 +2274,7 @@ class ADAPI:
                 self.logger.warning(f"Invalid handle: {handle}")
                 return False
 
-    @utils.sync_decorator
+    @sync_decorator
     async def info_listen_event(self, handle: str) -> bool:
         """Gets information on an event callback from its handle.
 
@@ -2290,12 +2291,12 @@ class ADAPI:
         self.logger.debug("Calling info_listen_event for %s", self.name)
         return await self.AD.events.info_event_callback(self.name, handle)
 
-    @utils.sync_decorator
+    @sync_decorator
     async def fire_event(
         self,
         event: str,
         namespace: str | None = None,
-        timeout: TimeDeltaLike | None = -1,  # Used by utils.sync_decorator
+        timeout: TimeDeltaLike | None = -1,  # Used by sync_decorator
         **kwargs,
     ) -> None:
         """Fires an event on the AppDaemon bus, for apps and plugins.
@@ -2316,9 +2317,9 @@ class ADAPI:
 
         """
         # The event might need the timeout argument passed through
-        if timeout != -1: # Only pass through valid values, which includes None
+        if timeout != -1:  # Only pass through valid values, which includes None
             # Convert to float if it's not None
-            timeout = utils.parse_timedelta(timeout).total_seconds() if timeout is not None else timeout
+            timeout = parse.parse_timedelta(timeout).total_seconds() if timeout is not None else timeout
             kwargs["timeout"] = timeout
         namespace = namespace if namespace is not None else self.namespace
         await self.AD.events.fire_event(namespace, event, **kwargs)
@@ -2340,9 +2341,7 @@ class ADAPI:
         nums = list(
             map(
                 int,
-                re.split(r"[^\d]", utc_string)[
-                    :-1
-                ],  # split by anything that's not a number and skip the last part for AM/PM
+                re.split(r"[^\d]", utc_string)[:-1],  # split by anything that's not a number and skip the last part for AM/PM
             ),
         )[:7]  # Use a max of 7 parts
         return dt.datetime(*nums).timestamp() + self.get_tz_offset() * 60
@@ -2368,7 +2367,7 @@ class ADAPI:
         """
         return dt.datetime.fromisoformat(utc).astimezone(self.AD.tz)
 
-    @utils.sync_decorator
+    @sync_decorator
     async def sun_up(self) -> bool:
         """Determines if the sun is currently up.
 
@@ -2382,7 +2381,7 @@ class ADAPI:
         """
         return await self.AD.sched.sun_up()
 
-    @utils.sync_decorator
+    @sync_decorator
     async def sun_down(self) -> bool:
         """Determines if the sun is currently down.
 
@@ -2396,7 +2395,7 @@ class ADAPI:
         """
         return await self.AD.sched.sun_down()
 
-    @utils.sync_decorator
+    @sync_decorator
     async def parse_time(
         self,
         time_str: str,
@@ -2458,7 +2457,7 @@ class ADAPI:
             days_offset=days_offset,
         )
 
-    @utils.sync_decorator
+    @sync_decorator
     async def parse_datetime(
         self,
         time_str: str,
@@ -2522,7 +2521,7 @@ class ADAPI:
             days_offset=days_offset,
         )
 
-    @utils.sync_decorator
+    @sync_decorator
     async def get_now(self, aware: bool = True) -> dt.datetime:
         """Returns the current Local Date and Time.
 
@@ -2534,7 +2533,7 @@ class ADAPI:
         now = await self.AD.sched.get_now()
         return now.astimezone(self.AD.tz) if aware else self.AD.sched.make_naive(now)
 
-    @utils.sync_decorator
+    @sync_decorator
     async def get_now_ts(self, aware: bool = False) -> float:
         """Returns the current Local Timestamp.
 
@@ -2545,7 +2544,7 @@ class ADAPI:
         """
         return (await self.get_now(aware)).timestamp()
 
-    @utils.sync_decorator
+    @sync_decorator
     async def now_is_between(
         self,
         start_time: str | dt.time | dt.datetime,
@@ -2589,7 +2588,7 @@ class ADAPI:
         """
         return await self.AD.sched.now_is_between(start_time=start_time, end_time=end_time, now=now)
 
-    @utils.sync_decorator
+    @sync_decorator
     async def sunrise(self, aware: bool = False, today: bool = False, days_offset: int = 0) -> dt.datetime:
         """Return a `datetime` object that represent when a sunrise will occur.
 
@@ -2611,7 +2610,7 @@ class ADAPI:
         """
         return await self.AD.sched.sunrise(aware, today, days_offset)
 
-    @utils.sync_decorator
+    @sync_decorator
     async def sunset(self, aware: bool = False, today: bool = False, days_offset: int = 0) -> dt.datetime:
         """Return a `datetime` object that represent when a sunset will occur.
 
@@ -2633,7 +2632,7 @@ class ADAPI:
         """
         return await self.AD.sched.sunset(aware, today, days_offset)
 
-    @utils.sync_decorator
+    @sync_decorator
     async def datetime(self, aware: bool = False) -> dt.datetime:
         """Get a ``datetime`` object representing the current local date and time.
 
@@ -2650,7 +2649,7 @@ class ADAPI:
         """
         return await self.get_now(aware=aware)
 
-    @utils.sync_decorator
+    @sync_decorator
     async def time(self) -> dt.time:
         """Get a ``time`` object representing the current local time.
 
@@ -2664,7 +2663,7 @@ class ADAPI:
         """
         return (await self.get_now(aware=True)).time()
 
-    @utils.sync_decorator
+    @sync_decorator
     async def date(self) -> dt.date:
         """Get a ``date`` object representing the current local date.
 
@@ -2678,7 +2677,7 @@ class ADAPI:
         """
         return (await self.get_now(aware=True)).date()
 
-    def get_timezone(self) -> str:
+    def get_timezone(self) -> dt.tzinfo:
         """Returns the current time zone."""
         return self.AD.time_zone
 
@@ -2686,7 +2685,7 @@ class ADAPI:
     # Scheduler
     #
 
-    @utils.sync_decorator
+    @sync_decorator
     async def timer_running(self, handle: str) -> bool:
         """Check if a previously created timer is still running.
 
@@ -2705,7 +2704,7 @@ class ADAPI:
         self.logger.debug("Checking timer with handle %s for %s", handle, self.name)
         return self.AD.sched.timer_running(name, handle)
 
-    @utils.sync_decorator
+    @sync_decorator
     async def cancel_timer(self, handle: str, silent: bool = False) -> bool:
         """Cancel a previously created timer.
 
@@ -2727,7 +2726,7 @@ class ADAPI:
         self.logger.debug("Canceling timer with handle %s for %s", handle, self.name)
         return await self.AD.sched.cancel_timer(self.name, handle, silent)
 
-    @utils.sync_decorator
+    @sync_decorator
     async def reset_timer(self, handle: str) -> bool:
         """Reset a previously created timer.
 
@@ -2747,7 +2746,7 @@ class ADAPI:
         self.logger.debug("Resetting timer with handle %s for %s", handle, self.name)
         return await self.AD.sched.reset_timer(self.name, handle)
 
-    @utils.sync_decorator
+    @sync_decorator
     async def info_timer(self, handle: str) -> tuple[dt.datetime, float, dict] | None:
         """Get information about a previously created timer.
 
@@ -2771,7 +2770,7 @@ class ADAPI:
             return time, interval.total_seconds(), kwargs
         return None
 
-    @utils.sync_decorator
+    @sync_decorator
     async def run_in(
         self,
         callback: Callable,
@@ -2822,21 +2821,21 @@ class ADAPI:
 
 
         """
-        delay = utils.parse_timedelta(delay)
-        self.logger.debug(f"Registering run_in in {utils.format_timedelta(delay)} for {self.name}")
+        delay = parse.parse_timedelta(delay)
+        self.logger.debug(f"Registering run_in in {format_timedelta(delay)} for {self.name}")
         exec_time = (await self.get_now()) + delay
         sched_func = functools.partial(callback, *args, **kwargs)
         return await self.AD.sched.insert_schedule(
             name=self.name,
             aware_dt=exec_time,
             callback=sched_func,
-            random_start=utils.parse_timedelta_or_none(random_start),
-            random_end=utils.parse_timedelta_or_none(random_end),
+            random_start=parse.parse_timedelta_or_none(random_start),
+            random_end=parse.parse_timedelta_or_none(random_end),
             pin=pin,
             pin_thread=pin_thread,
         )
 
-    @utils.sync_decorator
+    @sync_decorator
     async def run_once(
         self,
         callback: Callable,
@@ -2906,7 +2905,7 @@ class ADAPI:
             **kwargs,
         )
 
-    @utils.sync_decorator
+    @sync_decorator
     async def run_at(
         self,
         callback: Callable,
@@ -2966,8 +2965,8 @@ class ADAPI:
 
         """
         start = "now" if start is None else start
-        random_start_td = utils.parse_timedelta_or_none(random_start)
-        random_end_td = utils.parse_timedelta_or_none(random_end)
+        random_start_td = parse.parse_timedelta_or_none(random_start)
+        random_end_td = parse.parse_timedelta_or_none(random_end)
 
         match start:
             case str() as start_str if start.startswith("sun"):
@@ -2978,8 +2977,8 @@ class ADAPI:
                 else:
                     raise ValueError(f"Invalid sun event: {start_str}")
 
-                now = await self.get_now() # type: ignore
-                _, offset = resolve_time_str(start_str, now=now, location=self.AD.sched.location)
+                now = await self.get_now()  # type: ignore
+                _, offset = parse.resolve_time_str(start_str, now=now, location=self.AD.sched.location)
                 func = functools.partial(func, *args, repeat=True, offset=offset)
             case _:
                 # For run_at, always schedule for the next occurrence (today=False)
@@ -3002,7 +3001,7 @@ class ADAPI:
         )
         return await func()  # type: ignore
 
-    @utils.sync_decorator
+    @sync_decorator
     async def run_daily(
         self,
         callback: Callable,
@@ -3072,8 +3071,8 @@ class ADAPI:
                 else:
                     raise ValueError(f"Invalid sun event: {start_str}")
 
-                now = await self.get_now() # type: ignore
-                _, offset = resolve_time_str(start_str, now=now, location=self.AD.sched.location)
+                now = await self.get_now()  # type: ignore
+                _, offset = parse.resolve_time_str(start_str, now=now, location=self.AD.sched.location)
                 func = functools.partial(func, callback, *args, repeat=True, offset=offset)
             case _:
                 func = functools.partial(
@@ -3093,9 +3092,9 @@ class ADAPI:
             pin_thread=pin_thread,
             **kwargs
         )  # fmt: skip
-        return await func() # type: ignore
+        return await func()  # type: ignore
 
-    @utils.sync_decorator
+    @sync_decorator
     async def run_hourly(
         self,
         callback: Callable,
@@ -3156,7 +3155,7 @@ class ADAPI:
             **kwargs,
         )
 
-    @utils.sync_decorator
+    @sync_decorator
     async def run_minutely(
         self,
         callback: Callable,
@@ -3218,7 +3217,7 @@ class ADAPI:
             **kwargs,
         )
 
-    @utils.sync_decorator
+    @sync_decorator
     async def run_every(
         self,
         callback: Callable,
@@ -3311,13 +3310,13 @@ class ADAPI:
                     def timed_callback(self, **kwargs): ...  # example callback
 
         """
-        interval = utils.parse_timedelta(interval)
+        interval = parse.parse_timedelta(interval)
         next_period = await self.AD.sched.get_next_period(interval, start)
 
         self.logger.debug(
             "Registering %s for run_every in %s intervals, starting %s",
             callback.__name__,
-            utils.format_seconds(interval),
+            format_seconds(interval),
             next_period,
         )
 
@@ -3327,13 +3326,13 @@ class ADAPI:
             callback=functools.partial(callback, *args, **kwargs),
             repeat=True,
             interval=interval,
-            random_start=utils.parse_timedelta_or_none(random_start),
-            random_end=utils.parse_timedelta_or_none(random_end),
+            random_start=parse.parse_timedelta_or_none(random_start),
+            random_end=parse.parse_timedelta_or_none(random_end),
             pin=pin,
             pin_thread=pin_thread,
         )
 
-    @utils.sync_decorator
+    @sync_decorator
     async def run_at_sunset(
         self,
         callback: Callable,
@@ -3392,7 +3391,7 @@ class ADAPI:
         """
         now = await self.AD.sched.get_now()
         sunset = await self.AD.sched.todays_sunset()
-        offset_td = utils.parse_timedelta(offset)
+        offset_td = parse.parse_timedelta(offset)
         if sunset + offset_td < now:
             sunset = await self.AD.sched.next_sunset()
 
@@ -3404,13 +3403,13 @@ class ADAPI:
             repeat=repeat,
             type_="next_setting",
             offset=offset_td,
-            random_start=utils.parse_timedelta_or_none(random_start),
-            random_end=utils.parse_timedelta_or_none(random_end),
+            random_start=parse.parse_timedelta_or_none(random_start),
+            random_end=parse.parse_timedelta_or_none(random_end),
             pin=pin,
             pin_thread=pin_thread,
         )
 
-    @utils.sync_decorator
+    @sync_decorator
     async def run_at_sunrise(
         self,
         callback: Callable,
@@ -3469,7 +3468,7 @@ class ADAPI:
         """
         now = await self.AD.sched.get_now()
         sunrise = await self.AD.sched.todays_sunrise()
-        offset_td = utils.parse_timedelta(offset)
+        offset_td = parse.parse_timedelta(offset)
         if sunrise + offset_td < now:
             sunrise = await self.AD.sched.next_sunrise()
         self.logger.debug(f"Registering run_at_sunrise at {sunrise + offset_td} with {args}, {kwargs}")
@@ -3480,8 +3479,8 @@ class ADAPI:
             repeat=repeat,
             type_="next_rising",
             offset=offset_td,
-            random_start=utils.parse_timedelta_or_none(random_start),
-            random_end=utils.parse_timedelta_or_none(random_end),
+            random_start=parse.parse_timedelta_or_none(random_start),
+            random_end=parse.parse_timedelta_or_none(random_end),
             pin=pin,
             pin_thread=pin_thread,
         )
@@ -3493,12 +3492,13 @@ class ADAPI:
     def dash_navigate(
         self,
         target: str,
-        timeout: TimeDeltaLike | None = -1,  # Used by utils.sync_decorator
+        timeout: TimeDeltaLike | None = -1,  # Used by sync_decorator
         ret: str | None = None,
         sticky: int = 0,
         deviceid: str | None = None,
         dashid: str | None = None,
-        skin: str | None = None) -> None:
+        skin: str | None = None,
+    ) -> None:
         """Forces all connected Dashboards to navigate to a new URL.
 
         Args:
@@ -3648,7 +3648,7 @@ class ADAPI:
         self.AD.futures.add_future(self.name, future)
         return future
 
-    @utils.sync_decorator
+    @sync_decorator
     async def create_task(
         self,
         coro: Coroutine[Any, Any, T],
@@ -3785,7 +3785,7 @@ class ADAPI:
         """
         self.run_in(callback, delay=0, pin=False, pin_thread=thread, **kwargs)
 
-    @utils.sync_decorator
+    @sync_decorator
     async def get_thread_info(self) -> Any:
         """Gets information on AppDaemon worker threads.
 
@@ -3798,7 +3798,7 @@ class ADAPI:
         """
         return await self.AD.threading.get_thread_info()
 
-    @utils.sync_decorator
+    @sync_decorator
     async def get_scheduler_entries(self):
         """Gets information on AppDaemon scheduler entries.
 
@@ -3811,7 +3811,7 @@ class ADAPI:
         """
         return await self.AD.sched.get_scheduler_entries()
 
-    @utils.sync_decorator
+    @sync_decorator
     async def get_callback_entries(self) -> list:
         """Gets information on AppDaemon callback entries.
 
@@ -3828,7 +3828,7 @@ class ADAPI:
     def get_entity_callbacks(self, entity_id: str) -> dict[str, dict[str, Any]]:
         return self.get_entity(entity_id).get_callbacks()
 
-    @utils.sync_decorator
+    @sync_decorator
     async def depends_on_module(self, *modules: list[str]) -> None:
         """Registers a global_modules dependency for an app.
 

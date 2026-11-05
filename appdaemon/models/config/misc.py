@@ -5,7 +5,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
-from appdaemon.utils import ADWritebackType
+from appdaemon.utils.state import ADWritebackType
 
 from .common import ParsedTimedelta
 
@@ -36,16 +36,24 @@ class FilterConfig(BaseModel):
 
 class NamespaceConfig(BaseModel):
     writeback: ADWritebackType | None = None
-    persist: bool = Field(default=False, alias="persistent")
+    persist: bool = Field(default=False)
     save_interval: ParsedTimedelta = Field(default=timedelta(seconds=1))
 
     @model_validator(mode="before")
     @classmethod
     def validate_persistence(cls, values: Any):
-        """Sets persistence to True if writeback is set to safe or hybrid."""
+        """Sets persistence to True if writeback is set to safe or hybrid.
+
+        Also handles backward compatibility by converting the legacy 'persistent'
+        field name to 'persist'.
+        """
         match values:
-            case {"writeback": wb} if wb is not None:
-                values["persist"] = True
+            case dict():
+                # Handle backward compatibility: convert 'persistent' to 'persist'
+                if "persistent" in values:
+                    values["persist"] = values.pop("persistent")
+                if values.get("writeback") is not None:
+                    values["persist"] = True
             case _ if getattr(values, "writeback", None) is not None:
                 values.persist = True
         return values

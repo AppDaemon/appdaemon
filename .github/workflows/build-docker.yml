@@ -1,0 +1,112 @@
+# Builds and publishes multi-platform Docker images after Python Build completes successfully.
+# Pushes to Docker Hub on release tags (e.g. 4.5.14, 4.6.0b1) or dev branch.
+name: Build and Deploy Docker Image
+
+on:
+  workflow_run:
+    workflows: ["Python CI"]
+    branches: ['**']
+    types:
+      - completed
+
+# Cancel a currently running workflow from the same PR, branch or tag when a new workflow is triggered:
+concurrency:
+  group: docker-${{ github.workflow }}-${{ github.event_name }}-${{ github.event.workflow_run.id || github.ref }}
+  cancel-in-progress: true
+
+env:
+  # github.repository as <account>/<repo>
+  IMAGE_NAME: acockburn/appdaemon
+
+jobs:
+  # Only build if tests passed on a push to the dev branch or of a release tag
+  # (for a tag push, Python CI's head_branch is the tag name)
+  check_ref:
+    name: Check ref
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+    permissions:
+      contents: read
+    outputs:
+      build: ${{ steps.check.outputs.build }}
+      tag: ${{ steps.check.outputs.tag }}
+    steps:
+      - name: Check for dev branch or release tag
+        id: check
+        env:
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "$HEAD_BRANCH" = dev ]; then
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          elif [[ "$HEAD_BRANCH" =~ ^[0-9]+\.[0-9]+\.[0-9]+((a|b|rc)[0-9]+)?$ ]] &&
+            [ "$(gh api "repos/$GITHUB_REPOSITORY/commits/refs/tags/$HEAD_BRANCH" --jq .sha)" = "$HEAD_SHA" ]; then
+            echo "build=true" >> "$GITHUB_OUTPUT"
+            echo "tag=$HEAD_BRANCH" >> "$GITHUB_OUTPUT"
+          fi
+
+  # After building the Python package, build the Docker image
+  build_image:
+    name: Docker image
+    runs-on: ubuntu-latest
+    needs: check_ref
+    if: needs.check_ref.outputs.build == 'true'
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      # A release builds from its own tag; otherwise this is the default branch (dev)
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.check_ref.outputs.tag && format('refs/tags/{0}', needs.check_ref.outputs.tag) || '' }}
+      - name: Download Python package
+        uses: actions/download-artifact@v8
+        with:
+          name: python-package
+          path: dist/
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Setup Docker buildx
+        uses: docker/setup-buildx-action@v4.1.0
+      # Login against a Docker registry (only with a tag or push on `dev` branch)
+      # https://github.com/docker/login-action
+      - name: Log into Docker Hub
+        uses: docker/login-action@v4.2.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+      # Extract metadata (tags, labels) for Docker
+      # https://github.com/docker/metadata-action
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v6.1.0
+        with:
+          # Derive tags from the checked out ref: under workflow_run, the workflow context is always the default branch
+          context: git
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            # If the git tag follows PEP440 conventions, use it as the resulting docker tag (both releases and pre-releases)
+            # A release without a pre-release ending (e.g. `3.0.0`, not `3.0.0b1`) is also tagged `latest`
+            type=pep440,pattern={{version}}
+
+            # If no git tag is used, fallback to tagging with branch or PR name
+            type=ref,event=branch
+            type=ref,event=pr
+
+      # Build and push Docker image with Buildx (push image only with a tag or push on `dev` branch)
+      # https://github.com/docker/build-push-action
+      - name: Build and push Docker image
+        id: build-and-push
+        uses: docker/build-push-action@v7.2.0
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/arm64/v8, linux/amd64, linux/arm/v7, linux/arm/v6
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

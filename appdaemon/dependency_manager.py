@@ -4,10 +4,10 @@ from dataclasses import InitVar, dataclass, field
 from pathlib import Path
 from typing import Iterable
 
-from . import utils
 from .dependency import find_all_dependents, get_dependency_graph, get_full_module_name, reverse_graph, topo_sort
 from .models.config.app import AllAppConfig, BaseApp
 from .models.internal.file_check import FileCheck
+from .utils.file import recursive_get_files
 
 
 @dataclass
@@ -39,7 +39,7 @@ class Dependencies(ABC):
     @classmethod
     def from_path(cls, path: Path):
         return cls.from_paths(
-            utils.recursive_get_files(
+            recursive_get_files(
                 base=path,
                 suffix={".yaml", ".toml"},
                 exclude={"ruff.toml", "pyproject.toml", "secrets.yaml"},
@@ -173,7 +173,7 @@ class DependencyManager:
 
         return cls(
             python_files=list(),
-            config_files=utils.recursive_get_files(
+            config_files=recursive_get_files(
                 base=app_dir,
                 suffix={".yaml", ".toml"},
                 exclude=exclude_set,

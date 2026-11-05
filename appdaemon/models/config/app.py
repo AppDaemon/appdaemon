@@ -1,7 +1,7 @@
 import logging
 import sys
 from abc import ABC
-from collections.abc import Iterable, Iterator
+from collections.abc import Generator, Iterable, Iterator
 from copy import deepcopy
 from pathlib import Path
 from typing import Annotated, Any, Literal
@@ -9,9 +9,10 @@ from typing import Annotated, Any, Literal
 from pydantic import BaseModel, Discriminator, Field, RootModel, Tag, field_validator
 from pydantic_core import PydanticUndefinedType
 
-from ... import exceptions as ade
-from ...dependency import reverse_graph
-from ...utils import read_config_file
+from appdaemon import exceptions as ade
+from appdaemon.dependency import reverse_graph
+from appdaemon.utils.file import read_config_file
+
 from .sequence import SequenceConfig
 
 
@@ -54,7 +55,7 @@ class AppConfig(BaseApp, extra="allow"):
     class_name: str = Field(alias="class")
     """Name of the class to use for the app. Must be accessible as an attribute of the imported `module_name`
     """
-    pin_app: bool = True
+    pin_app: bool | None = None
     """Pin this app to a particular thread. This is used to ensure that the app is always run on the same thread."""
     pin_thread: int | None = None
     """Which thread ID to pin this app to."""
@@ -200,10 +201,25 @@ class AllAppConfig(RootModel):
             cfg.config_path in paths
         ) # fmt: skip
 
-    @property
+    def active_apps(self) -> Generator[tuple[str, AppConfig]]:
+        for app_name, cfg in self.root.items():
+            match cfg:
+                case AppConfig(disable=False):
+                    yield app_name, cfg
+
     def active_app_count(self) -> int:
         """Active in this case means not disabled"""
-        return len([cfg for cfg in self.root.values() if isinstance(cfg, AppConfig) and not cfg.disable])
+        return len(list(self.active_apps()))
+
+    def pinned_apps(self) -> Generator[tuple[str, AppConfig]]:
+        for app_name, cfg in self.active_apps():
+            match cfg:
+                case AppConfig(pin_app=pin) if bool(pin):
+                    yield app_name, cfg
+
+    def pinned_app_count(self) -> int:
+        """Active in this case means not disabled"""
+        return len(list(self.pinned_apps()))
 
     def get_active_app_count(self) -> tuple[int, int, int]:
         active = 0
