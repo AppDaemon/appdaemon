@@ -1,16 +1,19 @@
 """Tests for the /livez and /readyz health endpoints."""
 
 import asyncio
-from datetime import timedelta
+import functools
+import json
+from datetime import datetime, timedelta, timezone
 from time import monotonic
 from unittest.mock import AsyncMock, MagicMock
 
+import bcrypt
 import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 from appdaemon import health, utility_loop
 from appdaemon.app_management import AppManagement
-from appdaemon.http import HTTP
+from appdaemon.http import HTTP, securedata
 from appdaemon.models.config import MainConfig
 from appdaemon.utility_loop import Utility
 
@@ -163,23 +166,95 @@ async def test_detail_hidden_without_credentials(path):
     assert body == {"status": "pass"}
 
 
-@pytest.mark.parametrize("path", ["/livez", "/readyz"])
-async def test_status_code_still_reflects_failure_without_credentials(path):
-    ad = _make_ad(plugins={"HASS": False})
+def _failing_ad() -> MagicMock:
+    """Every check failing with something to leak: a plugin, a failed app and a stuck one."""
+    ad = _make_ad(plugins={"HASS": False}, app_states={"secret_app": "initialize_error"})
     ad.utility.last_progress = monotonic() - 1000
-    status, _, body = await _get(_make_http(ad, password="secret"), path)
+    ad.app_management.initializing_since = {"slow_app": datetime.now(timezone.utc)}
+    ad.loop = asyncio.get_running_loop()
+    ad.executor = None
+    return ad
+
+
+def _cookie(password: str) -> str:
+    return bcrypt.hashpw(password.encode(), bcrypt.gensalt(rounds=4)).decode()
+
+
+async def _get_raw(http: HTTP, path: str, **kwargs) -> tuple[int, str]:
+    async with TestClient(TestServer(http.app)) as client:
+        resp = await client.get(path, **kwargs)
+        return resp.status, await resp.text()
+
+
+_LEAKS = ("checks", "HASS", "secret_app", "slow_app", "output")
+
+
+@pytest.mark.parametrize("path", ["/livez", "/readyz"])
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        pytest.param({}, id="none"),
+        pytest.param({"headers": {"x-ad-access": "nope"}}, id="wrong-header"),
+        pytest.param({"headers": {"x-ad-access": ""}}, id="empty-header"),
+        pytest.param({"headers": {"x-ad-access": "SECRET"}}, id="wrong-case-header"),
+        pytest.param({"params": {"api_password": "nope"}}, id="wrong-query"),
+        pytest.param({"params": {"api_password": ""}}, id="empty-query"),
+        pytest.param({"cookies": {"adcreds": "not-a-hash"}}, id="garbage-cookie"),
+        pytest.param({"cookies": {"adcreds": _cookie("nope")}}, id="wrong-cookie"),
+    ],
+)
+async def test_failure_detail_hidden_without_valid_credentials(path, kwargs):
+    status, text = await _get_raw(_make_http(_failing_ad(), password="secret"), path, **kwargs)
     assert status == 503
-    assert body == {"status": "fail"}
+    assert json.loads(text) == {"status": "fail"}
+    assert [leak for leak in _LEAKS if leak in text] == []
 
 
-async def test_detail_shown_with_credentials():
-    http = _make_http(_make_ad(), password="secret")
-    _, _, header = await _get(http, "/readyz", headers={"x-ad-access": "secret"})
-    _, _, query = await _get(http, "/readyz?api_password=secret")
-    _, _, wrong = await _get(http, "/readyz", headers={"x-ad-access": "nope"})
-    assert "checks" in header
-    assert "checks" in query
-    assert "checks" not in wrong
+async def test_warn_detail_hidden_without_credentials():
+    ad = _make_ad(app_states={"secret_app": "initialize_error"})
+    status, text = await _get_raw(_make_http(ad, password="secret"), "/readyz")
+    assert (status, json.loads(text)) == (200, {"status": "warn"})
+    assert "secret_app" not in text
+
+
+@pytest.mark.parametrize("path", ["/livez", "/readyz"])
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        pytest.param({"headers": {"x-ad-access": "secret"}}, id="header"),
+        pytest.param({"params": {"api_password": "secret"}}, id="query"),
+        pytest.param({"cookies": {"adcreds": _cookie("secret")}}, id="cookie"),
+    ],
+)
+async def test_failure_detail_shown_with_valid_credentials(path, kwargs):
+    status, _, body = await _get(_make_http(_failing_ad(), password="secret"), path, **kwargs)
+    assert (status, body["status"]) == (503, "fail")
+    assert body["checks"]
+
+
+async def test_stuck_app_named_only_with_credentials():
+    http = _make_http(_failing_ad(), password="secret")
+    _, text = await _get_raw(http, "/livez", headers={"x-ad-access": "secret"})
+    assert "app 'slow_app' has been initializing since" in text
+
+
+async def test_detail_shown_to_anyone_without_a_password():
+    _, _, body = await _get(_make_http(_failing_ad()), "/readyz", headers={"x-ad-access": "nope"})
+    assert "secret_app" in body["checks"]["apps:failed"][0]["output"]
+
+
+async def test_wrong_cookie_is_unauthorized_on_the_api():
+    """It used to fall through ``securedata`` and return None instead of a response."""
+    http = _make_http(_failing_ad(), password="secret")
+
+    @securedata
+    async def handler(self, request):
+        return web.json_response({"ok": True})
+
+    http.app.router.add_get("/secured", functools.partial(handler, http))
+    assert (await _get_raw(http, "/secured", cookies={"adcreds": _cookie("nope")}))[0] == 401
+    assert (await _get_raw(http, "/secured", cookies={"adcreds": "not-a-hash"}))[0] == 401
+    assert (await _get_raw(http, "/secured", cookies={"adcreds": _cookie("secret")}))[0] == 200
 
 
 async def test_health_routes_win_over_dashboard_catch_all():

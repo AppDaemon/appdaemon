@@ -863,12 +863,16 @@ class HTTP:
         if self.password is None:
             return True
         if "adcreds" in request.cookies:
-            return await run_in_executor(
-                self,
-                bcrypt.checkpw,
-                str.encode(self.password),
-                str.encode(request.cookies["adcreds"]),
-            )
+            try:
+                return await run_in_executor(
+                    self,
+                    bcrypt.checkpw,
+                    str.encode(self.password),
+                    str.encode(request.cookies["adcreds"]),
+                )
+            except ValueError:
+                # Not a bcrypt hash at all
+                return False
         return request.headers.get("x-ad-access") == self.password or request.query.get("api_password") == self.password
 
     async def _health_response(self, request, checks: health.Checks) -> web.Response:
