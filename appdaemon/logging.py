@@ -306,7 +306,7 @@ class Logging(metaclass=Singleton):
                 if args["filename"] == "STDOUT":
                     handler = logging.StreamHandler(stream=sys.stdout)
                 elif args["filename"] == "STDERR":
-                    handler = logging.StreamHandler(stream=sys.stdout)
+                    handler = logging.StreamHandler(stream=sys.stderr)
                 else:
                     handler = RotatingFileHandler(
                         args["filename"],
