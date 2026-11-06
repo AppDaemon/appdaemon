@@ -82,7 +82,7 @@ jobs:
       # https://github.com/docker/metadata-action
       - name: Extract Docker metadata
         id: meta
-        uses: docker/metadata-action@v6.1.0
+        uses: docker/metadata-action@v6.2.0
         with:
           # Derive tags from the checked out ref: under workflow_run, the workflow context is always the default branch
           context: git
