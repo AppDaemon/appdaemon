@@ -1,5 +1,6 @@
 import copy
 import datetime
+import json
 import logging
 import sys
 import traceback
@@ -127,6 +128,33 @@ class AppNameFormatter(logging.Formatter):
             raise
 
         return result
+
+
+class JSONFormatter(AppNameFormatter):
+    """Formats each record as a single-line JSON object, for log collectors that parse structured logs."""
+
+    def __init__(self, now: Callable[[], datetime.datetime], datefmt=None):
+        super().__init__(fmt="{message}", datefmt=datefmt, style="{")
+        self.now = now
+
+    def format(self, record):
+        # The parent fills in appname, message, asctime and exc_text on the record
+        super().format(record)
+        timestamp = self.now()
+        if timestamp.tzinfo is None:
+            timestamp = timestamp.astimezone()
+        entry = {
+            "timestamp": timestamp.isoformat(),
+            "level": record.levelname,
+            "app": record.appname,
+            "logger": record.name,
+            "message": record.message,
+        }
+        if record.exc_text:
+            entry["exception"] = record.exc_text
+        if record.stack_info:
+            entry["stack_info"] = self.formatStack(record.stack_info)
+        return json.dumps(entry, ensure_ascii=False)
 
 
 class LogSubscriptionHandler(StreamHandler):
@@ -288,7 +316,13 @@ class Logging(metaclass=Singleton):
         for log in self.config:
             args = self.config[log]
             if "alias" not in args:
-                formatter = AppNameFormatter(fmt=args["format"], datefmt=args["date_format"], style="{")
+                output_format = args.get("output_format", "text")
+                if output_format == "text":
+                    formatter = AppNameFormatter(fmt=args["format"], datefmt=args["date_format"], style="{")
+                elif output_format == "json":
+                    formatter = JSONFormatter(now=self.current_time, datefmt=args["date_format"])
+                else:
+                    raise ValueError(f"Invalid output_format '{output_format}' for log '{log}', expected 'text' or 'json'")
                 args["formatter"] = formatter
                 formatter.formatTime = self.get_time
                 logger = logging.getLogger(args["name"])
@@ -359,14 +393,16 @@ class Logging(metaclass=Singleton):
             self.logger.debug("  generations: %s", self.config[log]["log_generations"])
             self.logger.debug("  format:      %s", self.config[log]["format"])
 
+    def current_time(self) -> datetime.datetime:
+        """Returns the time to stamp log records with, following AppDaemon's clock (time travel) and time zone."""
+        if self.AD is not None and self.AD.sched is not None and not self.AD.sched.is_realtime():
+            return self.AD.sched.get_now_sync().astimezone(self.tz)
+        if self.tz is not None:
+            return datetime.datetime.now(datetime.timezone.utc).astimezone(self.tz)
+        return datetime.datetime.now()
+
     def get_time(logger, record, format=None):
-        if logger.AD is not None and logger.AD.sched is not None and not logger.AD.sched.is_realtime():
-            ts = logger.AD.sched.get_now_sync().astimezone(logger.tz)
-        else:
-            if logger.tz is not None:
-                ts = datetime.datetime.now(datetime.timezone.utc).astimezone(logger.tz)
-            else:
-                ts = datetime.datetime.now()
+        ts = logger.current_time()
         if format is not None:
             return ts.strftime(format)
         else:

@@ -4,7 +4,7 @@
 
 **Features**
 
-None
+- Logs can be written as one JSON object per line with `output_format: json`
 
 **Fixes**
 
