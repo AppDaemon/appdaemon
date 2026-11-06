@@ -8,7 +8,7 @@ import time
 import traceback
 import uuid
 from socket import gaierror
-from typing import TYPE_CHECKING, Callable, Optional
+from typing import TYPE_CHECKING, Any, Callable, Optional
 from urllib.parse import urlparse
 
 import bcrypt
@@ -17,6 +17,7 @@ from aiohttp import web
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from . import exceptions as ade
+from . import health
 from .admin import Admin
 from .dashboard import Dashboard
 from .models.config import MainConfig
@@ -37,23 +38,9 @@ def securedata(myfunc):
     async def wrapper(*args):
         self = args[0]
         request = args[1]
-        if self.password is None:
+        if await self.is_authorized(request):
             return await myfunc(*args)
-        elif "adcreds" in request.cookies:
-            match = await run_in_executor(
-                self,
-                bcrypt.checkpw,
-                str.encode(self.password),
-                str.encode(request.cookies["adcreds"]),
-            )
-            if match:
-                return await myfunc(*args)
-        elif ("x-ad-access" in request.headers) and (request.headers["x-ad-access"] == self.password):
-            return await myfunc(*args)
-        elif "api_password" in request.query and request.query["api_password"] == self.password:
-            return await myfunc(*args)
-        else:
-            return self.get_response(request, "401", "Unauthorized")
+        return self.get_response(request, "401", "Unauthorized")
 
     return wrapper
 
@@ -793,6 +780,9 @@ class HTTP:
         self.app.router.add_get("/api/appdaemon", self.get_ad)
 
     def setup_http_routes(self):
+        # Registered first so that the catch-all routes (e.g. dashboards at /{name}) can't shadow them
+        self.app.router.add_get("/livez", self.livez)
+        self.app.router.add_get("/readyz", self.readyz)
         self.app.router.add_get("/favicon.ico", self.not_found)
         self.app.router.add_get("/{gfx}.png", self.not_found)
         self.app.router.add_post("/logon_response", self.logon_response)
@@ -867,6 +857,37 @@ class HTTP:
         custom_javascript = os.path.join(self.dashboard_obj.config_dir, "custom_javascript")
         if os.path.isdir(custom_javascript):
             self.app.router.add_static("/custom_javascript", custom_javascript)
+
+    async def is_authorized(self, request) -> bool:
+        """Whether the request carries valid API credentials, or no password is configured"""
+        if self.password is None:
+            return True
+        if "adcreds" in request.cookies:
+            return await run_in_executor(
+                self,
+                bcrypt.checkpw,
+                str.encode(self.password),
+                str.encode(request.cookies["adcreds"]),
+            )
+        return request.headers.get("x-ad-access") == self.password or request.query.get("api_password") == self.password
+
+    async def _health_response(self, request, checks: health.Checks) -> web.Response:
+        status = health.overall_status(checks)
+        body: dict[str, Any] = {"status": status}
+        if await self.is_authorized(request):
+            body["checks"] = checks
+        return web.json_response(
+            body,
+            status=503 if status == "fail" else 200,
+            content_type=health.CONTENT_TYPE,
+            headers={"Cache-Control": "no-store"},
+        )
+
+    async def livez(self, request):
+        return await self._health_response(request, health.liveness_checks(self.AD))
+
+    async def readyz(self, request):
+        return await self._health_response(request, health.readiness_checks(self.AD))
 
     # API
 

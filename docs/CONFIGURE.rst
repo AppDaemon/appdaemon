@@ -916,6 +916,63 @@ AD's internal web server. This can range from images, videos, html pages and the
 The above configuration assumes that the user has a folder, that has stored within it video clips from like cameras. To access
 the videos stored in the video_clip folder via a browser or Dashboard, the url can be used ``http://AD_IP:Port/local/videos/<video to be accessed>``. Like wise, the pictures can be accessed using ``http://AD_IP:Port/local/pictures/<picture to be accessed>``. Using this directive does support the use of relative paths.
 
+Health Endpoints
+~~~~~~~~~~~~~~~~
+
+The HTTP component serves two health endpoints at the root of the URL, for use by container orchestrators and
+monitoring tools. They are available whenever the ``http`` component is configured, regardless of whether the API, the admin interface
+or HADashboard are enabled, and a dashboard named ``livez`` or ``readyz`` will not shadow them.
+
+``GET /livez``
+    Whether the AppDaemon process is alive and not wedged. It returns ``503`` only when the utility loop has stopped or has not
+    completed an iteration for 60 seconds (or ten times ``utility_delay``, if that is larger), which is something a restart fixes.
+    It never depends on Home Assistant or any other plugin, and a restart on a plugin outage would not help.
+
+``GET /readyz``
+    Whether AppDaemon is doing its job. It returns ``503`` until startup has completed (plugins ready, apps initialized), while AppDaemon
+    is stopping, and whenever a configured, enabled plugin is not connected and ready. Apps that failed to initialize or load only
+    produce a ``warn``, so a broken user app does not get the instance pulled by an orchestrator.
+
+The HTTP status code is the verdict: ``200`` for ``pass`` and ``warn``, ``503`` for ``fail``. The body follows the
+`IETF health check draft <https://datatracker.ietf.org/doc/html/draft-inadarei-api-health-check>`__ with the content type
+``application/health+json``:
+
+.. code:: json
+
+    {
+      "status": "warn",
+      "checks": {
+        "appdaemon:startup": [{"status": "pass", "observedValue": true, "time": "2026-01-01T12:00:00+00:00"}],
+        "plugin:HASS": [{"status": "pass", "observedValue": "connected", "time": "2026-01-01T12:00:00+00:00"}],
+        "apps:failed": [
+          {"status": "warn", "observedValue": 1, "output": "failed: my_app", "time": "2026-01-01T12:00:00+00:00"}
+        ]
+      }
+    }
+
+``/livez`` reports a single check, ``utility:lastTick``, whose ``observedValue`` is the age of the last utility loop iteration in seconds.
+
+If a ``password`` is configured for the HTTP component, requests without valid credentials (the same ``x-ad-access`` header,
+``api_password`` query parameter or dashboard cookie the API accepts) only receive the status code and ``{"status": ...}``; the ``checks``
+detail is omitted. When no password is configured, the detail is always included, as with the API.
+
+To use ``/livez`` as a Docker Compose health check (the image includes busybox ``wget``):
+
+.. code:: yaml
+
+    services:
+      appdaemon:
+        image: acockburn/appdaemon:latest
+        healthcheck:
+          test: ["CMD", "wget", "-q", "--spider", "http://localhost:5050/livez"]
+          interval: 30s
+          timeout: 5s
+          retries: 3
+          start_period: 60s
+
+This only works when the ``http`` component is configured, and the port must match the one in ``url``. The image does not define
+a ``HEALTHCHECK`` of its own.
+
 Configuring the Dashboard
 -------------------------
 

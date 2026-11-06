@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import timedelta
 from logging import Logger
-from time import perf_counter
+from time import monotonic, perf_counter
 from typing import TYPE_CHECKING
 
 from . import exceptions as ade
@@ -74,6 +74,10 @@ class Utility:
         self.AD = ad
         self.logger = ad.logging.get_child(self.name)
         self.booted = None
+        self.last_tick: float | None = None
+        """:func:`time.monotonic` at the end of the last loop iteration, for the health endpoints"""
+        self.startup_complete = False
+        """Set once plugins are ready and apps have been started"""
 
         self.app_update_event = asyncio.Event()
 
@@ -176,6 +180,8 @@ class Utility:
             # Fire APPD Started Event
             await self.AD.events.process_event("global", {"event_type": "appd_started", "data": {}})
 
+        self.startup_complete = True
+
     async def loop(self):
         """Run the utility loop, which handles the following:
 
@@ -266,6 +272,7 @@ class Utility:
             self.logger.warning("-" * 60)
         finally:
             self.app_update_event.set()
+            self.last_tick = monotonic()
             timing.record_time("total")
 
             self.logger.debug(

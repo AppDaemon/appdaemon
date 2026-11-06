@@ -4,7 +4,7 @@
 
 **Features**
 
-None
+- Added `/livez` and `/readyz` health endpoints to the HTTP component, in the IETF health check format (#739)
 
 **Fixes**
 
