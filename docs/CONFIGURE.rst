@@ -927,13 +927,15 @@ or HADashboard are enabled, and a dashboard named ``livez`` or ``readyz`` will n
     Whether the AppDaemon process is alive and not wedged. It returns ``503`` only when the utility loop has made no progress for
     300 seconds (or ten times ``utility_delay``, if that is larger), which is something a restart fixes. Progress is the utility loop
     finishing an iteration or any app finishing its ``initialize()`` (successfully or not), so a long reload of many apps is not a stall,
-    but a single ``initialize()`` that never returns is, and the check names that app. It never depends on Home Assistant or any
-    other plugin, and a restart on a plugin outage would not help.
+    but a single ``initialize()`` that never returns is, and the check names that app. It never depends on a plugin:
+    restarting AppDaemon does not fix an outage of Home Assistant, an MQTT broker or anything else it connects to.
 
 ``GET /readyz``
     Whether AppDaemon is doing its job. It returns ``503`` until startup has completed (plugins ready, apps initialized), while AppDaemon
     is stopping, and whenever a configured, enabled plugin is not connected and ready. Apps that failed to initialize or load only
-    produce a ``warn``, so a broken user app does not get the instance pulled by an orchestrator.
+    produce a ``warn``, so a broken user app does not get the instance pulled by an orchestrator. Each enabled plugin is its own
+    ``plugin:<name>`` check, named as in the ``plugins`` section (``HASS`` and ``MQTT`` in the examples below); with no plugins
+    configured, only startup and apps are checked.
 
 The HTTP status code is the verdict: ``200`` for ``pass`` and ``warn``, ``503`` for ``fail``. The body follows the
 `IETF health check draft <https://datatracker.ietf.org/doc/html/draft-inadarei-api-health-check>`__ with the content type
@@ -1035,7 +1037,7 @@ to ``observedValue``.
       }
     }
 
-``/readyz``, Home Assistant disconnected (HTTP ``503``):
+``/readyz``, one plugin disconnected, here ``MQTT`` (HTTP ``503``):
 
 .. code:: json
 
@@ -1050,6 +1052,13 @@ to ``observedValue``.
           }
         ],
         "plugin:HASS": [
+          {
+            "status": "pass",
+            "observedValue": "connected",
+            "time": "2026-11-06T10:07:23+00:00"
+          }
+        ],
+        "plugin:MQTT": [
           {
             "status": "fail",
             "observedValue": "disconnected",
