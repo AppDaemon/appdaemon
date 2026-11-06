@@ -14,7 +14,7 @@ from . import exceptions as ade
 from .types import TimeDeltaLike
 from .utils import parse
 from .utils.functools import _sanitize_kwargs
-from .utils.state import ADWritebackType, PersistentDict
+from .utils.state import ADWritebackType, PersistentDict, find_unreadable_store_files
 from .utils.str import dt_to_str
 
 if TYPE_CHECKING:
@@ -207,6 +207,14 @@ class State:
             ns_db_path.name,
             wb.name
         )  # fmt: skip
+        for path, reason in find_unreadable_store_files(ns_db_path):
+            self.logger.warning(
+                "Persistent namespace '%s': ignoring existing file %s (%s). "
+                "Its contents won't be loaded; migrate it to a format this Python can open to keep the data.",
+                namespace,
+                path,
+                reason,
+            )
         try:
             self.state[namespace] = PersistentDict(ns_db_path, writeback_type=wb)
         except Exception as exc:
