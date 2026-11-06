@@ -1020,7 +1020,7 @@ Any request without valid credentials when a password is configured gets only th
 
     {"status": "pass"}
 
-To use ``/livez`` as a Docker Compose health check (the image includes busybox ``wget``):
+To use ``/livez`` as a Docker Compose health check (the image includes ``curl`` for this):
 
 .. code:: yaml
 
@@ -1028,7 +1028,7 @@ To use ``/livez`` as a Docker Compose health check (the image includes busybox `
       appdaemon:
         image: acockburn/appdaemon:latest
         healthcheck:
-          test: ["CMD", "wget", "-q", "--spider", "http://localhost:5050/livez"]
+          test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://localhost:5050/livez"]
           interval: 30s
           timeout: 5s
           retries: 3

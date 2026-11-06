@@ -8,7 +8,7 @@
 
 **Fixes**
 
-None
+- A malformed login cookie returned a 500 instead of failing authentication, and a wrong cookie on the API returned no response
 
 **Breaking Changes**
 
