@@ -1,5 +1,6 @@
 import asyncio
 import concurrent.futures
+import hmac
 import json
 import os
 import re
@@ -53,22 +54,9 @@ def secure(myfunc):
     async def wrapper(*args):
         self = args[0]
         request = args[1]
-        if self.password is None:
+        if await self.is_authorized(request, cookie_only=True):
             return await myfunc(*args)
-        else:
-            if "adcreds" in request.cookies:
-                match = await run_in_executor(
-                    self,
-                    bcrypt.checkpw,
-                    str.encode(self.password),
-                    str.encode(request.cookies["adcreds"]),
-                )
-                if match:
-                    return await myfunc(*args)
-                else:
-                    return await self.forcelogon(request)
-            else:
-                return await self.forcelogon(request)
+        return await self.forcelogon(request)
 
     return wrapper
 
@@ -83,17 +71,14 @@ def route_secure(myfunc):
         request = args[1]
         if self.password is None or self.valid_tokens == []:
             return await myfunc(*args)
-
         elif "adcreds" in request.cookies:
-            match = await run_in_executor(self, bcrypt.checkpw, str.encode(self.password), str.encode(request.cookies["adcreds"]))
-            if match:
-                return await myfunc(*args)
-
-        elif "token" in request.query and request.query["token"] in self.valid_tokens:
-            return await myfunc(*args)
-
+            authorized = await self.is_authorized(request, cookie_only=True)
         else:
-            return self.get_response(request, "401", "Unauthorized")
+            authorized = request.query.get("token") in self.valid_tokens
+
+        if authorized:
+            return await myfunc(*args)
+        return self.get_response(request, "401", "Unauthorized")
 
     return wrapper
 
@@ -780,7 +765,7 @@ class HTTP:
         self.app.router.add_get("/api/appdaemon", self.get_ad)
 
     def setup_http_routes(self):
-        # Registered first so that the catch-all routes (e.g. dashboards at /{name}) can't shadow them
+        # Registered before any catch-all like the dashboards' /{name}: aiohttp < 3.10 matches in registration order
         self.app.router.add_get("/livez", self.livez)
         self.app.router.add_get("/readyz", self.readyz)
         self.app.router.add_get("/favicon.ico", self.not_found)
@@ -858,22 +843,30 @@ class HTTP:
         if os.path.isdir(custom_javascript):
             self.app.router.add_static("/custom_javascript", custom_javascript)
 
-    async def is_authorized(self, request) -> bool:
-        """Whether the request carries valid API credentials, or no password is configured"""
+    def _secret_matches(self, supplied: str | None) -> bool:
+        return supplied is not None and hmac.compare_digest(supplied.encode(), self.password.encode())
+
+    async def is_authorized(self, request, *, cookie_only: bool = False) -> bool:
+        """Whether the request carries valid credentials, or no password is configured.
+
+        A login cookie, if present, decides on its own. Otherwise the API's header or query password is accepted,
+        unless ``cookie_only``.
+        """
         if self.password is None:
             return True
         if "adcreds" in request.cookies:
-            try:
-                return await run_in_executor(
-                    self,
-                    bcrypt.checkpw,
-                    str.encode(self.password),
-                    str.encode(request.cookies["adcreds"]),
-                )
-            except ValueError:
-                # Not a bcrypt hash at all
+            cookie = request.cookies["adcreds"]
+            # The cost is part of the hash, so an attacker-chosen one (up to 31) would tie up an executor thread
+            if cookie[:4] not in ("$2a$", "$2b$", "$2y$") or cookie[4:6] != f"{int(self.work_factor):02d}":
                 return False
-        return request.headers.get("x-ad-access") == self.password or request.query.get("api_password") == self.password
+            try:
+                return await run_in_executor(self, bcrypt.checkpw, str.encode(self.password), str.encode(cookie))
+            except ValueError:
+                # Not a valid bcrypt hash
+                return False
+        if cookie_only:
+            return False
+        return self._secret_matches(request.headers.get("x-ad-access")) or self._secret_matches(request.query.get("api_password"))
 
     async def _health_response(self, request, checks: health.Checks) -> web.Response:
         status = health.overall_status(checks)

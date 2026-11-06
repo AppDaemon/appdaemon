@@ -82,7 +82,11 @@ class Utility:
         self.app_update_event = asyncio.Event()
 
     def record_progress(self) -> None:
-        """Marks that the utility loop is not stalled."""
+        """Marks that the utility loop is not stalled.
+
+        Also called when an app finishes ``initialize()``, wherever that was triggered from (a reload, an API restart,
+        a plugin reconnect), since it can run for longer than the loop's own iteration.
+        """
         self.last_progress = monotonic()
 
     def start(self) -> None:

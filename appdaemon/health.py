@@ -17,15 +17,13 @@ Checks = dict[str, list[Check]]
 CONTENT_TYPE = "application/health+json"
 MIN_PROGRESS_TIMEOUT = 300.0
 """Smallest time without progress, in seconds, that counts as wedged"""
-FAILED_APP_STATES = {"initialize_error", "compile_error"}
 
 
-def _check(status: Status, observed: Any, output: str | None = None) -> list[Check]:
-    check: Check = {
-        "status": status,
-        "observedValue": observed,
-        "time": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-    }
+def _check(status: Status, observed: Any, output: str | None = None, unit: str | None = None) -> list[Check]:
+    check: Check = {"status": status, "observedValue": observed}
+    if unit is not None:
+        check["observedUnit"] = unit
+    check["time"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
     if output is not None:
         check["output"] = output
     return [check]
@@ -53,26 +51,15 @@ def liveness_checks(ad: "AppDaemon") -> Checks:
         check = _check("pass", None, "utility loop has not started yet")
     else:
         age = round(monotonic() - utility.last_progress, 1)
-        if age > timeout:
-            output = f"no progress in {age:g}s"
-            if ad.app_management.initializing_since:
-                name, since = min(ad.app_management.initializing_since.items(), key=lambda item: item[1])
-                output += f"; app '{name}' has been initializing since {since.isoformat(timespec='seconds')}"
-            else:
-                output = f"utility loop has made no progress in {age:g}s"
-            check = _check("fail", age, output)
+        if age <= timeout:
+            check = _check("pass", age, unit="s")
+        elif stuck := ad.app_management.initializing_apps():
+            name, since = stuck[0]
+            output = f"no progress in {age:g}s; app '{name}' has been initializing since {since}"
+            check = _check("fail", age, output, unit="s")
         else:
-            check = _check("pass", age)
-    check[0]["observedUnit"] = "s"
+            check = _check("fail", age, f"utility loop has made no progress in {age:g}s", unit="s")
     return {"utility:lastProgress": check}
-
-
-def failed_apps(ad: "AppDaemon") -> list[str]:
-    return sorted(
-        entity_id.removeprefix("app.")
-        for entity_id, entity in ad.state.state.get("admin", {}).items()
-        if entity_id.startswith("app.") and entity.get("state") in FAILED_APP_STATES
-    )
 
 
 def readiness_checks(ad: "AppDaemon") -> Checks:
@@ -88,19 +75,17 @@ def readiness_checks(ad: "AppDaemon") -> Checks:
     for name, cfg in ad.plugins.config.items():
         if cfg.disabled:
             continue
-        plugin = next(
-            (obj["object"] for obj in ad.plugins.plugin_objs.values() if obj["name"] == name),
-            None,
-        )
-        if plugin is None:
+        entry = next((obj for obj in ad.plugins.plugin_objs.values() if obj["name"] == name), None)
+        if entry is None:
             checks[f"plugin:{name}"] = _check("fail", "not loaded", "plugin failed to load")
-        elif plugin.is_ready:
+        # "active" is cleared by notify_plugin_stopped on any plugin's disconnect; is_ready alone is not (MQTT)
+        elif entry["active"] and entry["object"].is_ready:
             checks[f"plugin:{name}"] = _check("pass", "connected")
         else:
             checks[f"plugin:{name}"] = _check("fail", "disconnected", "plugin is not connected and ready")
 
     if ad.apps_enabled:
-        failed = failed_apps(ad)
+        failed = ad.app_management.failed_apps()
         output = f"failed: {', '.join(failed)}" if failed else None
         checks["apps:failed"] = _check("warn" if failed else "pass", len(failed), output)
 

@@ -917,51 +917,46 @@ The above configuration assumes that the user has a folder, that has stored with
 the videos stored in the video_clip folder via a browser or Dashboard, the url can be used ``http://AD_IP:Port/local/videos/<video to be accessed>``. Like wise, the pictures can be accessed using ``http://AD_IP:Port/local/pictures/<picture to be accessed>``. Using this directive does support the use of relative paths.
 
 Health Endpoints
-~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^
 
 The HTTP component serves two health endpoints at the root of the URL, for use by container orchestrators and
 monitoring tools. They are available whenever the ``http`` component is configured, regardless of whether the API, the admin interface
-or HADashboard are enabled, and a dashboard named ``livez`` or ``readyz`` will not shadow them.
+or HADashboard are enabled. They take precedence over HADashboard, so a dashboard named ``livez`` or ``readyz`` is no longer reachable.
 
 ``GET /livez``
     Whether the AppDaemon process is alive and not wedged. It returns ``503`` only when the utility loop has made no progress for
-    300 seconds (or ten times ``utility_delay``, if that is larger), which is something a restart fixes. Progress is the utility loop
-    finishing an iteration or any app finishing its ``initialize()`` (successfully or not), so a long reload of many apps is not a stall,
-    but a single ``initialize()`` that never returns is, and the check names that app. It never depends on a plugin:
-    restarting AppDaemon does not fix an outage of Home Assistant, an MQTT broker or anything else it connects to.
+    300 seconds (or ten times ``utility_delay``, if that is larger). Progress is the utility loop finishing an iteration or any app
+    finishing its ``initialize()`` (successfully or not), wherever that was triggered from, such as a reload, an API restart or a plugin
+    reconnect. A long reload of many apps is therefore not a stall.
+
+    A single ``initialize()`` that never returns is a stall, deliberately: it blocks the utility loop, so no app reloads, plugin state
+    refreshes or thread checks happen until it returns. The check names the app. A restart only helps if the hang is not deterministic;
+    an app that always hangs will keep restarting under an orchestrator, with whatever backoff it applies, until the app is fixed.
+
+    It never depends on a plugin: restarting AppDaemon does not fix an outage of Home Assistant, an MQTT broker or anything else it
+    connects to.
 
 ``GET /readyz``
     Whether AppDaemon is doing its job. It returns ``503`` until startup has completed (plugins ready, apps initialized), while AppDaemon
-    is stopping, and whenever a configured, enabled plugin is not connected and ready. Apps that failed to initialize or load only
-    produce a ``warn``, so a broken user app does not get the instance pulled by an orchestrator. Each enabled plugin is its own
+    is stopping, and whenever a configured, enabled plugin is not connected and ready. Each enabled plugin is its own
     ``plugin:<name>`` check, named as in the ``plugins`` section (``HASS`` and ``MQTT`` in the examples below); with no plugins
     configured, only startup and apps are checked.
 
+    Apps that failed produce only a ``warn``, so a broken user app does not get the instance pulled by an orchestrator. ``apps:failed``
+    counts apps in the ``initialize_error`` and ``compile_error`` states, not apps that were not started because a dependency
+    is not running.
+
 The HTTP status code is the verdict: ``200`` for ``pass`` and ``warn``, ``503`` for ``fail``. The body follows the
 `IETF health check draft <https://datatracker.ietf.org/doc/html/draft-inadarei-api-health-check>`__ with the content type
-``application/health+json``:
-
-.. code:: json
-
-    {
-      "status": "warn",
-      "checks": {
-        "appdaemon:startup": [{"status": "pass", "observedValue": true, "time": "2026-01-01T12:00:00+00:00"}],
-        "plugin:HASS": [{"status": "pass", "observedValue": "connected", "time": "2026-01-01T12:00:00+00:00"}],
-        "apps:failed": [
-          {"status": "warn", "observedValue": 1, "output": "failed: my_app", "time": "2026-01-01T12:00:00+00:00"}
-        ]
-      }
-    }
-
-``/livez`` reports a single check, ``utility:lastProgress``, whose ``observedValue`` is the time since the last progress in seconds.
+``application/health+json``. ``/livez`` reports a single check, ``utility:lastProgress``, whose ``observedValue`` is the time since
+the last progress in seconds.
 
 If a ``password`` is configured for the HTTP component, requests without valid credentials (the same ``x-ad-access`` header,
 ``api_password`` query parameter or dashboard cookie the API accepts) only receive the status code and ``{"status": ...}``; the ``checks``
 detail is omitted. When no password is configured, the detail is always included, as with the API.
 
 Example responses
-^^^^^^^^^^^^^^^^^
+'''''''''''''''''
 
 The server decides what counts as stuck (see the thresholds above). How patient a probe is before acting on a failure is the client's
 setting (``failureThreshold`` in Kubernetes, ``retries`` in Compose). Clients that read the JSON can also apply their own threshold
@@ -974,34 +969,10 @@ to ``observedValue``.
     {
       "status": "pass",
       "checks": {
-        "appdaemon:startup": [
-          {
-            "status": "pass",
-            "observedValue": true,
-            "time": "2026-11-06T10:07:23+00:00"
-          }
-        ],
-        "plugin:HASS": [
-          {
-            "status": "pass",
-            "observedValue": "connected",
-            "time": "2026-11-06T10:07:23+00:00"
-          }
-        ],
-        "plugin:MQTT": [
-          {
-            "status": "pass",
-            "observedValue": "connected",
-            "time": "2026-11-06T10:07:23+00:00"
-          }
-        ],
-        "apps:failed": [
-          {
-            "status": "pass",
-            "observedValue": 0,
-            "time": "2026-11-06T10:07:23+00:00"
-          }
-        ]
+        "appdaemon:startup": [{"status": "pass", "observedValue": true, "time": "2026-11-06T10:07:23+00:00"}],
+        "plugin:HASS": [{"status": "pass", "observedValue": "connected", "time": "2026-11-06T10:07:23+00:00"}],
+        "plugin:MQTT": [{"status": "pass", "observedValue": "connected", "time": "2026-11-06T10:07:23+00:00"}],
+        "apps:failed": [{"status": "pass", "observedValue": 0, "time": "2026-11-06T10:07:23+00:00"}]
       }
     }
 
@@ -1012,28 +983,9 @@ to ``observedValue``.
     {
       "status": "warn",
       "checks": {
-        "appdaemon:startup": [
-          {
-            "status": "pass",
-            "observedValue": true,
-            "time": "2026-11-06T10:07:23+00:00"
-          }
-        ],
-        "plugin:HASS": [
-          {
-            "status": "pass",
-            "observedValue": "connected",
-            "time": "2026-11-06T10:07:23+00:00"
-          }
-        ],
-        "apps:failed": [
-          {
-            "status": "warn",
-            "observedValue": 1,
-            "time": "2026-11-06T10:07:23+00:00",
-            "output": "failed: living_room_lights"
-          }
-        ]
+        "appdaemon:startup": [{"status": "pass", "observedValue": true, "time": "2026-11-06T10:07:23+00:00"}],
+        "plugin:HASS": [{"status": "pass", "observedValue": "connected", "time": "2026-11-06T10:07:23+00:00"}],
+        "apps:failed": [{"status": "warn", "observedValue": 1, "time": "2026-11-06T10:07:23+00:00", "output": "failed: living_room_lights"}]
       }
     }
 
@@ -1044,35 +996,10 @@ to ``observedValue``.
     {
       "status": "fail",
       "checks": {
-        "appdaemon:startup": [
-          {
-            "status": "pass",
-            "observedValue": true,
-            "time": "2026-11-06T10:07:23+00:00"
-          }
-        ],
-        "plugin:HASS": [
-          {
-            "status": "pass",
-            "observedValue": "connected",
-            "time": "2026-11-06T10:07:23+00:00"
-          }
-        ],
-        "plugin:MQTT": [
-          {
-            "status": "fail",
-            "observedValue": "disconnected",
-            "time": "2026-11-06T10:07:23+00:00",
-            "output": "plugin is not connected and ready"
-          }
-        ],
-        "apps:failed": [
-          {
-            "status": "pass",
-            "observedValue": 0,
-            "time": "2026-11-06T10:07:23+00:00"
-          }
-        ]
+        "appdaemon:startup": [{"status": "pass", "observedValue": true, "time": "2026-11-06T10:07:23+00:00"}],
+        "plugin:HASS": [{"status": "pass", "observedValue": "connected", "time": "2026-11-06T10:07:23+00:00"}],
+        "plugin:MQTT": [{"status": "fail", "observedValue": "disconnected", "time": "2026-11-06T10:07:23+00:00", "output": "plugin is not connected and ready"}],
+        "apps:failed": [{"status": "pass", "observedValue": 0, "time": "2026-11-06T10:07:23+00:00"}]
       }
     }
 
@@ -1083,18 +1010,9 @@ to ``observedValue``.
     {
       "status": "fail",
       "checks": {
-        "utility:lastProgress": [
-          {
-            "status": "fail",
-            "observedValue": 312.0,
-            "time": "2026-11-06T10:07:23+00:00",
-            "output": "no progress in 312s; app 'slow_app' has been initializing since 2026-11-06T10:02:11+00:00",
-            "observedUnit": "s"
-          }
-        ]
+        "utility:lastProgress": [{"status": "fail", "observedValue": 312.0, "observedUnit": "s", "time": "2026-11-06T10:07:23+00:00", "output": "no progress in 312s; app 'slow_app' has been initializing since 2026-11-06T10:02:11+00:00"}]
       }
     }
-    {"status": "pass"}
 
 Any request without valid credentials when a password is configured gets only the status (HTTP ``200`` here, ``503`` on ``fail``):
 
