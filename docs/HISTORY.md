@@ -4,11 +4,11 @@
 
 **Features**
 
-None
+- Added `/livez` and `/readyz` health endpoints to the HTTP component, in the IETF health check format #739
 
 **Fixes**
 
-None
+- A malformed login cookie returned a 500 instead of failing authentication, and a wrong cookie on the API returned no response
 
 **Breaking Changes**
 
@@ -16,7 +16,8 @@ None
 
 **Changes in Behavior**
 
-None
+- A dashboard named `livez` or `readyz` is now shadowed by the health endpoints
+- Login cookies are rejected unless their bcrypt cost matches the configured `work_factor`, so users must log in again after changing it
 
 ## 4.5.15 (2026-11-06)
 

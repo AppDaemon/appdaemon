@@ -43,6 +43,13 @@ if TYPE_CHECKING:
 T = TypeVar("T")
 
 
+INITIALIZING = "initializing"
+INITIALIZE_ERROR = "initialize_error"
+COMPILE_ERROR = "compile_error"
+FAILED_STATES = frozenset({INITIALIZE_ERROR, COMPILE_ERROR})
+"""App states that mean the app is not running because of an error in it, as opposed to a missing dependency"""
+
+
 class AppManagement:
     """Subsystem container for managing app lifecycles"""
 
@@ -194,6 +201,23 @@ class AppManagement:
             await self.check_app_updates(mode=UpdateMode.TERMINATE)
             await self.AD.events.process_event("global", {"event_type": "appd_stopped", "data": {}})
             self.logger.debug("All apps stopped")
+
+    def _apps_in_states(self, states: Iterable[str]) -> list[tuple[str, dict]]:
+        """Admin ``app.*`` entities currently in any of the states, as ``(app name, entity)`` sorted by name"""
+        return sorted(
+            (entity_id.removeprefix("app."), entity)
+            for entity_id, entity in self.AD.state.state.get("admin", {}).items()
+            if entity_id.startswith("app.") and entity.get("state") in states
+        )  # fmt: skip
+
+    def failed_apps(self) -> list[str]:
+        """Names of apps that failed to initialize or load, sorted."""
+        return [name for name, _ in self._apps_in_states(FAILED_STATES)]
+
+    def initializing_apps(self) -> list[tuple[str, str]]:
+        """``(app name, last_changed)`` of apps whose ``initialize()`` hasn't returned, oldest first."""
+        apps = ((name, entity["last_changed"]) for name, entity in self._apps_in_states({INITIALIZING}))
+        return sorted(apps, key=lambda app: app[1])
 
     async def set_state(self, name: str, **kwargs):
         # not a fully qualified entity name
@@ -355,12 +379,15 @@ class AppManagement:
             raise ade.BadInitializeMethod(app_obj.__class__, err_path, signature)
 
         # Call its initialize function
-        await self.set_state(app_name, state="initializing")
+        await self.set_state(app_name, state=INITIALIZING)
         self.logger.info(f"Calling initialize() for {app_name}")
-        if asyncio.iscoroutinefunction(init_func):
-            await init_func()
-        else:
-            await run_in_executor(self, init_func)
+        try:
+            if asyncio.iscoroutinefunction(init_func):
+                await init_func()
+            else:
+                await run_in_executor(self, init_func)
+        finally:
+            self.AD.utility.record_progress()
 
     async def terminate_app(self, app_name: str, *, delete: bool = True) -> bool:
         try:
@@ -475,7 +502,7 @@ class AppManagement:
             self.logger.warning(f"App '{app_name}' failed to start")
 
             await self.increase_inactive_apps(app_name)
-            await self.set_state(app_name, state="initialize_error")
+            await self.set_state(app_name, state=INITIALIZE_ERROR)
             self.objects[app_name].running = False
             raise ade.InitializationFail(app_name) from e
         else:
@@ -625,7 +652,7 @@ class AppManagement:
                     )
                 return new_obj
             except Exception as exc:
-                await self.set_state(app_name, state="compile_error")
+                await self.set_state(app_name, state=COMPILE_ERROR)
                 await self.increase_inactive_apps(app_name)
                 raise ade.AppInstantiationError(app_name) from exc
 
@@ -794,7 +821,7 @@ class AppManagement:
             if name not in self.objects
             and isinstance(cfg, AppConfig)
             and not cfg.disable
-            and await self.get_state(name) != "compile_error"
+            and await self.get_state(name) != COMPILE_ERROR
         }  # fmt: skip
 
     @executor_decorator
@@ -1289,7 +1316,7 @@ class AppManagement:
                             update_actions.apps.failed.add(app_name)
                             raise ade.AppStartFailure(app_name) from exc
 
-                    if await self.get_state(app_name) != "compile_error":
+                    if await self.get_state(app_name) != COMPILE_ERROR:
                         await safe_start(self)
 
     async def _import_modules(self, update_actions: UpdateActions) -> set[str]:
@@ -1319,7 +1346,7 @@ class AppManagement:
                         update_actions.modules.failed |= dm.dependent_modules(module_name)
                         update_actions.apps.failed |= dm.dependent_apps(module_name)
                         for app_name in update_actions.apps.failed:
-                            await self.set_state(app_name, state="compile_error")
+                            await self.set_state(app_name, state=COMPILE_ERROR)
                             await self.increase_inactive_apps(app_name)
 
                         # Handle this down here to avoid having to repeat all the above logic for

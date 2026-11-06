@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import timedelta
 from logging import Logger
-from time import perf_counter
+from time import monotonic, perf_counter
 from typing import TYPE_CHECKING
 
 from . import exceptions as ade
@@ -74,8 +74,20 @@ class Utility:
         self.AD = ad
         self.logger = ad.logging.get_child(self.name)
         self.booted = None
+        self.last_progress: float | None = None
+        """:func:`time.monotonic` of the last loop iteration or app ``initialize()`` to finish, for ``/livez``"""
+        self.startup_complete = False
+        """Set once plugins are ready and apps have been started"""
 
         self.app_update_event = asyncio.Event()
+
+    def record_progress(self) -> None:
+        """Marks that the utility loop is not stalled.
+
+        Also called when an app finishes ``initialize()``, wherever that was triggered from (a reload, an API restart,
+        a plugin reconnect), since it can run for longer than the loop's own iteration.
+        """
+        self.last_progress = monotonic()
 
     def start(self) -> None:
         """Starts the utility loop by creating the async task for the :meth:`~.utility_loop.Utility.loop` method."""
@@ -171,10 +183,13 @@ class Utility:
         self.AD.sched.start()
 
         if self.AD.apps_enabled:
+            self.record_progress()
             await self.AD.app_management.start()
 
             # Fire APPD Started Event
             await self.AD.events.process_event("global", {"event_type": "appd_started", "data": {}})
+
+        self.startup_complete = True
 
     async def loop(self):
         """Run the utility loop, which handles the following:
@@ -266,6 +281,7 @@ class Utility:
             self.logger.warning("-" * 60)
         finally:
             self.app_update_event.set()
+            self.record_progress()
             timing.record_time("total")
 
             self.logger.debug(
