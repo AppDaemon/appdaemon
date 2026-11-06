@@ -2,6 +2,7 @@ import asyncio
 import contextlib
 import copy
 import cProfile
+import datetime
 import functools
 import importlib
 import inspect
@@ -73,6 +74,9 @@ class AppManagement:
     check_app_updates_profile_stats: str = ""
     check_updates_lock: asyncio.Lock = asyncio.Lock()
 
+    initializing_since: dict[str, datetime.datetime]
+    """Wall-clock start of each ``initialize()`` call that hasn't returned yet"""
+
     dependency_manager: DependencyManager
 
     reversed_graph: dict[str, set[str]] = {}
@@ -90,6 +94,7 @@ class AppManagement:
         self.diag = ad.logging.get_diag()
         self.filter_files = {}
         self.objects = {}
+        self.initializing_since = {}
 
         # Add Path for adbase
         sys.path.insert(0, os.path.dirname(__file__))
@@ -356,11 +361,16 @@ class AppManagement:
 
         # Call its initialize function
         await self.set_state(app_name, state="initializing")
+        self.initializing_since[app_name] = datetime.datetime.now(datetime.timezone.utc)
         self.logger.info(f"Calling initialize() for {app_name}")
-        if asyncio.iscoroutinefunction(init_func):
-            await init_func()
-        else:
-            await run_in_executor(self, init_func)
+        try:
+            if asyncio.iscoroutinefunction(init_func):
+                await init_func()
+            else:
+                await run_in_executor(self, init_func)
+        finally:
+            self.initializing_since.pop(app_name, None)
+            self.AD.utility.record_progress()
 
     async def terminate_app(self, app_name: str, *, delete: bool = True) -> bool:
         try:

@@ -1,13 +1,15 @@
 """Tests for the /livez and /readyz health endpoints."""
 
+import asyncio
 from datetime import timedelta
 from time import monotonic
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
-from appdaemon import health
+from appdaemon import health, utility_loop
+from appdaemon.app_management import AppManagement
 from appdaemon.http import HTTP
 from appdaemon.models.config import MainConfig
 from appdaemon.utility_loop import Utility
@@ -29,9 +31,10 @@ def _make_ad(plugins: dict[str, bool] | None = None, app_states: dict[str, str] 
     ad.stopping = False
     ad.apps_enabled = True
     ad.config.utility_delay = timedelta(seconds=1)
-    ad.utility.last_tick = monotonic()
+    ad.utility.last_progress = monotonic()
     ad.utility.startup_complete = True
     ad.utility.loop_task.done.return_value = False
+    ad.app_management.initializing_since = {}
     ad.plugins.config = {name: MagicMock(disabled=False) for name in plugins}
     ad.plugins.plugin_objs = {f"ns_{name}": _plugin(name, ready) for name, ready in plugins.items()}
     ad.state.state = {
@@ -120,12 +123,12 @@ async def test_livez_pass():
     assert status == 200
     assert content_type == "application/health+json"
     assert body["status"] == "pass"
-    assert body["checks"]["utility:lastTick"][0]["status"] == "pass"
+    assert body["checks"]["utility:lastProgress"][0]["status"] == "pass"
 
 
 async def test_livez_fail_on_stale_loop():
     ad = _make_ad()
-    ad.utility.last_tick = monotonic() - health.MIN_TICK_TIMEOUT - 5
+    ad.utility.last_progress = monotonic() - health.MIN_PROGRESS_TIMEOUT - 5
     status, _, body = await _get(_make_http(ad), "/livez")
     assert status == 503
     assert body["status"] == "fail"
@@ -140,7 +143,7 @@ async def test_livez_fail_when_loop_task_died():
 
 async def test_livez_pass_before_first_tick():
     ad = _make_ad()
-    ad.utility.last_tick = None
+    ad.utility.last_progress = None
     status, _, _ = await _get(_make_http(ad), "/livez")
     assert status == 200
 
@@ -149,7 +152,7 @@ async def test_livez_ignores_disconnected_plugin_and_failed_apps():
     ad = _make_ad(plugins={"HASS": False}, app_states={"bad": "initialize_error"})
     status, _, body = await _get(_make_http(ad), "/livez")
     assert status == 200
-    assert set(body["checks"]) == {"utility:lastTick"}
+    assert set(body["checks"]) == {"utility:lastProgress"}
 
 
 @pytest.mark.parametrize("path", ["/livez", "/readyz"])
@@ -163,7 +166,7 @@ async def test_detail_hidden_without_credentials(path):
 @pytest.mark.parametrize("path", ["/livez", "/readyz"])
 async def test_status_code_still_reflects_failure_without_credentials(path):
     ad = _make_ad(plugins={"HASS": False})
-    ad.utility.last_tick = monotonic() - 1000
+    ad.utility.last_progress = monotonic() - 1000
     status, _, body = await _get(_make_http(ad, password="secret"), path)
     assert status == 503
     assert body == {"status": "fail"}
@@ -192,12 +195,98 @@ async def test_health_routes_win_over_dashboard_catch_all():
         assert (status, content_type) == (200, "application/health+json")
 
 
+class _Clock:
+    now = 1000.0
+
+    def __call__(self) -> float:
+        return self.now
+
+
+@pytest.fixture
+def clock(monkeypatch) -> _Clock:
+    clock = _Clock()
+    monkeypatch.setattr(health, "monotonic", clock)
+    monkeypatch.setattr(utility_loop, "monotonic", clock)
+    return clock
+
+
+def _real_app_management(utility: Utility, init) -> AppManagement:
+    ad = MagicMock()
+    ad.utility = utility
+    am = AppManagement(ad)
+    am.objects["app"] = MagicMock(object=MagicMock(initialize=init))
+    am.set_state = AsyncMock()
+    am.app_module_rel_path = MagicMock()
+    return am
+
+
+async def test_livez_pass_during_long_reload_while_apps_keep_initializing(clock):
+    utility = Utility(MagicMock())
+    utility.record_progress()
+
+    async def init():
+        pass
+
+    am = _real_app_management(utility, init)
+    ad = _make_ad()
+    ad.utility, ad.app_management = utility, am
+    # A reload of many slow apps blocks the loop well past the threshold overall
+    for _ in range(5):
+        clock.now += health.MIN_PROGRESS_TIMEOUT / 2
+        await am.initialize_app("app")
+        assert health.overall_status(health.liveness_checks(ad)) == "pass"
+    assert clock.now - 1000 > health.MIN_PROGRESS_TIMEOUT
+
+
+async def test_livez_fail_on_hung_initialize_names_app(clock):
+    utility = Utility(MagicMock())
+    utility.record_progress()
+    release = asyncio.Event()
+
+    async def init():
+        await release.wait()
+
+    am = _real_app_management(utility, init)
+    ad = _make_ad()
+    ad.utility, ad.app_management = utility, am
+    task = asyncio.create_task(am.initialize_app("app"))
+    await asyncio.sleep(0)
+    clock.now += health.MIN_PROGRESS_TIMEOUT + 12
+    check = health.liveness_checks(ad)["utility:lastProgress"][0]
+    assert check["status"] == "fail"
+    assert check["observedValue"] == health.MIN_PROGRESS_TIMEOUT + 12
+    assert "app 'app' has been initializing since" in check["output"]
+    release.set()
+    await task
+    assert health.overall_status(health.liveness_checks(ad)) == "pass"
+
+
+async def test_livez_stall_without_initializing_app_says_so(clock):
+    ad = _make_ad()
+    ad.utility.last_progress = clock.now - health.MIN_PROGRESS_TIMEOUT - 1
+    output = health.liveness_checks(ad)["utility:lastProgress"][0]["output"]
+    assert output == f"utility loop has made no progress in {health.MIN_PROGRESS_TIMEOUT + 1:g}s"
+
+
+async def test_initialize_app_records_progress_when_initialize_raises(clock):
+    utility = Utility(MagicMock())
+
+    async def init():
+        raise RuntimeError("boom")
+
+    am = _real_app_management(utility, init)
+    with pytest.raises(RuntimeError):
+        await am.initialize_app("app")
+    assert utility.last_progress == clock.now
+    assert am.initializing_since == {}
+
+
 async def test_utility_loop_iteration_records_tick():
     ad = MagicMock()
     ad.real_time = False
     ad.stopping = True
     utility = Utility(ad)
-    assert utility.last_tick is None
+    assert utility.last_progress is None
     async with utility._loop_iteration_context():
         pass
-    assert utility.last_tick is not None
+    assert utility.last_progress is not None

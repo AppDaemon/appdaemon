@@ -924,9 +924,11 @@ monitoring tools. They are available whenever the ``http`` component is configur
 or HADashboard are enabled, and a dashboard named ``livez`` or ``readyz`` will not shadow them.
 
 ``GET /livez``
-    Whether the AppDaemon process is alive and not wedged. It returns ``503`` only when the utility loop has stopped or has not
-    completed an iteration for 60 seconds (or ten times ``utility_delay``, if that is larger), which is something a restart fixes.
-    It never depends on Home Assistant or any other plugin, and a restart on a plugin outage would not help.
+    Whether the AppDaemon process is alive and not wedged. It returns ``503`` only when the utility loop has made no progress for
+    300 seconds (or ten times ``utility_delay``, if that is larger), which is something a restart fixes. Progress is the utility loop
+    finishing an iteration or any app finishing its ``initialize()`` (successfully or not), so a long reload of many apps is not a stall,
+    but a single ``initialize()`` that never returns is, and the check names that app. It never depends on Home Assistant or any
+    other plugin, and a restart on a plugin outage would not help.
 
 ``GET /readyz``
     Whether AppDaemon is doing its job. It returns ``503`` until startup has completed (plugins ready, apps initialized), while AppDaemon
@@ -950,11 +952,146 @@ The HTTP status code is the verdict: ``200`` for ``pass`` and ``warn``, ``503`` 
       }
     }
 
-``/livez`` reports a single check, ``utility:lastTick``, whose ``observedValue`` is the age of the last utility loop iteration in seconds.
+``/livez`` reports a single check, ``utility:lastProgress``, whose ``observedValue`` is the time since the last progress in seconds.
 
 If a ``password`` is configured for the HTTP component, requests without valid credentials (the same ``x-ad-access`` header,
 ``api_password`` query parameter or dashboard cookie the API accepts) only receive the status code and ``{"status": ...}``; the ``checks``
 detail is omitted. When no password is configured, the detail is always included, as with the API.
+
+Example responses
+^^^^^^^^^^^^^^^^^
+
+The server decides what counts as stuck (see the thresholds above). How patient a probe is before acting on a failure is the client's
+setting (``failureThreshold`` in Kubernetes, ``retries`` in Compose). Clients that read the JSON can also apply their own threshold
+to ``observedValue``.
+
+``/readyz``, passing, with valid credentials or no password configured:
+
+.. code:: json
+
+    {
+      "status": "pass",
+      "checks": {
+        "appdaemon:startup": [
+          {
+            "status": "pass",
+            "observedValue": true,
+            "time": "2026-11-06T10:07:23+00:00"
+          }
+        ],
+        "plugin:HASS": [
+          {
+            "status": "pass",
+            "observedValue": "connected",
+            "time": "2026-11-06T10:07:23+00:00"
+          }
+        ],
+        "plugin:MQTT": [
+          {
+            "status": "pass",
+            "observedValue": "connected",
+            "time": "2026-11-06T10:07:23+00:00"
+          }
+        ],
+        "apps:failed": [
+          {
+            "status": "pass",
+            "observedValue": 0,
+            "time": "2026-11-06T10:07:23+00:00"
+          }
+        ]
+      }
+    }
+
+``/readyz``, a user app failed to initialize (HTTP ``200``):
+
+.. code:: json
+
+    {
+      "status": "warn",
+      "checks": {
+        "appdaemon:startup": [
+          {
+            "status": "pass",
+            "observedValue": true,
+            "time": "2026-11-06T10:07:23+00:00"
+          }
+        ],
+        "plugin:HASS": [
+          {
+            "status": "pass",
+            "observedValue": "connected",
+            "time": "2026-11-06T10:07:23+00:00"
+          }
+        ],
+        "apps:failed": [
+          {
+            "status": "warn",
+            "observedValue": 1,
+            "time": "2026-11-06T10:07:23+00:00",
+            "output": "failed: living_room_lights"
+          }
+        ]
+      }
+    }
+
+``/readyz``, Home Assistant disconnected (HTTP ``503``):
+
+.. code:: json
+
+    {
+      "status": "fail",
+      "checks": {
+        "appdaemon:startup": [
+          {
+            "status": "pass",
+            "observedValue": true,
+            "time": "2026-11-06T10:07:23+00:00"
+          }
+        ],
+        "plugin:HASS": [
+          {
+            "status": "fail",
+            "observedValue": "disconnected",
+            "time": "2026-11-06T10:07:23+00:00",
+            "output": "plugin is not connected and ready"
+          }
+        ],
+        "apps:failed": [
+          {
+            "status": "pass",
+            "observedValue": 0,
+            "time": "2026-11-06T10:07:23+00:00"
+          }
+        ]
+      }
+    }
+
+``/livez``, an app's ``initialize()`` never returned (HTTP ``503``):
+
+.. code:: json
+
+    {
+      "status": "fail",
+      "checks": {
+        "utility:lastProgress": [
+          {
+            "status": "fail",
+            "observedValue": 312.0,
+            "time": "2026-11-06T10:07:23+00:00",
+            "output": "no progress in 312s; app 'slow_app' has been initializing since 2026-11-06T10:02:11+00:00",
+            "observedUnit": "s"
+          }
+        ]
+      }
+    }
+    {"status": "pass"}
+
+Any request without valid credentials when a password is configured gets only the status (HTTP ``200`` here, ``503`` on ``fail``):
+
+.. code:: json
+
+    {"status": "pass"}
 
 To use ``/livez`` as a Docker Compose health check (the image includes busybox ``wget``):
 

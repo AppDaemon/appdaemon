@@ -74,12 +74,16 @@ class Utility:
         self.AD = ad
         self.logger = ad.logging.get_child(self.name)
         self.booted = None
-        self.last_tick: float | None = None
-        """:func:`time.monotonic` at the end of the last loop iteration, for the health endpoints"""
+        self.last_progress: float | None = None
+        """:func:`time.monotonic` of the last loop iteration or app ``initialize()`` to finish, for ``/livez``"""
         self.startup_complete = False
         """Set once plugins are ready and apps have been started"""
 
         self.app_update_event = asyncio.Event()
+
+    def record_progress(self) -> None:
+        """Marks that the utility loop is not stalled."""
+        self.last_progress = monotonic()
 
     def start(self) -> None:
         """Starts the utility loop by creating the async task for the :meth:`~.utility_loop.Utility.loop` method."""
@@ -175,6 +179,7 @@ class Utility:
         self.AD.sched.start()
 
         if self.AD.apps_enabled:
+            self.record_progress()
             await self.AD.app_management.start()
 
             # Fire APPD Started Event
@@ -272,7 +277,7 @@ class Utility:
             self.logger.warning("-" * 60)
         finally:
             self.app_update_event.set()
-            self.last_tick = monotonic()
+            self.record_progress()
             timing.record_time("total")
 
             self.logger.debug(

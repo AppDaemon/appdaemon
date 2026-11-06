@@ -15,8 +15,8 @@ Check = dict[str, Any]
 Checks = dict[str, list[Check]]
 
 CONTENT_TYPE = "application/health+json"
-MIN_TICK_TIMEOUT = 60.0
-"""Smallest age of the utility loop's last tick, in seconds, that counts as wedged"""
+MIN_PROGRESS_TIMEOUT = 300.0
+"""Smallest time without progress, in seconds, that counts as wedged"""
 FAILED_APP_STATES = {"initialize_error", "compile_error"}
 
 
@@ -43,22 +43,28 @@ def overall_status(checks: Checks) -> Status:
 def liveness_checks(ad: "AppDaemon") -> Checks:
     """Checks only things a restart would fix, so nothing here may depend on a plugin."""
     utility = ad.utility
-    timeout = max(MIN_TICK_TIMEOUT, 10 * ad.config.utility_delay.total_seconds())
+    timeout = max(MIN_PROGRESS_TIMEOUT, 10 * ad.config.utility_delay.total_seconds())
     task = getattr(utility, "loop_task", None)
 
     if task is not None and task.done() and not ad.stopping:
         check = _check("fail", None, "utility loop is not running")
-    elif utility.last_tick is None:
+    elif utility.last_progress is None:
         # Still starting up, which can legitimately take a while (e.g. waiting on plugins)
-        check = _check("pass", None, "utility loop has not ticked yet")
+        check = _check("pass", None, "utility loop has not started yet")
     else:
-        age = round(monotonic() - utility.last_tick, 1)
+        age = round(monotonic() - utility.last_progress, 1)
         if age > timeout:
-            check = _check("fail", age, f"utility loop has not ticked in {timeout:g}s")
+            output = f"no progress in {age:g}s"
+            if ad.app_management.initializing_since:
+                name, since = min(ad.app_management.initializing_since.items(), key=lambda item: item[1])
+                output += f"; app '{name}' has been initializing since {since.isoformat(timespec='seconds')}"
+            else:
+                output = f"utility loop has made no progress in {age:g}s"
+            check = _check("fail", age, output)
         else:
             check = _check("pass", age)
     check[0]["observedUnit"] = "s"
-    return {"utility:lastTick": check}
+    return {"utility:lastProgress": check}
 
 
 def failed_apps(ad: "AppDaemon") -> list[str]:
