@@ -4,7 +4,7 @@
 
 **Features**
 
-None
+- Logs written to STDOUT or STDERR can prefix each line with its syslog priority (`level_prefix: syslog`), so systemd-journald records the real level
 
 **Fixes**
 
