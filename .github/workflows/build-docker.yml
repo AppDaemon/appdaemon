@@ -5,7 +5,6 @@ name: Build and Deploy Docker Image
 on:
   workflow_run:
     workflows: ["Python CI"]
-    branches: ['**']
     types:
       - completed
 
