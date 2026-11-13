@@ -9,6 +9,7 @@ None
 **Fixes**
 
 - Logs configured with `filename: STDERR` now write to stderr instead of stdout (#2699)
+- CI Build fix for Docker
 
 **Breaking Changes**
 
