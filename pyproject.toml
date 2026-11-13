@@ -5,7 +5,7 @@ readme = "README.md"
 authors = [
     {name = "Andrew I Cockburn", email = "appdaemon@acockburn.com"}
 ]
-version = "4.5.16"
+version = "4.5.17"
 license-files = [ "LICENSE.md" ]
 requires-python = ">=3.10,<3.15"
 keywords=[ "appdaemon", "home", "automation" ]
