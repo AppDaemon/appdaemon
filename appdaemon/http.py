@@ -492,6 +492,18 @@ class HTTP:
         if recompile == "1":
             recompile = True
 
+        # Dashboard name and skin are used to build filesystem paths, so reject
+        # any value containing path separators or parent references (CWE-22).
+        for value in (name, skin):
+            if (
+                not value
+                or "/" in value
+                or "\\" in value
+                or ".." in value
+                or (os.altsep is not None and os.altsep in value)
+            ):
+                return self.get_response(request, 400, "Invalid dashboard request")
+
         response = await run_in_executor(self, self.dashboard_obj.get_dashboard, name, skin, recompile)
 
         return web.Response(text=response, content_type="text/html")
