@@ -228,6 +228,9 @@ class PluginManagement:
     "active": <bool>,
     "name": <str>
     }}``
+
+    The ``active`` flag is purely a runtime failure signal: True from registration, set False only by
+    ``notify_plugin_stopped``, and set True again by ``notify_plugin_started``.
     """
     required_meta = ["latitude", "longitude", "elevation", "time_zone"]
     last_plugin_state: dict[str, datetime.datetime]
@@ -311,7 +314,7 @@ class PluginManagement:
                         case {"object": PluginBase(name=str(existing_plugin))}:
                             raise ade.PluginNamespaceError(name, namespace, existing_plugin)
 
-                    self.plugin_objs[namespace] = {"object": plugin, "active": False, "name": name}
+                    self._register_plugin(name, plugin, namespace)
 
                     if self.AD.apps_enabled:
                         # Create app entry for the plugin so we can listen_state/event
@@ -326,6 +329,15 @@ class PluginManagement:
                     self.logger.warning("-" * 60)
                     self.logger.warning(traceback.format_exc())
                     self.logger.warning("-" * 60)
+
+    def _register_plugin(self, name: str, plugin: PluginBase, namespace: str) -> None:
+        """Records an instantiated plugin in ``plugin_objs`` and seeds its state-refresh timestamp.
+        """
+        self.plugin_objs[namespace] = {"object": plugin, "active": True, "name": name}
+        # Seed the refresh timestamp directly instead of via sched.get_now_sync(), which is
+        # deprecated-datetime based; only the elapsed delta is ever compared, so a naive UTC now
+        # is equivalent to what refresh_update_time records later
+        self.last_plugin_state[name] = datetime.datetime.now(tz=datetime.timezone.utc)
 
     @property
     def plugin_dir(self) -> Path:
@@ -362,10 +374,17 @@ class PluginManagement:
                         continue
 
                     self.logger.debug("Stopping plugin '%s'", name)
-                    if asyncio.iscoroutinefunction(stop_func):
-                        await stop_func()
-                    else:
-                        stop_func()
+                    try:
+                        if asyncio.iscoroutinefunction(stop_func):
+                            await stop_func()
+                        else:
+                            stop_func()
+                    except Exception:
+                        self.logger.warning("-" * 60)
+                        self.logger.warning("Error stopping plugin: %s - continuing shutdown", name)
+                        self.logger.warning("-" * 60)
+                        self.logger.warning(traceback.format_exc())
+                        self.logger.warning("-" * 60)
 
                     await self.AD.callbacks.clear_callbacks(name)
                     self.AD.futures.cancel_futures(name)
@@ -436,6 +455,10 @@ class PluginManagement:
                 return name
         else:
             raise NameError(f"Bad namespace: {namespace}")
+
+    def any_plugin_inactive(self) -> bool:
+        """Whether any configured plugin is currently marked inactive."""
+        return any(not plugin_cfg.get("active", True) for plugin_cfg in self.plugin_objs.values())
 
     async def notify_plugin_stopped(self, name: str, namespace: str):
         self.plugin_objs[namespace]["active"] = False

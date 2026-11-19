@@ -455,9 +455,9 @@ class Threading:
 
             if self.AD.real_time and duration >= self.AD.thread_duration_warning_threshold:
                 thread_name = f"thread.{thread_id}"
-                callback = await self.get_state(thread_name)
+                completed_callback = await self.get_state(thread_name)
                 self.logger.warning(
-                    f"Excessive time spent in callback {callback}. "
+                    f"Excessive time spent in callback {completed_callback}. "
                     f"Thread entity: '{thread_name}' - now complete after {format_timedelta(duration)} "
                     f"(limit={format_timedelta(self.AD.thread_duration_warning_threshold)})"
                 )
