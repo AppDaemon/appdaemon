@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, RootModel
 
@@ -24,6 +24,7 @@ class AppDaemonLogConfig(BaseModel):
     filter_threshold: int = 1
     filter_timeout: ParsedTimedelta = timedelta(seconds=0.9)
     filter_repeat_delay: ParsedTimedelta = timedelta(seconds=5.0)
+    level_prefix: Literal["syslog"] | None = None
 
 
 class AppDaemonFullLogConfig(RootModel):

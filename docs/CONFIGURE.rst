@@ -410,6 +410,9 @@ The directives are as follows:
 - ``filter_threshold`` (optional) - number of repetitions of a log line allowed before filtering starts (default is 1). Setting ``filter_threshold`` to zero will turn off log filtering entirely - since AppDaemon relies on this mechanism internally to prevent certain types of log loops, this is not recommended.
 - ``filter_timeout`` (optional) - timeout for log filtering. Duplicate log entries that are output less frequently than this value will not have filtering applied (default is 0.9 seconds)
 - ``filter_repeat_delay`` (optional) - when filtering, repeating messages will be printed out periodically every ``filter_repeat_delay`` seconds (default is 5 seconds)
+- ``level_prefix`` (optional) - set to ``syslog`` to start each line with its syslog priority: ``<2>`` for CRITICAL, ``<3>`` ERROR, ``<4>`` WARNING, ``<6>`` INFO and ``<7>`` DEBUG (custom levels use the nearest standard level below them).
+  This lets systemd-journald (``SyslogLevelPrefix=``, on by default for a service's output) and similar collectors record the real level of each line. Every line of a multi-line entry, such as a traceback, is prefixed.
+  Only valid when ``filename`` is ``STDOUT`` or ``STDERR``. Log callbacks receive lines without the prefix.
 
 Note: Filter parameters are set globally, but are applied to individual apps and modules within AppDaemon. This means that log messages interspersed from different apps or from AppDaemon itself even though different, will not reset the filtering of log messages from an individual app if they carry on repeating.
 
