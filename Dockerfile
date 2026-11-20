@@ -9,7 +9,7 @@
 # The image is written out literally (not via ARGs) so Dependabot can keep its digest up to date; Dependabot only
 # refreshes the digest of this tag, moving to a new Python or Alpine version is a manual change.
 ARG PYTHON_RELEASE=3.12
-FROM python:3.12-alpine3.23@sha256:a4ad86fc2eaa4f9a5c3153776c9fb56e502dbd8e23dfa855d164308f376a6dd2 AS base
+FROM python:3.12-alpine3.23@sha256:9a7b46da82fe49a9118e0aa7e35ac3b831aa53ad4f4ebf3e16654732bc958a62 AS base
 
 # Image for building dependencies (on architectures that don't provide a ready-made Python wheel)
 FROM base AS builder
